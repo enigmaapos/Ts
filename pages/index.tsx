@@ -3,12 +3,6 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const [candles15m, setCandles15m] = useState([]);
   const [ema70, setEma70] = useState(null);
-  const [ath, setAth] = useState(null);
-  const [atl, setAtl] = useState(null);
-  const [recentATH, setRecentATH] = useState(null);
-  const [recentATL, setRecentATL] = useState(null);
-  const [previousATHInfo, setPreviousATHInfo] = useState(null);
-  const [previousATLInfo, setPreviousATLInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const calculateEMA = (data, period) => {
@@ -54,41 +48,10 @@ export default function Home() {
         const lowestCandle = candlesWithEma.reduce((min, c) => (c.low < min.low ? c : min), candlesWithEma[0]);
         const highestCandle = candlesWithEma.reduce((max, c) => (c.high > max.high ? c : max), candlesWithEma[0]);
 
-        setRecentATL({
-          price: lowestCandle.low,
-          time: new Date(lowestCandle.time).toLocaleDateString(),
-          ema70: lowestCandle.ema70,
-          gap: ((lowestCandle.ema70 - lowestCandle.low) / lowestCandle.low) * 100,
-        });
-
-        setRecentATH({
-          price: highestCandle.high,
-          time: new Date(highestCandle.time).toLocaleDateString(),
-          ema70: highestCandle.ema70,
-          gap: ((highestCandle.high - highestCandle.ema70) / highestCandle.high) * 100,
-        });
-
-        setPreviousATLInfo({
-          price: lowestCandle.low,
-          time: new Date(lowestCandle.time).toLocaleDateString(),
-        });
-
-        setPreviousATHInfo({
-          price: highestCandle.high,
-          time: new Date(highestCandle.time).toLocaleDateString(),
-        });
-      } catch (err) {
-        console.error("Error loading 15m futures candles:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBTC15mCandles();
-  }, []);
+        
 
   useEffect(() => {
-    const fetchFuturesAthAtl = async () => {
+    const fetchFuturesPairs = async () => {
       try {
         const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=1500");
         if (!res.ok) throw new Error("Failed to fetch futures data");
@@ -106,16 +69,10 @@ export default function Home() {
       }
     };
 
-    fetchFuturesAthAtl();
+    fetchFuturesPairs();
   }, []);
 
-  const isValid = !isNaN(parseFloat(ema70)) && parseFloat(ema70) > 0;
-  const athGap = isValid && ath ? ((ath - ema70) / ema70) * 100 : 0;
-  const atlGap = isValid && atl ? ((ema70 - atl) / atl) * 100 : 0;
-
-  const getAthSignal = () => (athGap > 100 ? 'Bullish Continuation' : 'Possible Reversal');
-  const getAtlSignal = () => (atlGap > 100 ? 'Bearish Continuation' : 'Possible Reversal');
-
+  
 
 
   return (
