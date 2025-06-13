@@ -1,55 +1,61 @@
-import React, { useState, useEffect } from 'react';
-
-
-
-
+import { useEffect, useState } from "react";
 
 export default function Home() {
-        const [ath, setAth] = useState(null);
-        const [atl, setAtl] = useState(null);
-        const [ema70, setEma70] = useState('');
-        const [loading, setLoading] = useState(true);
-        const [weeklyCandles, setWeeklyCandles] = useState([]);
+  const [ath, setAth] = useState(null);
+  const [atl, setAtl] = useState(null);
+  const [ema70, setEma70] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [candles15m, setCandles15m] = useState([]);
 
-        useEffect(() => {
-                const fetchBTCWeeklyCandles = async () => {
-                        try {
-                                const res = await fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1w&limit=200");
-                                if (!res.ok) throw new Error("Failed to fetch weekly candles");
-                                const data = await res.json();
-                                const formatted = data.map((candle) => ({
-                                        time: Number(candle[0]),
-                                        open: parseFloat(candle[1]),
-                                        high: parseFloat(candle[2]),
-                                        low: parseFloat(candle[3]),
-                                        close: parseFloat(candle[4]),
-                                        volume: parseFloat(candle[5]),
-                                }));
+  useEffect(() => {
+    const fetchBTC15mCandles = async () => {
+      try {
+        const res = await fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=500");
+        if (!res.ok) throw new Error("Failed to fetch 15m candles");
 
-                                const ema14 = calculateEMA(formatted, 14);
-                                const ema70 = calculateEMA(formatted, 70);
+        const data = await res.json();
+        const formatted = data.map((candle) => ({
+          time: Number(candle[0]),
+          open: parseFloat(candle[1]),
+          high: parseFloat(candle[2]),
+          low: parseFloat(candle[3]),
+          close: parseFloat(candle[4]),
+          volume: parseFloat(candle[5]),
+        }));
 
-                                const candlesWithEma = formatted.map((candle, idx) => ({
-                                        ...candle,
-                                        ema14: ema14[idx] || 0,
-                                        ema70: ema70[idx] || 0,
-                                }));
+        const ema14 = calculateEMA(formatted, 14);
+        const ema70 = calculateEMA(formatted, 70);
 
-                                setWeeklyCandles(candlesWithEma);
-                        } catch (err) {
-                                console.error("Error loading candles:", err);
-                        }
-                };
+        const candlesWithEma = formatted.map((candle, idx) => ({
+          ...candle,
+          ema14: ema14[idx] || 0,
+          ema70: ema70[idx] || 0,
+        }));
 
-                fetchBTCWeeklyCandles();
-        }, []);
+        setCandles15m(candlesWithEma);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error loading 15m candles:", err);
+        setLoading(false);
+      }
+    };
 
-        useEffect(() => {
-                if (weeklyCandles.length > 0) {
-                        const lastEma = weeklyCandles[weeklyCandles.length - 1].ema70;
-                        if (lastEma && lastEma > 0) setEma70(lastEma.toFixed(2));
-                }
-        }, [weeklyCandles]);
+    fetchBTC15mCandles();
+  }, []);
+
+  useEffect(() => {
+    if (candles15m.length > 0) {
+      const lastEma = candles15m[candles15m.length - 1].ema70;
+      if (lastEma && lastEma > 0) setEma70(lastEma.toFixed(2));
+    }
+  }, [candles15m]);
+
+  return (
+    <div className="text-white">
+      {/* Your UI logic goes here (like the one in your previous return block) */}
+    </div>
+  );
+}
 
         const calculateEMA = (data, period) => {
                 const k = 2 / (period + 1);
