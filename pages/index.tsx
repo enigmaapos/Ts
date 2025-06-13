@@ -144,11 +144,16 @@ export default function Home() {
           volume: +c[5],
         }));
 
+        
+
         const closes = candles.map((c) => c.close);
+        const highs = candles.map(c => c.high);
+          const lows = candles.map(c => c.low);
         const ema14 = calculateEMA(closes, 14);
         const ema70 = calculateEMA(closes, 70);
         const rsi14 = calculateRSI(closes);
 
+        const lastClose = closes.at(-1)!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
         const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
@@ -229,13 +234,13 @@ export default function Home() {
 
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
-function detectBullishContinuation(
+const detectBullishContinuation = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
   lows: number[],
   closes: number[]
-): boolean {
+): boolean => {
   const len = closes.length;
   if (len < 3) return false;
 
@@ -268,15 +273,15 @@ function detectBullishContinuation(
   }
 
   return false;
-}
+};
 
-function detectBearishContinuation(
+const detectBearishContinuation = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
   highs: number[],
   closes: number[]
-): boolean {
+): boolean => {
   const len = closes.length;
   if (len < 3) return false;
 
@@ -309,11 +314,11 @@ function detectBearishContinuation(
   }
 
   return false;
-    }
+};
 
-          const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, closes);
+// Usage
+const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, closes);
 const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, closes);
-
 
         return {
           symbol,
