@@ -89,13 +89,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
 const [allSymbols, setAllSymbols] = useState<string[]>([]);
 const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
-  const [filteredSignals, setFilteredSignals] = useState<any[]>([]);
-  
 
-  const filteredSignals = signals.filter((s) =>
-    s.symbol.toLowerCase().includes(search.toLowerCase())
-  );
-  
   
   useEffect(() => {
   const loadAllSymbols = async () => {
@@ -364,6 +358,10 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   return () => clearInterval(interval);
 }, [activeSymbols]);
 
+const filteredSignals = signals.filter((s) =>
+s.symbol.toLowerCase().includes(search.toLowerCase())
+);
+  
 const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
   const value = e.target.value.toUpperCase();
   setSearch(value);
