@@ -50,12 +50,7 @@ export default function Home() {
     }
   }, [candles15m]);
 
-  return (
-    <div className="text-white">
-      {/* Your UI logic goes here (like the one in your previous return block) */}
-    </div>
-  );
-}
+
 
         const calculateEMA = (data, period) => {
                 const k = 2 / (period + 1);
