@@ -259,13 +259,13 @@ useEffect(() => {
               <td className="p-2">{s.ema70Bounce ? "Yes" : "No"}</td>
               <td className="p-2">{s.nearOrAtEMA70Divergence ? "Yes" : "No"}</td>
               <td className="p-2">{s.touchedEMA70Today ? "Yes" : "No"}</td>
-              <td className="p-2">{s.inferredLevel.toFixed(2)}</td>
+              <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
               <td className="p-2">{s.inferredLevelType}</td>
               <td className="p-2">{s.inferredLevelWithinRange ? "Yes" : "No"}</td>
-              <td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
+              <td className="p-2">{s.differenceVsEMA70.toFixed(9)}%</td>
               <td className="p-2">{s.divergenceFromLevel ? "Yes" : "No"}</td>
               <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
-              <td className="p-2">{s.lastClose.toFixed(4)}</td>
+              <td className="p-2">{s.lastClose.toFixed(9)}</td>
             </tr>
           ))}
         </tbody>
