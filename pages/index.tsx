@@ -371,7 +371,7 @@ const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
 };
 
   const displayedSignals = search
-  ? displayedSignals.filter((s) =>
+  ? filteredSignals.filter((s) =>
       s.symbol.toLowerCase().includes(search.toLowerCase())
     )
   : filteredSignals;
