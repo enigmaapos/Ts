@@ -82,7 +82,7 @@ function findRelevantLevel(
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
   return { level, type };
-}
+       }
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -91,78 +91,81 @@ export default function Home() {
   const filteredSignals = signals.filter((s) =>
     s.symbol.toLowerCase().includes(search.toLowerCase())
   );
-  
-  
+
   useEffect(() => {
-    const fetchSignals = async () => {
+    let isMounted = true;
+
+    const BATCH_SIZE = 10;
+    const INTERVAL_MS = 1000;
+    let currentIndex = 0;
+    let symbols: string[] = [];
+
+    const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
+      Date.UTC(y, m, d, hPH - 8, min);
+
+    const getSessions = () => {
+      const now = new Date();
+      const year = now.getUTCFullYear();
+      const month = now.getUTCMonth();
+      const date = now.getUTCDate();
+
+      const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
+      const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+
+      let sessionStart: number, sessionEnd: number;
+      if (now.getTime() >= today8AM_UTC) {
+        sessionStart = today8AM_UTC;
+        sessionEnd = tomorrow745AM_UTC;
+      } else {
+        const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
+        const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
+        sessionStart = yesterday8AM_UTC;
+        sessionEnd = today745AM_UTC;
+      }
+
+      const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
+      const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
+
+      return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
+    };
+
+    const fetchAndAnalyze = async (symbol: string) => {
       try {
-        const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-        const usdtSymbols = exchangeInfo.symbols
-          .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-          .slice(0, 500)
-          .map((s: any) => s.symbol);
+        const raw = await fetch(
+          `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`
+        ).then((res) => res.json());
 
-        const now = new Date();
-        const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
-          Date.UTC(y, m, d, hPH - 8, min);
+        const candles = raw.map((c: any) => ({
+          timestamp: c[0],
+          open: +c[1],
+          high: +c[2],
+          low: +c[3],
+          close: +c[4],
+          volume: +c[5],
+        }));
 
-        const year = now.getUTCFullYear();
-        const month = now.getUTCMonth();
-        const date = now.getUTCDate();
+        const closes = candles.map((c) => c.close);
+        const ema14 = calculateEMA(closes, 14);
+        const ema70 = calculateEMA(closes, 70);
+        const rsi14 = calculateRSI(closes);
 
-        const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
-        const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+        const lastEMA14 = ema14.at(-1)!;
+        const lastEMA70 = ema70.at(-1)!;
+        const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 
-        let sessionStart: number, sessionEnd: number;
-        if (now.getTime() >= today8AM_UTC) {
-          sessionStart = today8AM_UTC;
-          sessionEnd = tomorrow745AM_UTC;
-        } else {
-          const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
-          const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
-          sessionStart = yesterday8AM_UTC;
-          sessionEnd = today745AM_UTC;
-        }
+        const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
 
-        const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
-        const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
+        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
+        const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
 
-        const fetchAndAnalyze = async (symbol: string) => {
-          const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`)
-            .then(res => res.json());
+        const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
+        const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
+        const prevSessionLow = candlesPrev.length > 0 ? Math.min(...candlesPrev.map(c => c.low)) : null;
+        const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
 
-          const candles = raw.map((c: any) => ({
-            timestamp: c[0],
-            open: +c[1],
-            high: +c[2],
-            low: +c[3],
-            close: +c[4],
-            volume: +c[5],
-          }));
-
-          const closes = candles.map(c => c.close);
-          const highs = candles.map(c => c.high);
-          const lows = candles.map(c => c.low);
-          const ema14 = calculateEMA(closes, 14);
-          const ema70 = calculateEMA(closes, 70);
-          const rsi14 = calculateRSI(closes);
-
-          const lastClose = closes.at(-1)!;
-          const lastEMA14 = ema14.at(-1)!;
-          const lastEMA70 = ema70.at(-1)!;
-          const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
-
-          const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
-          const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
-
-          const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
-          const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
-          const prevSessionLow = candlesPrev.length > 0 ? Math.min(...candlesPrev.map(c => c.low)) : null;
-          const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
-
-          const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
-          const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
-          const breakout = bullishBreakout || bearishBreakout;
+        const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
+        const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
+        const breakout = bullishBreakout || bearishBreakout;
 
           // ✅ Updated divergence logic
           const currentRSI = rsi14.at(-1);
@@ -312,17 +315,13 @@ function detectBearishContinuation(
 const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, closes);
 
 
-
-
-          
-
-          return {
-            symbol,
-            trend,
-            breakout,
-            bullishBreakout,
-            bearishBreakout,
-            divergence,
+        return {
+          symbol,
+          trend,
+          breakout,
+          bullishBreakout,
+          bearishBreakout,
+          divergence,
             divergenceType,
             ema14Bounce,
             ema70Bounce,
@@ -337,45 +336,84 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
             lastClose,
               bearishContinuation,
   bullishContinuation,
-          };
         };
-
-        const results = await Promise.all(usdtSymbols.map(fetchAndAnalyze));
-        setSignals(results);
       } catch (err) {
-        console.error("Signal fetch error:", err);
+        console.error("Error processing", symbol, err);
+        return null;
       }
     };
 
-    fetchSignals();
+    const fetchSymbols = async () => {
+      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+      symbols = info.symbols
+        .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+        .slice(0, 500)
+        .map((s: any) => s.symbol);
+    };
+
+    const runBatches = async () => {
+      await fetchSymbols();
+      fetchBatch(); // first batch
+      const interval = setInterval(fetchBatch, INTERVAL_MS);
+      return () => clearInterval(interval);
+    };
+
+    const fetchBatch = async () => {
+      if (!symbols.length) return;
+
+      const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+      currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+
+      const results = await Promise.all(batch.map(fetchAndAnalyze));
+      const cleanedResults = results.filter(r => r !== null);
+
+      if (isMounted) {
+        setSignals((prev) => {
+          const updated = [...prev];
+          for (const result of cleanedResults) {
+            const index = updated.findIndex((r) => r.symbol === result.symbol);
+            if (index >= 0) updated[index] = result;
+            else updated.push(result);
+          }
+          return updated;
+        });
+      }
+    };
+
+    const stop = runBatches();
+
+    return () => {
+      isMounted = false;
+      stop.then((clear) => clear && clear());
+    };
   }, []);
 
-    return (
-      <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-  <h1 className="text-3xl font-bold text-yellow-400 mb-4">
-    Binance 15m Signal Analysis (UTC)
-  </h1>
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-4">
+        Binance 15m Signal Analysis (UTC)
+      </h1>
 
-  <div className="mb-4">
-    <input
-      type="text"
-      placeholder="Search symbol..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-    />
-  </div>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search symbol..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+        />
+      </div>
 
-  <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-    <table className="min-w-[1600px] text-xs border-collapse">
-      <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-        <tr>
-          <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
-          <th className="p-2">Trend</th>
-          <th className="p-2">Breakout</th>
-          <th className="p-2">Bullish Break</th>
-          <th className="p-2">Bearish Break</th>
-          <th className="p-2">Divergence</th>
+      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+        <table className="min-w-[1600px] text-xs border-collapse">
+          <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+            <tr>
+              <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
+              <th className="p-2">Trend</th>
+              <th className="p-2">Breakout</th>
+              <th className="p-2">Bullish Break</th>
+              <th className="p-2">Bearish Break</th>
+                <th className="p-2">Divergence</th>
           <th className="p-2">Diverge Type</th>
           <th className="p-2">EMA14 Bounce</th>
           <th className="p-2">EMA70 Bounce</th>
@@ -390,33 +428,31 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
           <th className="p-2">Level Divergence</th>
           <th className="p-2">Level Div Type</th>
           <th className="p-2">Last Close</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filteredSignals.map((s) => (
-          <tr key={s.symbol} className="border-b border-gray-700">
-            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
-
-            <td className={`p-2 font-semibold ${
-              s.trend === "bullish"
-                ? "text-green-400"
-                : s.trend === "bearish"
-                ? "text-red-400"
-                : "text-gray-400"
-            }`}>
-              {s.trend}
-            </td>
-
-            <td className={`p-2 ${s.breakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
-              {s.breakout ? "Yes" : "No"}
-            </td>
-            <td className={`p-2 ${s.bullishBreakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
-              {s.bullishBreakout ? "Yes" : "No"}
-            </td>
-            <td className={`p-2 ${s.bearishBreakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
-              {s.bearishBreakout ? "Yes" : "No"}
-            </td>
-            <td className={`p-2 ${s.divergence ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredSignals.map((s) => (
+              <tr key={s.symbol} className="border-b border-gray-700">
+                <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
+                <td className={`p-2 font-semibold ${
+                  s.trend === "bullish"
+                    ? "text-green-400"
+                    : s.trend === "bearish"
+                    ? "text-red-400"
+                    : "text-gray-400"
+                }`}>
+                  {s.trend}
+                </td>
+                <td className={`p-2 ${s.breakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
+                  {s.breakout ? "Yes" : "No"}
+                </td>
+                <td className={`p-2 ${s.bullishBreakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
+                  {s.bullishBreakout ? "Yes" : "No"}
+                </td>
+                <td className={`p-2 ${s.bearishBreakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
+                  {s.bearishBreakout ? "Yes" : "No"}
+                </td>
+                  <td className={`p-2 ${s.divergence ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.divergence ? "Yes" : "No"}
             </td>
             <td className="p-2">{s.divergenceType || "None"}</td>
@@ -449,11 +485,11 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
             </td>
             <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
             <td className="p-2">{s.lastClose.toFixed(9)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div> 
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
