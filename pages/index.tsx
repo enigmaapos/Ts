@@ -258,7 +258,7 @@ export default function Home() {
       <table className="min-w-[1600px] text-xs border-collapse">
         <thead className="bg-gray-800 text-yellow-300">
           <tr>
-            <th className="p-2">Symbol</th>
+            <th className="p-2 sticky left-0 bg-gray-800 z-10">Symbol</th>
             <th className="p-2">Trend</th>
             <th className="p-2">Breakout</th>
             <th className="p-2">Bullish Break</th>
@@ -281,7 +281,7 @@ export default function Home() {
         <tbody>
           {signals.map((s) => (
             <tr key={s.symbol} className="border-b border-gray-700">
-              <td className="p-2 font-bold">{s.symbol}</td>
+              <td className="p-2 font-bold sticky left-0 bg-gray-900 z-0">{s.symbol}</td>
               <td className="p-2">{s.trend}</td>
               <td className="p-2">{s.breakout ? "Yes" : "No"}</td>
               <td className="p-2">{s.bullishBreakout ? "Yes" : "No"}</td>
