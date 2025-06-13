@@ -6,6 +6,10 @@ export default function Home() {
   const [ema70, setEma70] = useState('');
   const [loading, setLoading] = useState(true);
   const [candles15m, setCandles15m] = useState([]);
+  const [recentATL, setRecentATL] = useState(null);
+const [recentATH, setRecentATH] = useState(null);
+const [previousATLInfo, setPreviousATLInfo] = useState(null);
+const [previousATHInfo, setPreviousATHInfo] = useState(null);
 
   useEffect(() => {
   const fetchBTC15mCandles = async () => {
@@ -43,6 +47,34 @@ export default function Home() {
   fetchBTC15mCandles();
 }, []);
 
+  // Find the ATL candle (lowest low)
+const lowestCandle = candlesWithEma.reduce((min, c) => c.low < min.low ? c : min, candlesWithEma[0]);
+// Find the ATH candle (highest high)
+const highestCandle = candlesWithEma.reduce((max, c) => c.high > max.high ? c : max, candlesWithEma[0]);
+
+setRecentATL({
+  price: lowestCandle.low,
+  time: new Date(lowestCandle.time).toLocaleDateString(),
+  ema70: lowestCandle.ema70,
+  gap: ((lowestCandle.ema70 - lowestCandle.low) / lowestCandle.low) * 100,
+});
+
+setRecentATH({
+  price: highestCandle.high,
+  time: new Date(highestCandle.time).toLocaleDateString(),
+  ema70: highestCandle.ema70,
+  gap: ((highestCandle.high - highestCandle.ema70) / highestCandle.high) * 100,
+});
+
+setPreviousATLInfo({
+  price: lowestCandle.low,
+  time: new Date(lowestCandle.time).toLocaleDateString(),
+});
+
+setPreviousATHInfo({
+  price: highestCandle.high,
+  time: new Date(highestCandle.time).toLocaleDateString(),
+});
 
 
         const calculateEMA = (data, period) => {
@@ -345,6 +377,32 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
             <p>SL: ${getAtlSignal() === 'Bearish Continuation' ? bearish.stopLoss.toFixed(2) : bullishReversal.stopLoss.toFixed(2)}</p>
             <p>TP: ${getAtlSignal() === 'Bearish Continuation' ? bearish.takeProfit2.toFixed(2) : bullishReversal.takeProfit1.toFixed(2)} to ${getAtlSignal() === 'Bearish Continuation' ? bearish.takeProfit1.toFixed(2) : bullishReversal.takeProfit2.toFixed(2)}</p>
           </div>
+
+          {recentATL && (
+  <div className="bg-gray-900 p-4 mt-6 rounded-lg border border-red-600">
+    <h2 className="text-xl font-bold text-red-400 mb-2">🔻 Recent ATL Snapshot</h2>
+    <p>Price: ${recentATL.price.toFixed(2)}</p>
+    <p>Date: {recentATL.time}</p>
+    <p>EMA70 at ATL: ${recentATL.ema70.toFixed(2)}</p>
+    <p className="text-yellow-300 font-semibold">
+      Gap to EMA70: {recentATL.gap.toFixed(2)}%
+    </p>
+  </div>
+)}
+
+{recentATH && (
+  <div className="bg-gray-900 p-4 mt-6 rounded-lg border border-green-600">
+    <h2 className="text-xl font-bold text-green-400 mb-2">🚀 Recent ATH Snapshot</h2>
+    <p>Price: ${recentATH.price.toFixed(2)}</p>
+    <p>Date: {recentATH.time}</p>
+    <p>EMA70 at ATH: ${recentATH.ema70.toFixed(2)}</p>
+    <p className="text-yellow-300 font-semibold">
+      Gap to EMA70: {recentATH.gap.toFixed(2)}%
+    </p>
+  </div>
+)}
+
+          
         </div>
       </>
     )}
