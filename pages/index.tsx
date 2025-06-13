@@ -99,7 +99,7 @@ export default function Home() {
         const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
         const usdtSymbols = exchangeInfo.symbols
           .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-          .slice(0, 30000)
+          .slice(0, 5000)
           .map((s: any) => s.symbol);
 
         const now = new Date();
