@@ -143,7 +143,6 @@ export default function Home() {
             prevSessionLow <= lastEMA70 &&
             candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
 
-          // 🆕 Custom Level Analysis (example input: level = EMA70, type = 'support' or 'resistance')
           const level = lastEMA70;
           const type = trend === 'bullish' ? 'resistance' : 'support';
 
@@ -164,6 +163,12 @@ export default function Home() {
             }
           }
 
+          const recentHighs = highs.slice(-3);
+          const recentLows = lows.slice(-3);
+          const highestHigh = Math.max(...recentHighs);
+          const lowestLow = Math.min(...recentLows);
+          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
+
           return {
             symbol,
             trend,
@@ -175,6 +180,7 @@ export default function Home() {
             touchedEMA70Today,
             divergenceFromLevel,
             divergenceFromLevelType,
+            inferredLevel,
             lastClose,
           };
         };
@@ -208,6 +214,7 @@ export default function Home() {
                 <th className="p-2 text-left">Touched EMA70</th>
                 <th className="p-2 text-left">Diverge @ EMA</th>
                 <th className="p-2 text-left">Level Diverge</th>
+                <th className="p-2 text-left">Inferred Level</th>
                 <th className="p-2 text-left">Last Close</th>
               </tr>
             </thead>
@@ -223,7 +230,8 @@ export default function Home() {
                   <td className="p-2">{signal.touchedEMA70Today ? 'Yes' : 'No'}</td>
                   <td className="p-2">{signal.divergenceFromLevelType || 'None'}</td>
                   <td className="p-2">{signal.divergenceFromLevel ? 'Yes' : 'No'}</td>
-                  <td className="p-2">{signal.lastClose.toFixed(2)}</td>
+                  <td className="p-2">{signal.inferredLevel?.toFixed(9)}</td>
+                  <td className="p-2">{signal.lastClose.toFixed(9)}</td>
                 </tr>
               ))}
             </tbody>
