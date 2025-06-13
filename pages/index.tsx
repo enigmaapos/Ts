@@ -158,27 +158,43 @@ export default function Home() {
           const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
           const breakout = bullishBreakout || bearishBreakout;
 
+          // ✅ Updated divergence logic
           const currentRSI = rsi14.at(-1);
           const prevHighIdx = highs.lastIndexOf(prevSessionHigh!);
           const prevLowIdx = lows.lastIndexOf(prevSessionLow!);
-          const prevHighRSI = rsi14[prevHighIdx] ?? null;
-          const prevLowRSI = rsi14[prevLowIdx] ?? null;
+          const prevHighRSI = prevHighIdx !== -1 ? rsi14[prevHighIdx] : null;
+          const prevLowRSI = prevLowIdx !== -1 ? rsi14[prevLowIdx] : null;
 
           let divergenceType: 'bullish' | 'bearish' | null = null;
-          if (lows.at(-1)! < prevSessionLow! && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
+          if (
+            lows.at(-1)! < prevSessionLow! &&
+            prevLowRSI !== null &&
+            currentRSI !== undefined &&
+            currentRSI > prevLowRSI
+          ) {
             divergenceType = 'bullish';
-          } else if (highs.at(-1)! > prevSessionHigh! && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
+          } else if (
+            highs.at(-1)! > prevSessionHigh! &&
+            prevHighRSI !== null &&
+            currentRSI !== undefined &&
+            currentRSI < prevHighRSI
+          ) {
             divergenceType = 'bearish';
           }
 
           const divergence = divergenceType !== null;
+          const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
+
           const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);
           const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
           const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
           const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
-          const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
 
           const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
+          const highestHigh = Math.max(...highs);
+          const lowestLow = Math.min(...lows);
+          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
+          const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
           let divergenceFromLevel = false;
           let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
@@ -279,7 +295,7 @@ export default function Home() {
               <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
               <td className="p-2">{s.inferredLevelType}</td>
               <td className="p-2">{s.inferredLevelWithinRange ? "Yes" : "No"}</td>
-              <td className="p-2">{s.differenceVsEMA70.toFixed(9)}%</td>
+              <td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
               <td className="p-2">{s.divergenceFromLevel ? "Yes" : "No"}</td>
               <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
               <td className="p-2">{s.lastClose.toFixed(9)}</td>
