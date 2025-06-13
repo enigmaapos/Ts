@@ -99,7 +99,7 @@ export default function Home() {
         const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
         const usdtSymbols = exchangeInfo.symbols
           .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-          .slice(0, 100)
+          .slice(0, 300)
           .map((s: any) => s.symbol);
 
         const now = new Date();
@@ -351,99 +351,100 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   }, []);
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-4">
-        Binance 15m Signal Analysis (UTC)
-      </h1>
+       <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
+  <h1 className="text-3xl font-bold text-yellow-400 mb-4">
+    Binance 15m Signal Analysis (UTC)
+  </h1>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search symbol..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-        />
-      </div>
+  <div className="mb-4">
+    <input
+      type="text"
+      placeholder="Search symbol..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+    />
+  </div>
 
-      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-        <table className="min-w-[1600px] text-xs border-collapse">
-          <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-            <tr>
-              <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
-              <th className="p-2">Trend</th>
-              <th className="p-2">Breakout</th>
-              <th className="p-2">Bullish Break</th>
-              <th className="p-2">Bearish Break</th>
-              <th className="p-2">Divergence</th>
-              <th className="p-2">Diverge Type</th>
-              <th className="p-2">EMA14 Bounce</th>
-              <th className="p-2">EMA70 Bounce</th>
-              <th className="p-2">Near EMA70 Diverge</th>
-              <th className="p-2">Touched EMA70</th>
-              <th className="p-2">Bearish Cont.</th>
-              <th className="p-2">Bullish Cont.</th>
-              <th className="p-2">Inferred Level</th>
-              <th className="p-2">Level Type</th>
-              <th className="p-2">Level In Range</th>
-              <th className="p-2">%Diff vs EMA70</th>
-              <th className="p-2">Level Divergence</th>
-              <th className="p-2">Level Div Type</th>
-              <th className="p-2">Last Close</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSignals.map((s) => (
-              <tr key={s.symbol} className="border-b border-gray-700">
-                <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
-                <td className="p-2">{s.trend}</td>
-                <td className={`p-2 ${s.breakout ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.breakout ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.bullishBreakout ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.bullishBreakout ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.bearishBreakout ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.bearishBreakout ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.divergence ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.divergence ? "Yes" : "No"}
-                </td>
-                <td className="p-2">{s.divergenceType || "None"}</td>
-                <td className={`p-2 ${s.ema14Bounce ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.ema14Bounce ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.ema70Bounce ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.ema70Bounce ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.nearOrAtEMA70Divergence ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.nearOrAtEMA70Divergence ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.touchedEMA70Today ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.touchedEMA70Today ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.bearishContinuation ? "bg-red-800 text-white font-bold" : ""}`}>
-                  {s.bearishContinuation ? "Yes" : "No"}
-                </td>
-                <td className={`p-2 ${s.bullishContinuation ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.bullishContinuation ? "Yes" : "No"}
-                </td>
-                <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
-                <td className="p-2">{s.inferredLevelType}</td>
-                <td className={`p-2 ${s.inferredLevelWithinRange ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.inferredLevelWithinRange ? "Yes" : "No"}
-                </td>
-                <td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
-                <td className={`p-2 ${s.divergenceFromLevel ? "bg-green-800 text-white font-bold" : ""}`}>
-                  {s.divergenceFromLevel ? "Yes" : "No"}
-                </td>
-                <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
-                <td className="p-2">{s.lastClose.toFixed(9)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+    <table className="min-w-[1600px] text-xs border-collapse">
+      <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+        <tr>
+          <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
+          <th className="p-2">Trend</th>
+          <th className="p-2">Breakout</th>
+          <th className="p-2">Bullish Break</th>
+          <th className="p-2">Bearish Break</th>
+          <th className="p-2">Divergence</th>
+          <th className="p-2">Diverge Type</th>
+          <th className="p-2">EMA14 Bounce</th>
+          <th className="p-2">EMA70 Bounce</th>
+          <th className="p-2">Near EMA70 Diverge</th>
+          <th className="p-2">Touched EMA70</th>
+          <th className="p-2">Bearish Cont.</th>
+          <th className="p-2">Bullish Cont.</th>
+          <th className="p-2">Inferred Level</th>
+          <th className="p-2">Level Type</th>
+          <th className="p-2">Level In Range</th>
+          <th className="p-2">%Diff vs EMA70</th>
+          <th className="p-2">Level Divergence</th>
+          <th className="p-2">Level Div Type</th>
+          <th className="p-2">Last Close</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredSignals.map((s) => (
+          <tr key={s.symbol} className="border-b border-gray-700">
+            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
+            <td className="p-2">{s.trend}</td>
+
+            <td className={`p-2 ${s.breakout ? "bg-blue-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.breakout ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.bullishBreakout ? "bg-green-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.bullishBreakout ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.bearishBreakout ? "bg-red-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.bearishBreakout ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.divergence ? "bg-purple-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.divergence ? "Yes" : "No"}
+            </td>
+            <td className="p-2">{s.divergenceType || "None"}</td>
+            <td className={`p-2 ${s.ema14Bounce ? "bg-yellow-600 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.ema14Bounce ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.ema70Bounce ? "bg-orange-600 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.ema70Bounce ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.nearOrAtEMA70Divergence ? "bg-indigo-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.nearOrAtEMA70Divergence ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.touchedEMA70Today ? "bg-cyan-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.touchedEMA70Today ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.bearishContinuation ? "bg-rose-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.bearishContinuation ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.bullishContinuation ? "bg-lime-600 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.bullishContinuation ? "Yes" : "No"}
+            </td>
+            <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
+            <td className="p-2">{s.inferredLevelType}</td>
+            <td className={`p-2 ${s.inferredLevelWithinRange ? "bg-teal-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.inferredLevelWithinRange ? "Yes" : "No"}
+            </td>
+            <td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
+            <td className={`p-2 ${s.divergenceFromLevel ? "bg-pink-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+              {s.divergenceFromLevel ? "Yes" : "No"}
+            </td>
+            <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
+            <td className="p-2">{s.lastClose.toFixed(9)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div> 
   );
 }
