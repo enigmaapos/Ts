@@ -87,6 +87,9 @@ function findRelevantLevel(
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+const [allSymbols, setAllSymbols] = useState<string[]>([]);
+const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
+  
 
   const filteredSignals = signals.filter((s) =>
     s.symbol.toLowerCase().includes(search.toLowerCase())
@@ -94,13 +97,18 @@ export default function Home() {
   
   
   useEffect(() => {
-    const fetchSignals = async () => {
-      try {
-        const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-        const usdtSymbols = exchangeInfo.symbols
-          .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-          .slice(0, 3000)
-          .map((s: any) => s.symbol);
+  const loadAllSymbols = async () => {
+    const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+    const usdtSymbols = exchangeInfo.symbols
+      .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+      .map((s: any) => s.symbol);
+
+    setAllSymbols(usdtSymbols);
+    setActiveSymbols(usdtSymbols.slice(0, 50)); // start with top 50
+  };
+
+  loadAllSymbols();
+}, []);
 
         const now = new Date();
         const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
@@ -127,9 +135,11 @@ export default function Home() {
         const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
         const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
 
-        const fetchAndAnalyze = async (symbol: string) => {
-          const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`)
-            .then(res => res.json());
+        useEffect(() => {
+  const fetchSignals = async () => {
+    const fetchAndAnalyze = async (symbol: string) => {
+      const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`)
+        .then(res => res.json());
 
           const candles = raw.map((c: any) => ({
             timestamp: c[0],
@@ -340,15 +350,34 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
           };
         };
 
-        const results = await Promise.all(usdtSymbols.map(fetchAndAnalyze));
-        setSignals(results);
-      } catch (err) {
-        console.error("Signal fetch error:", err);
-      }
-    };
+           try {
+      const signals = await Promise.all(activeSymbols.map(fetchAndAnalyze));
+      setFilteredSignals(signals);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  };
 
-    fetchSignals();
-  }, []);
+      fetchSignals();
+  const interval = setInterval(fetchSignals, 1000);
+  return () => clearInterval(interval);
+}, [activeSymbols]);
+
+const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value.toUpperCase();
+  setSearch(value);
+
+  // If a valid symbol is typed and not in activeSymbols, add it
+  if (value && allSymbols.includes(value) && !activeSymbols.includes(value)) {
+    setActiveSymbols((prev) => [value, ...prev.slice(0, 49)]); // keep 50 total
+  }
+};
+
+  const displayedSignals = search
+  ? filteredSignals.filter((s) => s.symbol.includes(search.toUpperCase()))
+  : filteredSignals;
+  
+  
 
     return (
       <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
@@ -358,12 +387,12 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
 
   <div className="mb-4">
     <input
-      type="text"
-      placeholder="Search symbol..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-    />
+  type="text"
+  value={search}
+  onChange={handleSearch}
+  placeholder="Search symbol..."
+  className="px-2 py-1 rounded bg-gray-800 text-white border border-gray-600"
+/>
   </div>
 
   <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
