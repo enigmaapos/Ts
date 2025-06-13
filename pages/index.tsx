@@ -1,89 +1,161 @@
 import { useEffect, useState } from "react";
 
+function calculateEMA(data, period) {
+  const k = 2 / (period + 1);
+  const ema = [];
+  let previousEma = null;
+
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      ema.push(NaN);
+      continue;
+    }
+    if (i === period - 1) {
+      const sma = data.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+      previousEma = sma;
+    }
+    if (previousEma !== null) {
+      const currentEma = data[i] * k + previousEma * (1 - k);
+      ema.push(currentEma);
+      previousEma = currentEma;
+    }
+  }
+  return ema;
+}
+
+function calculateRSI(closes, period = 14) {
+  const rsi = [];
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    if (i <= period) {
+      if (diff > 0) gains += diff;
+      else losses -= diff;
+
+      if (i === period) {
+        const avgGain = gains / period;
+        const avgLoss = losses / period;
+        const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+        rsi.push(100 - 100 / (1 + rs));
+      } else {
+        rsi.push(NaN);
+      }
+    } else {
+      const gain = diff > 0 ? diff : 0;
+      const loss = diff < 0 ? -diff : 0;
+      gains = (gains * (period - 1) + gain) / period;
+      losses = (losses * (period - 1) + loss) / period;
+      const rs = losses === 0 ? 100 : gains / losses;
+      rsi.push(100 - 100 / (1 + rs));
+    }
+  }
+
+  rsi.unshift(...Array(closes.length - rsi.length).fill(NaN));
+  return rsi;
+}
+
 export default function Home() {
   const [candles15m, setCandles15m] = useState([]);
-  const [ema70, setEma70] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const calculateEMA = (data, period) => {
-    const k = 2 / (period + 1);
-    let emaArray = [];
-    let ema = data.slice(0, period).reduce((sum, val) => sum + val.close, 0) / period;
-    emaArray[period - 1] = ema;
-
-    for (let i = period; i < data.length; i++) {
-      ema = data[i].close * k + ema * (1 - k);
-      emaArray[i] = ema;
-    }
-
-    return emaArray;
-  };
+  const [signal, setSignal] = useState(null);
 
   useEffect(() => {
-    const fetchBTC15mCandles = async () => {
+    const fetchData = async () => {
       try {
         const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=500");
-        if (!res.ok) throw new Error("Failed to fetch 15m futures candles");
-
-        const data = await res.json();
-        const formatted = data.map((candle) => ({
-          time: Number(candle[0]),
-          open: parseFloat(candle[1]),
-          high: parseFloat(candle[2]),
-          low: parseFloat(candle[3]),
-          close: parseFloat(candle[4]),
-          volume: parseFloat(candle[5]),
+        const raw = await res.json();
+        const candles = raw.map(c => ({
+          timestamp: c[0],
+          open: +c[1],
+          high: +c[2],
+          low: +c[3],
+          close: +c[4],
+          volume: +c[5]
         }));
 
-        const ema70Data = calculateEMA(formatted, 70);
-        setEma70(ema70Data[ema70Data.length - 1]);
+        const closes = candles.map(c => c.close);
+        const highs = candles.map(c => c.high);
+        const lows = candles.map(c => c.low);
 
-        const candlesWithEma = formatted.map((candle, idx) => ({
-          ...candle,
-          ema70: ema70Data[idx] || 0,
-        }));
+        const ema14 = calculateEMA(closes, 14);
+        const ema70 = calculateEMA(closes, 70);
+        const rsi14 = calculateRSI(closes);
 
-        setCandles15m(candlesWithEma);
+        const lastClose = closes.at(-1);
+        const lastEMA14 = ema14.at(-1);
+        const lastEMA70 = ema70.at(-1);
 
-        const lowestCandle = candlesWithEma.reduce((min, c) => (c.low < min.low ? c : min), candlesWithEma[0]);
-        const highestCandle = candlesWithEma.reduce((max, c) => (c.high > max.high ? c : max), candlesWithEma[0]);
+        const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
 
-        
+        const now = new Date();
+        const getUTCMillis = (y, m, d, hPH, min) => Date.UTC(y, m, d, hPH - 8, min);
+        const year = now.getUTCFullYear();
+        const month = now.getUTCMonth();
+        const date = now.getUTCDate();
 
-  useEffect(() => {
-    const fetchFuturesPairs = async () => {
-      try {
-        const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=1500");
-        if (!res.ok) throw new Error("Failed to fetch futures data");
+        const today8AM = getUTCMillis(year, month, date, 8, 0);
+        const tomorrow745AM = getUTCMillis(year, month, date + 1, 7, 45);
+        const yesterday8AM = getUTCMillis(year, month, date - 1, 8, 0);
+        const today745AM = getUTCMillis(year, month, date, 7, 45);
 
-        const data = await res.json();
-        const highs = data.map(candle => parseFloat(candle[2]));
-        const lows = data.map(candle => parseFloat(candle[3]));
+        const sessionStart = now.getTime() >= today8AM ? today8AM : yesterday8AM;
+        const sessionEnd = now.getTime() >= today8AM ? tomorrow745AM : today745AM;
 
-        
-      } catch (error) {
-        console.error("Failed to fetch ATH/ATL from futures:", error);
-      } finally {
-        setLoading(false);
+        const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
+        const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
+
+        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
+        const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
+
+        const todaysHigh = Math.max(...candlesToday.map(c => c.high));
+        const todaysLow = Math.min(...candlesToday.map(c => c.low));
+        const prevHigh = Math.max(...candlesPrev.map(c => c.high));
+        const prevLow = Math.min(...candlesPrev.map(c => c.low));
+
+        const breakout = todaysHigh > prevHigh || todaysLow < prevLow;
+
+        const currentRSI = rsi14.at(-1);
+        const prevHighIdx = highs.lastIndexOf(prevHigh);
+        const prevLowIdx = lows.lastIndexOf(prevLow);
+        const prevHighRSI = rsi14[prevHighIdx] ?? null;
+        const prevLowRSI = rsi14[prevLowIdx] ?? null;
+
+        let divergence = null;
+        if (todaysLow < prevLow && currentRSI > prevLowRSI) divergence = 'bullish';
+        if (todaysHigh > prevHigh && currentRSI < prevHighRSI) divergence = 'bearish';
+
+        setCandles15m(candles);
+        setSignal({ trend, breakout, divergence });
+
+      } catch (err) {
+        console.error("Error fetching data:", err);
       }
     };
 
-    fetchFuturesPairs();
+    fetchData();
   }, []);
 
-  
-
-
   return (
-    <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white p-8 rounded-2xl shadow-2xl max-w-4xl mx-auto mt-10">
-      <h1 className="text-4xl font-extrabold mb-4 text-yellow-400">Bitcoin Signal Analyzer</h1>
-      <p className="text-lg mb-6 text-gray-300">
-        <span className="font-semibold text-white">Smart Bitcoin Trading Starts Here.</span> Instantly analyze Bitcoin's market status using ATH, ATL, and EMA70 trends. This tool gives you actionable trade setups, identifies market zones (Buy or Sell), and provides real-time insights—all in one simple interface.
-      </p>
-      <div className="border-l-4 border-yellow-400 pl-4 text-sm text-yellow-100 italic">Plan smarter. Trade better.</div>
- 
-            
-          </div>
+    <div className="bg-gray-900 text-white p-8 rounded-xl shadow-xl max-w-3xl mx-auto mt-10">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Bitcoin Signal Analyzer</h1>
+      {signal ? (
+        <div>
+          <p>Trend: <span className="font-semibold">{signal.trend}</span></p>
+          <p>Breakout: <span className="font-semibold">{signal.breakout ? 'Yes' : 'No'}</span></p>
+          <p>Divergence: <span className="font-semibold">{signal.divergence || 'None'}</span></p>
+        </div>
+      ) : (
+        <p>Loading signals...</p>
+
+      <div className="mt-6">
+  <h2 className="text-xl font-bold text-green-400">Signal Summary</h2>
+  <p>Trend: {trend}</p>
+  <p>Breakout: {breakout ? (bullishBreakout ? 'Bullish' : 'Bearish') : 'None'}</p>
+  <p>Divergence: {divergenceType || 'None'}</p>
+  <p>EMA70: {latestEMA70?.toFixed(9)}</p>
+</div>
       )}
-    }}
-            }
+    </div>
+  );
+}
