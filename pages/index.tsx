@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-function calculateEMA(data, period) {
+function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
-  const ema = [];
-  let previousEma = null;
+  const ema: number[] = [];
+  let previousEma: number | null = null;
 
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
@@ -23,8 +23,8 @@ function calculateEMA(data, period) {
   return ema;
 }
 
-function calculateRSI(closes, period = 14) {
-  const rsi = [];
+function calculateRSI(closes: number[], period = 14) {
+  const rsi: number[] = [];
   let gains = 0;
   let losses = 0;
 
@@ -56,22 +56,49 @@ function calculateRSI(closes, period = 14) {
   return rsi;
 }
 
+function findRelevantLevel(
+  ema14: number[],
+  ema70: number[],
+  closes: number[],
+  highs: number[],
+  lows: number[],
+  trend: 'bullish' | 'bearish'
+): { level: number | null; type: 'support' | 'resistance' | null } {
+  for (let i = ema14.length - 2; i >= 1; i--) {
+    const prev14 = ema14[i - 1];
+    const prev70 = ema70[i - 1];
+    const curr14 = ema14[i];
+    const curr70 = ema70[i];
+
+    if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
+      return { level: closes[i], type: 'support' };
+    }
+
+    if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
+      return { level: closes[i], type: 'resistance' };
+    }
+  }
+
+  const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
+  const type = trend === 'bullish' ? 'resistance' : 'support';
+  return { level, type };
+}
+
 export default function Home() {
-  const [candles15m, setCandles15m] = useState([]);
-  const [signal, setSignal] = useState(null);
+  const [signal, setSignal] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=500");
         const raw = await res.json();
-        const candles = raw.map(c => ({
+        const candles = raw.map((c: any) => ({
           timestamp: c[0],
           open: +c[1],
           high: +c[2],
           low: +c[3],
           close: +c[4],
-          volume: +c[5]
+          volume: +c[5],
         }));
 
         const closes = candles.map(c => c.close);
@@ -82,14 +109,13 @@ export default function Home() {
         const ema70 = calculateEMA(closes, 70);
         const rsi14 = calculateRSI(closes);
 
-        const lastClose = closes.at(-1);
         const lastEMA14 = ema14.at(-1);
         const lastEMA70 = ema70.at(-1);
-
         const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
 
         const now = new Date();
-        const getUTCMillis = (y, m, d, hPH, min) => Date.UTC(y, m, d, hPH - 8, min);
+        const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
+          Date.UTC(y, m, d, hPH - 8, min);
         const year = now.getUTCFullYear();
         const month = now.getUTCMonth();
         const date = now.getUTCDate();
@@ -125,14 +151,15 @@ export default function Home() {
         if (todaysLow < prevLow && currentRSI > prevLowRSI) divergence = 'bullish';
         if (todaysHigh > prevHigh && currentRSI < prevHighRSI) divergence = 'bearish';
 
-        setCandles15m(candles);
+        const relevantLevel = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
+
         setSignal({
           trend,
           breakout,
           divergence,
           ema70: lastEMA70,
+          relevantLevel,
         });
-
       } catch (err) {
         console.error("Error fetching data:", err);
       }
@@ -143,24 +170,30 @@ export default function Home() {
 
   return (
     <div className="bg-gray-900 text-white p-8 rounded-xl shadow-xl max-w-3xl mx-auto mt-10">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Bitcoin Signal Analyzer</h1>
-
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Bitcoin Signal Analyzer</h1>
       {signal ? (
-        <div>
-          <p>Trend: <span className="font-semibold">{signal.trend}</span></p>
-          <p>Breakout: <span className="font-semibold">{signal.breakout ? 'Yes' : 'No'}</span></p>
-          <p>Divergence: <span className="font-semibold">{signal.divergence || 'None'}</span></p>
-
-          <div className="mt-6">
-            <h2 className="text-xl font-bold text-green-400">Signal Summary</h2>
-            <p>Trend: {signal.trend}</p>
-            <p>Breakout: {signal.breakout ? 'Yes' : 'No'}</p>
-            <p>Divergence: {signal.divergence || 'None'}</p>
-            <p>EMA70: {signal.ema70?.toFixed(2)}</p>
-          </div>
+        <div className="space-y-2">
+          <p>
+            Trend: <span className="font-semibold">{signal.trend}</span>
+          </p>
+          <p>
+            Breakout: <span className="font-semibold">{signal.breakout ? "Yes" : "No"}</span>
+          </p>
+          <p>
+            Divergence: <span className="font-semibold">{signal.divergence || "None"}</span>
+          </p>
+          <p>
+            EMA70: <span className="font-semibold">{signal.ema70?.toFixed(2)}</span>
+          </p>
+          <p>
+            Relevant Level ({signal.relevantLevel?.type}):{" "}
+            <span className="font-semibold">
+              {signal.relevantLevel?.level?.toFixed(2) || "N/A"}
+            </span>
+          </p>
         </div>
       ) : (
-        <p>Loading signals...</p>
+        <p className="text-gray-400">Loading signals...</p>
       )}
     </div>
   );
