@@ -6,7 +6,6 @@ export default function Home() {
   const [ema70, setEma70] = useState('');
   const [loading, setLoading] = useState(true);
   const [candles15m, setCandles15m] = useState([]);
-  const [recentATL, setRecentATL] = useState(null);
 const [recentATH, setRecentATH] = useState(null);
 const [previousATLInfo, setPreviousATLInfo] = useState(null);
 const [previousATHInfo, setPreviousATHInfo] = useState(null);
