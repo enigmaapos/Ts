@@ -10,13 +10,6 @@ export default function Document() {
         <meta name="theme-color" content="#000000" />
         <link rel="icon" href="/favicon.ico" />
         <title>Bitcoin Signal Analyzer</title>
-
-        {/* Google AdSense Auto Ads */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8536113296585197"
-          crossOrigin="anonymous"
-        ></script>
       </Head>
       <body>
         <Main />
