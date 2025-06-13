@@ -258,7 +258,7 @@ export default function Home() {
       <table className="min-w-[1600px] text-xs border-collapse">
         <thead className="bg-gray-800 text-yellow-300">
           <tr>
-            <th className="p-2 sticky left-0 bg-gray-800 z-10">Symbol</th>
+            <thead className="sticky top-0 bg-gray-800 text-yellow-300 z-10">
             <th className="p-2">Trend</th>
             <th className="p-2">Breakout</th>
             <th className="p-2">Bullish Break</th>
