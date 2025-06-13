@@ -350,3 +350,4 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
     )}
   </div>
 );
+}
