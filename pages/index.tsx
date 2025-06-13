@@ -351,7 +351,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   }, []);
 
     return (
-       <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
+      <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
   <h1 className="text-3xl font-bold text-yellow-400 mb-4">
     Binance 15m Signal Analysis (UTC)
   </h1>
@@ -396,46 +396,55 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
         {filteredSignals.map((s) => (
           <tr key={s.symbol} className="border-b border-gray-700">
             <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
-            <td className="p-2">{s.trend}</td>
 
-            <td className={`p-2 ${s.breakout ? "bg-blue-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 font-semibold ${
+              s.trend === "bullish"
+                ? "text-green-400"
+                : s.trend === "bearish"
+                ? "text-red-400"
+                : "text-gray-400"
+            }`}>
+              {s.trend}
+            </td>
+
+            <td className={`p-2 ${s.breakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.breakout ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.bullishBreakout ? "bg-green-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.bullishBreakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.bullishBreakout ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.bearishBreakout ? "bg-red-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.bearishBreakout ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.bearishBreakout ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.divergence ? "bg-purple-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.divergence ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.divergence ? "Yes" : "No"}
             </td>
             <td className="p-2">{s.divergenceType || "None"}</td>
-            <td className={`p-2 ${s.ema14Bounce ? "bg-yellow-600 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.ema14Bounce ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.ema14Bounce ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.ema70Bounce ? "bg-orange-600 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.ema70Bounce ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.ema70Bounce ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.nearOrAtEMA70Divergence ? "bg-indigo-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.nearOrAtEMA70Divergence ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.nearOrAtEMA70Divergence ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.touchedEMA70Today ? "bg-cyan-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.touchedEMA70Today ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.touchedEMA70Today ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.bearishContinuation ? "bg-rose-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.bearishContinuation ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.bearishContinuation ? "Yes" : "No"}
             </td>
-            <td className={`p-2 ${s.bullishContinuation ? "bg-lime-600 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.bullishContinuation ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.bullishContinuation ? "Yes" : "No"}
             </td>
             <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
             <td className="p-2">{s.inferredLevelType}</td>
-            <td className={`p-2 ${s.inferredLevelWithinRange ? "bg-teal-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.inferredLevelWithinRange ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.inferredLevelWithinRange ? "Yes" : "No"}
             </td>
             <td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
-            <td className={`p-2 ${s.divergenceFromLevel ? "bg-pink-700 text-white font-bold" : "bg-gray-800 text-gray-400"}`}>
+            <td className={`p-2 ${s.divergenceFromLevel ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>
               {s.divergenceFromLevel ? "Yes" : "No"}
             </td>
             <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
