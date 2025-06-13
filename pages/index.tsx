@@ -56,87 +56,18 @@ function calculateRSI(closes: number[], period = 14) {
   return rsi;
 }
 
-function findRelevantLevel(
-  ema14: number[],
-  ema70: number[],
-  closes: number[],
-  highs: number[],
-  lows: number[],
-  trend: 'bullish' | 'bearish'
-): { level: number | null; type: 'support' | 'resistance' | null } {
-  for (let i = ema14.length - 2; i >= 1; i--) {
-    const prev14 = ema14[i - 1];
-    const prev70 = ema70[i - 1];
-    const curr14 = ema14[i];
-    const curr70 = ema70[i];
-
-    if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
-      return { level: closes[i], type: 'support' };
-    }
-
-    if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
-      return { level: closes[i], type: 'resistance' };
-    }
-  }
-
-  const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
-  const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type };
-}
-
-function calculateDifferenceVsEMA70(level: number, ema70: number): number {
-  return ((level - ema70) / level) * 100;
-}
-
 export default function Home() {
-  const [signal, setSignal] = useState<any>(null);
+  const [signals, setSignals] = useState<any[]>([]);
 
   useEffect(() => {
-  const fetchTop100USDTPerpetuals = async () => {
-    try {
-      const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-      const allSymbols = exchangeInfo.symbols.filter(
-        (s: any) =>
-          s.contractType === "PERPETUAL" &&
-          s.quoteAsset === "USDT" &&
-          s.status === "TRADING"
-      ).map((s: any) => s.symbol);
+    const fetchSignals = async () => {
+      try {
+        const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
 
-      const volumeData = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr").then(res => res.json());
-      const topSymbols = volumeData
-        .filter((item: any) => allSymbols.includes(item.symbol))
-        .sort((a: any, b: any) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-        .slice(0, 100)
-        .map((item: any) => item.symbol);
-
-      const results: any[] = [];
-
-      for (const symbol of topSymbols) {
-        const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`).then(res => res.json());
-
-        const candles = raw.map((c: any) => ({
-          timestamp: c[0],
-          open: +c[1],
-          high: +c[2],
-          low: +c[3],
-          close: +c[4],
-          volume: +c[5],
-        }));
-
-        if (candles.length < 100) continue;
-
-        const closes = candles.map(c => c.close);
-        const highs = candles.map(c => c.high);
-        const lows = candles.map(c => c.low);
-
-        const ema14 = calculateEMA(closes, 14);
-        const ema70 = calculateEMA(closes, 70);
-        const rsi14 = calculateRSI(closes);
-
-        const lastClose = closes.at(-1)!;
-        const lastEMA14 = ema14.at(-1)!;
-        const lastEMA70 = ema70.at(-1)!;
-        const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
+        const usdtSymbols = exchangeInfo.symbols
+          .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+          .slice(0, 100)
+          .map((s: any) => s.symbol);
 
         const now = new Date();
         const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
@@ -144,7 +75,6 @@ export default function Home() {
         const year = now.getUTCFullYear();
         const month = now.getUTCMonth();
         const date = now.getUTCDate();
-
         const today8AM = getUTCMillis(year, month, date, 8, 0);
         const tomorrow745AM = getUTCMillis(year, month, date + 1, 7, 45);
         const yesterday8AM = getUTCMillis(year, month, date - 1, 8, 0);
@@ -153,57 +83,125 @@ export default function Home() {
         const sessionStart = now.getTime() >= today8AM ? today8AM : yesterday8AM;
         const sessionEnd = now.getTime() >= today8AM ? tomorrow745AM : today745AM;
 
-        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
-        const candlesPrev = candles.filter(c => c.timestamp >= yesterday8AM && c.timestamp < today8AM);
+        const fetchAndAnalyze = async (symbol: string) => {
+          const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`)
+            .then(res => res.json());
+          const candles = raw.map((c: any) => ({
+            timestamp: c[0],
+            open: +c[1],
+            high: +c[2],
+            low: +c[3],
+            close: +c[4],
+            volume: +c[5],
+          }));
 
-        const prevSessionHigh = Math.max(...candlesPrev.map(c => c.high));
-        const prevSessionLow = Math.min(...candlesPrev.map(c => c.low));
+          const closes = candles.map(c => c.close);
+          const highs = candles.map(c => c.high);
+          const lows = candles.map(c => c.low);
+          const ema14 = calculateEMA(closes, 14);
+          const ema70 = calculateEMA(closes, 70);
+          const rsi14 = calculateRSI(closes);
 
-        const touchedEMA70Today =
-          prevSessionHigh >= lastEMA70 &&
-          prevSessionLow <= lastEMA70 &&
-          candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
+          const lastClose = closes.at(-1)!;
+          const lastEMA14 = ema14.at(-1)!;
+          const lastEMA70 = ema70.at(-1)!;
 
-        results.push({
-          symbol,
-          trend,
-          touchedEMA70Today,
-          lastClose,
-          lastEMA70,
-        });
+          const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
+
+          const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
+          const candlesPrev = candles.filter(c => c.timestamp >= yesterday8AM && c.timestamp < today8AM);
+
+          const prevSessionHigh = Math.max(...candlesPrev.map(c => c.high));
+          const prevSessionLow = Math.min(...candlesPrev.map(c => c.low));
+          const highsToday = candlesToday.map(c => c.high);
+          const lowsToday = candlesToday.map(c => c.low);
+
+          const bullishBreakout = highs.at(-1)! > prevSessionHigh;
+          const bearishBreakout = lows.at(-1)! < prevSessionLow;
+          const breakout = bullishBreakout || bearishBreakout;
+
+          const currentRSI = rsi14.at(-1);
+          const prevHighIdx = highs.lastIndexOf(prevSessionHigh);
+          const prevLowIdx = lows.lastIndexOf(prevSessionLow);
+          const prevHighRSI = rsi14[prevHighIdx] ?? null;
+          const prevLowRSI = rsi14[prevLowIdx] ?? null;
+
+          let divergenceType: 'bullish' | 'bearish' | null = null;
+          if (lows.at(-1)! < prevSessionLow && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
+            divergenceType = 'bullish';
+          } else if (highs.at(-1)! > prevSessionHigh && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
+            divergenceType = 'bearish';
+          }
+          const divergence = divergenceType !== null;
+
+          const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
+          const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
+          const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
+
+          const touchedEMA70Today =
+            prevSessionHigh >= lastEMA70 &&
+            prevSessionLow <= lastEMA70 &&
+            candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
+
+          return {
+            symbol,
+            trend,
+            breakout,
+            divergence,
+            divergenceType,
+            nearOrAtEMA70Divergence,
+            ema70Bounce,
+            touchedEMA70Today,
+            lastClose,
+          };
+        };
+
+        const results = await Promise.all(usdtSymbols.map(fetchAndAnalyze));
+        setSignals(results);
+      } catch (err) {
+        console.error("Signal fetch error:", err);
       }
+    };
 
-      setSignal(results);
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
-
-  fetchTop100USDTPerpetuals();
-}, []);
-
+    fetchSignals();
+  }, []);
 
   return (
-    <div className="bg-gray-900 text-white p-8 rounded-xl shadow-xl max-w-3xl mx-auto mt-10">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Bitcoin Signal Analyzer</h1>
-      {signal ? (
-        <div className="space-y-2 text-sm leading-relaxed">
-          <p>Trend: <b>{signal.trend}</b></p>
-          <p>Breakout: <b>{signal.breakout ? "Yes" : "No"}</b></p>
-          <p>Divergence: <b>{signal.divergenceType || "None"}</b></p>
-          <p>Near EMA70 Divergence: <b>{signal.nearOrAtEMA70Divergence ? "Yes" : "No"}</b></p>
-          <p>EMA14 Bounce: <b>{signal.ema14Bounce ? "Yes" : "No"}</b></p>
-          <p>EMA70 Bounce: <b>{signal.ema70Bounce ? "Yes" : "No"}</b></p>
-          <p>Relevant Level: <b>{signal.level?.toFixed(2)} ({signal.type})</b></p>
-          <p>Inferred Level: <b>{signal.inferredLevel?.toFixed(2)} ({signal.inferredLevelType})</b></p>
-          <p>Inferred Within Today Range: <b>{signal.inferredLevelWithinRange ? "Yes" : "No"}</b></p>
-          <p>Diff vs EMA70: <b>{signal.differenceVsEMA70.toFixed(2)}%</b></p>
-          <p>Touched EMA70 Today: <b>{signal.touchedEMA70Today ? "Yes" : "No"}</b></p>
-          <p>Divergence from Level: <b>{signal.divergenceFromLevel ? signal.divergenceFromLevelType : "None"}</b></p>
-          <p>Last Close: <b>{signal.lastClose.toFixed(2)}</b></p>
-        </div>
-      ) : (
+    <div className="bg-gray-900 text-white p-6 rounded-xl max-w-7xl mx-auto mt-10">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Top 100 Binance Futures Signals</h1>
+      {signals.length === 0 ? (
         <p className="text-gray-400">Loading signals...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-800 text-yellow-300">
+              <tr>
+                <th className="p-2 text-left">Symbol</th>
+                <th className="p-2 text-left">Trend</th>
+                <th className="p-2 text-left">Breakout</th>
+                <th className="p-2 text-left">Divergence</th>
+                <th className="p-2 text-left">Near EMA70</th>
+                <th className="p-2 text-left">EMA70 Bounce</th>
+                <th className="p-2 text-left">Touched EMA70 Today</th>
+                <th className="p-2 text-left">Last Close</th>
+              </tr>
+            </thead>
+            <tbody>
+              {signals.map(signal => (
+                <tr key={signal.symbol} className="border-b border-gray-700">
+                  <td className="p-2">{signal.symbol}</td>
+                  <td className="p-2">{signal.trend}</td>
+                  <td className="p-2">{signal.breakout ? 'Yes' : 'No'}</td>
+                  <td className="p-2">{signal.divergenceType || 'None'}</td>
+                  <td className="p-2">{signal.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
+                  <td className="p-2">{signal.ema70Bounce ? 'Yes' : 'No'}</td>
+                  <td className="p-2">{signal.touchedEMA70Today ? 'Yes' : 'No'}</td>
+                  <td className="p-2">{signal.lastClose.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
