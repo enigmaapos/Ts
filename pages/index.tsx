@@ -126,7 +126,12 @@ export default function Home() {
         if (todaysHigh > prevHigh && currentRSI < prevHighRSI) divergence = 'bearish';
 
         setCandles15m(candles);
-        setSignal({ trend, breakout, divergence });
+        setSignal({
+          trend,
+          breakout,
+          divergence,
+          ema70: lastEMA70,
+        });
 
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -139,22 +144,23 @@ export default function Home() {
   return (
     <div className="bg-gray-900 text-white p-8 rounded-xl shadow-xl max-w-3xl mx-auto mt-10">
       <h1 className="text-3xl font-bold text-yellow-400 mb-4">Bitcoin Signal Analyzer</h1>
+
       {signal ? (
         <div>
           <p>Trend: <span className="font-semibold">{signal.trend}</span></p>
           <p>Breakout: <span className="font-semibold">{signal.breakout ? 'Yes' : 'No'}</span></p>
           <p>Divergence: <span className="font-semibold">{signal.divergence || 'None'}</span></p>
+
+          <div className="mt-6">
+            <h2 className="text-xl font-bold text-green-400">Signal Summary</h2>
+            <p>Trend: {signal.trend}</p>
+            <p>Breakout: {signal.breakout ? 'Yes' : 'No'}</p>
+            <p>Divergence: {signal.divergence || 'None'}</p>
+            <p>EMA70: {signal.ema70?.toFixed(2)}</p>
+          </div>
         </div>
       ) : (
         <p>Loading signals...</p>
-
-      <div className="mt-6">
-  <h2 className="text-xl font-bold text-green-400">Signal Summary</h2>
-  <p>Trend: {trend}</p>
-  <p>Breakout: {breakout ? (bullishBreakout ? 'Bullish' : 'Bearish') : 'None'}</p>
-  <p>Divergence: {divergenceType || 'None'}</p>
-  <p>EMA70: {latestEMA70?.toFixed(9)}</p>
-</div>
       )}
     </div>
   );
