@@ -7,7 +7,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [candles15m, setCandles15m] = useState([]);
 const [recentATH, setRecentATH] = useState(null);
-const [previousATLInfo, setPreviousATLInfo] = useState(null);
 const [previousATHInfo, setPreviousATHInfo] = useState(null);
 
   useEffect(() => {
