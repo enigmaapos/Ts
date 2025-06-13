@@ -274,12 +274,12 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
 
     <div className="space-y-6 bg-gray-950 p-6 rounded-xl text-white mt-6">
       <div className="bg-gray-900 p-4 rounded-lg border border-blue-600">
-        <h2 className="text-lg font-semibold text-blue-400 mb-2">EMA70 Input</h2>
+        <h2 className="text-lg font-semibold text-blue-400 mb-2">EMA70 (Live)</h2>
         <input
-          type="number"
-          placeholder="EMA70 (Manual Input)"
+          type="text"
+          placeholder="EMA70"
           className="bg-gray-800 text-white placeholder-gray-500 border border-blue-700 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-          value={ema70[ema70.length - 1] || ''}
+          value={ema70 || ''}
           readOnly
         />
       </div>
@@ -287,6 +287,7 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
 
     {!loading && isValid && (
       <>
+        {/* ATH Section */}
         <div className="space-y-2 text-gray-300 mt-6">
           <h2 className="text-xl font-semibold text-yellow-400">ATH Heat Check</h2>
 
@@ -315,6 +316,7 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
           </div>
         </div>
 
+        {/* ATL Section */}
         <div className="space-y-2 text-gray-300 mt-6">
           <h2 className="text-xl font-semibold text-red-400">ATL Heat Check</h2>
 
@@ -327,7 +329,9 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
           )}
 
           <p>ATL: ${atlNum.toFixed(2)}</p>
-          <p>Gap: {atlGap.toFixed(2)}%</p>
+          <p>EMA70: ${ema70}</p>
+          <p>Gap to EMA70: {atlGap.toFixed(2)}%</p>
+
           <p>
             Market Zone:{' '}
             <span className={getAtlSignal() === 'Bearish Continuation' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>
@@ -346,4 +350,3 @@ const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 
     )}
   </div>
 );
-}
