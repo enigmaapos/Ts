@@ -60,8 +60,7 @@ export default function Home() {
         const highs = data.map(candle => parseFloat(candle[2]));
         const lows = data.map(candle => parseFloat(candle[3]));
 
-        setAth(Math.max(...highs));
-        setAtl(Math.min(...lows));
+        
       } catch (error) {
         console.error("Failed to fetch ATH/ATL from futures:", error);
       } finally {
