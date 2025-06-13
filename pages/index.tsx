@@ -257,28 +257,21 @@ export default function Home() {
       <h1 className="text-3xl font-bold text-yellow-400 mb-4">Binance 15m Signal Analysis (UTC)</h1>
       <table className="min-w-[1600px] text-xs border-collapse">
         <thead className="bg-gray-800 text-yellow-300">
-          <tr>
-            <thead className="sticky top-0 bg-gray-800 text-yellow-300 z-10">
-            <th className="p-2">Trend</th>
-            <th className="p-2">Breakout</th>
-            <th className="p-2">Bullish Break</th>
-            <th className="p-2">Bearish Break</th>
-            <th className="p-2">Divergence</th>
-            <th className="p-2">Diverge Type</th>
-            <th className="p-2">EMA14 Bounce</th>
-            <th className="p-2">EMA70 Bounce</th>
-            <th className="p-2">Near EMA70 Diverge</th>
-            <th className="p-2">Touched EMA70</th>
-            <th className="p-2">Inferred Level</th>
-            <th className="p-2">Level Type</th>
-            <th className="p-2">Level In Range</th>
-            <th className="p-2">%Diff vs EMA70</th>
-            <th className="p-2">Level Divergence</th>
-            <th className="p-2">Level Div Type</th>
-            <th className="p-2">Last Close</th>
-          </thead>
-            </tr>   
-        </thead>
+        <thead className="sticky top-0 bg-gray-800 text-yellow-300 z-10">
+  <tr>
+    <th className="p-2">Symbol</th>
+    <th className="p-2">Trend</th>
+    <th className="p-2">15min</th>
+    <th className="p-2">1hr</th>
+    <th className="p-2">4hr</th>
+    <th className="p-2">1day</th>
+    <th className="p-2">EMA</th>
+    <th className="p-2">RSI</th>
+    <th className="p-2">Breakout</th>
+    <th className="p-2">Diverge</th>
+    <th className="p-2">Created</th>
+  </tr>
+</thead>
         <tbody>
           {signals.map((s) => (
             <tr key={s.symbol} className="border-b border-gray-700">
