@@ -63,7 +63,6 @@ export default function Home() {
     const fetchSignals = async () => {
       try {
         const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-
         const usdtSymbols = exchangeInfo.symbols
           .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
           .slice(0, 100)
@@ -72,20 +71,32 @@ export default function Home() {
         const now = new Date();
         const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
           Date.UTC(y, m, d, hPH - 8, min);
+
         const year = now.getUTCFullYear();
         const month = now.getUTCMonth();
         const date = now.getUTCDate();
-        const today8AM = getUTCMillis(year, month, date, 8, 0);
-        const tomorrow745AM = getUTCMillis(year, month, date + 1, 7, 45);
-        const yesterday8AM = getUTCMillis(year, month, date - 1, 8, 0);
-        const today745AM = getUTCMillis(year, month, date, 7, 45);
 
-        const sessionStart = now.getTime() >= today8AM ? today8AM : yesterday8AM;
-        const sessionEnd = now.getTime() >= today8AM ? tomorrow745AM : today745AM;
+        const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
+        const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+
+        let sessionStart: number, sessionEnd: number;
+        if (now.getTime() >= today8AM_UTC) {
+          sessionStart = today8AM_UTC;
+          sessionEnd = tomorrow745AM_UTC;
+        } else {
+          const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
+          const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
+          sessionStart = yesterday8AM_UTC;
+          sessionEnd = today745AM_UTC;
+        }
+
+        const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
+        const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
 
         const fetchAndAnalyze = async (symbol: string) => {
           const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`)
             .then(res => res.json());
+
           const candles = raw.map((c: any) => ({
             timestamp: c[0],
             open: +c[1],
@@ -105,43 +116,46 @@ export default function Home() {
           const lastClose = closes.at(-1)!;
           const lastEMA14 = ema14.at(-1)!;
           const lastEMA70 = ema70.at(-1)!;
-
           const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
 
           const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
-          const candlesPrev = candles.filter(c => c.timestamp >= yesterday8AM && c.timestamp < today8AM);
+          const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
 
-          const prevSessionHigh = Math.max(...candlesPrev.map(c => c.high));
-          const prevSessionLow = Math.min(...candlesPrev.map(c => c.low));
-          const highsToday = candlesToday.map(c => c.high);
-          const lowsToday = candlesToday.map(c => c.low);
+          const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
+          const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
+          const prevSessionLow = candlesPrev.length > 0 ? Math.min(...candlesPrev.map(c => c.low)) : null;
+          const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
 
-          const bullishBreakout = highs.at(-1)! > prevSessionHigh;
-          const bearishBreakout = lows.at(-1)! < prevSessionLow;
+          const intradayLowerLowBreak = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
+          const intradayHigherHighBreak = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
+
+          const bullishBreakout = intradayHigherHighBreak;
+          const bearishBreakout = intradayLowerLowBreak;
           const breakout = bullishBreakout || bearishBreakout;
 
           const currentRSI = rsi14.at(-1);
-          const prevHighIdx = highs.lastIndexOf(prevSessionHigh);
-          const prevLowIdx = lows.lastIndexOf(prevSessionLow);
+          const prevHighIdx = highs.lastIndexOf(prevSessionHigh!);
+          const prevLowIdx = lows.lastIndexOf(prevSessionLow!);
           const prevHighRSI = rsi14[prevHighIdx] ?? null;
           const prevLowRSI = rsi14[prevLowIdx] ?? null;
 
           let divergenceType: 'bullish' | 'bearish' | null = null;
-          if (lows.at(-1)! < prevSessionLow && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
+          if (todaysLowestLow! < prevSessionLow! && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
             divergenceType = 'bullish';
-          } else if (highs.at(-1)! > prevSessionHigh && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
+          } else if (todaysHighestHigh! > prevSessionHigh! && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
             divergenceType = 'bearish';
           }
           const divergence = divergenceType !== null;
 
-          const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
           const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
           const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 
           const touchedEMA70Today =
-            prevSessionHigh >= lastEMA70 &&
-            prevSessionLow <= lastEMA70 &&
+            prevSessionHigh! >= lastEMA70 &&
+            prevSessionLow! <= lastEMA70 &&
             candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
+
+          const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
 
           const level = lastEMA70;
           const type = trend === 'bullish' ? 'resistance' : 'support';
@@ -162,12 +176,6 @@ export default function Home() {
               }
             }
           }
-
-          const recentHighs = highs.slice(-3);
-          const recentLows = lows.slice(-3);
-          const highestHigh = Math.max(...recentHighs);
-          const lowestLow = Math.min(...recentLows);
-          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
 
           return {
             symbol,
@@ -196,48 +204,46 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="bg-gray-900 text-white p-6 rounded-xl w-full max-w-[1800px] mx-auto mt-10">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Top 100 Binance Futures Signals</h1>
+    <div className="min-h-screen bg-gray-900 text-white p-6 w-full max-w-full overflow-x-auto">
+      <h1 className="text-4xl font-bold text-yellow-400 mb-6">Top 100 Binance Futures Signals (15m)</h1>
       {signals.length === 0 ? (
         <p className="text-gray-400">Loading signals...</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-800 text-yellow-300">
-              <tr>
-                <th className="p-2 text-left">Symbol</th>
-                <th className="p-2 text-left">Trend</th>
-                <th className="p-2 text-left">Breakout</th>
-                <th className="p-2 text-left">Divergence</th>
-                <th className="p-2 text-left">Near EMA70</th>
-                <th className="p-2 text-left">EMA70 Bounce</th>
-                <th className="p-2 text-left">Touched EMA70</th>
-                <th className="p-2 text-left">Diverge @ EMA</th>
-                <th className="p-2 text-left">Level Diverge</th>
-                <th className="p-2 text-left">Inferred Level</th>
-                <th className="p-2 text-left">Last Close</th>
+        <table className="min-w-[1400px] text-sm table-auto border-collapse">
+          <thead className="bg-gray-800 text-yellow-300">
+            <tr>
+              <th className="p-2 text-left">Symbol</th>
+              <th className="p-2 text-left">Trend</th>
+              <th className="p-2 text-left">Breakout</th>
+              <th className="p-2 text-left">Divergence</th>
+              <th className="p-2 text-left">Near EMA70</th>
+              <th className="p-2 text-left">EMA70 Bounce</th>
+              <th className="p-2 text-left">Touched EMA70</th>
+              <th className="p-2 text-left">Diverge @ EMA</th>
+              <th className="p-2 text-left">Level Diverge</th>
+              <th className="p-2 text-left">Inferred Level</th>
+              <th className="p-2 text-left">Last Close</th>
+            </tr>
+          </thead>
+          <tbody>
+            {signals.map(signal => (
+              <tr key={signal.symbol} className="border-b border-gray-700">
+                <td className="p-2 font-bold text-white">{signal.symbol}</td>
+                <td className="p-2">{signal.trend}</td>
+                <td className="p-2">{signal.breakout ? 'Yes' : 'No'}</td>
+                <td className="p-2">{signal.divergenceType || 'None'}</td>
+                <td className="p-2">{signal.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
+                <td className="p-2">{signal.ema70Bounce ? 'Yes' : 'No'}</td>
+                <td className="p-2">{signal.touchedEMA70Today ? 'Yes' : 'No'}</td>
+                <td className="p-2">{signal.divergenceFromLevelType || 'None'}</td>
+                <td className="p-2">{signal.divergenceFromLevel ? 'Yes' : 'No'}</td>
+                <td className="p-2">{signal.inferredLevel?.toFixed(9)}</td>
+                <td className="p-2">{signal.lastClose.toFixed(9)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {signals.map(signal => (
-                <tr key={signal.symbol} className="border-b border-gray-700">
-                  <td className="p-2">{signal.symbol}</td>
-                  <td className="p-2">{signal.trend}</td>
-                  <td className="p-2">{signal.breakout ? 'Yes' : 'No'}</td>
-                  <td className="p-2">{signal.divergenceType || 'None'}</td>
-                  <td className="p-2">{signal.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
-                  <td className="p-2">{signal.ema70Bounce ? 'Yes' : 'No'}</td>
-                  <td className="p-2">{signal.touchedEMA70Today ? 'Yes' : 'No'}</td>
-                  <td className="p-2">{signal.divergenceFromLevelType || 'None'}</td>
-                  <td className="p-2">{signal.divergenceFromLevel ? 'Yes' : 'No'}</td>
-                  <td className="p-2">{signal.inferredLevel?.toFixed(9)}</td>
-                  <td className="p-2">{signal.lastClose.toFixed(9)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
-}
+                  }
