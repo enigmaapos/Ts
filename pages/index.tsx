@@ -8,47 +8,40 @@ export default function Home() {
   const [candles15m, setCandles15m] = useState([]);
 
   useEffect(() => {
-    const fetchBTC15mCandles = async () => {
-      try {
-        const res = await fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=500");
-        if (!res.ok) throw new Error("Failed to fetch 15m candles");
+  const fetchBTC15mCandles = async () => {
+    try {
+      const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=500");
+      if (!res.ok) throw new Error("Failed to fetch 15m futures candles");
 
-        const data = await res.json();
-        const formatted = data.map((candle) => ({
-          time: Number(candle[0]),
-          open: parseFloat(candle[1]),
-          high: parseFloat(candle[2]),
-          low: parseFloat(candle[3]),
-          close: parseFloat(candle[4]),
-          volume: parseFloat(candle[5]),
-        }));
+      const data = await res.json();
+      const formatted = data.map((candle) => ({
+        time: Number(candle[0]),
+        open: parseFloat(candle[1]),
+        high: parseFloat(candle[2]),
+        low: parseFloat(candle[3]),
+        close: parseFloat(candle[4]),
+        volume: parseFloat(candle[5]),
+      }));
 
-        const ema14 = calculateEMA(formatted, 14);
-        const ema70 = calculateEMA(formatted, 70);
+      const ema14 = calculateEMA(formatted, 14);
+      const ema70 = calculateEMA(formatted, 70);
 
-        const candlesWithEma = formatted.map((candle, idx) => ({
-          ...candle,
-          ema14: ema14[idx] || 0,
-          ema70: ema70[idx] || 0,
-        }));
+      const candlesWithEma = formatted.map((candle, idx) => ({
+        ...candle,
+        ema14: ema14[idx] || 0,
+        ema70: ema70[idx] || 0,
+      }));
 
-        setCandles15m(candlesWithEma);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error loading 15m candles:", err);
-        setLoading(false);
-      }
-    };
-
-    fetchBTC15mCandles();
-  }, []);
-
-  useEffect(() => {
-    if (candles15m.length > 0) {
-      const lastEma = candles15m[candles15m.length - 1].ema70;
-      if (lastEma && lastEma > 0) setEma70(lastEma.toFixed(2));
+      setCandles15m(candlesWithEma);
+    } catch (err) {
+      console.error("Error loading 15m futures candles:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [candles15m]);
+  };
+
+  fetchBTC15mCandles();
+}, []);
 
 
 
@@ -145,20 +138,29 @@ export default function Home() {
         };
 
         useEffect(() => {
-                async function fetchMarketData() {
-                        try {
-                                const res = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin');
-                                const data = await res.json();
-                                setAth(data.market_data.ath.usd);
-                                setAtl(data.market_data.atl.usd);
-                        } catch (error) {
-                                console.error('Failed to fetch market data:', error);
-                        } finally {
-                                setLoading(false);
-                        }
-                }
-                fetchMarketData();
-        }, []);
+  async function fetchFuturesAthAtl() {
+    try {
+      const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=1500");
+      if (!res.ok) throw new Error("Failed to fetch futures data");
+
+      const data = await res.json();
+      const highs = data.map(candle => parseFloat(candle[2]));
+      const lows = data.map(candle => parseFloat(candle[3]));
+
+      const ath = Math.max(...highs);
+      const atl = Math.min(...lows);
+
+      setAth(ath);
+      setAtl(atl);
+    } catch (error) {
+      console.error("Failed to fetch ATH/ATL from futures:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchFuturesAthAtl();
+}, []);
 
         const athNum = parseFloat(ath);
         const atlNum = parseFloat(atl);
