@@ -89,6 +89,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
 const [allSymbols, setAllSymbols] = useState<string[]>([]);
 const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
+  const [filteredSignals, setFilteredSignals] = useState<any[]>([]);
   
 
   const filteredSignals = signals.filter((s) =>
