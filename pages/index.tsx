@@ -220,6 +220,94 @@ export default function Home() {
 
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
+function detectBearishContinuation(
+  ema14: number[],
+  ema70: number[],
+  rsi14: number[],
+  highs: number[],
+  closes: number[]
+): boolean {
+  const len = closes.length;
+  if (len < 3) return false;
+
+  // 1. Confirm bearish trend
+  if (ema14[len - 1] >= ema70[len - 1]) return false;
+
+  // 2. Find recent crossover
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  // 3. Save crossover high and RSI
+  const crossoverHigh = highs[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+
+  // 4 & 5. Check next candles: price near EMA70, RSI rising
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
+    const risingRSI = rsi14[i] > crossoverRSI;
+
+    if (nearEMA && risingRSI) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function detectBullishContinuation(
+  ema14: number[],
+  ema70: number[],
+  rsi14: number[],
+  lows: number[],
+  closes: number[]
+): boolean {
+  const len = closes.length;
+  if (len < 3) return false;
+
+  // 1. Confirm bullish trend
+  if (ema14[len - 1] <= ema70[len - 1]) return false;
+
+  // 2. Find recent crossover
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  // 3. Save crossover low and RSI
+  const crossoverLow = lows[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+
+  // 4 & 5. Check next candles: price near EMA70, RSI rising
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
+    const risingRSI = rsi14[i] > crossoverRSI;
+
+    if (nearEMA && risingRSI) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+          const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, closes);
+const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, closes);
+
+
+
+
+          
+
           return {
             symbol,
             trend,
@@ -239,6 +327,8 @@ export default function Home() {
             divergenceFromLevel,
             divergenceFromLevelType,
             lastClose,
+              bearishContinuation,
+  bullishContinuation,
           };
         };
 
@@ -273,6 +363,8 @@ export default function Home() {
           <th className="p-2">EMA70 Bounce</th>
           <th className="p-2">Near EMA70 Diverge</th>
           <th className="p-2">Touched EMA70</th>
+          <th className="p-2">Bearish Cont.</th>
+<th className="p-2">Bullish Cont.</th>
           <th className="p-2">Inferred Level</th>
           <th className="p-2">Level Type</th>
           <th className="p-2">Level In Range</th>
@@ -312,6 +404,12 @@ export default function Home() {
             <td className={`p-2 ${s.touchedEMA70Today ? "bg-green-800 text-white font-bold" : ""}`}>
               {s.touchedEMA70Today ? "Yes" : "No"}
             </td>
+            <td className={`p-2 ${s.bearishContinuation ? "bg-red-800 text-white font-bold" : ""}`}>
+  {s.bearishContinuation ? "Yes" : "No"}
+</td>
+<td className={`p-2 ${s.bullishContinuation ? "bg-green-800 text-white font-bold" : ""}`}>
+  {s.bullishContinuation ? "Yes" : "No"}
+</td>
             <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
             <td className="p-2">{s.inferredLevelType}</td>
             <td className={`p-2 ${s.inferredLevelWithinRange ? "bg-green-800 text-white font-bold" : ""}`}>
