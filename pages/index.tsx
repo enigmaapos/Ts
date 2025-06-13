@@ -69,29 +69,30 @@ export default function Home() {
           .map((s: any) => s.symbol);
 
         const now = new Date();
-        const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
-          Date.UTC(y, m, d, hPH - 8, min);
+
+        const getUTCMillis = (y: number, m: number, d: number, hUTC: number, min: number) =>
+          Date.UTC(y, m, d, hUTC, min);
 
         const year = now.getUTCFullYear();
         const month = now.getUTCMonth();
         const date = now.getUTCDate();
 
-        const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
-        const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+        const today0UTC = getUTCMillis(year, month, date, 0, 0);
+        const today2345UTC = getUTCMillis(year, month, date, 23, 45);
 
         let sessionStart: number, sessionEnd: number;
-        if (now.getTime() >= today8AM_UTC) {
-          sessionStart = today8AM_UTC;
-          sessionEnd = tomorrow745AM_UTC;
+        if (now.getTime() >= today0UTC) {
+          sessionStart = today0UTC;
+          sessionEnd = today2345UTC;
         } else {
-          const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
-          const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
-          sessionStart = yesterday8AM_UTC;
-          sessionEnd = today745AM_UTC;
+          const yesterday0UTC = getUTCMillis(year, month, date - 1, 0, 0);
+          const yesterday2345UTC = getUTCMillis(year, month, date - 1, 23, 45);
+          sessionStart = yesterday0UTC;
+          sessionEnd = yesterday2345UTC;
         }
 
-        const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
-        const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
+        const prevSessionStart = getUTCMillis(year, month, date - 1, 0, 0);
+        const prevSessionEnd = getUTCMillis(year, month, date - 1, 23, 45);
 
         const fetchAndAnalyze = async (symbol: string) => {
           const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`)
@@ -209,7 +210,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 overflow-x-auto">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Binance 15m Signal Analysis</h1>
+      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Binance 15m Signal Analysis (UTC)</h1>
       <table className="min-w-[1600px] text-xs border-collapse">
         <thead className="bg-gray-800 text-yellow-300">
           <tr>
