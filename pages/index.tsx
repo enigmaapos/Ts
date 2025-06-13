@@ -177,6 +177,13 @@ export default function Home() {
             }
           }
 
+          const recentHighs = highs.slice(-3);
+          const recentLows = lows.slice(-3);
+          const highestHigh = Math.max(...recentHighs);
+          const lowestLow = Math.min(...recentLows);
+          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
+          
+
           return {
             symbol,
             trend,
