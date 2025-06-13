@@ -220,46 +220,6 @@ export default function Home() {
 
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
-function detectBearishContinuation(
-  ema14: number[],
-  ema70: number[],
-  rsi14: number[],
-  highs: number[],
-  closes: number[]
-): boolean {
-  const len = closes.length;
-  if (len < 3) return false;
-
-  // 1. Confirm bearish trend
-  if (ema14[len - 1] >= ema70[len - 1]) return false;
-
-  // 2. Find recent crossover
-  let crossoverIndex = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
-      crossoverIndex = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex === -1) return false;
-
-  // 3. Save crossover high and RSI
-  const crossoverHigh = highs[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
-
-  // 4 & 5. Check next candles: price near EMA70, RSI rising
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
-    const risingRSI = rsi14[i] > crossoverRSI;
-
-    if (nearEMA && risingRSI) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 function detectBullishContinuation(
   ema14: number[],
   ema70: number[],
@@ -273,7 +233,7 @@ function detectBullishContinuation(
   // 1. Confirm bullish trend
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-  // 2. Find recent crossover
+  // 2. Find recent crossover (EMA14 crosses above EMA70)
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
@@ -287,18 +247,60 @@ function detectBullishContinuation(
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  // 4 & 5. Check next candles: price near EMA70, RSI rising
+  // 4–6. Confirm continuation structure
   for (let i = crossoverIndex + 1; i < len; i++) {
     const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
     const risingRSI = rsi14[i] > crossoverRSI;
+    const higherThanCrossover = closes[i] > crossoverLow;
 
-    if (nearEMA && risingRSI) {
+    if (nearEMA && risingRSI && higherThanCrossover) {
       return true;
     }
   }
 
   return false;
 }
+
+function detectBearishContinuation(
+  ema14: number[],
+  ema70: number[],
+  rsi14: number[],
+  highs: number[],
+  closes: number[]
+): boolean {
+  const len = closes.length;
+  if (len < 3) return false;
+
+  // 1. Confirm bearish trend
+  if (ema14[len - 1] >= ema70[len - 1]) return false;
+
+  // 2. Find recent crossover (EMA14 crosses below EMA70)
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  // 3. Save crossover high and RSI
+  const crossoverHigh = highs[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+
+  // 4–6. Confirm continuation structure
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
+    const risingRSI = rsi14[i] > crossoverRSI;
+    const lowerThanCrossover = closes[i] < crossoverHigh;
+
+    if (nearEMA && risingRSI && lowerThanCrossover) {
+      return true;
+    }
+  }
+
+  return false;
+    }
 
           const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, closes);
 const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, closes);
