@@ -126,13 +126,6 @@ export default function Home() {
           const prevSessionLow = candlesPrev.length > 0 ? Math.min(...candlesPrev.map(c => c.low)) : null;
           const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
 
-          const intradayLowerLowBreak = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
-          const intradayHigherHighBreak = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
-
-          const bullishBreakout = intradayHigherHighBreak;
-          const bearishBreakout = intradayLowerLowBreak;
-          const breakout = bullishBreakout || bearishBreakout;
-
           const currentRSI = rsi14.at(-1);
           const prevHighIdx = highs.lastIndexOf(prevSessionHigh!);
           const prevLowIdx = lows.lastIndexOf(prevSessionLow!);
@@ -140,25 +133,28 @@ export default function Home() {
           const prevLowRSI = rsi14[prevLowIdx] ?? null;
 
           let divergenceType: 'bullish' | 'bearish' | null = null;
-          if (todaysLowestLow! < prevSessionLow! && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
+          if (lows.at(-1)! < prevSessionLow! && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
             divergenceType = 'bullish';
-          } else if (todaysHighestHigh! > prevSessionHigh! && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
+          } else if (highs.at(-1)! > prevSessionHigh! && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
             divergenceType = 'bearish';
           }
+
           const divergence = divergenceType !== null;
-
+          const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);
           const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
+          const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
           const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
-
-          const touchedEMA70Today =
-            prevSessionHigh! >= lastEMA70 &&
-            prevSessionLow! <= lastEMA70 &&
-            candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
-
           const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
 
+          const highestHigh = Math.max(...highs);
+          const lowestLow = Math.min(...lows);
+          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
+          const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
+          const inferredLevelWithinRange = inferredLevel <= todaysHighestHigh! && inferredLevel >= todaysLowestLow!;
+          const differenceVsEMA70 = ((inferredLevel - lastEMA70) / lastEMA70) * 100;
+
           const level = lastEMA70;
-          const type = trend === 'bullish' ? 'resistance' : 'support';
+          const type = inferredLevelType;
 
           let divergenceFromLevel = false;
           let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
@@ -177,25 +173,26 @@ export default function Home() {
             }
           }
 
-          const recentHighs = highs.slice(-3);
-          const recentLows = lows.slice(-3);
-          const highestHigh = Math.max(...recentHighs);
-          const lowestLow = Math.min(...recentLows);
-          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
-          
+          const touchedEMA70Today =
+            prevSessionHigh! >= lastEMA70 &&
+            prevSessionLow! <= lastEMA70 &&
+            candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
 
           return {
             symbol,
             trend,
-            breakout,
             divergence,
             divergenceType,
-            nearOrAtEMA70Divergence,
+            ema14Bounce,
             ema70Bounce,
+            nearOrAtEMA70Divergence,
             touchedEMA70Today,
+            inferredLevel,
+            inferredLevelType,
+            inferredLevelWithinRange,
+            differenceVsEMA70,
             divergenceFromLevel,
             divergenceFromLevelType,
-            inferredLevel,
             lastClose,
           };
         };
@@ -211,46 +208,50 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 w-full max-w-full overflow-x-auto">
-      <h1 className="text-4xl font-bold text-yellow-400 mb-6">Top 100 Binance Futures Signals (15m)</h1>
-      {signals.length === 0 ? (
-        <p className="text-gray-400">Loading signals...</p>
-      ) : (
-        <table className="min-w-[1400px] text-sm table-auto border-collapse">
-          <thead className="bg-gray-800 text-yellow-300">
-            <tr>
-              <th className="p-2 text-left">Symbol</th>
-              <th className="p-2 text-left">Trend</th>
-              <th className="p-2 text-left">Breakout</th>
-              <th className="p-2 text-left">Divergence</th>
-              <th className="p-2 text-left">Near EMA70</th>
-              <th className="p-2 text-left">EMA70 Bounce</th>
-              <th className="p-2 text-left">Touched EMA70</th>
-              <th className="p-2 text-left">Diverge @ EMA</th>
-              <th className="p-2 text-left">Level Diverge</th>
-              <th className="p-2 text-left">Inferred Level</th>
-              <th className="p-2 text-left">Last Close</th>
+    <div className="min-h-screen bg-gray-900 text-white p-4 overflow-x-auto">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-4">Binance 15m Signal Analysis</h1>
+      <table className="min-w-[1600px] text-xs border-collapse">
+        <thead className="bg-gray-800 text-yellow-300">
+          <tr>
+            <th className="p-2">Symbol</th>
+            <th className="p-2">Trend</th>
+            <th className="p-2">Divergence</th>
+            <th className="p-2">Diverge Type</th>
+            <th className="p-2">EMA14 Bounce</th>
+            <th className="p-2">EMA70 Bounce</th>
+            <th className="p-2">Near EMA70 Diverge</th>
+            <th className="p-2">Touched EMA70</th>
+            <th className="p-2">Inferred Level</th>
+            <th className="p-2">Level Type</th>
+            <th className="p-2">Level In Range</th>
+            <th className="p-2">%Diff vs EMA70</th>
+            <th className="p-2">Level Divergence</th>
+            <th className="p-2">Level Div Type</th>
+            <th className="p-2">Last Close</th>
+          </tr>
+        </thead>
+        <tbody>
+          {signals.map((s) => (
+            <tr key={s.symbol} className="border-b border-gray-700">
+              <td className="p-2 font-bold">{s.symbol}</td>
+              <td className="p-2">{s.trend}</td>
+              <td className="p-2">{s.divergence ? "Yes" : "No"}</td>
+              <td className="p-2">{s.divergenceType || "None"}</td>
+              <td className="p-2">{s.ema14Bounce ? "Yes" : "No"}</td>
+              <td className="p-2">{s.ema70Bounce ? "Yes" : "No"}</td>
+              <td className="p-2">{s.nearOrAtEMA70Divergence ? "Yes" : "No"}</td>
+              <td className="p-2">{s.touchedEMA70Today ? "Yes" : "No"}</td>
+              <td className="p-2">{s.inferredLevel.toFixed(2)}</td>
+              <td className="p-2">{s.inferredLevelType}</td>
+              <td className="p-2">{s.inferredLevelWithinRange ? "Yes" : "No"}</td>
+              <td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
+              <td className="p-2">{s.divergenceFromLevel ? "Yes" : "No"}</td>
+              <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
+              <td className="p-2">{s.lastClose.toFixed(4)}</td>
             </tr>
-          </thead>
-          <tbody>
-            {signals.map(signal => (
-              <tr key={signal.symbol} className="border-b border-gray-700">
-                <td className="p-2 font-bold text-white">{signal.symbol}</td>
-                <td className="p-2">{signal.trend}</td>
-                <td className="p-2">{signal.breakout ? 'Yes' : 'No'}</td>
-                <td className="p-2">{signal.divergenceType || 'None'}</td>
-                <td className="p-2">{signal.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
-                <td className="p-2">{signal.ema70Bounce ? 'Yes' : 'No'}</td>
-                <td className="p-2">{signal.touchedEMA70Today ? 'Yes' : 'No'}</td>
-                <td className="p-2">{signal.divergenceFromLevelType || 'None'}</td>
-                <td className="p-2">{signal.divergenceFromLevel ? 'Yes' : 'No'}</td>
-                <td className="p-2">{signal.inferredLevel?.toFixed(9)}</td>
-                <td className="p-2">{signal.lastClose.toFixed(9)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-                  }
+}
