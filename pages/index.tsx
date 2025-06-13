@@ -256,7 +256,6 @@ export default function Home() {
     <div className="min-h-screen bg-gray-900 text-white p-4 overflow-x-auto">
       <h1 className="text-3xl font-bold text-yellow-400 mb-4">Binance 15m Signal Analysis (UTC)</h1>
       <table className="min-w-[1600px] text-xs border-collapse">
-        <thead className="bg-gray-800 text-yellow-300">
         <thead className="sticky top-0 bg-gray-800 text-yellow-300 z-10">
   <tr>
     <th className="p-2">Symbol</th>
