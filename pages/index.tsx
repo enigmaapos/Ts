@@ -92,10 +92,28 @@ export default function Home() {
   const [signal, setSignal] = useState<any>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=15m&limit=500");
-        const raw = await res.json();
+  const fetchTop100USDTPerpetuals = async () => {
+    try {
+      const exchangeInfo = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+      const allSymbols = exchangeInfo.symbols.filter(
+        (s: any) =>
+          s.contractType === "PERPETUAL" &&
+          s.quoteAsset === "USDT" &&
+          s.status === "TRADING"
+      ).map((s: any) => s.symbol);
+
+      const volumeData = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr").then(res => res.json());
+      const topSymbols = volumeData
+        .filter((item: any) => allSymbols.includes(item.symbol))
+        .sort((a: any, b: any) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+        .slice(0, 100)
+        .map((item: any) => item.symbol);
+
+      const results: any[] = [];
+
+      for (const symbol of topSymbols) {
+        const raw = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`).then(res => res.json());
+
         const candles = raw.map((c: any) => ({
           timestamp: c[0],
           open: +c[1],
@@ -104,6 +122,8 @@ export default function Home() {
           close: +c[4],
           volume: +c[5],
         }));
+
+        if (candles.length < 100) continue;
 
         const closes = candles.map(c => c.close);
         const highs = candles.map(c => c.high);
@@ -116,7 +136,6 @@ export default function Home() {
         const lastClose = closes.at(-1)!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
-
         const trend = lastEMA14 > lastEMA70 ? 'bullish' : 'bearish';
 
         const now = new Date();
@@ -137,95 +156,32 @@ export default function Home() {
         const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
         const candlesPrev = candles.filter(c => c.timestamp >= yesterday8AM && c.timestamp < today8AM);
 
-        const todaysHighestHigh = Math.max(...candlesToday.map(c => c.high));
-        const todaysLowestLow = Math.min(...candlesToday.map(c => c.low));
         const prevSessionHigh = Math.max(...candlesPrev.map(c => c.high));
         const prevSessionLow = Math.min(...candlesPrev.map(c => c.low));
 
-        const bullishBreakout = highs.at(-1)! > prevSessionHigh;
-        const bearishBreakout = lows.at(-1)! < prevSessionLow;
-        const breakout = bullishBreakout || bearishBreakout;
-
-        const currentRSI = rsi14.at(-1);
-        const prevHighIdx = highs.lastIndexOf(prevSessionHigh);
-        const prevLowIdx = lows.lastIndexOf(prevSessionLow);
-        const prevHighRSI = rsi14[prevHighIdx] ?? null;
-        const prevLowRSI = rsi14[prevLowIdx] ?? null;
-
-        let divergenceType: 'bullish' | 'bearish' | null = null;
-        if (lows.at(-1)! < prevSessionLow && prevLowIdx !== -1 && currentRSI! > prevLowRSI!) {
-          divergenceType = 'bullish';
-        } else if (highs.at(-1)! > prevSessionHigh && prevHighIdx !== -1 && currentRSI! < prevHighRSI!) {
-          divergenceType = 'bearish';
-        }
-        const divergence = divergenceType !== null;
-
-        const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
-
-        const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);
-        const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
-        const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
-        const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
-
-        const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
-        const highestHigh = Math.max(...highs);
-        const lowestLow = Math.min(...lows);
-        const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
-        const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
-        const inferredLevelWithinRange =
-          inferredLevel <= todaysHighestHigh && inferredLevel >= todaysLowestLow;
-
-        const latestEMA70 = ema70[ema70.length - 1];
-        const differenceVsEMA70 = calculateDifferenceVsEMA70(inferredLevel, latestEMA70);
         const touchedEMA70Today =
-  prevSessionHigh! >= lastEMA70 &&
-  prevSessionLow! <= lastEMA70 &&
-  candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
+          prevSessionHigh >= lastEMA70 &&
+          prevSessionLow <= lastEMA70 &&
+          candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
 
-        let divergenceFromLevel = false;
-        let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
-
-        if (type && level !== null) {
-          const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
-          if (levelIdx !== -1) {
-            const pastRSI = rsi14[levelIdx];
-
-            if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
-              divergenceFromLevel = true;
-              divergenceFromLevelType = 'bearish';
-            } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
-              divergenceFromLevel = true;
-              divergenceFromLevelType = 'bullish';
-            }
-          }
-        }
-
-        setSignal({
+        results.push({
+          symbol,
           trend,
-          breakout,
-          divergence,
-          divergenceType,
-          nearOrAtEMA70Divergence,
-          ema14Bounce,
-          ema70Bounce,
-          level,
-          type,
-          inferredLevel,
-          inferredLevelType,
-          inferredLevelWithinRange,
-          differenceVsEMA70,
-          divergenceFromLevel,
-          divergenceFromLevelType,
-          lastClose,
           touchedEMA70Today,
+          lastClose,
+          lastEMA70,
         });
-      } catch (err) {
-        console.error("Error fetching data:", err);
       }
-    };
 
-    fetchData();
-  }, []);
+      setSignal(results);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  fetchTop100USDTPerpetuals();
+}, []);
+
 
   return (
     <div className="bg-gray-900 text-white p-8 rounded-xl shadow-xl max-w-3xl mx-auto mt-10">
