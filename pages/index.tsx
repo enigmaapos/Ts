@@ -287,20 +287,40 @@ export default function Home() {
           <tr key={s.symbol} className="border-b border-gray-700">
             <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
             <td className="p-2">{s.trend}</td>
-            <td className="p-2">{s.breakout ? "Yes" : "No"}</td>
-            <td className="p-2">{s.bullishBreakout ? "Yes" : "No"}</td>
-            <td className="p-2">{s.bearishBreakout ? "Yes" : "No"}</td>
-            <td className="p-2">{s.divergence ? "Yes" : "No"}</td>
+            <td className={`p-2 ${s.breakout ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.breakout ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.bullishBreakout ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.bullishBreakout ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.bearishBreakout ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.bearishBreakout ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.divergence ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.divergence ? "Yes" : "No"}
+            </td>
             <td className="p-2">{s.divergenceType || "None"}</td>
-            <td className="p-2">{s.ema14Bounce ? "Yes" : "No"}</td>
-            <td className="p-2">{s.ema70Bounce ? "Yes" : "No"}</td>
-            <td className="p-2">{s.nearOrAtEMA70Divergence ? "Yes" : "No"}</td>
-            <td className="p-2">{s.touchedEMA70Today ? "Yes" : "No"}</td>
+            <td className={`p-2 ${s.ema14Bounce ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.ema14Bounce ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.ema70Bounce ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.ema70Bounce ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.nearOrAtEMA70Divergence ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.nearOrAtEMA70Divergence ? "Yes" : "No"}
+            </td>
+            <td className={`p-2 ${s.touchedEMA70Today ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.touchedEMA70Today ? "Yes" : "No"}
+            </td>
             <td className="p-2">{s.inferredLevel.toFixed(9)}</td>
             <td className="p-2">{s.inferredLevelType}</td>
-            <td className="p-2">{s.inferredLevelWithinRange ? "Yes" : "No"}</td>
+            <td className={`p-2 ${s.inferredLevelWithinRange ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.inferredLevelWithinRange ? "Yes" : "No"}
+            </td>
             <td className="p-2">{s.differenceVsEMA70.toFixed(9)}%</td>
-            <td className="p-2">{s.divergenceFromLevel ? "Yes" : "No"}</td>
+            <td className={`p-2 ${s.divergenceFromLevel ? "bg-green-800 text-white font-bold" : ""}`}>
+              {s.divergenceFromLevel ? "Yes" : "No"}
+            </td>
             <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
             <td className="p-2">{s.lastClose.toFixed(9)}</td>
           </tr>
