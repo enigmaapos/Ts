@@ -143,6 +143,27 @@ export default function Home() {
             prevSessionLow <= lastEMA70 &&
             candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
 
+          // 🆕 Custom Level Analysis (example input: level = EMA70, type = 'support' or 'resistance')
+          const level = lastEMA70;
+          const type = trend === 'bullish' ? 'resistance' : 'support';
+
+          let divergenceFromLevel = false;
+          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
+
+          if (type && level !== null) {
+            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
+            if (levelIdx !== -1) {
+              const pastRSI = rsi14[levelIdx];
+              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bearish';
+              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bullish';
+              }
+            }
+          }
+
           return {
             symbol,
             trend,
@@ -152,6 +173,8 @@ export default function Home() {
             nearOrAtEMA70Divergence,
             ema70Bounce,
             touchedEMA70Today,
+            divergenceFromLevel,
+            divergenceFromLevelType,
             lastClose,
           };
         };
@@ -182,7 +205,9 @@ export default function Home() {
                 <th className="p-2 text-left">Divergence</th>
                 <th className="p-2 text-left">Near EMA70</th>
                 <th className="p-2 text-left">EMA70 Bounce</th>
-                <th className="p-2 text-left">Touched EMA70 Today</th>
+                <th className="p-2 text-left">Touched EMA70</th>
+                <th className="p-2 text-left">Diverge @ EMA</th>
+                <th className="p-2 text-left">Level Diverge</th>
                 <th className="p-2 text-left">Last Close</th>
               </tr>
             </thead>
@@ -196,6 +221,8 @@ export default function Home() {
                   <td className="p-2">{signal.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
                   <td className="p-2">{signal.ema70Bounce ? 'Yes' : 'No'}</td>
                   <td className="p-2">{signal.touchedEMA70Today ? 'Yes' : 'No'}</td>
+                  <td className="p-2">{signal.divergenceFromLevelType || 'None'}</td>
+                  <td className="p-2">{signal.divergenceFromLevel ? 'Yes' : 'No'}</td>
                   <td className="p-2">{signal.lastClose.toFixed(2)}</td>
                 </tr>
               ))}
