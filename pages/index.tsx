@@ -83,23 +83,6 @@ export default function Home() {
       </p>
       <div className="border-l-4 border-yellow-400 pl-4 text-sm text-yellow-100 italic">Plan smarter. Trade better.</div>
  
-            {recentATL && (
-              <div className="bg-gray-900 p-4 mt-6 rounded-lg border border-red-600">
-                <h2 className="text-xl font-bold text-red-400 mb-2">🔻 Recent ATL Snapshot</h2>
-                <p>Price: ${recentATL.price.toFixed(2)}</p>
-                <p>Date: {recentATL.time}</p>
-                <p>EMA70 at ATL: ${recentATL.ema70.toFixed(2)}</p>
-                <p className="text-yellow-300 font-semibold">Gap to EMA70: {recentATL.gap.toFixed(2)}%</p>
-              </div>
-            )}
-            {recentATH && (
-              <div className="bg-gray-900 p-4 mt-6 rounded-lg border border-green-600">
-                <h2 className="text-xl font-bold text-green-400 mb-2">🚀 Recent ATH Snapshot</h2>
-                <p>Price: ${recentATH.price.toFixed(2)}</p>
-                <p>Date: {recentATH.time}</p>
-                <p>EMA70 at ATH: ${recentATH.ema70.toFixed(2)}</p>
-                <p className="text-yellow-300 font-semibold">Gap to EMA70: {recentATH.gap.toFixed(2)}%</p>
-              </div>
-            )}
+            
           </div>
       )}
