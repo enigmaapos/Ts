@@ -196,7 +196,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="bg-gray-900 text-white p-6 rounded-xl max-w-7xl mx-auto mt-10">
+    <div className="bg-gray-900 text-white p-6 rounded-xl w-full max-w-[1800px] mx-auto mt-10">
       <h1 className="text-3xl font-bold text-yellow-400 mb-4">Top 100 Binance Futures Signals</h1>
       {signals.length === 0 ? (
         <p className="text-gray-400">Loading signals...</p>
