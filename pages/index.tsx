@@ -276,7 +276,8 @@ export default function Home() {
             <th className="p-2">Level Divergence</th>
             <th className="p-2">Level Div Type</th>
             <th className="p-2">Last Close</th>
-          </tr>
+          </thead>
+            </tr>   
         </thead>
         <tbody>
           {signals.map((s) => (
