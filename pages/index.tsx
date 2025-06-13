@@ -165,10 +165,10 @@ export default function Home() {
         const emaNum = parseFloat(ema70);
         const isValid = !isNaN(emaNum) && emaNum > 0;
 
-        const previousATLInfo = getPreviousATL(weeklyCandles);
-        const previousATHInfo = getPreviousATH(weeklyCandles);
-        const atlInfo = findRecentATL(weeklyCandles);
-        const athInfo = findRecentATH(weeklyCandles);
+        const previousATLInfo = getPreviousATL(candles15m);
+        const previousATHInfo = getPreviousATH(candles15m);
+        const atlInfo = findRecentATL(candles15m);
+        const athInfo = findRecentATH(candles15m);
 
         if (atlInfo) {
                 console.log("Recent ATL:", atlInfo.atl);
@@ -190,14 +190,14 @@ export default function Home() {
         }
 
 
-        const atlWeeklyNum = atlInfo ? atlInfo.atl : null;
-        const athWeeklyNum = athInfo ? athInfo.ath : null;
+        const atl15mNum = atlInfo ? atlInfo.atl : null;
+const ath15mNum = athInfo ? athInfo.ath : null;
 
-        const isValidAtl = atlWeeklyNum !== null;
-        const isValidAth = athWeeklyNum !== null;
+const isValidAtl = atl15mNum !== null;
+const isValidAth = ath15mNum !== null;
 
-        const athGap = isValid && isValidAth ? ((athNum - emaNum) / emaNum) * 100 : 0;
-        const atlGap = isValid && isValidAtl ? ((emaNum - atlWeeklyNum) / atlWeeklyNum) * 100 : 0;
+const athGap = isValid && isValidAth ? ((athNum - emaNum) / emaNum) * 100 : 0;
+const atlGap = isValid && isValidAtl ? ((emaNum - atl15mNum) / atl15mNum) * 100 : 0;
 
         const getAthSignal = () => (athGap > 100 ? 'Bullish Continuation' : 'Possible Reversal');
         const getAtlSignal = () => (atlGap > 100 ? 'Bearish Continuation' : 'Possible Reversal');
