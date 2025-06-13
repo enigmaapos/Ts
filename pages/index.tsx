@@ -253,16 +253,16 @@ export default function Home() {
   }, []);
 
     return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 overflow-x-auto">
+    <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
   <h1 className="text-3xl font-bold text-yellow-400 mb-4">
     Binance 15m Signal Analysis (UTC)
   </h1>
 
   <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
     <table className="min-w-[1600px] text-xs border-collapse">
-      <thead className="bg-gray-800 text-yellow-300">
+      <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
         <tr>
-          <th className="p-2">Symbol</th>
+          <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
           <th className="p-2">Trend</th>
           <th className="p-2">Breakout</th>
           <th className="p-2">Bullish Break</th>
@@ -285,7 +285,7 @@ export default function Home() {
       <tbody>
         {signals.map((s) => (
           <tr key={s.symbol} className="border-b border-gray-700">
-            <td className="p-2 font-bold">{s.symbol}</td>
+            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
             <td className="p-2">{s.trend}</td>
             <td className="p-2">{s.breakout ? "Yes" : "No"}</td>
             <td className="p-2">{s.bullishBreakout ? "Yes" : "No"}</td>
