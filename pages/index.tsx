@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [recentATH, setRecentATH] = useState(null);  // current ATH
-const [recentATL, setRecentATL] = useState(null);  // current ATL
+  const [recentATH, setRecentATH] = useState(null);
+const [recentATL, setRecentATL] = useState(null);
 const [previousATHInfo, setPreviousATHInfo] = useState(null);
 const [previousATLInfo, setPreviousATLInfo] = useState(null);
-
   
   useEffect(() => {
   const fetchBTC15mCandles = async () => {
@@ -87,83 +86,9 @@ setPreviousATHInfo({
                 return emaArray;
         };
 
-        const getPreviousATL = (candles) => {
-                if (candles.length < 2) return null;
-                const candlesExcludingLast = candles.slice(0, -1);
-                const prevAtlCandle = candlesExcludingLast.reduce((min, curr) =>
-                        curr.low < min.low ? curr : min
-                );
-                return {
-                        price: prevAtlCandle.low,
-                        time: new Date(prevAtlCandle.time).toLocaleDateString(),
-                };
-        };
+        
 
-        const findRecentATL = (data) => {
-                if (!data || data.length < 100) return null;
-
-                const last100 = data.slice(-100);
-                const latestCandle = data[data.length - 1];
-
-                // Ensure current trend is bearish
-                if (latestCandle.ema14 >= latestCandle.ema70) return null;
-
-                let atlCandle = last100[0];
-                last100.forEach(candle => {
-                        if (candle.low < atlCandle.low) {
-                                atlCandle = candle;
-                        }
-                });
-
-                const atlPrice = atlCandle.low;
-                const atlEMA70 = atlCandle.ema70;
-                const gapPercent = ((atlEMA70 - atlPrice) / atlEMA70) * 100;
-
-                return {
-                        atl: atlPrice,
-                        ema70: atlEMA70,
-                        gapPercent: gapPercent.toFixed(2),
-                };
-        };
-        const getPreviousATH = (candles) => {
-                if (candles.length < 2) return null;
-                const candlesExcludingLast = candles.slice(0, -1);
-                const prevAthCandle = candlesExcludingLast.reduce((max, curr) =>
-                        curr.high > max.high ? curr : max
-                );
-                return {
-                        price: prevAthCandle.high,
-                        time: new Date(prevAthCandle.time).toLocaleDateString(),
-                };
-        };
-
-
-        const findRecentATH = (data) => {
-                if (!data || data.length < 100) return null;
-
-                const last100 = data.slice(-100);
-                const latestCandle = data[data.length - 1];
-
-                // Ensure current trend is bullish
-                if (latestCandle.ema14 <= latestCandle.ema70) return null;
-
-                let athCandle = last100[0];
-                last100.forEach(candle => {
-                        if (candle.high > athCandle.high) {
-                                athCandle = candle;
-                        }
-                });
-
-                const athPrice = athCandle.high;
-                const athEMA70 = athCandle.ema70;
-                const gapPercent = ((athPrice - athEMA70) / athEMA70) * 100;
-
-                return {
-                        ath: athPrice,
-                        ema70: athEMA70,
-                        gapPercent: gapPercent.toFixed(2),
-                };
-        };
+                
 
         useEffect(() => {
   async function fetchFuturesAthAtl() {
