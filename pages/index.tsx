@@ -177,6 +177,10 @@ export default function Home() {
 
         const latestEMA70 = ema70[ema70.length - 1];
         const differenceVsEMA70 = calculateDifferenceVsEMA70(inferredLevel, latestEMA70);
+        const touchedEMA70Today =
+  prevSessionHigh! >= lastEMA70 &&
+  prevSessionLow! <= lastEMA70 &&
+  candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
 
         let divergenceFromLevel = false;
         let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
@@ -213,6 +217,7 @@ export default function Home() {
           divergenceFromLevel,
           divergenceFromLevelType,
           lastClose,
+          touchedEMA70Today,
         });
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -237,6 +242,7 @@ export default function Home() {
           <p>Inferred Level: <b>{signal.inferredLevel?.toFixed(2)} ({signal.inferredLevelType})</b></p>
           <p>Inferred Within Today Range: <b>{signal.inferredLevelWithinRange ? "Yes" : "No"}</b></p>
           <p>Diff vs EMA70: <b>{signal.differenceVsEMA70.toFixed(2)}%</b></p>
+          <p>Touched EMA70 Today: <b>{signal.touchedEMA70Today ? "Yes" : "No"}</b></p>
           <p>Divergence from Level: <b>{signal.divergenceFromLevel ? signal.divergenceFromLevelType : "None"}</b></p>
           <p>Last Close: <b>{signal.lastClose.toFixed(2)}</b></p>
         </div>
