@@ -232,6 +232,8 @@ let divergenceProximity: 'near' | 'far' | null = null;
 let minutesAgo: number | null = null;
         let crossoverPrice: number | null = null;
 
+        
+
 if (type && level !== null) {
   const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
 
@@ -246,6 +248,7 @@ if (type && level !== null) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
       divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+      crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
     }
   }
 }
