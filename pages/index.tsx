@@ -226,10 +226,9 @@ let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
 let minutesAgo: number | null = null;
 
-// Determine which level to use
 const refLevel = crossoverPrice ?? level;
 
-// Try to find the crossover index based on crossoverPrice
+// Find crossoverIndex
 let crossoverIndex: number | null = null;
 if (crossoverPrice !== null) {
   crossoverIndex = closes.findIndex(
@@ -237,32 +236,28 @@ if (crossoverPrice !== null) {
   );
 }
 
-// Proceed with divergence check
+// Check divergence starting from crossoverIndex going forward
 if (type && refLevel !== null && crossoverIndex !== null) {
-  const levelIdx = closes.findIndex(
-    (c) => Math.abs(c - refLevel) / c < 0.002
-  );
+  for (let i = crossoverIndex + 1; i < closes.length; i++) {
+    const priceNearLevel = Math.abs(closes[i] - refLevel) / closes[i] < 0.002;
 
-  if (levelIdx !== -1 && rsi14[levelIdx] !== undefined && currentRSI !== undefined) {
-    const pastRSI = rsi14[levelIdx];
+    if (priceNearLevel && rsi14[i] !== undefined && currentRSI !== undefined) {
+      const pastRSI = rsi14[i];
 
-    const isBearishDiv =
-      type === 'resistance' && lastClose > refLevel && currentRSI < pastRSI;
-    const isBullishDiv =
-      type === 'support' && lastClose < refLevel && currentRSI > pastRSI;
+      const isBearishDiv =
+        type === 'resistance' && closes[i] > refLevel && currentRSI < pastRSI;
+      const isBullishDiv =
+        type === 'support' && closes[i] < refLevel && currentRSI > pastRSI;
 
-    if (isBearishDiv || isBullishDiv) {
-      divergenceFromLevel = true;
-      divergenceFromLevelType = isBearishDiv ? 'bearish' : 'bullish';
+      if (isBearishDiv || isBullishDiv) {
+        divergenceFromLevel = true;
+        divergenceFromLevelType = isBearishDiv ? 'bearish' : 'bullish';
 
-      // Distance in candles
-      divergenceFromLevelDistance = Math.abs(levelIdx - crossoverIndex);
-
-      // Convert to time (assuming 15m candles)
-      minutesAgo = divergenceFromLevelDistance * 15;
-
-      // Classify how recent
-      divergenceProximity = divergenceFromLevelDistance <= 3 ? 'near' : 'far';
+        divergenceFromLevelDistance = i - crossoverIndex;
+        minutesAgo = divergenceFromLevelDistance * 15;
+        divergenceProximity = divergenceFromLevelDistance <= 3 ? 'near' : 'far';
+        break;
+      }
     }
   }
 }
