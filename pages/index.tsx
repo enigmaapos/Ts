@@ -234,7 +234,7 @@ const lastClose = candles.at(-1)?.close!;
           const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
           const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 
-          const { level, type, crossoverPrice } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
+          const { level, type, crossoverPrice, crossoverIndex } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
           const highestHigh = Math.max(...highs);
           const lowestLow = Math.min(...lows);
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
