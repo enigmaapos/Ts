@@ -63,7 +63,9 @@ function findRelevantLevel(
   highs: number[],
   lows: number[],
   trend: 'bullish' | 'bearish'
-): { level: number | null; type: 'support' | 'resistance' | null } {
+): { level: number | null; type: 'support' | 'resistance' | null; crossoverPrice: number | null } {
+  let crossoverPrice: number | null = null;
+
   for (let i = ema14.length - 2; i >= 1; i--) {
     const prev14 = ema14[i - 1];
     const curr14 = ema14[i];
@@ -75,9 +77,9 @@ function findRelevantLevel(
       const diffPrev = prev14 - prev70;
       const diffCurr = curr14 - curr70;
       const t = diffPrev / (diffPrev - diffCurr);
-      const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
+      crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
 
-      return { level: crossoverPrice, type: 'support' };
+      return { level: crossoverPrice, type: 'support', crossoverPrice };
     }
 
     // Bearish crossover
@@ -85,13 +87,13 @@ function findRelevantLevel(
       const diffPrev = prev14 - prev70;
       const diffCurr = curr14 - curr70;
       const t = diffPrev / (diffPrev - diffCurr);
-      const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
+      crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
 
-      return { level: crossoverPrice, type: 'resistance' };
+      return { level: crossoverPrice, type: 'resistance', crossoverPrice };
     }
   }
 
-  // Fallback: if no crossover detected
+  // Fallback: no crossover found
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
   return { level, type, crossoverPrice };
@@ -230,7 +232,7 @@ let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
 let minutesAgo: number | null = null;
-        let crossoverPrice: number | null = null;
+        
 
         
 
