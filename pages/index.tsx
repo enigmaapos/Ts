@@ -240,7 +240,7 @@ const lastClose = candles.at(-1)?.close!;
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
           const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
-          let divergenceFromLevel = false;
+           let divergenceFromLevel = false;
 let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
@@ -256,17 +256,13 @@ if (type && refLevel !== null) {
     const pastRSI = rsi14[levelIdx];
 
     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
-      if (crossoverIndex !== null && levelIdx > crossoverIndex) {
-        divergenceFromLevel = true;
-        divergenceFromLevelType = 'bearish';
-        divergenceFromLevelDistance = crossoverIndex - levelIdx;
-      }
+      divergenceFromLevel = true;
+      divergenceFromLevelType = 'bearish';
+      divergenceFromLevelDistance = levelIdx - 1 - crossoverIndex;
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
-      if (crossoverIndex !== null && levelIdx > crossoverIndex) {
-        divergenceFromLevel = true;
-        divergenceFromLevelType = 'bullish';
-        divergenceFromLevelDistance = crossoverIndex - levelIdx;
-      }
+      divergenceFromLevel = true;
+      divergenceFromLevelType = 'bullish';
+      divergenceFromLevelDistance = levelIdx - 1 - crossoverIndex;
     }
   }
 }
@@ -274,9 +270,6 @@ if (type && refLevel !== null) {
 if (divergenceFromLevelDistance !== null) {
   divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
   minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
-} else {
-  divergenceProximity = null;
-  minutesAgo = null;
 }
         
         
