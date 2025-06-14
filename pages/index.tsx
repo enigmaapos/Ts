@@ -56,7 +56,6 @@ function calculateRSI(closes: number[], period = 14) {
   return rsi;
 }
 
-
 function findRelevantLevel(
   ema14: number[],
   ema70: number[],
@@ -64,8 +63,14 @@ function findRelevantLevel(
   highs: number[],
   lows: number[],
   trend: 'bullish' | 'bearish'
-): { level: number | null; type: 'support' | 'resistance' | null; crossoverPrice: number | null } {
+): {
+  level: number | null;
+  type: 'support' | 'resistance' | null;
+  crossoverPrice: number | null;
+  crossoverIndex: number | null;
+} {
   let crossoverPrice: number | null = null;
+  let crossoverIndex: number | null = null;
 
   for (let i = ema14.length - 2; i >= 1; i--) {
     const prev14 = ema14[i - 1];
@@ -76,20 +81,33 @@ function findRelevantLevel(
     if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
       const t = (prev14 - prev70) / ((prev14 - prev70) - (curr14 - curr70));
       crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-      return { level: crossoverPrice, type: 'support', crossoverPrice };
+      crossoverIndex = i;
+      return {
+        level: crossoverPrice,
+        type: 'support',
+        crossoverPrice,
+        crossoverIndex,
+      };
     }
 
     if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
       const t = (prev14 - prev70) / ((prev14 - prev70) - (curr14 - curr70));
       crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-      return { level: crossoverPrice, type: 'resistance', crossoverPrice };
+      crossoverIndex = i;
+      return {
+        level: crossoverPrice,
+        type: 'resistance',
+        crossoverPrice,
+        crossoverIndex,
+      };
     }
   }
 
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type, crossoverPrice: null };
+  return { level, type, crossoverPrice: null, crossoverIndex: null };
 }
+
   
 
 
