@@ -226,29 +226,42 @@ let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
 let minutesAgo: number | null = null;
 
-// Use crossoverPrice as the level to check divergence from (if available)
+// Determine which level to use
 const refLevel = crossoverPrice ?? level;
 
-if (type && refLevel !== null && crossoverIndex !== null) {
-  const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
+// Try to find the crossover index based on crossoverPrice
+let crossoverIndex: number | null = null;
+if (crossoverPrice !== null) {
+  crossoverIndex = closes.findIndex(
+    (c) => Math.abs(c - crossoverPrice) / c < 0.002
+  );
+}
 
-  if (levelIdx !== -1) {
+// Proceed with divergence check
+if (type && refLevel !== null && crossoverIndex !== null) {
+  const levelIdx = closes.findIndex(
+    (c) => Math.abs(c - refLevel) / c < 0.002
+  );
+
+  if (levelIdx !== -1 && rsi14[levelIdx] !== undefined && currentRSI !== undefined) {
     const pastRSI = rsi14[levelIdx];
 
-    const isBearishDiv = type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI;
-    const isBullishDiv = type === 'support' && lastClose < refLevel && currentRSI! > pastRSI;
+    const isBearishDiv =
+      type === 'resistance' && lastClose > refLevel && currentRSI < pastRSI;
+    const isBullishDiv =
+      type === 'support' && lastClose < refLevel && currentRSI > pastRSI;
 
     if (isBearishDiv || isBullishDiv) {
       divergenceFromLevel = true;
       divergenceFromLevelType = isBearishDiv ? 'bearish' : 'bullish';
 
-      // Measure candles between crossover and divergence level
-      divergenceFromLevelDistance = levelIdx - crossoverIndex;
+      // Distance in candles
+      divergenceFromLevelDistance = Math.abs(levelIdx - crossoverIndex);
 
-      // Convert to minutes (15m candles)
+      // Convert to time (assuming 15m candles)
       minutesAgo = divergenceFromLevelDistance * 15;
 
-      // Optional proximity classification
+      // Classify how recent
       divergenceProximity = divergenceFromLevelDistance <= 3 ? 'near' : 'far';
     }
   }
