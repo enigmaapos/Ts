@@ -88,6 +88,7 @@ function findRelevantLevel(
       const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
 
       return { level: crossoverPrice, type: 'resistance' };
+      console.log(`Trend: ${trend}, Crossover Price: ${crossoverPrice}`);
     }
   }
 
@@ -171,8 +172,7 @@ const lastClose = candles.at(-1)?.close!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
         const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
-const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-console.log(`Trend: ${trend}, Crossover Price: ${crossoverPrice}`);
+
 
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
 
