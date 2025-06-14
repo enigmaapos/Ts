@@ -70,14 +70,39 @@ function findRelevantLevel(
     const curr14 = ema14[i];
     const curr70 = ema70[i];
 
-    if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
-      return { level: closes[i], type: 'support' };
-    }
+    if (trend === 'bullish' && ema14[i - 1] < ema70[i - 1] && ema14[i] > ema70[i]) {
+  
+  
 
-    if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
-      return { level: closes[i], type: 'resistance' };
-    }
-  }
+  // Calculate the difference between EMA14 and EMA70 at previous and current points
+  const diffPrev = ema14Prev - ema70Prev;
+  const diffCurr = ema14Curr - ema70Curr;
+
+  // Interpolate crossover point between previous and current candle
+  const t = diffPrev / (diffPrev - diffCurr); // Fraction of crossover between candles
+
+  // Estimate the price where the crossover occurred
+  const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
+
+  return { level: crossoverPrice, type: 'support' };
+}
+
+    if (trend === 'bearish' && ema14[i - 1] > ema70[i - 1] && ema14[i] < ema70[i]) {
+  
+  
+
+  // Calculate the difference between EMA14 and EMA70 at previous and current points
+  const diffPrev = ema14Prev - ema70Prev;
+  const diffCurr = ema14Curr - ema70Curr;
+
+  // Interpolate crossover point between previous and current candle
+  const t = diffPrev / (diffPrev - diffCurr); // Fraction of crossover between candles
+
+  // Estimate the price where the crossover occurred
+  const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
+
+  return { level: crossoverPrice, type: 'resistance' };
+}
 
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
