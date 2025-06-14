@@ -72,31 +72,22 @@ function findRelevantLevel(
     const prev70 = ema70[i - 1];
     const curr70 = ema70[i];
 
-    // Bullish crossover
     if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
-      const diffPrev = prev14 - prev70;
-      const diffCurr = curr14 - curr70;
-      const t = diffPrev / (diffPrev - diffCurr);
+      const t = (prev14 - prev70) / ((prev14 - prev70) - (curr14 - curr70));
       crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-
       return { level: crossoverPrice, type: 'support', crossoverPrice };
     }
 
-    // Bearish crossover
     if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
-      const diffPrev = prev14 - prev70;
-      const diffCurr = curr14 - curr70;
-      const t = diffPrev / (diffPrev - diffCurr);
+      const t = (prev14 - prev70) / ((prev14 - prev70) - (curr14 - curr70));
       crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-
       return { level: crossoverPrice, type: 'resistance', crossoverPrice };
     }
   }
 
-  // Fallback: no crossover found
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type, crossoverPrice };
+  return { level, type, crossoverPrice: null };
 }
 
 
@@ -232,21 +223,21 @@ let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
 let minutesAgo: number | null = null;
-        
 
-        
+// Use crossoverPrice as the level to check divergence from (if available)
+const refLevel = crossoverPrice ?? level;
 
-if (type && level !== null) {
-  const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
+if (type && refLevel !== null) {
+  const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
 
   if (levelIdx !== -1) {
     const pastRSI = rsi14[levelIdx];
 
-    if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+    if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bearish';
       divergenceFromLevelDistance = closes.length - 1 - levelIdx;
-    } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+    } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
       divergenceFromLevelDistance = closes.length - 1 - levelIdx;
