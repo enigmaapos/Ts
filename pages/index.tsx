@@ -152,7 +152,8 @@ export default function Home() {
         const ema70 = calculateEMA(closes, 70);
         const rsi14 = calculateRSI(closes);
 
-        const lastClose = closes.at(-1)!;
+        const lastOpen = candles.at(-1)?.open!;
+const lastClose = candles.at(-1)?.close!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
         const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
@@ -337,6 +338,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
             differenceVsEMA70,
             divergenceFromLevel,
             divergenceFromLevelType,
+            lastOpen,
             lastClose,
               bearishContinuation,
   bullishContinuation,
@@ -552,11 +554,11 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
 <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
 <td
   className={`p-2 font-semibold ${
-    s.lastClose > s.open
-      ? "bg-green-700 text-white" // Candle closed higher (green)
-      : s.lastClose < s.open
-      ? "bg-red-700 text-white"   // Candle closed lower (red)
-      : "bg-gray-600 text-white"  // Doji or equal open/close
+    s.lastClose > s.lastOpen
+      ? "text-green-400"
+      : s.lastClose < s.lastOpen
+      ? "text-red-400"
+      : "text-gray-400"
   }`}
 >
   {s.lastClose.toFixed(9)}
