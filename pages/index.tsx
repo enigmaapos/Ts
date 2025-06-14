@@ -97,23 +97,6 @@ function findRelevantLevel(
   return { level, type };
 }
 
-function getLastCrossoverPrice(closes: number[], ema14: number[], ema70: number[]): number | null {
-  const len = closes.length;
-
-  for (let i = len - 2; i >= 1; i--) {
-    // Bullish crossover: EMA14 crosses above EMA70
-    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
-      return closes[i + 1]; // Price at crossover candle
-    }
-
-    // Bearish crossover: EMA14 crosses below EMA70
-    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
-      return closes[i + 1]; // Price at crossover candle
-    }
-  }
-
-  return null; // No crossover found
-}
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -188,8 +171,7 @@ const lastClose = candles.at(-1)?.close!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
         const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
-const crossoverPrice = getLastCrossoverPrice(closes, ema14, ema70);
-
+const crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
 console.log(`Trend: ${trend}, Crossover Price: ${crossoverPrice}`);
 
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
