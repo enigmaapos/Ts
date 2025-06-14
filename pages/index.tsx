@@ -229,6 +229,11 @@ let minutesAgo: number | null = null;
 // Use crossoverPrice as the level to check divergence from (if available)
 const refLevel = crossoverPrice ?? level;
 
+// Find the candle index where crossover happened (optional fallback to level)
+const crossoverIdx = crossoverPrice !== null
+  ? closes.findIndex(c => Math.abs(c - crossoverPrice) / c < 0.002)
+  : -1;
+
 if (type && refLevel !== null) {
   const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
 
@@ -238,11 +243,13 @@ if (type && refLevel !== null) {
     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+      divergenceFromLevelDistance =
+        crossoverIdx !== -1 ? levelIdx - crossoverIdx : closes.length - 1 - levelIdx;
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+      divergenceFromLevelDistance =
+        crossoverIdx !== -1 ? levelIdx - crossoverIdx : closes.length - 1 - levelIdx;
     }
   }
 }
