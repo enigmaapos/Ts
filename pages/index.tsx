@@ -256,13 +256,17 @@ if (type && refLevel !== null) {
     const pastRSI = rsi14[levelIdx];
 
     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
-      divergenceFromLevel = true;
-      divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = levelIdx - crossoverIndex;
+      if (crossoverIndex !== null && levelIdx > crossoverIndex) {
+        divergenceFromLevel = true;
+        divergenceFromLevelType = 'bearish';
+        divergenceFromLevelDistance = crossoverIndex - levelIdx;
+      }
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
-      divergenceFromLevel = true;
-      divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = levelIdx - crossoverIndex;
+      if (crossoverIndex !== null && levelIdx > crossoverIndex) {
+        divergenceFromLevel = true;
+        divergenceFromLevelType = 'bullish';
+        divergenceFromLevelDistance = crossoverIndex - levelIdx;
+      }
     }
   }
 }
@@ -270,6 +274,9 @@ if (type && refLevel !== null) {
 if (divergenceFromLevelDistance !== null) {
   divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
   minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
+} else {
+  divergenceProximity = null;
+  minutesAgo = null;
 }
         
         
