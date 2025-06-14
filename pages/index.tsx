@@ -56,6 +56,7 @@ function calculateRSI(closes: number[], period = 14) {
   return rsi;
 }
 
+
 function findRelevantLevel(
   ema14: number[],
   ema70: number[],
@@ -63,14 +64,8 @@ function findRelevantLevel(
   highs: number[],
   lows: number[],
   trend: 'bullish' | 'bearish'
-): {
-  level: number | null;
-  type: 'support' | 'resistance' | null;
-  crossoverPrice: number | null;
-  crossoverIndex: number | null;
-} {
+): { level: number | null; type: 'support' | 'resistance' | null; crossoverPrice: number | null } {
   let crossoverPrice: number | null = null;
-  let crossoverIndex: number | null = null;
 
   for (let i = ema14.length - 2; i >= 1; i--) {
     const prev14 = ema14[i - 1];
@@ -81,32 +76,21 @@ function findRelevantLevel(
     if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
       const t = (prev14 - prev70) / ((prev14 - prev70) - (curr14 - curr70));
       crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-      crossoverIndex = i;
-      return {
-        level: crossoverPrice,
-        type: 'support',
-        crossoverPrice,
-        crossoverIndex,
-      };
+      return { level: crossoverPrice, type: 'support', crossoverPrice };
     }
 
     if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
       const t = (prev14 - prev70) / ((prev14 - prev70) - (curr14 - curr70));
       crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
-      crossoverIndex = i;
-      return {
-        level: crossoverPrice,
-        type: 'resistance',
-        crossoverPrice,
-        crossoverIndex,
-      };
+      return { level: crossoverPrice, type: 'resistance', crossoverPrice };
     }
   }
 
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type, crossoverPrice: null, crossoverIndex: null };
+  return { level, type, crossoverPrice: null };
 }
+  
 
 
 export default function Home() {
@@ -232,20 +216,13 @@ const lastClose = candles.at(-1)?.close!;
           const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
           const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 
-          const { level, type, crossoverPrice, crossoverIndex } = findRelevantLevel(
-  ema14,
-  ema70,
-  closes,
-  highs,
-  lows,
-  trend
-);
+          const { level, type, crossoverPrice } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
           const highestHigh = Math.max(...highs);
           const lowestLow = Math.min(...lows);
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
           const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
-        let divergenceFromLevel = false;
+          let divergenceFromLevel = false;
 let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
@@ -254,37 +231,29 @@ let minutesAgo: number | null = null;
 // Use crossoverPrice as the level to check divergence from (if available)
 const refLevel = crossoverPrice ?? level;
 
-// Find the candle index where crossover happened (optional fallback to level)
-const crossoverIdx = crossoverPrice !== null
-  ? closes.findIndex(c => Math.abs(c - crossoverPrice) / c < 0.002)
-  : -1;
-
-if (type && refLevel !== null && crossoverIndex !== null) {
+if (type && refLevel !== null) {
   const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
 
-  if (levelIdx !== -1 && levelIdx > crossoverIndex) {
+  if (levelIdx !== -1) {
     const pastRSI = rsi14[levelIdx];
 
     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = levelIdx - crossoverIndex;
+      divergenceFromLevelDistance = candlesToday - 1 - levelIdx;
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = levelIdx - crossoverIndex;
+      divergenceFromLevelDistance = candlesToday - 1 - levelIdx;
     }
   }
 }
 
-// Final step: classify proximity and minutes
-if (divergenceFromLevelDistance !== null && divergenceFromLevelDistance >= 0) {
+if (divergenceFromLevelDistance !== null) {
   divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
   minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
-} else {
-  divergenceProximity = null;
-  minutesAgo = null;
 }
+        
         
           const touchedEMA70Today =
             prevSessionHigh! >= lastEMA70 &&
