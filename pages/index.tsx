@@ -240,11 +240,11 @@ if (type && refLevel !== null) {
     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = candlesToday - 1 - levelIdx;
+      divergenceFromLevelDistance = levelIdx - crossoverIndex;
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = candlesToday - 1 - levelIdx;
+      divergenceFromLevelDistance = levelIdx - crossoverIndex;
     }
   }
 }
