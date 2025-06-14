@@ -95,6 +95,8 @@ export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
+  const [loading, setLoading] = useState(true);
+
 
   const filteredSignals = signals.filter((s) =>
     s.symbol.toLowerCase().includes(search.toLowerCase())
@@ -389,7 +391,9 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
 
     const runBatches = async () => {
       await fetchSymbols();
-      fetchBatch();
+      await fetchBatch(); // fetch first batch before showing UI
+setLoading(false);  // stop showing loading spinner
+      
       const interval = setInterval(fetchBatch, INTERVAL_MS);
       return () => clearInterval(interval);
     };
@@ -428,6 +432,17 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
       stop.then((clear) => clear && clear());
     };
   }, []);
+
+  if (loading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-yellow-400 border-opacity-50 mx-auto mb-4"></div>
+        <p className="text-lg">Loading data...</p>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
