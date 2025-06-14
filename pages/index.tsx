@@ -84,6 +84,24 @@ function findRelevantLevel(
   return { level, type };
        }
 
+function getLastCrossoverPrice(closes: number[], ema14: number[], ema70: number[]): number | null {
+  const len = closes.length;
+
+  for (let i = len - 2; i >= 1; i--) {
+    // Bullish crossover: EMA14 crosses above EMA70
+    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
+      return closes[i + 1]; // Price at crossover candle
+    }
+
+    // Bearish crossover: EMA14 crosses below EMA70
+    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
+      return closes[i + 1]; // Price at crossover candle
+    }
+  }
+
+  return null; // No crossover found
+}
+
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -157,6 +175,9 @@ const lastClose = candles.at(-1)?.close!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
         const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
+const crossoverPrice = getLastCrossoverPrice(closes, ema14, ema70);
+
+console.log(`Trend: ${trend}, Crossover Price: ${crossoverPrice}`);
 
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
 
@@ -338,6 +359,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
         return {
   symbol,
   trend,
+          crossoverPrice,
   breakout,
   bullishBreakout,
   bearishBreakout,
@@ -438,7 +460,8 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
           <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
             <tr>
               <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
-              <th className="p-2">Trend</th>
+  <th className="p-2">Trend</th>
+  <th className="p-2">Crossover Price</th>
               <th className="p-2">Breakout</th>
               <th className="p-2">Bullish Break</th>
               <th className="p-2">Bearish Break</th>
@@ -483,6 +506,10 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   }`}
 >
   {s.trend}
+</td>
+
+<td className="p-2 text-sm text-yellow-200">
+  {s.crossoverPrice ? s.crossoverPrice.toFixed(2) : "-"}
 </td>
 
 <td
