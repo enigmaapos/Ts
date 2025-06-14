@@ -94,7 +94,7 @@ function findRelevantLevel(
   // Fallback: if no crossover detected
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type };
+  return { level, type, crossoverPrice };
 }
 
 
