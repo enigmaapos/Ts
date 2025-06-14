@@ -226,42 +226,39 @@ let divergenceFromLevelDistance: number | null = null;
 let divergenceProximity: 'near' | 'far' | null = null;
 let minutesAgo: number | null = null;
 
+// Use crossoverPrice as the level to check divergence from (if available)
 const refLevel = crossoverPrice ?? level;
 
-// Find crossoverIndex
-let crossoverIndex: number | null = null;
-if (crossoverPrice !== null) {
-  crossoverIndex = closes.findIndex(
-    (c) => Math.abs(c - crossoverPrice) / c < 0.002
-  );
-}
+if (type && refLevel !== null) {
+  const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
 
-// Check divergence starting from crossoverIndex going forward
-if (type && refLevel !== null && crossoverIndex !== null) {
-  for (let i = crossoverIndex + 1; i < closes.length; i++) {
-    const priceNearLevel = Math.abs(closes[i] - refLevel) / closes[i] < 0.002;
+  if (levelIdx !== -1) {
+    const pastRSI = rsi14[levelIdx];
 
-    if (priceNearLevel && rsi14[i] !== undefined && currentRSI !== undefined) {
-      const pastRSI = rsi14[i];
-
-      const isBearishDiv =
-        type === 'resistance' && closes[i] > refLevel && currentRSI < pastRSI;
-      const isBullishDiv =
-        type === 'support' && closes[i] < refLevel && currentRSI > pastRSI;
-
-      if (isBearishDiv || isBullishDiv) {
-        divergenceFromLevel = true;
-        divergenceFromLevelType = isBearishDiv ? 'bearish' : 'bullish';
-
-        divergenceFromLevelDistance = i - crossoverIndex;
-        minutesAgo = divergenceFromLevelDistance * 15;
-        divergenceProximity = divergenceFromLevelDistance <= 3 ? 'near' : 'far';
-        break;
-      }
+    if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
+      divergenceFromLevel = true;
+      divergenceFromLevelType = 'bearish';
+      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+    } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
+      divergenceFromLevel = true;
+      divergenceFromLevelType = 'bullish';
+      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
     }
   }
 }
-   
+
+if (divergenceFromLevelDistance !== null) {
+  if (divergenceFromLevelDistance <= 5) {
+    divergenceProximity = 'near';
+  } else {
+    divergenceProximity = 'far';
+  }
+
+  minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
+} else {
+  divergenceProximity = null;
+  minutesAgo = null;
+}
         
           const touchedEMA70Today =
             prevSessionHigh! >= lastEMA70 &&
