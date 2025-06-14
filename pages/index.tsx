@@ -259,33 +259,27 @@ const crossoverIdx = crossoverPrice !== null
   ? closes.findIndex(c => Math.abs(c - crossoverPrice) / c < 0.002)
   : -1;
 
-if (type && refLevel !== null) {
+if (type && refLevel !== null && crossoverIndex !== null) {
   const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
 
-  if (levelIdx !== -1) {
+  if (levelIdx !== -1 && levelIdx > crossoverIndex) {
     const pastRSI = rsi14[levelIdx];
 
     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = 
-        crossoverIndex !== null ? levelIdx - crossoverIndex : closes.length - 1 - levelIdx;
+      divergenceFromLevelDistance = levelIdx - crossoverIndex;
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = 
-        crossoverIndex !== null ? levelIdx - crossoverIndex : closes.length - 1 - levelIdx;
+      divergenceFromLevelDistance = levelIdx - crossoverIndex;
     }
   }
 }
 
-if (divergenceFromLevelDistance !== null) {
-  if (divergenceFromLevelDistance <= 5) {
-    divergenceProximity = 'near';
-  } else {
-    divergenceProximity = 'far';
-  }
-
+// Final step: classify proximity and minutes
+if (divergenceFromLevelDistance !== null && divergenceFromLevelDistance >= 0) {
+  divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
   minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
 } else {
   divergenceProximity = null;
