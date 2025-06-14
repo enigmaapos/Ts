@@ -255,17 +255,17 @@ if (type && refLevel !== null) {
   if (levelIdx !== -1) {
     const pastRSI = rsi14[levelIdx];
 
-    if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
+     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = levelIdx - 1 - crossoverIndex;
+      divergenceFromLevelDistance = crossoverIndex - 1 - levelIdx;
     } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = levelIdx - 1 - crossoverIndex;
+      divergenceFromLevelDistance = crossoverIndex - 1 - levelIdx;
     }
   }
-}
+         }
 
 if (divergenceFromLevelDistance !== null) {
   divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
