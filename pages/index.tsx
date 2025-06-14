@@ -210,23 +210,38 @@ const lastClose = candles.at(-1)?.close!;
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
           const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
-          let divergenceFromLevel = false;
-          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
+        let divergenceFromLevel = false;
+let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
+let divergenceFromLevelDistance: number | null = null;
+let divergenceProximity: 'near' | 'far' | null = null;
+let minutesAgo: number | null = null;
 
-          if (type && level !== null) {
-            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
-            if (levelIdx !== -1) {
-              const pastRSI = rsi14[levelIdx];
-              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bearish';
-              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bullish';
-              }
-            }
-          }
+if (type && level !== null) {
+  const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
 
+  if (levelIdx !== -1) {
+    const pastRSI = rsi14[levelIdx];
+
+    if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+      divergenceFromLevel = true;
+      divergenceFromLevelType = 'bearish';
+      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+    } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+      divergenceFromLevel = true;
+      divergenceFromLevelType = 'bullish';
+      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+    }
+  }
+}
+
+if (divergenceFromLevelDistance !== null) {
+  divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
+  minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
+}
+          
+
+        
+        
           const touchedEMA70Today =
             prevSessionHigh! >= lastEMA70 &&
             prevSessionLow! <= lastEMA70 &&
@@ -321,28 +336,31 @@ const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs
 const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, closes);
         
         return {
-          symbol,
-          trend,
-          breakout,
-          bullishBreakout,
-          bearishBreakout,
-          divergence,
-            divergenceType,
-            ema14Bounce,
-            ema70Bounce,
-            nearOrAtEMA70Divergence,
-            touchedEMA70Today,
-            inferredLevel: level!,
-            inferredLevelType: type!,
-            inferredLevelWithinRange: level! <= todaysHighestHigh! && level! >= todaysLowestLow!,
-            differenceVsEMA70,
-            divergenceFromLevel,
-            divergenceFromLevelType,
-            lastOpen,
-            lastClose,
-              bearishContinuation,
+  symbol,
+  trend,
+  breakout,
+  bullishBreakout,
+  bearishBreakout,
+  divergence,
+  divergenceType,
+  ema14Bounce,
+  ema70Bounce,
+  nearOrAtEMA70Divergence,
+  touchedEMA70Today,
+  inferredLevel: level!,
+  inferredLevelType: type!,
+  inferredLevelWithinRange: level! <= todaysHighestHigh! && level! >= todaysLowestLow!,
+  differenceVsEMA70,
+  divergenceFromLevel,
+  divergenceFromLevelType,
+  divergenceFromLevelDistance,
+  divergenceProximity,
+  minutesAgo,
+  lastOpen,
+  lastClose,
+  bearishContinuation,
   bullishContinuation,
-        };
+};
       } catch (err) {
         console.error("Error processing", symbol, err);
         return null;
@@ -438,6 +456,9 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
           <th className="p-2">%Diff vs EMA70</th>
           <th className="p-2">Level Divergence</th>
           <th className="p-2">Level Div Type</th>
+<th className="p-2">Div Distance</th>
+<th className="p-2">Proximity</th>
+<th className="p-2">Minutes Ago</th>
           <th className="p-2">Last Close</th>
             </tr>
           </thead>
@@ -552,6 +573,17 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
 </td>
 
 <td className="p-2">{s.divergenceFromLevelType || "None"}</td>
+                 <td className="p-2">
+  {s.divergenceFromLevelDistance !== null ? s.divergenceFromLevelDistance : "—"}
+</td>
+                  
+<td className={`p-2 ${s.divergenceProximity === "near" ? "text-green-400" : "text-yellow-400"}`}>
+  {s.divergenceProximity || "—"}
+</td>
+
+<td className="p-2">
+  {s.minutesAgo !== null ? `${s.minutesAgo} min` : "—"}
+</td> 
 <td
   className={`p-2 font-semibold ${
     s.lastClose > s.lastOpen
