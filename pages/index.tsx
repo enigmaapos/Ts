@@ -248,7 +248,6 @@ if (type && level !== null) {
       divergenceFromLevel = true;
       divergenceFromLevelType = 'bullish';
       divergenceFromLevelDistance = closes.length - 1 - levelIdx;
-      crossoverPrice = closes[i - 1] + t * (closes[i] - closes[i - 1]);
     }
   }
 }
