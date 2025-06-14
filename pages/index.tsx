@@ -229,7 +229,7 @@ let minutesAgo: number | null = null;
 // Use crossoverPrice as the level to check divergence from (if available)
 const refLevel = crossoverPrice ?? level;
 
-if (type && refLevel !== null) {
+if (type && refLevel !== null && crossoverIndex !== null) {
   const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
 
   if (levelIdx !== -1) {
@@ -242,13 +242,13 @@ if (type && refLevel !== null) {
       divergenceFromLevel = true;
       divergenceFromLevelType = isBearishDiv ? 'bearish' : 'bullish';
 
-      // How many candles ago the divergence level occurred
-      divergenceFromLevelDistance = closes.length - 1 - levelIdx;
+      // Measure candles between crossover and divergence level
+      divergenceFromLevelDistance = levelIdx - crossoverIndex;
 
-      // How many minutes ago
+      // Convert to minutes (15m candles)
       minutesAgo = divergenceFromLevelDistance * 15;
 
-      // Optional: classify proximity
+      // Optional proximity classification
       divergenceProximity = divergenceFromLevelDistance <= 3 ? 'near' : 'far';
     }
   }
