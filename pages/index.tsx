@@ -433,9 +433,9 @@ setLoading(false);  // stop showing loading spinner
     };
   }, []);
 
-  if (loading) {
+if (loading) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+    <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-yellow-400 border-opacity-50 mx-auto mb-4"></div>
         <p className="text-lg">Loading data...</p>
