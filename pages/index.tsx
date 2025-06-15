@@ -84,17 +84,6 @@ function findRelevantLevel(
   return { level, type };
        }
 
-export default function Home() {
-  const [signals, setSignals] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-
-  const filteredSignals = signals.filter((s) =>
-    s.symbol.toLowerCase().includes(search.toLowerCase())
-  );
-
-
-  
-
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
