@@ -327,7 +327,7 @@ for (let i = crossoverIndex + 1; i < len; i++) {
 
     lastLow = currentLow;
 
-    if (risingRSI && higherThanCrossover) {
+    if (fallingRSI && higherThanCrossover) {
       return true;
     }
   }
