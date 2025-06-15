@@ -1,5 +1,29 @@
 import { useEffect, useState } from "react";
 
+type Signal = {
+  symbol: string;
+  trend: string;
+  breakout: boolean;
+  bullishBreakout: boolean;
+  bearishBreakout: boolean;
+  divergence: boolean;
+  divergenceType: 'bullish' | 'bearish' | null;
+  ema14Bounce: boolean;
+  ema70Bounce: boolean;
+  nearOrAtEMA70Divergence: boolean;
+  touchedEMA70Today: boolean;
+  inferredLevel: number;
+  inferredLevelType: 'support' | 'resistance';
+  inferredLevelWithinRange: boolean;
+  differenceVsEMA70: number;
+  divergenceFromLevel: boolean;
+  divergenceFromLevelType: 'bullish' | 'bearish' | null;
+  lastOpen: number;
+  lastClose: number;
+  bearishContinuation: boolean;
+  bullishContinuation: boolean;
+};
+
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
   const ema: number[] = [];
@@ -86,10 +110,11 @@ function findRelevantLevel(
 
 
 export default function Home() {
-  const [signals, setSignals] = useState<any[]>([]);
+  const [signals, setSignals] = useState<Signal[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
+  
 
 
   const filteredSignals = signals.filter((s) =>
@@ -392,31 +417,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
         return null;
       }
     };
-
-
-      type Signal = {
-  symbol: string;
-  trend: string;
-  breakout: boolean;
-  bullishBreakout: boolean;
-  bearishBreakout: boolean;
-  divergence: boolean;
-  divergenceType: 'bullish' | 'bearish' | null;
-  ema14Bounce: boolean;
-  ema70Bounce: boolean;
-  nearOrAtEMA70Divergence: boolean;
-  touchedEMA70Today: boolean;
-  inferredLevel: number;
-  inferredLevelType: 'support' | 'resistance';
-  inferredLevelWithinRange: boolean;
-  differenceVsEMA70: number;
-  divergenceFromLevel: boolean;
-  divergenceFromLevelType: 'bullish' | 'bearish' | null;
-  lastOpen: number;
-  lastClose: number;
-  bearishContinuation: boolean;
-  bullishContinuation: boolean;
-};
+ 
 
     const fetchSymbols = async () => {
       const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
