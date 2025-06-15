@@ -505,7 +505,7 @@ if (loading) {
       </div>
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
 
-  <div className="fixed top-0 left-0 w-full md:w-auto bg-gray-900/90 p-4 z-50 text-white space-y-1 text-sm md:text-base shadow-md">
+  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white space-y-1 text-sm md:text-base border-r border-gray-700">
   <p>
     Bullish Main Trend: <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
   </p>
