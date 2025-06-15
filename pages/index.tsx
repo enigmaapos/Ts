@@ -503,26 +503,24 @@ if (loading) {
           className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
         />
         <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700">
-  <table className="w-full table-auto">
-    <tbody>
-      <tr>
-        <td className="pr-4">Bullish Main Trend:</td>
-        <td className="text-green-400 font-semibold">{bullishMainTrendCount}</td>
-      </tr>
-      <tr>
-        <td className="pr-4">Bearish Main Trend:</td>
-        <td className="text-red-400 font-semibold">{bearishMainTrendCount}</td>
-      </tr>
-      <tr>
-        <td className="pr-4">Bullish Continuation:</td>
-        <td className="text-green-300 font-semibold">{bullishContinuationCount}</td>
-      </tr>
-      <tr>
-        <td className="pr-4">Bearish Continuation:</td>
-        <td className="text-red-300 font-semibold">{bearishContinuationCount}</td>
-      </tr>
-    </tbody>
-  </table>
+  <div className="flex flex-col space-y-4">
+    <div className="flex flex-col items-start">
+      <span className="text-gray-300">Bullish Main Trend</span>
+      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
+    </div>
+    <div className="flex flex-col items-start">
+      <span className="text-gray-300">Bearish Main Trend</span>
+      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
+    </div>
+    <div className="flex flex-col items-start">
+      <span className="text-gray-300">Bullish Continuation</span>
+      <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+    </div>
+    <div className="flex flex-col items-start">
+      <span className="text-gray-300">Bearish Continuation</span>
+      <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+    </div>
+  </div>
 </div>
       </div>      
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
