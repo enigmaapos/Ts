@@ -532,14 +532,6 @@ if (loading) {
               <th className="p-2">Main Trend (ema200)</th>
               <th className="p-2">Bearish Cont.</th>
               <th className="p-2">Bullish Cont.</th>
-              <th className="p-2">Level Divergence</th>
-              <th className="p-2">Level Div Type</th>
-              <th className="p-2">Divergence</th>
-              <th className="p-2">Diverge Type</th>
-              <th className="p-2">EMA14 Bounce</th>
-              <th className="p-2">EMA70 Bounce</th>
-              <th className="p-2">EMA200 Bounce</th>
-              <th className="p-2">Near EMA70 Diverge</th>
             </tr>
           </thead>
              <tbody>
@@ -604,14 +596,6 @@ if (loading) {
               >
                 {s.bullishContinuation ? 'Yes' : 'No'}
               </td>
-              <td className="p-2">{s.divergenceFromLevel ? 'Yes' : 'No'}</td>
-              <td className="p-2">{s.divergenceFromLevelType || 'None'}</td>
-              <td className="p-2">{s.divergence ? 'Yes' : 'No'}</td>
-              <td className="p-2">{s.divergenceType || 'None'}</td>
-              <td className="p-2">{s.ema14Bounce ? 'Yes' : 'No'}</td>
-              <td className="p-2">{s.ema70Bounce ? 'Yes' : 'No'}</td>
-              <td className="p-2">{s.ema200Bounce ? 'Yes' : 'No'}</td>
-              <td className="p-2">{s.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
             </tr>
           );
         })}
