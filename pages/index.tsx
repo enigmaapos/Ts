@@ -101,6 +101,11 @@ export default function Home() {
     s.symbol.toLowerCase().includes(search.toLowerCase())
   );
 
+    // ✅ Declare counts here (inside the component, after filteredSignals)
+  const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
+  const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
+
+
   useEffect(() => {
     let isMounted = true;
 
