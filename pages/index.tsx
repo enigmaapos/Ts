@@ -517,6 +517,7 @@ if (loading) {
     Bearish Continuation: <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
   </p>
 </div>
+          </div>
       </div>      
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
         <table className="min-w-[1600px] text-xs border-collapse">
