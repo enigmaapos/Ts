@@ -56,6 +56,10 @@ function calculateRSI(closes: number[], period = 14) {
   return rsi;
 }
 
+function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
+  return close >= ema200 ? 'bullish' : 'bearish';
+}
+
 function findRelevantLevel(
   ema14: number[],
   ema70: number[],
@@ -150,19 +154,29 @@ export default function Home() {
         }));
 
         const closes = candles.map((c) => c.close);
-        const highs = candles.map(c => c.high);
-          const lows = candles.map(c => c.low);
-        const ema14 = calculateEMA(closes, 14);
-        const ema70 = calculateEMA(closes, 70);
-        const ema200 = calculateEMA(closes, 200);
-        const rsi14 = calculateRSI(closes);
+const highs = candles.map(c => c.high);
+const lows = candles.map(c => c.low);
 
-        const lastOpen = candles.at(-1)?.open!;
+const ema14 = calculateEMA(closes, 14);
+const ema70 = calculateEMA(closes, 70);
+const ema200 = calculateEMA(closes, 200);
+const rsi14 = calculateRSI(closes);
+
+const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
-        const lastEMA14 = ema14.at(-1)!;
-        const lastEMA70 = ema70.at(-1)!;
-        const lastEMA200 = ema200.at(-1)!;
-        const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
+const lastEMA14 = ema14.at(-1)!;
+const lastEMA70 = ema70.at(-1)!;
+const lastEMA200 = ema200.at(-1)!;
+
+// Trend from EMA14 vs EMA70 (short-term trend)
+const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
+
+// Main trend from candle vs EMA200 (long-term trend)
+const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
+
+console.log('Short-term trend (EMA14/70):', trend);
+console.log('Main trend (Close vs EMA200):', mainTrend);
+        
 
 
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
@@ -371,6 +385,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
         
         return {
   symbol,
+  mainTrend,
   trend,
   breakout,
   bullishBreakout,
@@ -492,6 +507,7 @@ if (loading) {
               <th className="p-2">Breakout</th>
               <th className="p-2">Bullish Break</th>
               <th className="p-2">Bearish Break</th>
+              <th className="p-2">Main Trend (ema200)</th>
               <th className="p-2">Bearish Cont.</th>
               <th className="p-2">Bullish Cont.</th>
               <th className="p-2">Level Divergence</th>
@@ -520,6 +536,7 @@ if (loading) {
         >
           {s.symbol}
         </td>
+        
         <td className="p-2">{s.trend}</td>
         <td className="p-2">{s.inferredLevelType}</td>
         <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
@@ -549,6 +566,10 @@ if (loading) {
         >
           {s.bearishBreakout ? 'Yes' : 'No'}
         </td>
+
+        <td className={`p-2 font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+  {s.mainTrend}
+</td>
 
         <td
           className={`p-2 ${
