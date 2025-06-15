@@ -104,6 +104,8 @@ export default function Home() {
     // ✅ Declare counts here (inside the component, after filteredSignals)
   const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
   const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
+  const bullishContinuationCount = filteredSignals.filter(s => s.bullishContinuation).length;
+const bearishContinuationCount = filteredSignals.filter(s => s.bearishContinuation).length;
 
 
   useEffect(() => {
@@ -383,13 +385,6 @@ const detectBearishContinuation = (
 // Usage
 const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, lows, closes);
 const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, highs, closes);
-
-        const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
-const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-
-const bullishContinuationCount = filteredSignals.filter(s => s.bullishContinuation).length;
-const bearishContinuationCount = filteredSignals.filter(s => s.bearishContinuation).length;
-
 
 
         
