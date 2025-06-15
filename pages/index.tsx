@@ -504,8 +504,8 @@ if (loading) {
         />
       </div>
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-
-  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white space-y-1 text-sm md:text-base border-r border-gray-700">
+        <table className="min-w-[1600px] text-xs border-collapse">
+          <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white space-y-1 text-sm md:text-base border-r border-gray-700">
   <p>
     Bullish Main Trend: <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
   </p>
@@ -519,8 +519,6 @@ if (loading) {
     Bearish Continuation: <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
   </p>
 </div>
-        
-        <table className="min-w-[1600px] text-xs border-collapse">
           <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
             <tr>
               <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
