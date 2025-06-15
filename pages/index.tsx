@@ -390,6 +390,10 @@ const bearishContinuationCount = filteredSignals.filter(s => s.bearishContinuati
         
         return {
   symbol,
+          bullishMainTrendCount,
+            bearishMainTrendCount,
+        bullishContinuationCount,
+          bearishContinuationCount,     
   mainTrend,
   trend,
   breakout,
