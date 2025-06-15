@@ -1,29 +1,5 @@
 import { useEffect, useState } from "react";
 
-type Signal = {
-  symbol: string;
-  trend: string;
-  breakout: boolean;
-  bullishBreakout: boolean;
-  bearishBreakout: boolean;
-  divergence: boolean;
-  divergenceType: 'bullish' | 'bearish' | null;
-  ema14Bounce: boolean;
-  ema70Bounce: boolean;
-  nearOrAtEMA70Divergence: boolean;
-  touchedEMA70Today: boolean;
-  inferredLevel: number;
-  inferredLevelType: 'support' | 'resistance';
-  inferredLevelWithinRange: boolean;
-  differenceVsEMA70: number;
-  divergenceFromLevel: boolean;
-  divergenceFromLevelType: 'bullish' | 'bearish' | null;
-  lastOpen: number;
-  lastClose: number;
-  bearishContinuation: boolean;
-  bullishContinuation: boolean;
-};
-
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
   const ema: number[] = [];
@@ -110,7 +86,7 @@ function findRelevantLevel(
 
 
 export default function Home() {
-  const [signals, setSignals] = useState<Signal[]>([]);
+  const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
@@ -297,23 +273,21 @@ const detectBullishContinuation = (
 
 for (let i = crossoverIndex + 1; i < len; i++) {
   const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+  const aboveEMA = closes[i] > ema70[i];
+  const nearOrAboveEMA = nearEMA || aboveEMA;
+
   const fallingRSI = rsi14[i] < crossoverRSI;
+  const higherThanCrossover = closes[i] > crossoverLow;
 
-  if (nearEMA) {
-    const currentLow = lows[i];
-    const higherLow = currentLow > crossoverLow;
-    const higherCloseThanCrossover = closes[i] > crossoverLow;
+  const currentLow = lows[i];
+  const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-    if (lastLow === null) {
+  if (nearOrAboveEMA) {
+    if (lastLow === null || currentLow > lastLow) {
       lastLow = currentLow;
-    } else if (currentLow <= lastLow) {
-      // Not an ascending low — exit early
-      return false;
     }
 
-    lastLow = currentLow;
-
-    if (fallingRSI && higherLow && higherCloseThanCrossover) {
+    if (isAscendingLow && fallingRSI && higherThanCrossover) {
       return true;
     }
   }
@@ -352,34 +326,31 @@ const detectBearishContinuation = (
   // 4–6. Confirm continuation structure
   let lastHigh: number | null = null;
 
-for (let i = crossoverIndex + 1; i < len; i++) {
-  const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-  const underEMA = closes[i] < ema70[i];
-  const nearOrUnderEMA = nearEMA || underEMA;
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const underEMA = closes[i] < ema70[i];
+    const nearOrUnderEMA = nearEMA || underEMA;
 
-  const risingRSI = rsi14[i] > crossoverRSI;
+    const risingRSI = rsi14[i] > crossoverRSI;
+    const lowerThanCrossover = closes[i] < crossoverHigh;
 
-  const currentHigh = highs[i];
-  const lowerHigh = currentHigh < crossoverHigh;
-  const lowerCloseThanCrossover = closes[i] < crossoverHigh;
+    const currentHigh = highs[i];
+    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
-  const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
+    if (nearOrUnderEMA) {
+      if (lastHigh === null || currentHigh < lastHigh) {
+        lastHigh = currentHigh;
+      }
 
-  if (nearOrUnderEMA) {
-    if (lastHigh === null) {
-      lastHigh = currentHigh;
-    } else if (currentHigh >= lastHigh) {
-      // Not a descending high — exit early
-      return false;
-    }
-
-    lastHigh = currentHigh;
-
-    if (isDescendingHigh && risingRSI && lowerHigh && lowerCloseThanCrossover) {
-      return true;
+      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
+        return true;
+      }
     }
   }
-}
+
+  return false;
+};
+    
 
 // Usage
 const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, lows, closes);
