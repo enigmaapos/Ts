@@ -518,91 +518,91 @@ if (loading) {
           </div>
       </div>      
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-        <table className="min-w-[1600px] text-xs border-collapse">
-          <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-            <tr>
-              <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
-              <th className="p-2">Trend</th>
-              <th className="p-2">Inferred Level Type</th>
-              <th className="p-2">Touched EMA70</th>
-              <th className="p-2">Touched EMA200</th>
-              <th className="p-2">Breakout</th>
-              <th className="p-2">Bullish Break</th>
-              <th className="p-2">Bearish Break</th>
-              <th className="p-2">Main Trend (ema200)</th>
-              <th className="p-2">Bearish Cont.</th>
-              <th className="p-2">Bullish Cont.</th>
-            </tr>
-          </thead>
-             <tbody>
-        {filteredSignals.map((s) => {
-          const updatedRecently =
-            Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-          return (
-            <tr
-              key={s.symbol}
-              className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
-                updatedRecently ? 'bg-yellow-900/30' : ''
+  <table className="min-w-[1600px] text-xs border-collapse">
+    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+      <tr>
+        <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left align-middle">Symbol</th>
+        <th className="p-2 text-center align-middle">Trend</th>
+        <th className="p-2 text-center align-middle">Inferred Level Type</th>
+        <th className="p-2 text-center align-middle">Touched EMA70</th>
+        <th className="p-2 text-center align-middle">Touched EMA200</th>
+        <th className="p-2 text-center align-middle">Breakout</th>
+        <th className="p-2 text-center align-middle">Bullish Break</th>
+        <th className="p-2 text-center align-middle">Bearish Break</th>
+        <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
+        <th className="p-2 text-center align-middle">Bearish Cont.</th>
+        <th className="p-2 text-center align-middle">Bullish Cont.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {filteredSignals.map((s) => {
+        const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+        return (
+          <tr
+            key={s.symbol}
+            className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
+              updatedRecently ? 'bg-yellow-900/30' : ''
+            }`}
+          >
+            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left align-middle">
+              {s.symbol}
+            </td>
+            <td className="p-2 text-center align-middle">{s.trend}</td>
+            <td className="p-2 text-center align-middle">{s.inferredLevelType}</td>
+            <td className="p-2 text-center align-middle">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
+            <td
+              className={`p-2 text-center align-middle ${
+                s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
               }`}
             >
-              <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer">{s.symbol}</td>
-              <td className="p-2">{s.trend}</td>
-              <td className="p-2">{s.inferredLevelType}</td>
-              <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
-              <td
-                className={`p-2 ${
-                  s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
-                }`}
-              >
-                {s.touchedEMA200Today ? 'Yes' : 'No'}
-              </td>
-              <td className="p-2">{s.breakout ? 'Yes' : 'No'}</td>
-              <td
-                className={`p-2 ${
-                  s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'
-                }`}
-              >
-                {s.bullishBreakout ? 'Yes' : 'No'}
-              </td>
-              <td
-                className={`p-2 ${
-                  s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'
-                }`}
-              >
-                {s.bearishBreakout ? 'Yes' : 'No'}
-              </td>
-              <td
-                className={`p-2 font-semibold ${
-                  s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'
-                }`}
-              >
-                {s.mainTrend}
-              </td>
-              <td
-                className={`p-2 ${
-                  s.bearishContinuation
-                    ? 'bg-red-900 text-white'
-                    : 'bg-gray-800 text-gray-500'
-                }`}
-              >
-                {s.bearishContinuation ? 'Yes' : 'No'}
-              </td>
-              <td
-                className={`p-2 ${
-                  s.bullishContinuation
-                    ? 'bg-green-900 text-white'
-                    : 'bg-gray-800 text-gray-500'
-                }`}
-              >
-                {s.bullishContinuation ? 'Yes' : 'No'}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-                  
-        </table>
-      </div>
+              {s.touchedEMA200Today ? 'Yes' : 'No'}
+            </td>
+            <td className="p-2 text-center align-middle">{s.breakout ? 'Yes' : 'No'}</td>
+            <td
+              className={`p-2 text-center align-middle ${
+                s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'
+              }`}
+            >
+              {s.bullishBreakout ? 'Yes' : 'No'}
+            </td>
+            <td
+              className={`p-2 text-center align-middle ${
+                s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'
+              }`}
+            >
+              {s.bearishBreakout ? 'Yes' : 'No'}
+            </td>
+            <td
+              className={`p-2 text-center align-middle font-semibold ${
+                s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'
+              }`}
+            >
+              {s.mainTrend}
+            </td>
+            <td
+              className={`p-2 text-center align-middle ${
+                s.bearishContinuation
+                  ? 'bg-red-900 text-white'
+                  : 'bg-gray-800 text-gray-500'
+              }`}
+            >
+              {s.bearishContinuation ? 'Yes' : 'No'}
+            </td>
+            <td
+              className={`p-2 text-center align-middle ${
+                s.bullishContinuation
+                  ? 'bg-green-900 text-white'
+                  : 'bg-gray-800 text-gray-500'
+              }`}
+            >
+              {s.bullishContinuation ? 'Yes' : 'No'}
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
     </div>
   );
 }
