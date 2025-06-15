@@ -524,8 +524,22 @@ if (loading) {
         <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
         <td className="p-2">{s.touchedEMA200Today ? 'Yes' : 'No'}</td>
         <td className="p-2">{s.breakout ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.bullishBreakout ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.bearishBreakout ? 'Yes' : 'No'}</td>
+
+        <td
+          className={`p-2 ${
+            s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'
+          }`}
+        >
+          {s.bullishBreakout ? 'Yes' : 'No'}
+        </td>
+
+        <td
+          className={`p-2 ${
+            s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'
+          }`}
+        >
+          {s.bearishBreakout ? 'Yes' : 'No'}
+        </td>
 
         <td
           className={`p-2 ${
@@ -536,6 +550,7 @@ if (loading) {
         >
           {s.bearishContinuation ? 'Yes' : 'No'}
         </td>
+
         <td
           className={`p-2 ${
             s.bullishContinuation
