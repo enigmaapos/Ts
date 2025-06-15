@@ -462,7 +462,7 @@ if (loading) {
   );
 }
 
-  return (
+    return (
     <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
       <h1 className="text-3xl font-bold text-yellow-400 mb-4">
         Binance 15m Signal Analysis (UTC)
@@ -483,127 +483,165 @@ if (loading) {
           <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
             <tr>
               <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
-  <th className="p-2">Trend</th>
-              <th className="p-2">inferred Level Type</th>        
+              <th className="p-2">Trend</th>
+              <th className="p-2">Inferred Level Type</th>
               <th className="p-2">Breakout</th>
               <th className="p-2">Bullish Break</th>
               <th className="p-2">Bearish Break</th>
               <th className="p-2">Bearish Cont.</th>
-          <th className="p-2">Bullish Cont.</th>
-          <th className="p-2">Level Divergence</th>
-              <th className="p-2">Level Div Type</th>  
-                   <th className="p-2">Divergence</th>
-          <th className="p-2">Diverge Type</th>
-          <th className="p-2">EMA14 Bounce</th>
-          <th className="p-2">EMA70 Bounce</th>
-          <th className="p-2">Near EMA70 Diverge</th>
-          <th className="p-2">Touched EMA70</th>
+              <th className="p-2">Bullish Cont.</th>
+              <th className="p-2">Level Divergence</th>
+              <th className="p-2">Level Div Type</th>
+              <th className="p-2">Divergence</th>
+              <th className="p-2">Diverge Type</th>
+              <th className="p-2">EMA14 Bounce</th>
+              <th className="p-2">EMA70 Bounce</th>
+              <th className="p-2">Near EMA70 Diverge</th>
+              <th className="p-2">Touched EMA70</th>
             </tr>
           </thead>
           <tbody>
             {filteredSignals.map((s) => {
-              const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+              const updatedRecently =
+                Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
               return (
                 <tr
                   key={s.symbol}
                   className={`border-b border-gray-700 transition-all duration-300 ${
-                    updatedRecently ? "bg-yellow-900/30" : ""
+                    updatedRecently ? 'bg-yellow-900/30' : ''
                   }`}
                 >
-                  <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">{s.symbol}</td>
+                  <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10">
+                    {s.symbol}
+                  </td>
                   <td
-  className={`p-2 font-semibold ${
-    s.trend === "bullish"
-      ? "bg-green-800 text-green-200"
-      : s.trend === "bearish"
-      ? "bg-red-800 text-red-200"
-      : "bg-gray-800 text-gray-400"
-  }`}
->
-  {s.trend}
-</td>
-<td className="p-2">{s.inferredLevelType}</td>
-
-
-<td
-  className={`p-2 font-semibold ${
-    s.breakout ? "bg-yellow-600 text-white" : "bg-gray-800 text-gray-500"
-  }`}
->
-  {s.breakout ? "Yes" : "No"}
-</td>
-
-<td
-  className={`p-2 font-semibold ${
-    s.bullishBreakout ? "bg-green-700 text-white" : "bg-gray-800 text-gray-500"
-  }`}
->
-  {s.bullishBreakout ? "Yes" : "No"}
-</td>
-
-<td
-  className={`p-2 font-semibold ${
-    s.bearishBreakout ? "bg-red-700 text-white" : "bg-gray-800 text-gray-500"
-  }`}
->
-  {s.bearishBreakout ? "Yes" : "No"}
-</td>
+                    className={`p-2 font-semibold ${
+                      s.trend === 'bullish'
+                        ? 'bg-green-800 text-green-200'
+                        : s.trend === 'bearish'
+                        ? 'bg-red-800 text-red-200'
+                        : 'bg-gray-800 text-gray-400'
+                    }`}
+                  >
+                    {s.trend}
+                  </td>
+                  <td className="p-2">{s.inferredLevelType}</td>
 
                   <td
-  className={`p-2 ${s.bearishContinuation ? "bg-red-900 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.bearishContinuation ? "Yes" : "No"}
-</td>
-
-<td
-  className={`p-2 ${s.bullishContinuation ? "bg-green-900 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.bullishContinuation ? "Yes" : "No"}
-</td>
+                    className={`p-2 font-semibold ${
+                      s.breakout
+                        ? 'bg-yellow-600 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.breakout ? 'Yes' : 'No'}
+                  </td>
 
                   <td
-  className={`p-2 ${s.divergenceFromLevel ? "bg-indigo-700 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.divergenceFromLevel ? "Yes" : "No"}
-</td>
+                    className={`p-2 font-semibold ${
+                      s.bullishBreakout
+                        ? 'bg-green-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.bullishBreakout ? 'Yes' : 'No'}
+                  </td>
 
-<td className="p-2">{s.divergenceFromLevelType || "None"}</td>
+                  <td
+                    className={`p-2 font-semibold ${
+                      s.bearishBreakout
+                        ? 'bg-red-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.bearishBreakout ? 'Yes' : 'No'}
+                  </td>
 
+                  <td
+                    className={`p-2 ${
+                      s.bearishContinuation
+                        ? 'bg-red-900 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.bearishContinuation ? 'Yes' : 'No'}
+                  </td>
 
-<td
-  className={`p-2 font-semibold ${
-    s.divergence ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-500"
-  }`}
->
-  {s.divergence ? "Yes" : "No"}
-</td>
+                  <td
+                    className={`p-2 ${
+                      s.bullishContinuation
+                        ? 'bg-green-900 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.bullishContinuation ? 'Yes' : 'No'}
+                  </td>
 
-<td className="p-2">{s.divergenceType || "None"}</td>
+                  <td
+                    className={`p-2 ${
+                      s.divergenceFromLevel
+                        ? 'bg-indigo-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.divergenceFromLevel ? 'Yes' : 'No'}
+                  </td>
 
-<td
-  className={`p-2 ${s.ema14Bounce ? "bg-blue-700 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.ema14Bounce ? "Yes" : "No"}
-</td>
+                  <td className="p-2">
+                    {s.divergenceFromLevelType || 'None'}
+                  </td>
 
-<td
-  className={`p-2 ${s.ema70Bounce ? "bg-blue-900 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.ema70Bounce ? "Yes" : "No"}
-</td>
+                  <td
+                    className={`p-2 font-semibold ${
+                      s.divergence
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.divergence ? 'Yes' : 'No'}
+                  </td>
 
-<td
-  className={`p-2 ${s.nearOrAtEMA70Divergence ? "bg-pink-800 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.nearOrAtEMA70Divergence ? "Yes" : "No"}
-</td>
+                  <td className="p-2">{s.divergenceType || 'None'}</td>
 
-<td
-  className={`p-2 ${s.touchedEMA70Today ? "bg-yellow-500 text-black" : "bg-gray-800 text-gray-500"}`}
->
-  {s.touchedEMA70Today ? "Yes" : "No"}
-</td>
+                  <td
+                    className={`p-2 ${
+                      s.ema14Bounce
+                        ? 'bg-blue-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.ema14Bounce ? 'Yes' : 'No'}
+                  </td>
 
+                  <td
+                    className={`p-2 ${
+                      s.ema70Bounce
+                        ? 'bg-blue-900 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.ema70Bounce ? 'Yes' : 'No'}
+                  </td>
+
+                  <td
+                    className={`p-2 ${
+                      s.nearOrAtEMA70Divergence
+                        ? 'bg-pink-800 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.nearOrAtEMA70Divergence ? 'Yes' : 'No'}
+                  </td>
+
+                  <td
+                    className={`p-2 ${
+                      s.touchedEMA70Today
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.touchedEMA70Today ? 'Yes' : 'No'}
+                  </td>
                 </tr>
               );
             })}
@@ -613,4 +651,4 @@ if (loading) {
     </div>
   );
 }
-}
+  
