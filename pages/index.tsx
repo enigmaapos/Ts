@@ -531,6 +531,26 @@ if (loading) {
                   <td className="p-2">{s.inferredLevelType}</td>
 
                   <td
+                    className={`p-2 ${
+                      s.touchedEMA70Today
+                        ? 'bg-red-500 text-black'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.touchedEMA70Today ? 'Yes' : 'No'}
+                  </td>
+
+                  <td
+                    className={`p-2 ${
+                      s.touchedEMA200Today
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.touchedEMA70Today ? 'Yes' : 'No'}
+                  </td>
+
+                  <td
                     className={`p-2 font-semibold ${
                       s.breakout
                         ? 'bg-yellow-600 text-white'
@@ -628,6 +648,16 @@ if (loading) {
 
                   <td
                     className={`p-2 ${
+                      s.ema200Bounce
+                        ? 'bg-blue-900 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.ema200Bounce ? 'Yes' : 'No'}
+                  </td>
+
+                  <td
+                    className={`p-2 ${
                       s.nearOrAtEMA70Divergence
                         ? 'bg-pink-800 text-white'
                         : 'bg-gray-800 text-gray-500'
@@ -636,25 +666,7 @@ if (loading) {
                     {s.nearOrAtEMA70Divergence ? 'Yes' : 'No'}
                   </td>
 
-                  <td
-                    className={`p-2 ${
-                      s.touchedEMA70Today
-                        ? 'bg-red-500 text-black'
-                        : 'bg-gray-800 text-gray-500'
-                    }`}
-                  >
-                    {s.touchedEMA70Today ? 'Yes' : 'No'}
-                  </td>
-
-                  <td
-                    className={`p-2 ${
-                      s.touchedEMA200Today
-                        ? 'bg-yellow-500 text-black'
-                        : 'bg-gray-800 text-gray-500'
-                    }`}
-                  >
-                    {s.touchedEMA70Today ? 'Yes' : 'No'}
-                  </td>
+                  
                 </tr>
               );
             })}
