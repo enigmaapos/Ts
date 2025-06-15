@@ -134,8 +134,8 @@ export default function Home() {
       return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
     };
 
-    const fetchAndAnalyze = async (symbol: string): Promise<Signal | null> => {
-  try {
+    const fetchAndAnalyze = async (symbol: string) => {
+      try {
         const raw = await fetch(
           `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`
         ).then((res) => res.json());
