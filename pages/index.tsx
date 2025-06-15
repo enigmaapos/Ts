@@ -154,12 +154,14 @@ export default function Home() {
           const lows = candles.map(c => c.low);
         const ema14 = calculateEMA(closes, 14);
         const ema70 = calculateEMA(closes, 70);
+        const ema200 = calculateEMA(closes, 200);
         const rsi14 = calculateRSI(closes);
 
         const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
         const lastEMA14 = ema14.at(-1)!;
         const lastEMA70 = ema70.at(-1)!;
+        const lastEMA200 = ema200.at(-1)!;
         const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 
 
@@ -206,8 +208,10 @@ const lastClose = candles.at(-1)?.close!;
 
           const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);
           const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
+        	const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
           const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
           const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
+        	const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 
           const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
           const highestHigh = Math.max(...highs);
@@ -237,6 +241,11 @@ const lastClose = candles.at(-1)?.close!;
             prevSessionHigh! >= lastEMA70 &&
             prevSessionLow! <= lastEMA70 &&
             candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
+
+        const touchedEMA200Today =
+  prevSessionHigh! >= lastEMA200 &&
+  prevSessionLow! <= lastEMA200 &&
+  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);
 
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
@@ -370,6 +379,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   divergenceType,
   ema14Bounce,
   ema70Bounce,
+  ema200Bounce,
   nearOrAtEMA70Divergence,
   touchedEMA70Today,
   inferredLevel: level!,
@@ -476,6 +486,8 @@ if (loading) {
               <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
               <th className="p-2">Trend</th>
               <th className="p-2">Inferred Level Type</th>
+              <th className="p-2">Touched EMA70</th>
+              <th className="p-2">Touched EMA200</th>
               <th className="p-2">Breakout</th>
               <th className="p-2">Bullish Break</th>
               <th className="p-2">Bearish Break</th>
@@ -487,8 +499,8 @@ if (loading) {
               <th className="p-2">Diverge Type</th>
               <th className="p-2">EMA14 Bounce</th>
               <th className="p-2">EMA70 Bounce</th>
+              <th className="p-2">EMA200 Bounce</th>
               <th className="p-2">Near EMA70 Diverge</th>
-              <th className="p-2">Touched EMA70</th>
             </tr>
           </thead>
           <tbody>
@@ -627,6 +639,16 @@ if (loading) {
                   <td
                     className={`p-2 ${
                       s.touchedEMA70Today
+                        ? 'bg-red-500 text-black'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.touchedEMA70Today ? 'Yes' : 'No'}
+                  </td>
+
+                  <td
+                    className={`p-2 ${
+                      s.touchedEMA200Today
                         ? 'bg-yellow-500 text-black'
                         : 'bg-gray-800 text-gray-500'
                     }`}
