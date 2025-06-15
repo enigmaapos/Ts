@@ -379,6 +379,11 @@ const detectBearishContinuation = (
 const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, lows, closes);
 const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, highs, closes);
 
+        const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
+const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
+
+const bullishContinuationCount = filteredSignals.filter(s => s.bullishContinuation).length;
+const bearishContinuationCount = filteredSignals.filter(s => s.bearishContinuation).length;
 
 
 
@@ -495,6 +500,21 @@ if (loading) {
         />
       </div>
 
+         <div className="p-4 text-white space-y-1 text-sm md:text-base">
+      <p>
+        Bullish Main Trend: <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
+      </p>
+      <p>
+        Bearish Main Trend: <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
+      </p>
+      <p>
+        Bullish Continuation: <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+      </p>
+      <p>
+        Bearish Continuation: <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+      </p>
+    </div>
+
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
         <table className="min-w-[1600px] text-xs border-collapse">
           <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
@@ -520,89 +540,80 @@ if (loading) {
               <th className="p-2">Near EMA70 Diverge</th>
             </tr>
           </thead>
-          <tbody>
-  {filteredSignals.map((s) => {
-    const updatedRecently =
-      Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    return (
-      <tr
-        key={s.symbol}
-        className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
-          updatedRecently ? 'bg-yellow-900/30' : ''
-        }`}
-      >
-        <td
-          className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer"
-        >
-          {s.symbol}
-        </td>
-        
-        <td className="p-2">{s.trend}</td>
-        <td className="p-2">{s.inferredLevelType}</td>
-        <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
-        
-        <td
-  className={`p-2 ${
-    s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
-  }`}
->
-  {s.touchedEMA200Today ? 'Yes' : 'No'}
-</td>
-        
-        <td className="p-2">{s.breakout ? 'Yes' : 'No'}</td>
-
-        <td
-          className={`p-2 ${
-            s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'
-          }`}
-        >
-          {s.bullishBreakout ? 'Yes' : 'No'}
-        </td>
-
-        <td
-          className={`p-2 ${
-            s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'
-          }`}
-        >
-          {s.bearishBreakout ? 'Yes' : 'No'}
-        </td>
-
-        <td className={`p-2 font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
-  {s.mainTrend}
-</td>
-
-        <td
-          className={`p-2 ${
-            s.bearishContinuation
-              ? 'bg-red-900 text-white'
-              : 'bg-gray-800 text-gray-500'
-          }`}
-        >
-          {s.bearishContinuation ? 'Yes' : 'No'}
-        </td>
-
-        <td
-          className={`p-2 ${
-            s.bullishContinuation
-              ? 'bg-green-900 text-white'
-              : 'bg-gray-800 text-gray-500'
-          }`}
-        >
-          {s.bullishContinuation ? 'Yes' : 'No'}
-        </td>
-
-        <td className="p-2">{s.divergenceFromLevel ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.divergenceFromLevelType || 'None'}</td>
-        <td className="p-2">{s.divergence ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.divergenceType || 'None'}</td>
-        <td className="p-2">{s.ema14Bounce ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.ema70Bounce ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.ema200Bounce ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
-      </tr>
-    );
-  })}
-</tbody>
+             <tbody>
+        {filteredSignals.map((s) => {
+          const updatedRecently =
+            Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+          return (
+            <tr
+              key={s.symbol}
+              className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
+                updatedRecently ? 'bg-yellow-900/30' : ''
+              }`}
+            >
+              <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer">{s.symbol}</td>
+              <td className="p-2">{s.trend}</td>
+              <td className="p-2">{s.inferredLevelType}</td>
+              <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
+              <td
+                className={`p-2 ${
+                  s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
+                }`}
+              >
+                {s.touchedEMA200Today ? 'Yes' : 'No'}
+              </td>
+              <td className="p-2">{s.breakout ? 'Yes' : 'No'}</td>
+              <td
+                className={`p-2 ${
+                  s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'
+                }`}
+              >
+                {s.bullishBreakout ? 'Yes' : 'No'}
+              </td>
+              <td
+                className={`p-2 ${
+                  s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'
+                }`}
+              >
+                {s.bearishBreakout ? 'Yes' : 'No'}
+              </td>
+              <td
+                className={`p-2 font-semibold ${
+                  s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'
+                }`}
+              >
+                {s.mainTrend}
+              </td>
+              <td
+                className={`p-2 ${
+                  s.bearishContinuation
+                    ? 'bg-red-900 text-white'
+                    : 'bg-gray-800 text-gray-500'
+                }`}
+              >
+                {s.bearishContinuation ? 'Yes' : 'No'}
+              </td>
+              <td
+                className={`p-2 ${
+                  s.bullishContinuation
+                    ? 'bg-green-900 text-white'
+                    : 'bg-gray-800 text-gray-500'
+                }`}
+              >
+                {s.bullishContinuation ? 'Yes' : 'No'}
+              </td>
+              <td className="p-2">{s.divergenceFromLevel ? 'Yes' : 'No'}</td>
+              <td className="p-2">{s.divergenceFromLevelType || 'None'}</td>
+              <td className="p-2">{s.divergence ? 'Yes' : 'No'}</td>
+              <td className="p-2">{s.divergenceType || 'None'}</td>
+              <td className="p-2">{s.ema14Bounce ? 'Yes' : 'No'}</td>
+              <td className="p-2">{s.ema70Bounce ? 'Yes' : 'No'}</td>
+              <td className="p-2">{s.ema200Bounce ? 'Yes' : 'No'}</td>
+              <td className="p-2">{s.nearOrAtEMA70Divergence ? 'Yes' : 'No'}</td>
+            </tr>
+          );
+        })}
+      </tbody>
                   
         </table>
       </div>
