@@ -393,6 +393,31 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
       }
     };
 
+
+      type Signal = {
+  symbol: string;
+  trend: string;
+  breakout: boolean;
+  bullishBreakout: boolean;
+  bearishBreakout: boolean;
+  divergence: boolean;
+  divergenceType: 'bullish' | 'bearish' | null;
+  ema14Bounce: boolean;
+  ema70Bounce: boolean;
+  nearOrAtEMA70Divergence: boolean;
+  touchedEMA70Today: boolean;
+  inferredLevel: number;
+  inferredLevelType: 'support' | 'resistance';
+  inferredLevelWithinRange: boolean;
+  differenceVsEMA70: number;
+  divergenceFromLevel: boolean;
+  divergenceFromLevelType: 'bullish' | 'bearish' | null;
+  lastOpen: number;
+  lastClose: number;
+  bearishContinuation: boolean;
+  bullishContinuation: boolean;
+};
+
     const fetchSymbols = async () => {
       const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
       symbols = info.symbols
@@ -417,7 +442,7 @@ setLoading(false);  // stop showing loading spinner
       currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
       const results = await Promise.all(batch.map(fetchAndAnalyze));
-      const cleanedResults = results.filter((r): r is NonNullable<typeof r> => r !== null);
+      const cleanedResults = results.filter(r => r !== null);
       
       if (isMounted) {
         setSignals((prev) => {
