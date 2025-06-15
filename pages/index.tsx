@@ -273,7 +273,7 @@ const detectBullishContinuation = (
     const fallingRSI = rsi14[i] < crossoverRSI;
     const higherThanCrossover = closes[i] > crossoverLow;
 
-    if (nearEMA && risingRSI && higherThanCrossover) {
+    if (nearEMA && fallingRSI && higherThanCrossover) {
       return true;
     }
   }
