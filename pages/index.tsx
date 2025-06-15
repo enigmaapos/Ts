@@ -382,6 +382,7 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   ema200Bounce,
   nearOrAtEMA70Divergence,
   touchedEMA70Today,
+  touchedEMA200Today,
   inferredLevel: level!,
   inferredLevelType: type!,
   inferredLevelWithinRange: level! <= todaysHighestHigh! && level! >= todaysLowestLow!,
@@ -522,7 +523,15 @@ if (loading) {
         <td className="p-2">{s.trend}</td>
         <td className="p-2">{s.inferredLevelType}</td>
         <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
-        <td className="p-2">{s.touchedEMA200Today ? 'Yes' : 'No'}</td>
+        
+        <td
+  className={`p-2 ${
+    s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
+  }`}
+>
+  {s.touchedEMA200Today ? 'Yes' : 'No'}
+</td>
+        
         <td className="p-2">{s.breakout ? 'Yes' : 'No'}</td>
 
         <td
