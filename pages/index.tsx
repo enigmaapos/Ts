@@ -226,36 +226,21 @@ const lastClose = candles.at(-1)?.close!;
           const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
            let divergenceFromLevel = false;
-let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
-let divergenceFromLevelDistance: number | null = null;
-let divergenceProximity: 'near' | 'far' | null = null;
-let minutesAgo: number | null = null;
+          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 
-// Use crossoverPrice as the level to check divergence from (if available)
-const refLevel = crossoverPrice ?? level;
-
-if (type && refLevel !== null) {
-  const levelIdx = closes.findIndex(c => Math.abs(c - refLevel) / c < 0.002);
-
-  if (levelIdx !== -1) {
-    const pastRSI = rsi14[levelIdx];
-
-     if (type === 'resistance' && lastClose > refLevel && currentRSI! < pastRSI) {
-      divergenceFromLevel = true;
-      divergenceFromLevelType = 'bearish';
-      divergenceFromLevelDistance = crossoverIndex - 1 - levelIdx;
-    } else if (type === 'support' && lastClose < refLevel && currentRSI! > pastRSI) {
-      divergenceFromLevel = true;
-      divergenceFromLevelType = 'bullish';
-      divergenceFromLevelDistance = crossoverIndex - 1 - levelIdx;
-    }
-  }
-         }
-
-if (divergenceFromLevelDistance !== null) {
-  divergenceProximity = divergenceFromLevelDistance <= 5 ? 'near' : 'far';
-  minutesAgo = divergenceFromLevelDistance * 15; // assuming 15-minute candles
-}
+          if (type && level !== null) {
+            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
+            if (levelIdx !== -1) {
+              const pastRSI = rsi14[levelIdx];
+              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bearish';
+              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bullish';
+              }
+            }
+          }
         
         
           const touchedEMA70Today =
@@ -388,7 +373,6 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
         return {
   symbol,
   trend,
-          crossoverPrice,
   breakout,
   bullishBreakout,
   bearishBreakout,
@@ -404,9 +388,6 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
   differenceVsEMA70,
   divergenceFromLevel,
   divergenceFromLevelType,
-  divergenceFromLevelDistance,
-  divergenceProximity,
-  minutesAgo,
   lastOpen,
   lastClose,
   bearishContinuation,
@@ -503,28 +484,20 @@ if (loading) {
             <tr>
               <th className="p-2 bg-gray-800 sticky left-0 z-30">Symbol</th>
   <th className="p-2">Trend</th>
-  <th className="p-2">Crossover Price</th>
+              <th className="p-2">inferred Level Type</th>        
               <th className="p-2">Breakout</th>
               <th className="p-2">Bullish Break</th>
               <th className="p-2">Bearish Break</th>
+              <th className="p-2">Bearish Cont.</th>
+          <th className="p-2">Bullish Cont.</th>
+          <th className="p-2">Level Divergence</th>
+              <th className="p-2">Level Div Type</th>  
                    <th className="p-2">Divergence</th>
           <th className="p-2">Diverge Type</th>
           <th className="p-2">EMA14 Bounce</th>
           <th className="p-2">EMA70 Bounce</th>
           <th className="p-2">Near EMA70 Diverge</th>
           <th className="p-2">Touched EMA70</th>
-          <th className="p-2">Bearish Cont.</th>
-          <th className="p-2">Bullish Cont.</th>
-          <th className="p-2">Inferred Level</th>
-          <th className="p-2">Level Type</th>
-          <th className="p-2">Level In Range</th>
-          <th className="p-2">%Diff vs EMA70</th>
-          <th className="p-2">Level Divergence</th>
-          <th className="p-2">Level Div Type</th>
-<th className="p-2">Div Distance</th>
-<th className="p-2">Proximity</th>
-<th className="p-2">Minutes Ago</th>
-          <th className="p-2">Last Close</th>
             </tr>
           </thead>
           <tbody>
@@ -549,10 +522,8 @@ if (loading) {
 >
   {s.trend}
 </td>
+<td className="p-2">{s.inferredLevelType}</td>
 
-<td className="p-2 text-sm text-yellow-200">
-  {s.crossoverPrice ? s.crossoverPrice.toFixed(2) : "-"}
-</td>
 
 <td
   className={`p-2 font-semibold ${
@@ -577,6 +548,27 @@ if (loading) {
 >
   {s.bearishBreakout ? "Yes" : "No"}
 </td>
+
+                  <td
+  className={`p-2 ${s.bearishContinuation ? "bg-red-900 text-white" : "bg-gray-800 text-gray-500"}`}
+>
+  {s.bearishContinuation ? "Yes" : "No"}
+</td>
+
+<td
+  className={`p-2 ${s.bullishContinuation ? "bg-green-900 text-white" : "bg-gray-800 text-gray-500"}`}
+>
+  {s.bullishContinuation ? "Yes" : "No"}
+</td>
+
+                  <td
+  className={`p-2 ${s.divergenceFromLevel ? "bg-indigo-700 text-white" : "bg-gray-800 text-gray-500"}`}
+>
+  {s.divergenceFromLevel ? "Yes" : "No"}
+</td>
+
+<td className="p-2">{s.divergenceFromLevelType || "None"}</td>
+
 
 <td
   className={`p-2 font-semibold ${
@@ -612,58 +604,6 @@ if (loading) {
   {s.touchedEMA70Today ? "Yes" : "No"}
 </td>
 
-<td
-  className={`p-2 ${s.bearishContinuation ? "bg-red-900 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.bearishContinuation ? "Yes" : "No"}
-</td>
-
-<td
-  className={`p-2 ${s.bullishContinuation ? "bg-green-900 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.bullishContinuation ? "Yes" : "No"}
-</td>
-
-<td className="p-2">{s.inferredLevel.toFixed(9)}</td>
-<td className="p-2">{s.inferredLevelType}</td>
-
-<td
-  className={`p-2 ${s.inferredLevelWithinRange ? "bg-teal-700 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.inferredLevelWithinRange ? "Yes" : "No"}
-</td>
-
-<td className="p-2">{s.differenceVsEMA70.toFixed(2)}%</td>
-
-<td
-  className={`p-2 ${s.divergenceFromLevel ? "bg-indigo-700 text-white" : "bg-gray-800 text-gray-500"}`}
->
-  {s.divergenceFromLevel ? "Yes" : "No"}
-</td>
-
-<td className="p-2">{s.divergenceFromLevelType || "None"}</td>
-                 <td className="p-2">
-  {s.divergenceFromLevelDistance !== null ? s.divergenceFromLevelDistance : "—"}
-</td>
-                  
-<td className={`p-2 ${s.divergenceProximity === "near" ? "text-green-400" : "text-yellow-400"}`}>
-  {s.divergenceProximity || "—"}
-</td>
-
-<td className="p-2">
-  {s.minutesAgo !== null ? `${s.minutesAgo} min` : "—"}
-</td> 
-<td
-  className={`p-2 font-semibold ${
-    s.lastClose > s.lastOpen
-      ? "text-green-400"
-      : s.lastClose < s.lastOpen
-      ? "text-red-400"
-      : "text-gray-400"
-  }`}
->
-  {s.lastClose.toFixed(9)}
-</td>
                 </tr>
               );
             })}
