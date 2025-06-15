@@ -503,24 +503,19 @@ if (loading) {
           className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
         />
         <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700">
-  <div className="flex flex-col space-y-4">
-    <div className="flex flex-col items-start">
-      <span className="text-gray-300">Bullish Main Trend</span>
-      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
-    </div>
-    <div className="flex flex-col items-start">
-      <span className="text-gray-300">Bearish Main Trend</span>
-      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
-    </div>
-    <div className="flex flex-col items-start">
-      <span className="text-gray-300">Bullish Continuation</span>
-      <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
-    </div>
-    <div className="flex flex-col items-start">
-      <span className="text-gray-300">Bearish Continuation</span>
-      <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
-    </div>
-  </div>
+  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white space-y-1 text-sm md:text-base border-r border-gray-700">
+  <p>
+    Bullish Main Trend: <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
+  </p>
+  <p>
+    Bearish Main Trend: <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
+  </p>
+  <p>
+    Bullish Continuation: <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+  </p>
+  <p>
+    Bearish Continuation: <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+  </p>
 </div>
       </div>      
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
