@@ -285,6 +285,7 @@ const detectBullishContinuation = (
   ema70: number[],
   rsi14: number[],
   lows: number[],
+  highs: number[], // <-- Added this
   closes: number[]
 ): boolean => {
   const len = closes.length;
@@ -310,36 +311,38 @@ const detectBullishContinuation = (
   // 4–6. Confirm continuation structure
   let lastLow: number | null = null;
 
-for (let i = crossoverIndex + 1; i < len; i++) {
-  const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-  const fallingRSI = rsi14[i] < crossoverRSI;
-  const higherThanCrossover = closes[i] > crossoverLow;
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const fallingRSI = rsi14[i] < crossoverRSI;
+    const higherThanCrossover = closes[i] > crossoverLow;
 
-  if (nearEMA) {
-    const currentLow = lows[i];
+    if (nearEMA) {
+      const currentLow = lows[i];
 
-    if (lastLow === null) {
+      if (lastLow === null) {
+        lastLow = currentLow;
+      } else if (currentLow <= lastLow) {
+        // Not an ascending low — exit early
+        return false;
+      }
+
       lastLow = currentLow;
-    } else if (currentLow <= lastLow) {
-      // Not an ascending low — exit early
-      return false;
-    }
 
-    lastLow = currentLow;
-
-    if (fallingRSI && higherThanCrossover) {
-      return true;
+      if (fallingRSI && higherThanCrossover) {
+        return true;
+      }
     }
   }
-}
 
-return false;
+  return false;
+};
 
 const detectBearishContinuation = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
   highs: number[],
+  lows: number[],
   closes: number[]
 ): boolean => {
   const len = closes.length;
@@ -365,34 +368,37 @@ const detectBearishContinuation = (
   // 4–6. Confirm continuation structure
   let lastHigh: number | null = null;
 
-for (let i = crossoverIndex + 1; i < len; i++) {
-  const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-  const underEMA = closes[i] < ema70[i];
-  const nearOrUnderEMA = nearEMA || underEMA;
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const underEMA = closes[i] < ema70[i];
+    const nearOrUnderEMA = nearEMA || underEMA;
 
-  const risingRSI = rsi14[i] > crossoverRSI;
-  const lowerThanCrossover = closes[i] < crossoverHigh;
+    const risingRSI = rsi14[i] > crossoverRSI;
+    const lowerThanCrossover = closes[i] < crossoverHigh;
 
-  // Descending highs logic
-  const currentHigh = highs[i];
-  const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
+    const currentHigh = highs[i];
+    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
-  if (nearOrUnderEMA) {
-    if (lastHigh === null || currentHigh < lastHigh) {
-      lastHigh = currentHigh;
-    }
+    if (nearOrUnderEMA) {
+      if (lastHigh === null || currentHigh < lastHigh) {
+        lastHigh = currentHigh;
+      }
 
-    if (isDescendingHigh && risingRSI && lowerThanCrossover) {
-      return true;
+      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
+        return true;
+      }
     }
   }
-}
 
-return false;
+  return false;
+};
 
 // Usage
-const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, closes);
-const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, closes);
+const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, lows, closes);
+const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, highs, closes);
+
+
+
         
         return {
   symbol,
