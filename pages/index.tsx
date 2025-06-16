@@ -352,7 +352,7 @@ const detectBullishPullBack = (
   let lastLow: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
     const fallingRSI = rsi14[i] < crossoverRSI;
     const higherThanCrossover = closes[i] > crossoverLow;
 
@@ -408,7 +408,7 @@ const detectBearishPullBack = (
   let lastHigh: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = Math.abs(closes[i] - ema70[i]) / closes[i] < 0.005;
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
     const risingRSI = rsi14[i] > crossoverRSI;
     const lowerThanCrossover = closes[i] < crossoverHigh;
 
