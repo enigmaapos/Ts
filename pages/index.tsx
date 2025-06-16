@@ -315,7 +315,7 @@ console.log('Main trend (Close vs EMA200):', mainTrend);
 
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
-const detectBullishContinuation = (
+const detectBullishPullBack = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -371,7 +371,7 @@ const detectBullishContinuation = (
   return false;
 };
 
-const detectBearishContinuation = (
+const detectBearishPullBack = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -430,9 +430,145 @@ const detectBearishContinuation = (
 
     
 // Usage
-const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
-const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);
+const bullishPullBack = detectBullishPullBack(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
+const bearishPullBack = detectBearishPullBack(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);
 
+
+const detectBullishSpike = (
+  ema14: number[],
+  ema70: number[],
+  ema200: number[],
+  rsi14: number[],
+  lows: number[],
+  highs: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
+): boolean => {
+  const breakout = bullishBreakout || bearishBreakout;
+  if (!breakout || !bullishBreakout) return false;
+
+  const len = closes.length;
+  if (len < 3) return false;
+
+  if (ema14[len - 1] <= ema70[len - 1]) return false;
+
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  const crossoverLow = lows[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+  let lowestLowAfterCrossover = crossoverLow;
+
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const currentLow = lows[i];
+    const close = closes[i];
+    const high = highs[i];
+    const ema70Value = ema70[i];
+    const ema200Value = ema200[i];
+    const rsi = rsi14[i];
+
+    if (currentLow < lowestLowAfterCrossover) {
+      lowestLowAfterCrossover = currentLow;
+    }
+
+    const nearEMA = high >= ema70Value && currentLow <= ema70Value;
+    const aboveEMA = close > ema70Value;
+    const nearOrAboveEMA = nearEMA || aboveEMA;
+
+    const aboveEMA200 = close > ema200Value;
+    const ascendingLow = currentLow > lowestLowAfterCrossover;
+    const fallingRSI = rsi < crossoverRSI;
+    const higherThanCrossover = close > crossoverLow;
+
+    if (
+      nearOrAboveEMA &&
+      aboveEMA200 &&
+      ascendingLow &&
+      fallingRSI &&
+      higherThanCrossover
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+        
+const detectBearishSpike = (
+  ema14: number[],
+  ema70: number[],
+  ema200: number[],
+  rsi14: number[],
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
+): boolean => {
+  const breakout = bullishBreakout || bearishBreakout;
+  if (!breakout || !bearishBreakout) return false;
+
+  const len = closes.length;
+  if (len < 3) return false;
+
+  if (ema14[len - 1] >= ema70[len - 1]) return false;
+
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  const crossoverHigh = highs[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+  let highestHighAfterCrossover = crossoverHigh;
+
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const currentHigh = highs[i];
+    const close = closes[i];
+    const low = lows[i];
+    const ema70Value = ema70[i];
+    const ema200Value = ema200[i];
+    const rsi = rsi14[i];
+
+    if (currentHigh > highestHighAfterCrossover) {
+      highestHighAfterCrossover = currentHigh;
+    }
+
+    const nearEMA = currentHigh >= ema70Value && low <= ema70Value;
+    const belowEMA = close < ema70Value;
+    const nearOrBelowEMA = nearEMA || belowEMA;
+
+    const belowEMA200 = close < ema200Value;
+    const descendingHigh = currentHigh < highestHighAfterCrossover;
+    const risingRSI = rsi > crossoverRSI;
+    const lowerThanCrossover = close < crossoverHigh;
+
+    if (
+      nearOrBelowEMA &&
+      belowEMA200 &&
+      descendingHigh &&
+      risingRSI &&
+      lowerThanCrossover
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
+const bearishSpike = detectBearishSpike(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
         const rsiDivergence = detectRSIDivergenceRelativeToEMA200(closes, rsi14, ema200);
 
@@ -447,13 +583,13 @@ if (rsiDivergence.ascendingBelowEMA200) {
         
         return {
   symbol,
-          bullishMainTrendCount,
-            bearishMainTrendCount,
-        bullishContinuationCount,
-          bearishContinuationCount,
-          bullishBreakoutCount,
-          bearishBreakoutCount,
-          rsiDivergence,
+  bullishMainTrendCount,
+  bearishMainTrendCount,
+  bullishContinuationCount,
+  bearishContinuationCount,
+  bullishBreakoutCount,
+  bearishBreakoutCount,
+  rsiDivergence,
   mainTrend,
   trend,
   breakout,
@@ -475,8 +611,10 @@ if (rsiDivergence.ascendingBelowEMA200) {
   divergenceFromLevelType,
   lastOpen,
   lastClose,
-  bearishContinuation,
-  bullishContinuation,
+  bearishPullBack,
+  bullishPullBack,
+  bearishSpike,
+  bullishSpike,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -604,8 +742,10 @@ if (loading) {
         <th className="p-2 text-center align-middle">Bullish Break</th>
         <th className="p-2 text-center align-middle">Bearish Break</th>
         <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
-        <th className="p-2 text-center align-middle">Bearish Cont.</th>
-        <th className="p-2 text-center align-middle">Bullish Cont.</th>
+        <th className="p-2 text-center align-middle">Bearish Pull Back.</th>
+        <th className="p-2 text-center align-middle">Bullish Pull Back.</th>
+        <th className="p-2 text-center align-middle">Bearish Spike</th>
+        <th className="p-2 text-center align-middle">Bullish Spike</th>
         <th className="p-2 text-center align-middle">RSI Divergence</th>
       </tr>
     </thead>
@@ -656,23 +796,41 @@ if (loading) {
             </td>
             <td
               className={`p-2 text-center align-middle ${
-                s.bearishContinuation
+                s.bearishPullback
                   ? 'bg-red-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
-              {s.bearishContinuation ? 'Yes' : 'No'}
+              {s.bearishPullback ? 'Yes' : 'No'}
             </td>
             <td
               className={`p-2 text-center align-middle ${
-                s.bullishContinuation
+                s.bullishPullBack
                   ? 'bg-green-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
-              {s.bullishContinuation ? 'Yes' : 'No'}
+              {s.bullishPullBack ? 'Yes' : 'No'}
             </td>
-               <td
+            
+            <td
+              className={`p-2 text-center align-middle ${
+                s.bearishSpike
+                  ? 'bg-red-900 text-white'
+                  : 'bg-gray-800 text-gray-500'
+              }`}
+            >
+              {s.bearishSpike ? 'Yes' : 'No'}
+            </td>
+            <td
+              className={`p-2 text-center align-middle ${
+                s.bullishSpike
+                  ? 'bg-green-900 text-white'
+                  : 'bg-gray-800 text-gray-500'
+              }`}
+            >
+              {s.bullishSpike ? 'Yes' : 'No'}
+            </td>   <td
         className={`p-2 text-center align-middle ${
           s.rsiDivergence.descendingAboveEMA200
             ? 'bg-yellow-900 text-yellow-300'
