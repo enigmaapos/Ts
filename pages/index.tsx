@@ -808,17 +808,17 @@ if (loading) {
             </td>
             <td
               className={`p-2 text-center align-middle ${
-                s.bearishPullback
-                  ? 'bg-red-900 text-white'
+                s.bearishPullBack
+                  ? 'bg-yellow-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
-              {s.bearishPullback ? 'Yes' : 'No'}
+              {s.bearishPullBack ? 'Yes' : 'No'}
             </td>
             <td
               className={`p-2 text-center align-middle ${
                 s.bullishPullBack
-                  ? 'bg-green-900 text-white'
+                  ? 'bg-yellow-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
