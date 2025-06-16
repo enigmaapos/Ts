@@ -434,7 +434,7 @@ return false;
 
   for (let i = crossoverIndex + 1; i < len; i++) {
     const nearEMA = highs[i] <= ema70[i] && lows[i] >= ema70[i];
-    const fallingRSI = rsi14[i] < crossoverRSI;
+    const risingRSI = rsi14[i] > crossoverRSI;
     const lowerThanCrossover = closes[i] < crossoverHigh;
 
     const currentHigh = highs[i];
