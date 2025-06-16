@@ -346,60 +346,55 @@ console.log('Main trend (Close vs EMA200):', mainTrend);
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
 const detectBullishPullBack = (
-ema14: number[],
-ema70: number[],
-rsi14: number[],
-lows: number[],
-highs: number[],
-closes: number[],
-bullishBreakout: boolean,
-bearishBreakout: boolean
+  ema14: number[],
+  ema70: number[],
+  rsi14: number[],
+  lows: number[],
+  highs: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
 ): boolean => {
-const len = closes.length;
-if (len < 3) return false;
+  const len = closes.length;
+  if (len < 3) return false;
 
-// ✅ Proceed only if there's a breakout (bullish or bearish)
-if (!bullishBreakout && !bearishBreakout) return false;
+  // ✅ Proceed only if there's a breakout (bullish or bearish)
+  if (!bullishBreakout && !bearishBreakout) return false;
 
-// 1. Confirm bullish trend
-if (ema14[len - 1] <= ema70[len - 1]) return false;
+  // 1. Confirm bullish trend
+  if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-// 2. Find EMA14 crossing above EMA70
-let crossoverIndex = -1;
-for (let i = len - 2; i >= 1; i--) {
-if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
-crossoverIndex = i + 1;
-break;
-}
-}
-if (crossoverIndex === -1) return false;
+  // 2. Find EMA14 crossing above EMA70
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
 
-const crossoverLow = lows[crossoverIndex];
-const crossoverRSI = rsi14[crossoverIndex];
+  const crossoverLow = lows[crossoverIndex];
 
-let lastLow: number | null = null;
+  let lastLow: number | null = null;
 
-for (let i = crossoverIndex + 1; i < len; i++) {
-  const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
-const fallingRSI = rsi14[i] < crossoverRSI;
-  const higherThanCrossover = closes[i] > crossoverLow;
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
+    const currentLow = lows[i];
+    const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-const currentLow = lows[i];  
-const isAscendingLow = lastLow !== null && currentLow > lastLow;  
+    if (nearEMA) {
+      if (lastLow === null || currentLow > lastLow) {
+        lastLow = currentLow;
+      }
 
-if (nearEMA) {  
-  if (lastLow === null || currentLow > lastLow) {  
-    lastLow = currentLow;  
-  }  
+      if (isAscendingLow) {
+        return true;
+      }
+    }
+  }
 
-  if (isAscendingLow && fallingRSI && higherThanCrossover) {  
-    return true;  
-  }  
-}
-
-}
-
-return false;
+  return false;
 };
 
 
@@ -433,15 +428,11 @@ return false;
   if (crossoverIndex === -1) return false;
 
   const crossoverHigh = highs[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
 
   let lastHigh: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len; i++) {
     const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-    const risingRSI = rsi14[i] > crossoverRSI;
-    const lowerThanCrossover = closes[i] < crossoverHigh;
-
     const currentHigh = highs[i];
     const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
@@ -450,7 +441,7 @@ return false;
         lastHigh = currentHigh;
       }
 
-      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
+      if (isDescendingHigh) {
         return true;
       }
     }
