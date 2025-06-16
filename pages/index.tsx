@@ -672,17 +672,17 @@ if (loading) {
             </td>
             <td
   className={`p-2 text-center align-middle ${
-    s.rsiDivergence === 'descendingAboveEMA200'
+    rsiDivergence.descendingAboveEMA200
       ? 'bg-yellow-900 text-yellow-300'
-      : s.rsiDivergence === 'ascendingBelowEMA200'
+      : rsiDivergence.ascendingBelowEMA200
       ? 'bg-blue-900 text-blue-300'
       : 'bg-gray-800 text-gray-500'
   }`}
 >
-  {s.rsiDivergence === 'descendingAboveEMA200'
-    ? '↓ RSI Above EMA200'
-    : s.rsiDivergence === 'ascendingBelowEMA200'
-    ? '↑ RSI Below EMA200'
+  {rsiDivergence.descendingAboveEMA200
+    ? '↓ RSI is falling'
+    : rsiDivergence.ascendingBelowEMA200
+    ? '↑ RSI is rising'
     : '–'}
 </td>
           </tr>
