@@ -147,7 +147,7 @@ export default function Home() {
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
 const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
 const bullishPullBackCount = filteredSignals.filter(s => s.bullishContinuation).length;
-const bearishPullbackCount = filteredSignals.filter(s => s.bearishContinuation).length;
+const bearishPullBackCount = filteredSignals.filter(s => s.bearishContinuation).length;
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishContinuation).length;
 const bearishSpikeCount = filteredSignals.filter(s => s.bearishContinuation).length;
 
