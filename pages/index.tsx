@@ -522,28 +522,28 @@ if (loading) {
           className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
         />     
   <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700">
-  <div className="grid grid-cols-1 gap-2">
-    <div className="flex justify-between">
+  <div className="flex flex-wrap gap-4">
+    <div className="flex items-center gap-1">
       <span>Bullish Main Trend:</span>
       <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
     </div>
-    <div className="flex justify-between">
+    <div className="flex items-center gap-1">
       <span>Bearish Main Trend:</span>
       <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
     </div>
-    <div className="flex justify-between">
+    <div className="flex items-center gap-1">
       <span>Bullish Continuation:</span>
       <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
     </div>
-    <div className="flex justify-between">
+    <div className="flex items-center gap-1">
       <span>Bearish Continuation:</span>
       <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
     </div>
-    <div className="flex justify-between">
+    <div className="flex items-center gap-1">
       <span>Bullish Breakout:</span>
       <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
     </div>
-    <div className="flex justify-between">
+    <div className="flex items-center gap-1">
       <span>Bearish Breakout:</span>
       <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
     </div>
