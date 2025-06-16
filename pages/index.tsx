@@ -376,9 +376,7 @@ const detectBullishPullBack = (
 
   for (let i = crossoverIndex + 1; i < len; i++) {
     const nearEMA = lows[i] >= ema70[i] && highs[i] <= ema70[i];
-    const fallingRSI = rsi14[i] < crossoverRSI;
-    const higherThanCrossover = closes[i] > crossoverLow;
-
+    
     const currentLow = lows[i];
     const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
@@ -387,7 +385,7 @@ const detectBullishPullBack = (
         lastLow = currentLow;
       }
 
-      if (isAscendingLow && fallingRSI && higherThanCrossover) {
+      if (isAscendingLow) {
         return true;
       }
     }
@@ -432,8 +430,7 @@ const detectBearishPullBack = (
 
   for (let i = crossoverIndex + 1; i < len; i++) {
     const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-    const risingRSI = rsi14[i] > crossoverRSI;
-    const lowerThanCrossover = closes[i] < crossoverHigh;
+    
 
     const currentHigh = highs[i];
     const isLowerHigh = lastHigh !== null && currentHigh < lastHigh;
@@ -443,7 +440,7 @@ const detectBearishPullBack = (
         lastHigh = currentHigh;
       }
 
-      if (isLowerHigh && risingRSI && lowerThanCrossover) {
+      if (isLowerHigh) {
         return true;
       }
     }
@@ -512,12 +509,18 @@ const detectBullishSpike = (
     const fallingRSI = rsi < crossoverRSI;
     const higherThanCrossover = close > crossoverLow;
 
+    const ema14AboveEma200 = ema14[i] > ema200[i];
+    const ema14CrossedAboveEma200 =
+      ema14[i - 1] <= ema200[i - 1] && ema14[i] > ema200[i];
+
     if (
       nearOrAboveEMA &&
       aboveEMA200 &&
       ascendingLow &&
       fallingRSI &&
-      higherThanCrossover
+      higherThanCrossover &&
+      ema14AboveEma200 &&
+      ema14CrossedAboveEma200 // Final confirmation
     ) {
       return true;
     }
@@ -531,8 +534,8 @@ const detectBearishSpike = (
   ema70: number[],
   ema200: number[],
   rsi14: number[],
-  highs: number[],
   lows: number[],
+  highs: number[],
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
@@ -543,8 +546,10 @@ const detectBearishSpike = (
   const len = closes.length;
   if (len < 3) return false;
 
+  // EMA14 must be below EMA70 to confirm bearish structure
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
+  // Look for EMA14 crossing below EMA70
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
@@ -570,7 +575,7 @@ const detectBearishSpike = (
       highestHighAfterCrossover = currentHigh;
     }
 
-    const nearEMA = currentHigh >= ema70Value && low <= ema70Value;
+    const nearEMA = low <= ema70Value && currentHigh >= ema70Value;
     const belowEMA = close < ema70Value;
     const nearOrBelowEMA = nearEMA || belowEMA;
 
@@ -579,12 +584,18 @@ const detectBearishSpike = (
     const risingRSI = rsi > crossoverRSI;
     const lowerThanCrossover = close < crossoverHigh;
 
+    const ema14BelowEma200 = ema14[i] < ema200[i];
+    const ema14CrossedBelowEma200 =
+      ema14[i - 1] >= ema200[i - 1] && ema14[i] < ema200[i];
+
     if (
       nearOrBelowEMA &&
       belowEMA200 &&
       descendingHigh &&
       risingRSI &&
-      lowerThanCrossover
+      lowerThanCrossover &&
+      ema14BelowEma200 &&
+      ema14CrossedBelowEma200 // Final confirmation
     ) {
       return true;
     }
@@ -592,6 +603,8 @@ const detectBearishSpike = (
 
   return false;
 };
+        
+        
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishSpike = detectBearishSpike(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
