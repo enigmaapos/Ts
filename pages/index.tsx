@@ -401,8 +401,8 @@ return false;
     
 
 // Usage
-const bearishContinuation = detectBearishContinuation(ema14, ema70, ema200, rsi14, highs, lows, closes);
-const bullishContinuation = detectBullishContinuation(ema14, ema70, ema200, rsi14, lows, highs, closes);
+const bearishContinuation = detectBearishContinuation(ema14, ema70, ema200, rsi14, highs, lows, closes, breakout);
+const bullishContinuation = detectBullishContinuation(ema14, ema70, ema200, rsi14, lows, highs, closes, breakout);
 
 
         
