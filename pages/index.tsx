@@ -716,19 +716,19 @@ if (loading) {
     </div>
     <div className="flex items-center gap-1">
       <span>Bullish Pull Back:</span>
-      <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+      <span className="text-green-300 font-semibold">{bullishPullBackCount}</span>
     </div>
     <div className="flex items-center gap-1">
       <span>Bearish Pull Back:</span>
-      <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+      <span className="text-red-300 font-semibold">{bearishPullBackCount}</span>
     </div>
     <div className="flex items-center gap-1">
       <span>Bullish Spike:</span>
-      <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+      <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
     </div>
     <div className="flex items-center gap-1">
       <span>Bearish Spike:</span>
-      <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+      <span className="text-red-300 font-semibold">{bearishSpikeCount}</span>
     </div>
     <div className="flex items-center gap-1">
       <span>Bullish Breakout:</span>
