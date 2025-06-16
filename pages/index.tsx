@@ -131,18 +131,32 @@ function findRelevantLevel(
        }
 
 
+
+useEffect(() => {
+  const stored = localStorage.getItem("favorites");
+  if (stored) {
+    setFavorites(JSON.parse(stored));
+  }
+}, []);
+
+useEffect(() => {
+  localStorage.setItem("favorites", JSON.stringify(favorites));
+}, [favorites]);
+
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<{ [symbol: string]: boolean }>({});
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   
 
 
   const filteredSignals = signals.filter((s) =>
-    s.symbol.toLowerCase().includes(search.toLowerCase())                                         
-  );
+  s.symbol.toLowerCase().includes(search.toLowerCase()) &&
+  (!showOnlyFavorites || favorites.has(s.symbol))
+);
 
   const toggleFavorite = (symbol: string) => {
   setFavorites((prev) => ({
@@ -705,6 +719,15 @@ if (loading) {
         Binance 15m Signal Analysis (UTC)
       </h1>
 
+      <label className="flex items-center gap-2 mt-2 text-sm">
+  <input
+    type="checkbox"
+    checked={showOnlyFavorites}
+    onChange={() => setShowOnlyFavorites(prev => !prev)}
+  />
+  Show only favorites
+</label>
+
       <div className="mb-4">
         <input
           type="text"
@@ -780,15 +803,26 @@ if (loading) {
               updatedRecently ? 'bg-yellow-900/30' : ''
             }`}
           >
-            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 text-left align-middle flex items-center gap-2">
-  <button
-    onClick={() => toggleFavorite(s.symbol)}
-    className="text-yellow-400 hover:text-yellow-200 focus:outline-none"
-    title="Toggle Favorite"
-  >
-    {favorites[s.symbol] ? '★' : '☆'}
-  </button>
+            <td
+  className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left align-middle flex items-center justify-between"
+>
   <span>{s.symbol}</span>
+  <button
+    className="ml-2 text-yellow-400 hover:text-yellow-300"
+    onClick={() => {
+      setFavorites(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(s.symbol)) {
+          newSet.delete(s.symbol);
+        } else {
+          newSet.add(s.symbol);
+        }
+        return newSet;
+      });
+    }}
+  >
+    {favorites.has(s.symbol) ? '★' : '☆'}
+  </button>
 </td>
             <td className="p-2 text-center align-middle">{s.trend}</td>
             <td className="p-2 text-center align-middle">{s.inferredLevelType}</td>
