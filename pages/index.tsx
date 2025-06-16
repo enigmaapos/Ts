@@ -670,8 +670,8 @@ if (rsiDivergence.ascendingBelowEMA200) {
   divergenceFromLevelType,
   lastOpen,
   lastClose,
-  bearishPullBack,
-  bullishPullBack,
+  bearishReversal,
+  bullishReversal,
   bearishSpike,
   bullishSpike,
 };
