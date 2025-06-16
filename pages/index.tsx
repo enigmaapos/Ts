@@ -281,15 +281,17 @@ const detectBullishContinuation = (
   lows: number[],
   highs: number[],
   closes: number[],
-  breakout: boolean
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
 ): boolean => {
+  const breakout = bullishBreakout || bearishBreakout;
+  if (!breakout || !bullishBreakout) return false;
+
   const len = closes.length;
   if (len < 3) return false;
 
-  // 1. Confirm bullish trend
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-  // 2. Find recent crossover (EMA14 crosses above EMA70)
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
@@ -299,37 +301,32 @@ const detectBullishContinuation = (
   }
   if (crossoverIndex === -1) return false;
 
-  // 3. Save crossover low and RSI
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
-
-  // 4. Initialize lowestLowAfterCrossover
   let lowestLowAfterCrossover = crossoverLow;
 
-  // 5. Confirm continuation structure
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentLow = lows[i];
     const close = closes[i];
+    const high = highs[i];
     const ema70Value = ema70[i];
     const ema200Value = ema200[i];
     const rsi = rsi14[i];
 
-    const nearEMA = highs[i] >= ema70Value && currentLow <= ema70Value;
-    const aboveEMA = close > ema70Value;
-    const nearOrAboveEMA = nearEMA || aboveEMA;
-
-    const fallingRSI = rsi < crossoverRSI;
-    const higherThanCrossover = close > crossoverLow;
-    const aboveEMA200 = close > ema200Value;
-    const ascendingLow = currentLow > lowestLowAfterCrossover;
-
-    // Update lowest low since crossover
     if (currentLow < lowestLowAfterCrossover) {
       lowestLowAfterCrossover = currentLow;
     }
 
+    const nearEMA = high >= ema70Value && currentLow <= ema70Value;
+    const aboveEMA = close > ema70Value;
+    const nearOrAboveEMA = nearEMA || aboveEMA;
+
+    const aboveEMA200 = close > ema200Value;
+    const ascendingLow = currentLow > lowestLowAfterCrossover;
+    const fallingRSI = rsi < crossoverRSI;
+    const higherThanCrossover = close > crossoverLow;
+
     if (
-      breakout &&
       nearOrAboveEMA &&
       aboveEMA200 &&
       ascendingLow &&
@@ -351,15 +348,17 @@ const detectBearishContinuation = (
   highs: number[],
   lows: number[],
   closes: number[],
-  breakout: boolean
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
 ): boolean => {
+  const breakout = bullishBreakout || bearishBreakout;
+  if (!breakout || !bearishBreakout) return false;
+
   const len = closes.length;
   if (len < 3) return false;
 
-  // 1. Confirm bearish trend
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
-  // 2. Find recent EMA14 < EMA70 crossover
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
@@ -369,12 +368,10 @@ const detectBearishContinuation = (
   }
   if (crossoverIndex === -1) return false;
 
-  // 3. Capture crossover values
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
   let highestHighAfterCrossover = crossoverHigh;
 
-  // 4. Scan for bearish continuation structure
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentHigh = highs[i];
     const close = closes[i];
@@ -383,12 +380,10 @@ const detectBearishContinuation = (
     const ema200Value = ema200[i];
     const rsi = rsi14[i];
 
-    // Update the highest high seen since crossover
     if (currentHigh > highestHighAfterCrossover) {
       highestHighAfterCrossover = currentHigh;
     }
 
-    // Check all conditions in current candle
     const nearEMA = currentHigh >= ema70Value && low <= ema70Value;
     const belowEMA = close < ema70Value;
     const nearOrBelowEMA = nearEMA || belowEMA;
@@ -399,7 +394,6 @@ const detectBearishContinuation = (
     const lowerThanCrossover = close < crossoverHigh;
 
     if (
-      breakout &&
       nearOrBelowEMA &&
       belowEMA200 &&
       descendingHigh &&
@@ -415,27 +409,9 @@ const detectBearishContinuation = (
 
     
 // Usage
-const bearishContinuation = detectBearishContinuation(
-  ema14,
-  ema70,
-  ema200,
-  rsi14,
-  highs,   // highs first for bearish
-  lows,
-  closes,
-  breakout
-);
+const bullishContinuation = detectBullishContinuation(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
+const bearishContinuation = detectBearishContinuation(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);
 
-const bullishContinuation = detectBullishContinuation(
-  ema14,
-  ema70,
-  ema200,
-  rsi14,
-  lows,    // lows first for bullish
-  highs,
-  closes,
-  breakout
-);
 
 
         
