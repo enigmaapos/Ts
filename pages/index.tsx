@@ -280,7 +280,8 @@ const detectBullishContinuation = (
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[]
+  closes: number[],
+  breakout: boolean
 ): boolean => {
   const len = closes.length;
   if (len < 3) return false;
@@ -342,7 +343,8 @@ const detectBearishContinuation = (
   rsi14: number[],
   highs: number[],
   lows: number[],
-  closes: number[]
+  closes: number[],
+  breakout: boolean
 ): boolean => {
   const len = closes.length;
   if (len < 3) return false;
