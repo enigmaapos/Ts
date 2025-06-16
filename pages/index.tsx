@@ -387,7 +387,7 @@ if (nearEMA) {
     lastLow = currentLow;  
   }  
 
-  if (isAscendingLow) {  
+  if (isAscendingLow && fallingRSI && higherThanCrossover) {  
     return true;  
   }  
 }
@@ -445,7 +445,7 @@ return false;
         lastHigh = currentHigh;
       }
 
-      if (isDescendingHigh) {
+      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
         return true;
       }
     }
