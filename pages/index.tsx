@@ -131,6 +131,14 @@ function findRelevantLevel(
        }
 
 
+export default function Home() {
+  const [signals, setSignals] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
+  const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  
 
 useEffect(() => {
   const stored = localStorage.getItem("favorites");
@@ -142,28 +150,20 @@ useEffect(() => {
 useEffect(() => {
   localStorage.setItem("favorites", JSON.stringify(favorites));
 }, [favorites]);
-
-export default function Home() {
-  const [signals, setSignals] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
-  const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   
 
-
-  const filteredSignals = signals.filter((s) =>
-  s.symbol.toLowerCase().includes(search.toLowerCase()) &&
-  (!showOnlyFavorites || favorites.has(s.symbol))
-);
-
-  const toggleFavorite = (symbol: string) => {
+const toggleFavorite = (symbol: string) => {
   setFavorites((prev) => ({
     ...prev,
     [symbol]: !prev[symbol],
   }));
 };
+
+  
+  const filteredSignals = signals.filter((s) =>
+  s.symbol.toLowerCase().includes(search.toLowerCase()) &&
+  (!showOnlyFavorites || favorites.has(s.symbol))
+);
 
   
     // ✅ Declare counts here (inside the component, after filteredSignals)
