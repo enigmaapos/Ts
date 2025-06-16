@@ -350,7 +350,7 @@ const detectBullishContinuation = (
   let lastLow: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = lows[i] >= ema70[i] && highs[i] <= ema70[i];
+    const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
 
     const fallingRSI = rsi14[i] < crossoverRSI;
     const higherThanCrossover = closes[i] > crossoverLow;
