@@ -143,7 +143,12 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 useEffect(() => {
   const stored = localStorage.getItem("favorites");
   if (stored) {
-    setFavorites(JSON.parse(stored));
+    try {
+      const parsed = JSON.parse(stored);
+      setFavorites(new Set(parsed)); // convert back to Set
+    } catch (err) {
+      console.error("Failed to parse favorites:", err);
+    }
   }
 }, []);
 
