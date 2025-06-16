@@ -395,60 +395,6 @@ const detectBullishPullBack = (
   return false;
 };
 
-const detectBullishPullBack = (
-  ema14: number[],
-  ema70: number[],
-  rsi14: number[],
-  lows: number[],
-  highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
-): boolean => {
-  const len = closes.length;
-  if (len < 3) return false;
-
-  // ✅ Proceed only if there's a breakout (bullish or bearish)
-  if (!bullishBreakout && !bearishBreakout) return false;
-
-  // ✅ Confirm bullish trend
-  if (ema14[len - 1] <= ema70[len - 1]) return false;
-
-  // ✅ Find EMA14 crossing above EMA70
-  let crossoverIndex = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
-      crossoverIndex = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex === -1) return false;
-
-  const crossoverLow = lows[crossoverIndex];
-  let lowestLowAfterCrossover = crossoverLow;
-  let foundPullback = false;
-
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentLow = lows[i];
-    const high = highs[i];
-    const ema70Val = ema70[i];
-
-    const nearEMA = currentLow <= ema70Val && high >= ema70Val;
-
-    if (nearEMA) {
-      if (currentLow < lowestLowAfterCrossover) {
-        lowestLowAfterCrossover = currentLow;
-        foundPullback = true;
-      } else if (foundPullback && currentLow > lowestLowAfterCrossover) {
-        // We've already seen a lower low near EMA (pullback),
-        // and now we see a higher low (bullish resumption)
-        return true;
-      }
-    }
-  }
-
-  return false;
-};
 
         const detectBearishPullBack = (
   ema14: number[],
