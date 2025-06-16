@@ -319,7 +319,7 @@ for (let i = crossoverIndex + 1; i < len; i++) {
       lastLow = currentLow;
     }
 
-    if (isAscendingLow && fallingRSI && higherThanCrossover) {
+    if (isAscendingLow && fallingRSI && higherThanCrossover && aboveEMA200) {
       return true;
     }
   }
@@ -375,7 +375,7 @@ for (let i = crossoverIndex + 1; i < len; i++) {
       lastHigh = currentHigh;
     }
 
-    if (isDescendingHigh && risingRSI && lowerThanCrossover) {
+    if (isDescendingHigh && risingRSI && lowerThanCrossover && belowEMA200) {
       return true;
     }
   }
