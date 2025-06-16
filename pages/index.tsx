@@ -102,11 +102,14 @@ export default function Home() {
   );
 
     // ✅ Declare counts here (inside the component, after filteredSignals)
-  const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
-  const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-  const bullishContinuationCount = filteredSignals.filter(s => s.bullishContinuation).length;
+const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
+const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
+const bullishContinuationCount = filteredSignals.filter(s => s.bullishContinuation).length;
 const bearishContinuationCount = filteredSignals.filter(s => s.bearishContinuation).length;
 
+// ✅ Add these to count 'yes' (true) for breakouts
+const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
+const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === true).length;
 
   useEffect(() => {
     let isMounted = true;
@@ -407,7 +410,9 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, ema200, rsi1
           bullishMainTrendCount,
             bearishMainTrendCount,
         bullishContinuationCount,
-          bearishContinuationCount,     
+          bearishContinuationCount,
+          bullishBreakoutCount,
+          bearishBreakoutCount,
   mainTrend,
   trend,
   breakout,
@@ -516,20 +521,34 @@ if (loading) {
           onChange={(e) => setSearch(e.target.value)}
           className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
         />     
-  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white space-y-1 text-sm md:text-base border-r border-gray-700">
-  <p>
-    Bullish Main Trend: <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
-  </p>
-  <p>
-    Bearish Main Trend: <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
-  </p>
-  <p>
-    Bullish Continuation: <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
-  </p>
-  <p>
-    Bearish Continuation: <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
-  </p>
-          </div>
+  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700">
+  <div className="grid grid-cols-1 gap-2">
+    <div className="flex justify-between">
+      <span>Bullish Main Trend:</span>
+      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Bearish Main Trend:</span>
+      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Bullish Continuation:</span>
+      <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Bearish Continuation:</span>
+      <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Bullish Breakout:</span>
+      <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Bearish Breakout:</span>
+      <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
+    </div>
+  </div>
+</div>
       </div>      
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="min-w-[1600px] text-xs border-collapse">
