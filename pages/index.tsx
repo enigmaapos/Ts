@@ -484,14 +484,27 @@ const detectBullishSpike = (
 
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-  let crossoverIndex = -1;
+  let crossoverIndex70 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
-      crossoverIndex = i + 1;
+      crossoverIndex70 = i + 1;
       break;
     }
   }
-  if (crossoverIndex === -1) return false;
+  if (crossoverIndex70 === -1) return false;
+
+  // 🔁 Now check for EMA14 > EMA200 crossover
+  let crossoverIndex200 = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema200[i] && ema14[i + 1] > ema200[i + 1]) {
+      crossoverIndex200 = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex200 === -1) return false;
+
+  // ✅ Ensure EMA14 crossed both EMA70 and EMA200
+  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
 
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
@@ -518,24 +531,19 @@ const detectBullishSpike = (
     const fallingRSI = rsi < crossoverRSI;
     const higherThanCrossover = close > crossoverLow;
 
-    const ema14AboveEma200 = ema14[i] > ema200[i];
-    const ema14CrossedAboveEma200 =
-      ema14[i - 1] <= ema200[i - 1] && ema14[i] > ema200[i];
-
     if (
       nearOrAboveEMA &&
       aboveEMA200 &&
       ascendingLow &&
       fallingRSI &&
-      higherThanCrossover &&
-      ema14AboveEma200 &&
-      ema14CrossedAboveEma200 // Final confirmation
+      higherThanCrossover
     ) {
       return true;
     }
   }
 
   return false;
+};
 
 
 const detectBearishSpike = (
@@ -555,18 +563,29 @@ const detectBearishSpike = (
   const len = closes.length;
   if (len < 3) return false;
 
-  // EMA14 must be below EMA70 to confirm bearish structure
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
-  // Look for EMA14 crossing below EMA70
-  let crossoverIndex = -1;
+  let crossoverIndex70 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
-      crossoverIndex = i + 1;
+      crossoverIndex70 = i + 1;
       break;
     }
   }
-  if (crossoverIndex === -1) return false;
+  if (crossoverIndex70 === -1) return false;
+
+  // 🔁 Now check for EMA14 < EMA200 crossover
+  let crossoverIndex200 = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema200[i] && ema14[i + 1] < ema200[i + 1]) {
+      crossoverIndex200 = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex200 === -1) return false;
+
+  // ✅ Ensure EMA14 crossed both EMA70 and EMA200
+  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
 
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
@@ -593,18 +612,12 @@ const detectBearishSpike = (
     const risingRSI = rsi > crossoverRSI;
     const lowerThanCrossover = close < crossoverHigh;
 
-    const ema14BelowEma200 = ema14[i] < ema200[i];
-    const ema14CrossedBelowEma200 =
-      ema14[i - 1] >= ema200[i - 1] && ema14[i] < ema200[i];
-
     if (
       nearOrBelowEMA &&
       belowEMA200 &&
       descendingHigh &&
       risingRSI &&
-      lowerThanCrossover &&
-      ema14BelowEma200 &&
-      ema14CrossedBelowEma200 // Final confirmation
+      lowerThanCrossover
     ) {
       return true;
     }
