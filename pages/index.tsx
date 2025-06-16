@@ -56,6 +56,48 @@ function calculateRSI(closes: number[], period = 14) {
   return rsi;
 }
 
+function detectRSIDivergenceRelativeToEMA200(
+  closes: number[],
+  rsi14: number[],
+  ema200: number[]
+): {
+  descendingAboveEMA200: boolean;
+  ascendingBelowEMA200: boolean;
+} {
+  const len = closes.length;
+  if (len < 3) {
+    return { descendingAboveEMA200: false, ascendingBelowEMA200: false };
+  }
+
+  // Check last 3 bars
+  const rsi1 = rsi14[len - 3];
+  const rsi2 = rsi14[len - 2];
+  const rsi3 = rsi14[len - 1];
+
+  const close1 = closes[len - 3];
+  const close2 = closes[len - 2];
+  const close3 = closes[len - 1];
+
+  const ema1 = ema200[len - 3];
+  const ema2 = ema200[len - 2];
+  const ema3 = ema200[len - 1];
+
+  // RSI descending + all closes above EMA200
+  const descendingAboveEMA200 =
+    rsi1 > rsi2 && rsi2 > rsi3 &&
+    close1 > ema1 && close2 > ema2 && close3 > ema3;
+
+  // RSI ascending + all closes below EMA200
+  const ascendingBelowEMA200 =
+    rsi1 < rsi2 && rsi2 < rsi3 &&
+    close1 < ema1 && close2 < ema2 && close3 < ema3;
+
+  return {
+    descendingAboveEMA200,
+    ascendingBelowEMA200,
+  };
+}
+
 function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
   return close >= ema200 ? 'bullish' : 'bearish';
 }
@@ -390,6 +432,15 @@ const bullishContinuation = detectBullishContinuation(ema14, ema70, rsi14, lows,
 const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs, lows, closes);
 
 
+        const rsiDivergence = detectRSIDivergenceRelativeToEMA200(closes, rsi14, ema200);
+
+if (rsiDivergence.descendingAboveEMA200) {
+  console.log("RSI is falling while price is above EMA200");
+}
+
+if (rsiDivergence.ascendingBelowEMA200) {
+  console.log("RSI is rising while price is below EMA200");
+}
 
         
         return {
@@ -400,6 +451,7 @@ const bearishContinuation = detectBearishContinuation(ema14, ema70, rsi14, highs
           bearishContinuationCount,
           bullishBreakoutCount,
           bearishBreakoutCount,
+          rsiDivergence,
   mainTrend,
   trend,
   breakout,
@@ -552,6 +604,7 @@ if (loading) {
         <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
         <th className="p-2 text-center align-middle">Bearish Cont.</th>
         <th className="p-2 text-center align-middle">Bullish Cont.</th>
+        <th className="p-2 text-center align-middle">RSI Divergence</th>
       </tr>
     </thead>
     <tbody>
@@ -617,6 +670,21 @@ if (loading) {
             >
               {s.bullishContinuation ? 'Yes' : 'No'}
             </td>
+            <td
+  className={`p-2 text-center align-middle ${
+    s.rsiDivergence === 'descendingAboveEMA200'
+      ? 'bg-yellow-900 text-yellow-300'
+      : s.rsiDivergence === 'ascendingBelowEMA200'
+      ? 'bg-blue-900 text-blue-300'
+      : 'bg-gray-800 text-gray-500'
+  }`}
+>
+  {s.rsiDivergence === 'descendingAboveEMA200'
+    ? '↓ RSI Above EMA200'
+    : s.rsiDivergence === 'ascendingBelowEMA200'
+    ? '↑ RSI Below EMA200'
+    : '–'}
+</td>
           </tr>
         );
       })}
