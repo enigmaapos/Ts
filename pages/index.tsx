@@ -754,16 +754,7 @@ if (loading) {
   <table className="min-w-[1600px] text-xs border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
-        <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 text-left align-middle flex items-center gap-2">
-  <button
-    onClick={() => toggleFavorite(s.symbol)}
-    className="text-yellow-400 hover:text-yellow-200 focus:outline-none"
-    title="Toggle Favorite"
-  >
-    {favorites[s.symbol] ? '★' : '☆'}
-  </button>
-  <span>{s.symbol}</span>
-</td>
+        <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left align-middle">Symbol</th>
         <th className="p-2 text-center align-middle">Trend</th>
         <th className="p-2 text-center align-middle">Inferred Level Type</th>
         <th className="p-2 text-center align-middle">Touched EMA70</th>
@@ -789,9 +780,16 @@ if (loading) {
               updatedRecently ? 'bg-yellow-900/30' : ''
             }`}
           >
-            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left align-middle">
-              {s.symbol}
-            </td>
+            <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 text-left align-middle flex items-center gap-2">
+  <button
+    onClick={() => toggleFavorite(s.symbol)}
+    className="text-yellow-400 hover:text-yellow-200 focus:outline-none"
+    title="Toggle Favorite"
+  >
+    {favorites[s.symbol] ? '★' : '☆'}
+  </button>
+  <span>{s.symbol}</span>
+</td>
             <td className="p-2 text-center align-middle">{s.trend}</td>
             <td className="p-2 text-center align-middle">{s.inferredLevelType}</td>
             <td className="p-2 text-center align-middle">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
