@@ -174,8 +174,8 @@ const toggleFavorite = (symbol: string) => {
     // ✅ Declare counts here (inside the component, after filteredSignals)
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
 const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-const bullishPullBackCount = filteredSignals.filter(s => s.bullishPullBack).length;
-const bearishPullBackCount = filteredSignals.filter(s => s.bearishPullBack).length;
+const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
+const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishSpikeCount = filteredSignals.filter(s => s.bearishSpike).length;
 
@@ -345,7 +345,7 @@ console.log('Main trend (Close vs EMA200):', mainTrend);
 
           const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
-const detectBullishPullBack = (
+const detectBullishReversal = ( 
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -376,29 +376,31 @@ const detectBullishPullBack = (
 
   const crossoverLow = lows[crossoverIndex];
 
-  let lastLow: number | null = null;
+for (let i = crossoverIndex + 1; i < len; i++) {
+const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
+const fallingRSI = rsi14[i] < crossoverRSI;
+const higherThanCrossover = closes[i] > crossoverLow;
 
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
-    const currentLow = lows[i];
-    const isAscendingLow = lastLow !== null && currentLow > lastLow;
+const currentLow = lows[i];
+const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-    if (nearEMA) {
-      if (lastLow === null || currentLow > lastLow) {
-        lastLow = currentLow;
-      }
+if (nearEMA) {
+if (lastLow === null || currentLow > lastLow) {
+lastLow = currentLow;
+}
 
-      if (isAscendingLow) {
-        return true;
-      }
-    }
-  }
+if (isAscendingLow && fallingRSI && higherThanCrossover) {
+return true;
+}
+}
+
+}
 
   return false;
 };
 
 
-        const detectBearishPullBack = (
+        const detectBearishReversal = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -431,8 +433,13 @@ const detectBullishPullBack = (
 
   let lastHigh: number | null = null;
 
+  let lastHigh: number | null = null;
+
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const nearEMA = highs[i] <= ema70[i] && lows[i] >= ema70[i];
+    const risingRSI = rsi14[i] > crossoverRSI;
+    const lowerThanCrossover = closes[i] < crossoverHigh;
+
     const currentHigh = highs[i];
     const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
@@ -441,7 +448,7 @@ const detectBullishPullBack = (
         lastHigh = currentHigh;
       }
 
-      if (isDescendingHigh) {
+      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
         return true;
       }
     }
@@ -453,8 +460,8 @@ const detectBullishPullBack = (
 
     
 // Usage
-const bullishPullBack = detectBullishPullBack(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
-const bearishPullBack = detectBearishPullBack(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);
+const bullishReversal = detectBullishReversal(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout); // from bullish trend to bearish trend
+const bearishReversal = detectBearishReversal(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout); // from bearish trend to bullish trend 
 
 const detectBullishSpike = (
   ema14: number[],
@@ -636,8 +643,8 @@ if (rsiDivergence.ascendingBelowEMA200) {
   symbol,
   bullishMainTrendCount,
   bearishMainTrendCount,
-  bullishPullBackCount,
-  bearishPullBackCount,
+  bullishReversalCount,
+  bearishReversalCount,
   bullishSpikeCount,
   bearishSpikeCount,
   bullishBreakoutCount,
@@ -773,15 +780,15 @@ if (loading) {
       <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
     </div>
     <div className="flex items-center gap-1">
-      <span>Bullish Pull Back:</span>
-      <span className="text-green-300 font-semibold">{bullishPullBackCount}</span>
+      <span>Bullish Reversal:</span> 
+      <span className="text-green-300 font-semibold">{bullishReversalCount}</span>
     </div>
     <div className="flex items-center gap-1">
-      <span>Bearish Pull Back:</span>
-      <span className="text-red-300 font-semibold">{bearishPullBackCount}</span>
+      <span>Bearish Reversal:</span>
+      <span className="text-red-300 font-semibold">{bearishReversalCount}</span>
     </div>
     <div className="flex items-center gap-1">
-      <span>Bullish Spike:</span>
+      <span>Bullish Spike:</span> 
       <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
     </div>
     <div className="flex items-center gap-1">
@@ -812,8 +819,8 @@ if (loading) {
         <th className="p-2 text-center align-middle">Bullish Break</th>
         <th className="p-2 text-center align-middle">Bearish Break</th>
         <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
-        <th className="p-2 text-center align-middle">Bearish Pull Back</th>
-        <th className="p-2 text-center align-middle">Bullish Pull Back</th>
+        <th className="p-2 text-center align-middle">Bearish Reversal</th>
+        <th className="p-2 text-center align-middle">Bullish Reversal</th>
         <th className="p-2 text-center align-middle">Bearish Spike</th>
         <th className="p-2 text-center align-middle">Bullish Spike</th>
         <th className="p-2 text-center align-middle">RSI Divergence</th>
@@ -884,21 +891,21 @@ if (loading) {
             </td>
             <td
               className={`p-2 text-center align-middle ${
-                s.bearishPullBack
+                s.bearishReversal
                   ? 'bg-yellow-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
-              {s.bearishPullBack ? 'Yes' : 'No'}
+              {s.bearishReversal ? 'Yes' : 'No'}
             </td>
             <td
               className={`p-2 text-center align-middle ${
-                s.bullishPullBack
+                s.bullishReversal
                   ? 'bg-yellow-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
-              {s.bullishPullBack ? 'Yes' : 'No'}
+              {s.bullishReversal ? 'Yes' : 'No'}
             </td>
             
             <td
