@@ -303,37 +303,36 @@ const detectBullishContinuation = (
   const crossoverRSI = rsi14[crossoverIndex];
 
   // 4. Confirm continuation structure
-  let lastLow: number | null = null;
-
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentLow = lows[i];
-    const close = closes[i];
-    const ema70Value = ema70[i];
-    const ema200Value = ema200[i];
-    const rsi = rsi14[i];
+  const currentLow = lows[i];
+  const close = closes[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
+  const rsi = rsi14[i];
 
-    const nearEMA = highs[i] >= ema70Value && lows[i] <= ema70Value;
-    const aboveEMA = close > ema70Value;
-    const nearOrAboveEMA = nearEMA || aboveEMA;
+  const nearEMA = highs[i] >= ema70Value && currentLow <= ema70Value;
+  const aboveEMA = close > ema70Value;
+  const nearOrAboveEMA = nearEMA || aboveEMA;
 
-    const fallingRSI = rsi < crossoverRSI;
-    const higherThanCrossover = close > crossoverLow;
-    const isAscendingLow = lastLow !== null && currentLow > lastLow;
-    const aboveEMA200 = close > ema200Value;
+  const risingRSI = rsi > crossoverRSI;
+  const higherThanCrossover = close > crossoverHigh;
+  const aboveEMA200 = close > ema200Value;
+  const ascendingLow = currentLow > crossoverLow; // compare to low at crossover
 
-    if (nearOrAboveEMA && aboveEMA200) {
-      if (lastLow === null || currentLow > lastLow) {
-        lastLow = currentLow;
-      }
-
-      if (isAscendingLow && fallingRSI && higherThanCrossover) {
-        return true;
-      }
-    }
+  // All bullish continuation conditions must be true in the current candle
+  if (
+    breakout &&
+    nearOrAboveEMA &&
+    aboveEMA200 &&
+    ascendingLow &&
+    risingRSI &&
+    higherThanCrossover
+  ) {
+    return true;
   }
+}
 
-  return false;
-};
+return false;
 
 const detectBearishContinuation = (
   ema14: number[],
@@ -365,37 +364,36 @@ const detectBearishContinuation = (
   const crossoverRSI = rsi14[crossoverIndex];
 
   // 4. Confirm continuation structure
-  let lastHigh: number | null = null;
-
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentHigh = highs[i];
-    const close = closes[i];
-    const ema70Value = ema70[i];
-    const ema200Value = ema200[i];
-    const rsi = rsi14[i];
+  const currentHigh = highs[i];
+  const close = closes[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
+  const rsi = rsi14[i];
 
-    const nearEMA = highs[i] >= ema70Value && lows[i] <= ema70Value;
-    const belowEMA = close < ema70Value;
-    const nearOrBelowEMA = nearEMA || belowEMA;
+  const nearEMA = currentHigh >= ema70Value && lows[i] <= ema70Value;
+  const belowEMA = close < ema70Value;
+  const nearOrBelowEMA = nearEMA || belowEMA;
 
-    const risingRSI = rsi > crossoverRSI;
-    const lowerThanCrossover = close < crossoverHigh;
-    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
-    const belowEMA200 = close < ema200Value;
+  const risingRSI = rsi > crossoverRSI;
+  const lowerThanCrossover = close < crossoverHigh;
+  const belowEMA200 = close < ema200Value;
+  const descendingHigh = currentHigh < crossoverHigh; // compare directly to crossoverHigh
 
-    if (nearOrBelowEMA && belowEMA200) {
-      if (lastHigh === null || currentHigh < lastHigh) {
-        lastHigh = currentHigh;
-      }
-
-      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
-        return true;
-      }
-    }
+  // All conditions must be true in the current candle
+  if (
+    breakout &&
+    nearOrBelowEMA &&
+    belowEMA200 &&
+    descendingHigh &&
+    risingRSI &&
+    lowerThanCrossover
+  ) {
+    return true;
   }
+}
 
-  return false;
-};
+return false;
 
     
 
