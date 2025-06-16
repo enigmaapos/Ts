@@ -312,7 +312,9 @@ for (let i = crossoverIndex + 1; i < len; i++) {
   const currentLow = lows[i];
   const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-  if (nearOrAboveEMA) {
+  const aboveEMA200 = closes[i] > ema200[i]; // ✅ Add this
+
+  if (nearOrAboveEMA && aboveEMA200) { // ✅ Include the new condition here
     if (lastLow === null || currentLow > lastLow) {
       lastLow = currentLow;
     }
@@ -322,8 +324,7 @@ for (let i = crossoverIndex + 1; i < len; i++) {
     }
   }
 }
-  return false;
-};
+return false;
 
 const detectBearishContinuation = (
   ema14: number[],
@@ -356,30 +357,31 @@ const detectBearishContinuation = (
   // 4–6. Confirm continuation structure
   let lastHigh: number | null = null;
 
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-    const underEMA = closes[i] < ema70[i];
-    const nearOrUnderEMA = nearEMA || underEMA;
+for (let i = crossoverIndex + 1; i < len; i++) {
+  const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+  const belowEMA = closes[i] < ema70[i];
+  const nearOrBelowEMA = nearEMA || belowEMA;
 
-    const risingRSI = rsi14[i] > crossoverRSI;
-    const lowerThanCrossover = closes[i] < crossoverHigh;
+  const risingRSI = rsi14[i] > crossoverRSI;
+  const lowerThanCrossover = closes[i] < crossoverHigh;
 
-    const currentHigh = highs[i];
-    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
+  const currentHigh = highs[i];
+  const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
-    if (nearOrUnderEMA) {
-      if (lastHigh === null || currentHigh < lastHigh) {
-        lastHigh = currentHigh;
-      }
+  const belowEMA200 = closes[i] < ema200[i];
 
-      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
-        return true;
-      }
+  if (nearOrBelowEMA && belowEMA200) {
+    if (lastHigh === null || currentHigh < lastHigh) {
+      lastHigh = currentHigh;
+    }
+
+    if (isDescendingHigh && risingRSI && lowerThanCrossover) {
+      return true;
     }
   }
+}
 
-  return false;
-};
+return false;
     
 
 // Usage
