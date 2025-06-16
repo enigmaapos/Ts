@@ -136,13 +136,22 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<{ [symbol: string]: boolean }>({});
   
 
 
   const filteredSignals = signals.filter((s) =>
-    s.symbol.toLowerCase().includes(search.toLowerCase())
+    s.symbol.toLowerCase().includes(search.toLowerCase())                                         
   );
 
+  const toggleFavorite = (symbol: string) => {
+  setFavorites((prev) => ({
+    ...prev,
+    [symbol]: !prev[symbol],
+  }));
+};
+
+  
     // ✅ Declare counts here (inside the component, after filteredSignals)
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
 const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
@@ -745,7 +754,16 @@ if (loading) {
   <table className="min-w-[1600px] text-xs border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
-        <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left align-middle">Symbol</th>
+        <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 text-left align-middle flex items-center gap-2">
+  <button
+    onClick={() => toggleFavorite(s.symbol)}
+    className="text-yellow-400 hover:text-yellow-200 focus:outline-none"
+    title="Toggle Favorite"
+  >
+    {favorites[s.symbol] ? '★' : '☆'}
+  </button>
+  <span>{s.symbol}</span>
+</td>
         <th className="p-2 text-center align-middle">Trend</th>
         <th className="p-2 text-center align-middle">Inferred Level Type</th>
         <th className="p-2 text-center align-middle">Touched EMA70</th>
