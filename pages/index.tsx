@@ -314,8 +314,9 @@ const detectBullishContinuation = (
   const aboveEMA = close > ema70Value;
   const nearOrAboveEMA = nearEMA || aboveEMA;
 
-  const risingRSI = rsi > crossoverRSI;
-  const higherThanCrossover = close > crossoverHigh;
+  const fallingRSI = rsi14[i] < crossoverRSI;
+  const higherThanCrossover = closes[i] > crossoverLow;
+    
   const aboveEMA200 = close > ema200Value;
   const ascendingLow = currentLow > crossoverLow; // compare to low at crossover
 
@@ -375,8 +376,8 @@ const detectBearishContinuation = (
   const belowEMA = close < ema70Value;
   const nearOrBelowEMA = nearEMA || belowEMA;
 
-  const risingRSI = rsi > crossoverRSI;
-  const lowerThanCrossover = close < crossoverHigh;
+  const risingRSI = rsi14[i] > crossoverRSI;
+    const lowerThanCrossover = closes[i] < crossoverHigh;
   const belowEMA200 = close < ema200Value;
   const descendingHigh = currentHigh < crossoverHigh; // compare directly to crossoverHigh
 
