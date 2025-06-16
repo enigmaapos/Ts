@@ -273,9 +273,10 @@ console.log('Main trend (Close vs EMA200):', mainTrend);
 const detectBullishContinuation = (
   ema14: number[],
   ema70: number[],
+  ema200: number[],
   rsi14: number[],
   lows: number[],
-  highs: number[], // <-- Added this
+  highs: number[],
   closes: number[]
 ): boolean => {
   const len = closes.length;
@@ -298,41 +299,43 @@ const detectBullishContinuation = (
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  // 4–6. Confirm continuation structure
+  // 4. Confirm continuation structure
   let lastLow: number | null = null;
 
-for (let i = crossoverIndex + 1; i < len; i++) {
-  const currentLow = lows[i];
-  const close = closes[i];
-  const ema70Value = ema70[i];
-  const ema200Value = ema200[i];
-  const rsi = rsi14[i];
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const currentLow = lows[i];
+    const close = closes[i];
+    const ema70Value = ema70[i];
+    const ema200Value = ema200[i];
+    const rsi = rsi14[i];
 
-  const nearEMA = highs[i] >= ema70Value && lows[i] <= ema70Value;
-  const aboveEMA = close > ema70Value;
-  const nearOrAboveEMA = nearEMA || aboveEMA;
+    const nearEMA = highs[i] >= ema70Value && lows[i] <= ema70Value;
+    const aboveEMA = close > ema70Value;
+    const nearOrAboveEMA = nearEMA || aboveEMA;
 
-  const fallingRSI = rsi < crossoverRSI;
-  const higherThanCrossover = close > crossoverLow;
-  const isAscendingLow = lastLow !== null && currentLow > lastLow;
-  const aboveEMA200 = close > ema200Value;
+    const fallingRSI = rsi < crossoverRSI;
+    const higherThanCrossover = close > crossoverLow;
+    const isAscendingLow = lastLow !== null && currentLow > lastLow;
+    const aboveEMA200 = close > ema200Value;
 
-  if (nearOrAboveEMA && aboveEMA200) {
-    if (lastLow === null || currentLow > lastLow) {
-      lastLow = currentLow;
-    }
+    if (nearOrAboveEMA && aboveEMA200) {
+      if (lastLow === null || currentLow > lastLow) {
+        lastLow = currentLow;
+      }
 
-    if (isAscendingLow && fallingRSI && higherThanCrossover) {
-      return true;
+      if (isAscendingLow && fallingRSI && higherThanCrossover) {
+        return true;
+      }
     }
   }
-}
 
-return false;
+  return false;
+};
 
 const detectBearishContinuation = (
   ema14: number[],
   ema70: number[],
+  ema200: number[],
   rsi14: number[],
   highs: number[],
   lows: number[],
@@ -358,37 +361,38 @@ const detectBearishContinuation = (
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  // 4–6. Confirm continuation structure
+  // 4. Confirm continuation structure
   let lastHigh: number | null = null;
 
-for (let i = crossoverIndex + 1; i < len; i++) {
-  const currentHigh = highs[i];
-  const close = closes[i];
-  const ema70Value = ema70[i];
-  const ema200Value = ema200[i];
-  const rsi = rsi14[i];
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const currentHigh = highs[i];
+    const close = closes[i];
+    const ema70Value = ema70[i];
+    const ema200Value = ema200[i];
+    const rsi = rsi14[i];
 
-  const nearEMA = highs[i] >= ema70Value && lows[i] <= ema70Value;
-  const belowEMA = close < ema70Value;
-  const nearOrBelowEMA = nearEMA || belowEMA;
+    const nearEMA = highs[i] >= ema70Value && lows[i] <= ema70Value;
+    const belowEMA = close < ema70Value;
+    const nearOrBelowEMA = nearEMA || belowEMA;
 
-  const risingRSI = rsi > crossoverRSI;
-  const lowerThanCrossover = close < crossoverHigh;
-  const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
-  const belowEMA200 = close < ema200Value;
+    const risingRSI = rsi > crossoverRSI;
+    const lowerThanCrossover = close < crossoverHigh;
+    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
+    const belowEMA200 = close < ema200Value;
 
-  if (nearOrBelowEMA && belowEMA200) {
-    if (lastHigh === null || currentHigh < lastHigh) {
-      lastHigh = currentHigh;
-    }
+    if (nearOrBelowEMA && belowEMA200) {
+      if (lastHigh === null || currentHigh < lastHigh) {
+        lastHigh = currentHigh;
+      }
 
-    if (isDescendingHigh && risingRSI && lowerThanCrossover) {
-      return true;
+      if (isDescendingHigh && risingRSI && lowerThanCrossover) {
+        return true;
+      }
     }
   }
-}
 
-return false;
+  return false;
+};
 
     
 
