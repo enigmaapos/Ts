@@ -146,8 +146,10 @@ export default function Home() {
     // ✅ Declare counts here (inside the component, after filteredSignals)
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
 const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-const bullishContinuationCount = filteredSignals.filter(s => s.bullishContinuation).length;
-const bearishContinuationCount = filteredSignals.filter(s => s.bearishContinuation).length;
+const bullishPullBackCount = filteredSignals.filter(s => s.bullishContinuation).length;
+const bearishPullbackCount = filteredSignals.filter(s => s.bearishContinuation).length;
+const bullishSpikeCount = filteredSignals.filter(s => s.bullishContinuation).length;
+const bearishSpikeCount = filteredSignals.filter(s => s.bearishContinuation).length;
 
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
@@ -585,8 +587,10 @@ if (rsiDivergence.ascendingBelowEMA200) {
   symbol,
   bullishMainTrendCount,
   bearishMainTrendCount,
-  bullishContinuationCount,
-  bearishContinuationCount,
+  bullishPullBackCount,
+  bearishPullBackCount,
+  bullishSpikeCount,
+  bearishSpikeCount,
   bullishBreakoutCount,
   bearishBreakoutCount,
   rsiDivergence,
@@ -711,11 +715,19 @@ if (loading) {
       <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
     </div>
     <div className="flex items-center gap-1">
-      <span>Bullish Continuation:</span>
+      <span>Bullish Pull Back:</span>
       <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
     </div>
     <div className="flex items-center gap-1">
-      <span>Bearish Continuation:</span>
+      <span>Bearish Pull Back:</span>
+      <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bullish Spike:</span>
+      <span className="text-green-300 font-semibold">{bullishContinuationCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bearish Spike:</span>
       <span className="text-red-300 font-semibold">{bearishContinuationCount}</span>
     </div>
     <div className="flex items-center gap-1">
