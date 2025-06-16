@@ -146,10 +146,10 @@ export default function Home() {
     // ✅ Declare counts here (inside the component, after filteredSignals)
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
 const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-const bullishPullBackCount = filteredSignals.filter(s => s.bullishContinuation).length;
-const bearishPullBackCount = filteredSignals.filter(s => s.bearishContinuation).length;
-const bullishSpikeCount = filteredSignals.filter(s => s.bullishContinuation).length;
-const bearishSpikeCount = filteredSignals.filter(s => s.bearishContinuation).length;
+const bullishPullBackCount = filteredSignals.filter(s => s.bullishPullBack).length;
+const bearishPullBackCount = filteredSignals.filter(s => s.bearishPullBack).length;
+const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
+const bearishSpikeCount = filteredSignals.filter(s => s.bearishSpike).length;
 
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
@@ -754,8 +754,8 @@ if (loading) {
         <th className="p-2 text-center align-middle">Bullish Break</th>
         <th className="p-2 text-center align-middle">Bearish Break</th>
         <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
-        <th className="p-2 text-center align-middle">Bearish Pull Back.</th>
-        <th className="p-2 text-center align-middle">Bullish Pull Back.</th>
+        <th className="p-2 text-center align-middle">Bearish Pull Back</th>
+        <th className="p-2 text-center align-middle">Bullish Pull Back</th>
         <th className="p-2 text-center align-middle">Bearish Spike</th>
         <th className="p-2 text-center align-middle">Bullish Spike</th>
         <th className="p-2 text-center align-middle">RSI Divergence</th>
