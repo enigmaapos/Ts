@@ -481,6 +481,7 @@ const detectBullishSpike = (
 
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
+  // 🔁 Detect EMA14 > EMA70 crossover
   let crossoverIndex70 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
@@ -490,7 +491,7 @@ const detectBullishSpike = (
   }
   if (crossoverIndex70 === -1) return false;
 
-  // 🔁 Now check for EMA14 > EMA200 crossover
+  // 🔁 Detect EMA14 > EMA200 crossover
   let crossoverIndex200 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema200[i] && ema14[i + 1] > ema200[i + 1]) {
@@ -500,56 +501,56 @@ const detectBullishSpike = (
   }
   if (crossoverIndex200 === -1) return false;
 
-  // ✅ Ensure EMA14 crossed both EMA70 and EMA200
+  // ✅ Choose the later crossover as starting point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
-
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
   let lowestLowAfterCrossover = crossoverLow;
 
+  // 🔍 Check conditions after crossover up to the last candle
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentLow = lows[i];
-    const close = closes[i];
-    const high = highs[i];
-    const ema70Value = ema70[i];
-    const ema200Value = ema200[i];
-    const rsi = rsi14[i];
-
     if (currentLow < lowestLowAfterCrossover) {
       lowestLowAfterCrossover = currentLow;
     }
-
-    const nearEMA = high >= ema70Value && currentLow <= ema70Value;
-    const aboveEMA = close > ema70Value;
-    const nearOrAboveEMA = nearEMA || aboveEMA;
-
-    const aboveEMA200 = close > ema200Value;
-    const ascendingLow = currentLow > lowestLowAfterCrossover;
-    const fallingRSI = rsi < crossoverRSI;
-    const higherThanCrossover = close > crossoverLow;
-
-    if (
-      nearOrAboveEMA &&
-      aboveEMA200 &&
-      ascendingLow &&
-      fallingRSI &&
-      higherThanCrossover
-    ) {
-      return true;
-    }
   }
 
-  return false;
-};
+  // 🧪 Final candle checks
+  const i = len - 1;
+  const currentLow = lows[i];
+  const currentHigh = highs[i];
+  const close = closes[i];
+  const rsi = rsi14[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
 
+  // ❌ Invalidate if the most recent candle touches EMA70
+  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
+  if (touchedEMA70) return false;
+
+  // ✅ Spike conditions
+  const aboveEMA = close > ema70Value;
+  const aboveEMA200 = close > ema200Value;
+  const ascendingLow = currentLow > lowestLowAfterCrossover;
+  const fallingRSI = rsi < crossoverRSI;
+  const higherThanCrossover = close > crossoverLow;
+
+  return (
+    aboveEMA &&
+    aboveEMA200 &&
+    ascendingLow &&
+    fallingRSI &&
+    higherThanCrossover
+  );
+};
 
 const detectBearishSpike = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
   rsi14: number[],
-  lows: number[],
   highs: number[],
+  lows: number[],
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
@@ -562,6 +563,7 @@ const detectBearishSpike = (
 
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
+  // 🔁 Detect EMA14 < EMA70 crossover
   let crossoverIndex70 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
@@ -571,7 +573,7 @@ const detectBearishSpike = (
   }
   if (crossoverIndex70 === -1) return false;
 
-  // 🔁 Now check for EMA14 < EMA200 crossover
+  // 🔁 Detect EMA14 < EMA200 crossover
   let crossoverIndex200 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema200[i] && ema14[i + 1] < ema200[i + 1]) {
@@ -581,46 +583,47 @@ const detectBearishSpike = (
   }
   if (crossoverIndex200 === -1) return false;
 
-  // ✅ Ensure EMA14 crossed both EMA70 and EMA200
+  // ✅ Choose later crossover as start point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
-
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
   let highestHighAfterCrossover = crossoverHigh;
 
+  // 🔍 Track highest high after crossover
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentHigh = highs[i];
-    const close = closes[i];
-    const low = lows[i];
-    const ema70Value = ema70[i];
-    const ema200Value = ema200[i];
-    const rsi = rsi14[i];
-
     if (currentHigh > highestHighAfterCrossover) {
       highestHighAfterCrossover = currentHigh;
     }
-
-    const nearEMA = low <= ema70Value && currentHigh >= ema70Value;
-    const belowEMA = close < ema70Value;
-    const nearOrBelowEMA = nearEMA || belowEMA;
-
-    const belowEMA200 = close < ema200Value;
-    const descendingHigh = currentHigh < highestHighAfterCrossover;
-    const risingRSI = rsi > crossoverRSI;
-    const lowerThanCrossover = close < crossoverHigh;
-
-    if (
-      nearOrBelowEMA &&
-      belowEMA200 &&
-      descendingHigh &&
-      risingRSI &&
-      lowerThanCrossover
-    ) {
-      return true;
-    }
   }
 
-  return false;
+  // 🧪 Final candle checks
+  const i = len - 1;
+  const currentHigh = highs[i];
+  const currentLow = lows[i];
+  const close = closes[i];
+  const rsi = rsi14[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
+
+  // ❌ Invalidate if the most recent candle touches EMA70
+  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
+  if (touchedEMA70) return false;
+
+  // ✅ Spike conditions
+  const belowEMA = close < ema70Value;
+  const belowEMA200 = close < ema200Value;
+  const descendingHigh = currentHigh < highestHighAfterCrossover;
+  const risingRSI = rsi > crossoverRSI;
+  const lowerThanCrossover = close < crossoverHigh;
+
+  return (
+    belowEMA &&
+    belowEMA200 &&
+    descendingHigh &&
+    risingRSI &&
+    lowerThanCrossover
+  );
 };
 
         
