@@ -326,7 +326,7 @@ const detectBullishContinuation = (
     nearOrAboveEMA &&
     aboveEMA200 &&
     ascendingLow &&
-    risingRSI &&
+    fallingRSI &&
     higherThanCrossover
   ) {
     return true;
