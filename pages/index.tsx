@@ -63,46 +63,27 @@ function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
 function detectRSI14PumpDump(rsi14: number[] | undefined): {
   pumpValue: number;
   dumpValue: number;
-  lowestIndex: number;
-  highestIndex: number;
 } | null {
-  if (!rsi14 || rsi14.length < 2) {
-  console.warn("Invalid rsi14 data", rsi14);
-  return {
-    pumpValue: 0,
-    dumpValue: 0,
-    lowestIndex: 0,
-    highestIndex: 0
-  };
-}
+  if (!Array.isArray(rsi14) || rsi14.length < 2) return null;
 
-  let lowestIndex = 0;
-  let highestIndex = 0;
-  let maxPump = 0;
+  let min = rsi14[0];
+  let max = rsi14[0];
+  let pump = 0;
+  let dump = 0;
 
   for (let i = 1; i < rsi14.length; i++) {
-    if (rsi14[i] < rsi14[lowestIndex]) {
-      lowestIndex = i;
-    }
+    if (rsi14[i] > max) max = rsi14[i];
+    if (rsi14[i] < min) min = rsi14[i];
 
-    const currentPump = rsi14[i] - rsi14[lowestIndex];
-    if (currentPump > maxPump) {
-      maxPump = currentPump;
-      highestIndex = i;
-    }
+    pump = Math.max(pump, rsi14[i] - min);  // up move
+    dump = Math.max(dump, max - rsi14[i]);  // down move
   }
 
-  // Dump = drop from peak to most recent
-  const dumpValue =
-    highestIndex > 0 && highestIndex < rsi14.length - 1
-      ? rsi14[highestIndex] - rsi14[rsi14.length - 1]
-      : 0;
+  if (pump <= 0 && dump <= 0) return null;
 
   return {
-    pumpValue: maxPump,
-    dumpValue,
-    lowestIndex,
-    highestIndex
+    pumpValue: pump,
+    dumpValue: dump,
   };
 }
 
@@ -850,12 +831,12 @@ console.log(s.symbol, s.rsi14);  // See if it's undefined or too short
         </td>
         <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bullishSpike ? 'Yes' : 'No'}
-        </td>
-<td className="text-center">
-  {pumpDump && pumpDump.pumpValue > 30 ? "Yes" : "No"}
+          </td>
+        <td className="text-center">
+  {pumpDump ? (pumpDump.pumpValue > 30 ? "Yes" : "No") : "–"}
 </td>
 <td className="text-center">
-  {pumpDump && pumpDump.dumpValue > 30 ? "Yes" : "No"}
+  {pumpDump ? (pumpDump.dumpValue > 30 ? "Yes" : "No") : "–"}
 </td>
       </tr>
     );
