@@ -66,7 +66,15 @@ function detectRSI14PumpDump(rsi14: number[] | undefined): {
   lowestIndex: number;
   highestIndex: number;
 } | null {
-  if (!rsi14 || rsi14.length < 2) return null;
+  if (!rsi14 || rsi14.length < 2) {
+  console.warn("Invalid rsi14 data", rsi14);
+  return {
+    pumpValue: 0,
+    dumpValue: 0,
+    lowestIndex: 0,
+    highestIndex: 0
+  };
+}
 
   let lowestIndex = 0;
   let highestIndex = 0;
@@ -110,12 +118,15 @@ const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   
 
+
 useEffect(() => {
   const stored = localStorage.getItem("favorites");
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      setFavorites(new Set(parsed)); // convert back to Set
+      if (Array.isArray(parsed)) {
+        setFavorites(new Set(parsed)); // Convert array back to Set
+      }
     } catch (err) {
       console.error("Failed to parse favorites:", err);
     }
@@ -123,15 +134,19 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  localStorage.setItem("favorites", JSON.stringify(favorites));
+  localStorage.setItem("favorites", JSON.stringify(Array.from(favorites))); // Convert Set to array before storing
 }, [favorites]);
-  
 
 const toggleFavorite = (symbol: string) => {
-  setFavorites((prev) => ({
-    ...prev,
-    [symbol]: !prev[symbol],
-  }));
+  setFavorites((prev) => {
+    const newSet = new Set(prev);
+    if (newSet.has(symbol)) {
+      newSet.delete(symbol);
+    } else {
+      newSet.add(symbol);
+    }
+    return newSet;
+  });
 };
 
   const filteredSignals = signals.filter((s) =>
@@ -790,8 +805,8 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const rsiPumpDump = detectRSI14PumpDump(s.rsi14); // Compute RSI pump here
-console.log(rsiPumpDump); 
+    const pumpDump = detectRSI14Pump(s.rsi14); // Compute RSI pump here
+console.log(s.symbol, s.rsi14);  // See if it's undefined or too short
     return (
       <tr
         key={s.symbol}
@@ -836,11 +851,11 @@ console.log(rsiPumpDump);
         <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bullishSpike ? 'Yes' : 'No'}
         </td>
-<td>
-  {rsiPumpDump && rsiPumpDump.pumpValue > 30 ? "Yes" : "No"}
+<td className="text-center">
+  {pumpDump && pumpDump.pumpValue > 30 ? "Yes" : "No"}
 </td>
-<td>
-  {rsiPumpDump && rsiPumpDump.dumpValue > 30 ? "Yes" : "No"}
+<td className="text-center">
+  {pumpDump && pumpDump.dumpValue > 30 ? "Yes" : "No"}
 </td>
       </tr>
     );
