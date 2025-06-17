@@ -403,9 +403,6 @@ for (let i = crossoverIndex + 1; i < len; i++) {
   return false;
 };
 
-return false;
-};
-
 const detectBearishReversal = (
 ema14: number[],
 ema70: number[],
