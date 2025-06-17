@@ -734,9 +734,7 @@ if (loading) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">
-        {[
-          { label: 'Bullish Main Trend', key: 'bullishMainTrendCount' }, 
-          { label: 'Bearish Main Trend', key: 'bearishMainTrendCount' },
+        {[    
           { label: 'Bullish Reversal', key: 'bullishReversal' },
  				 { label: 'Bearish Reversal', key: 'bearishReversal' },
           { label: 'Bullish Spike', key: 'bullishSpike' },
@@ -752,8 +750,19 @@ if (loading) {
             }`}
           >
             {label}
-          </button>
+          </button>          
         ))}
+         <button
+    onClick={() => {
+      setSearch('');
+      setTrendFilter(null);
+      setShowOnlyFavorites(false);
+    }}
+    className="px-3 py-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+  >
+    Clear All Filters
+  </button>
+</div>
       </div>
 
       <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">
