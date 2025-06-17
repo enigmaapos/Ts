@@ -323,7 +323,7 @@ const detectBullishToBearish = (
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  let lastLow: number | null = null;
+  let lastHigh: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len - 1; i++) {
     const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
@@ -387,7 +387,7 @@ const detectBearishToBullish = (
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  let lastHigh: number | null = null;
+  let lastLow: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len - 1; i++) {
     const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
