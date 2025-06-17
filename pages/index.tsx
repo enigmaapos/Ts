@@ -177,7 +177,7 @@ const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'beari
 const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
 const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
-const bearishSpikeCount = filteredSignals.filter(s => s.bearishSpike).length;
+const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
@@ -550,17 +550,19 @@ const detectBullishSpike = (
   const ascendingLow = currentLow > lowestLowAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
   const higherThanCrossover = close > crossoverLow;
+    const aboveEMA14 = close > ema14[i];
 
   return (
     aboveEMA &&
     aboveEMA200 &&
     ascendingLow &&
     fallingRSI &&
-    higherThanCrossover
+    higherThanCrossover &&
+     aboveEMA14 
   );
 };
 
-const detectBearishSpike = (
+const detectBearishCollapse = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
@@ -632,19 +634,21 @@ const detectBearishSpike = (
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const risingRSI = rsi > crossoverRSI;
   const lowerThanCrossover = close < crossoverHigh;
+  const belowEMA14 = close < ema14Value;
 
   return (
     belowEMA &&
     belowEMA200 &&
     descendingHigh &&
     risingRSI &&
-    lowerThanCrossover
+    lowerThanCrossover &&
+     belowEMA14
   );
 };
 
         
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
-const bearishSpike = detectBearishSpike(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
+const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
         const rsiDivergence = detectRSIDivergenceRelativeToEMA200(closes, rsi14, ema200);
 
@@ -664,7 +668,7 @@ if (rsiDivergence.ascendingBelowEMA200) {
   bullishReversalCount,
   bearishReversalCount,
   bullishSpikeCount,
-  bearishSpikeCount,
+  bearishCollapseCount,
   bullishBreakoutCount,
   bearishBreakoutCount,
   rsiDivergence,
@@ -692,7 +696,7 @@ if (rsiDivergence.ascendingBelowEMA200) {
   bearishReversal,
   bullishReversal,
   bearishSpike,
-  bullishSpike,
+  bearishCollapse,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -810,8 +814,8 @@ if (loading) {
       <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
     </div>
     <div className="flex items-center gap-1">
-      <span>Bearish Spike:</span>
-      <span className="text-red-300 font-semibold">{bearishSpikeCount}</span>
+      <span>Bearish Collapse:</span>
+      <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
     </div>
     <div className="flex items-center gap-1">
       <span>Bullish Breakout:</span>
@@ -839,7 +843,7 @@ if (loading) {
         <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
         <th className="p-2 text-center align-middle">Bearish Reversal</th>
         <th className="p-2 text-center align-middle">Bullish Reversal</th>
-        <th className="p-2 text-center align-middle">Bearish Spike</th>
+        <th className="p-2 text-center align-middle">Bearish Collapse</th>
         <th className="p-2 text-center align-middle">Bullish Spike</th>
         <th className="p-2 text-center align-middle">RSI Divergence</th>
       </tr>
@@ -910,7 +914,7 @@ if (loading) {
             <td
               className={`p-2 text-center align-middle ${
                 s.bearishReversal
-                  ? 'bg-yellow-900 text-white'
+                  ? 'bg-purple-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
@@ -919,7 +923,7 @@ if (loading) {
             <td
               className={`p-2 text-center align-middle ${
                 s.bullishReversal
-                  ? 'bg-yellow-900 text-white'
+                  ? 'bg-purple-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
@@ -928,12 +932,12 @@ if (loading) {
             
             <td
               className={`p-2 text-center align-middle ${
-                s.bearishSpike
+                s.bearishCollapse
                   ? 'bg-red-900 text-white'
                   : 'bg-gray-800 text-gray-500'
               }`}
             >
-              {s.bearishSpike ? 'Yes' : 'No'}
+              {s.bearishCollapse ? 'Yes' : 'No'}
             </td>
             <td
               className={`p-2 text-center align-middle ${
