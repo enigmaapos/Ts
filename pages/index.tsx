@@ -56,80 +56,42 @@ function calculateRSI(closes: number[], period = 14) {
   return rsi;
 }
 
-function detectRSIDivergenceRelativeToEMA200(
-  closes: number[],
-  rsi14: number[],
-  ema200: number[]
-): {
-  descendingAboveEMA200: boolean;
-  ascendingBelowEMA200: boolean;
-} {
-  const len = closes.length;
-  if (len < 3) {
-    return { descendingAboveEMA200: false, ascendingBelowEMA200: false };
-  }
-
-  // Check last 3 bars
-  const rsi1 = rsi14[len - 3];
-  const rsi2 = rsi14[len - 2];
-  const rsi3 = rsi14[len - 1];
-
-  const close1 = closes[len - 3];
-  const close2 = closes[len - 2];
-  const close3 = closes[len - 1];
-
-  const ema1 = ema200[len - 3];
-  const ema2 = ema200[len - 2];
-  const ema3 = ema200[len - 1];
-
-  // RSI descending + all closes above EMA200
-  const descendingAboveEMA200 =
-    rsi1 > rsi2 && rsi2 > rsi3 &&
-    close1 > ema1 && close2 > ema2 && close3 > ema3;
-
-  // RSI ascending + all closes below EMA200
-  const ascendingBelowEMA200 =
-    rsi1 < rsi2 && rsi2 < rsi3 &&
-    close1 < ema1 && close2 < ema2 && close3 < ema3;
-
-  return {
-    descendingAboveEMA200,
-    ascendingBelowEMA200,
-  };
-}
-
 function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
   return close >= ema200 ? 'bullish' : 'bearish';
 }
 
-function findRelevantLevel(
-  ema14: number[],
-  ema70: number[],
-  closes: number[],
-  highs: number[],
-  lows: number[],
-  trend: 'bullish' | 'bearish'
-): { level: number | null; type: 'support' | 'resistance' | null } {
-  for (let i = ema14.length - 2; i >= 1; i--) {
-    const prev14 = ema14[i - 1];
-    const prev70 = ema70[i - 1];
-    const curr14 = ema14[i];
-    const curr70 = ema70[i];
+function detectRSI14Pump(rsi14: number[]): {
+  pumpValue: number;
+  lowestIndex: number;
+  highestIndex: number;
+} | null {
+  if (rsi14.length < 2) return null;
 
-    if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
-      return { level: closes[i], type: 'support' };
+  let lowestIndex = 0;
+  let highestIndex = 0;
+  let maxPump = 0;
+
+  for (let i = 1; i < rsi14.length; i++) {
+    if (rsi14[i] < rsi14[lowestIndex]) {
+      // New lower RSI found
+      lowestIndex = i;
     }
 
-    if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
-      return { level: closes[i], type: 'resistance' };
+    const currentPump = rsi14[i] - rsi14[lowestIndex];
+    if (currentPump > maxPump) {
+      maxPump = currentPump;
+      highestIndex = i;
     }
   }
 
-  const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
-  const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type };
-       }
+  if (maxPump <= 0) return null;
 
+  return {
+    pumpValue: maxPump,
+    lowestIndex,
+    highestIndex
+  };
+}
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -599,15 +561,11 @@ const detectBearishCollapse = (
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
-        const rsiDivergence = detectRSIDivergenceRelativeToEMA200(closes, rsi14, ema200);
+        
 
-if (rsiDivergence.descendingAboveEMA200) {
-  console.log("RSI is falling while price is above EMA200");
-}
+  const rsiPump = detectRSI14Pump(s.ris14);
 
-if (rsiDivergence.ascendingBelowEMA200) {
-  console.log("RSI is rising while price is below EMA200");
-}
+  
 
         
         return {
@@ -620,7 +578,7 @@ if (rsiDivergence.ascendingBelowEMA200) {
   bearishCollapseCount,
   bullishBreakoutCount,
   bearishBreakoutCount,
-  rsiDivergence,
+  rsiPump,
   mainTrend,
   breakout,
   bullishBreakout,
@@ -876,19 +834,21 @@ if (loading) {
           <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bullishSpike ? 'Yes' : 'No'}
           </td>
-          <td className={`px-1 py-0.5 text-center ${
-            s.rsiDivergence?.descendingAboveEMA200
-              ? 'bg-yellow-900 text-yellow-300'
-              : s.rsiDivergence?.ascendingBelowEMA200
-              ? 'bg-blue-900 text-blue-300'
-              : 'bg-gray-800 text-gray-500'
-          }`}>
-            {s.rsiDivergence?.descendingAboveEMA200
-              ? '↓ RSI falling'
-              : s.rsiDivergence?.ascendingBelowEMA200
-              ? '↑ RSI rising'
-              : '–'}
-          </td>
+          <td
+  className={`px-1 py-0.5 text-center ${
+    !s.rsiPump
+      ? 'bg-gray-800 text-gray-500'
+      : s.rsiPump.pumpValue > 20
+      ? 'bg-green-900 text-green-300'
+      : s.rsiPump.pumpValue > 10
+      ? 'bg-yellow-900 text-yellow-300'
+      : 'bg-blue-900 text-blue-300'
+  }`}
+>
+  {!s.rsiPump
+    ? '–'
+    : `↑ RSI +${s.rsiPump.pumpValue.toFixed(1)}`}
+</td>
         </tr>
       );
     })}
