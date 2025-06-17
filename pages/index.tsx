@@ -250,8 +250,6 @@ const lastEMA14 = ema14.at(-1)!;
 const lastEMA70 = ema70.at(-1)!;
 const lastEMA200 = ema200.at(-1)!;
 
-// Trend from EMA14 vs EMA70 (short-term trend)
-const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 
 // Main trend from candle vs EMA200 (long-term trend)
 const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
@@ -274,76 +272,6 @@ console.log('Main trend (Close vs EMA200):', mainTrend);
         const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
-
-    // ✅ Updated divergence logic
-          const currentRSI = rsi14.at(-1);
-          const prevHighIdx = highs.lastIndexOf(prevSessionHigh!);
-          const prevLowIdx = lows.lastIndexOf(prevSessionLow!);
-          const prevHighRSI = prevHighIdx !== -1 ? rsi14[prevHighIdx] : null;
-          const prevLowRSI = prevLowIdx !== -1 ? rsi14[prevLowIdx] : null;
-
-          let divergenceType: 'bullish' | 'bearish' | null = null;
-          if (
-            lows.at(-1)! < prevSessionLow! &&
-            prevLowRSI !== null &&
-            currentRSI !== undefined &&
-            currentRSI > prevLowRSI
-          ) {
-            divergenceType = 'bullish';
-          } else if (
-            highs.at(-1)! > prevSessionHigh! &&
-            prevHighRSI !== null &&
-            currentRSI !== undefined &&
-            currentRSI < prevHighRSI
-          ) {
-            divergenceType = 'bearish';
-          }
-
-          const divergence = divergenceType !== null;
-          const nearOrAtEMA70Divergence = divergence && (Math.abs(lastClose - lastEMA70) / lastClose < 0.002);
-
-          const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);
-          const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
-        	const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
-          const ema14Bounce = nearEMA14 && lastClose > lastEMA14;
-          const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
-        	const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
-
-          const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
-          const highestHigh = Math.max(...highs);
-          const lowestLow = Math.min(...lows);
-          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
-          const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
-
-           let divergenceFromLevel = false;
-          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
-
-          if (type && level !== null) {
-            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
-            if (levelIdx !== -1) {
-              const pastRSI = rsi14[levelIdx];
-              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bearish';
-              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bullish';
-              }
-            }
-          }
-        
-        
-          const touchedEMA70Today =
-            prevSessionHigh! >= lastEMA70 &&
-            prevSessionLow! <= lastEMA70 &&
-            candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
-
-        const touchedEMA200Today =
-  prevSessionHigh! >= lastEMA200 &&
-  prevSessionLow! <= lastEMA200 &&
-  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);
-
-          const differenceVsEMA70 = ((level! - lastEMA70) / lastEMA70) * 100;
 
 const detectBullishToBearish = (
   ema14: number[],
@@ -835,10 +763,6 @@ if (loading) {
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
         <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left align-middle">Symbol</th>
-        <th className="p-2 text-center align-middle">Trend</th>
-        <th className="p-2 text-center align-middle">Inferred Level Type</th>
-        <th className="p-2 text-center align-middle">Touched EMA70</th>
-        <th className="p-2 text-center align-middle">Touched EMA200</th>
         <th className="p-2 text-center align-middle">Breakout</th>
         <th className="p-2 text-center align-middle">Bullish Break</th>
         <th className="p-2 text-center align-middle">Bearish Break</th>
@@ -881,16 +805,6 @@ if (loading) {
     {favorites.has(s.symbol) ? '★' : '☆'}
   </button>
 </td>
-            <td className="p-2 text-center align-middle">{s.trend}</td>
-            <td className="p-2 text-center align-middle">{s.inferredLevelType}</td>
-            <td className="p-2 text-center align-middle">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
-            <td
-              className={`p-2 text-center align-middle ${
-                s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
-              }`}
-            >
-              {s.touchedEMA200Today ? 'Yes' : 'No'}
-            </td>
             <td className="p-2 text-center align-middle">{s.breakout ? 'Yes' : 'No'}</td>
             <td
               className={`p-2 text-center align-middle ${
