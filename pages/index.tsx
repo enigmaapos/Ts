@@ -573,11 +573,7 @@ const detectBearishCollapse = (
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
-        const pumpDump = Array.isArray(s.rsi14) && s.rsi14.length >= 2 
-  ? detectRSI14PumpDump(s.rsi14) 
-  : null;
-console.log(s.symbol, s.rsi14 ?? "No RSI data");
-
+        
         
         return {
   symbol,
@@ -802,6 +798,9 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+           const pumpDump = Array.isArray(s.rsi14) && s.rsi14.length >= 2
+      ? detectRSI14PumpDump(s.rsi14)
+      : null;
       <tr
         key={s.symbol}
         className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
@@ -845,12 +844,8 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bullishSpike ? 'Yes' : 'No'}
           </td>
-        <td className="text-center">
-  {pumpDump ? (pumpDump.pumpValue > 30 ? "Yes" : "No") : "–"}
-</td>
-<td className="text-center">
-  {pumpDump ? (pumpDump.dumpValue > 30 ? "Yes" : "No") : "–"}
-</td>
+           <td className="text-center">{pumpDump?.pumpValue.toFixed(2) ?? 'N/A'}</td>
+        <td className="text-center">{pumpDump?.dumpValue.toFixed(2) ?? 'N/A'}</td>
       </tr>
     );
   })}
