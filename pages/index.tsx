@@ -562,8 +562,6 @@ const detectBearishCollapse = (
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
 
-        const rsiPump = s.rsi14 ? detectRSI14Pump(s.rsi14) : null;
-
         
         return {
   symbol,
@@ -583,7 +581,6 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bullishReversal,
   bearishCollapse,
   bullishSpike,
-          rsiPump,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
