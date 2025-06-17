@@ -383,7 +383,7 @@ const detectBullishToBearish = (
     const aboveEMA = closes[i] > ema70[i];
     const nearOrAboveEMA = nearEMA || aboveEMA;
 
-    const risingRSI = rsi14[i] > crossoverRSI;
+    const fallingRSI = rsi14[i] < crossoverRSI;
     const higherThanCrossover = closes[i] > crossoverLow;
 
     const currentLow = lows[i];
@@ -400,7 +400,7 @@ const detectBullishToBearish = (
 
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
 
-      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
+      if (isAscendingLow && fallingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
         return true;
       }
     }
