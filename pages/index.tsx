@@ -379,7 +379,7 @@ const detectBullishToBearish = (
   let lastLow: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len - 1; i++) {
-    const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
     const aboveEMA = closes[i] > ema70[i];
     const nearOrAboveEMA = nearEMA || aboveEMA;
 
@@ -550,7 +550,7 @@ const detectBullishSpike = (
   const aboveEMA200 = close > ema200Value;
   const aboveEMA14 = close > ema14Value; // ✅ New condition
   const ascendingLow = currentLow > lowestLowAfterCrossover;
-  const fallingRSI = rsi < crossoverRSI;
+  const risingRSI = rsi > crossoverRSI;
   const higherThanCrossover = close > crossoverLow;
 
   return (
@@ -558,7 +558,7 @@ const detectBullishSpike = (
     aboveEMA200 &&
     aboveEMA14 &&
     ascendingLow &&
-    fallingRSI &&
+    risingRSI &&
     higherThanCrossover
   );
 };
@@ -635,7 +635,7 @@ const detectBearishCollapse = (
   const belowEMA200 = close < ema200Value;
   const belowEMA14 = close < ema14Value; // ✅ New condition
   const descendingHigh = currentHigh < highestHighAfterCrossover;
-  const risingRSI = rsi > crossoverRSI;
+  const fallingRSI = rsi < crossoverRSI;
   const lowerThanCrossover = close < crossoverHigh;
 
   return (
@@ -643,7 +643,7 @@ const detectBearishCollapse = (
     belowEMA200 &&
     belowEMA14 &&
     descendingHigh &&
-    risingRSI &&
+    fallingRSI &&
     lowerThanCrossover
   );
 };
