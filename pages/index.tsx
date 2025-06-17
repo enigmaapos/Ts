@@ -331,23 +331,23 @@ const detectBullishToBearish = (
     const nearOrAboveEMA = nearEMA || aboveEMA;
 
     const fallingRSI = rsi14[i] < crossoverRSI;
-    const higherThanCrossover = closes[i] > crossoverLow;
+    const lowerThanCrossover = closes[i] < crossoverLow;
 
-    const currentLow = lows[i];
-    const isAscendingLow = lastLow !== null && currentLow > lastLow;
+    const currentHigh = highs[i];
+    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
-    if (nearOrAboveEMA) {
-      if (lastLow === null || currentLow > lastLow) {
-        lastLow = currentLow;
+    if (nearOrUnderEMA) {
+      if (lastHigh === null || currentHigh < lastHigh) {
+        lastHigh = currentHigh;
       }
 
       // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
 
-      const ascendingCloseAboveEMA = lastClose > lastEMA14;
+      const descendingCloseBelowEMA = lastClose < lastEMA14;
 
-      if (isAscendingLow && fallingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
+      if (isDescendingHigh && fallingRSI && higherThanCrossover && descendingCloseBelowEMA) {
         return true;
       }
     }
@@ -395,14 +395,14 @@ const detectBearishToBullish = (
     const nearOrUnderEMA = nearEMA || underEMA;
 
     const risingRSI = rsi14[i] > crossoverRSI;
-    const lowerThanCrossover = closes[i] < crossoverHigh;
+    const higherThanCrossover = closes[i] > crossoverHigh;
 
-    const currentHigh = highs[i];
-    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
+const currentLow = lows[i];
+    const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-    if (nearOrUnderEMA) {
-      if (lastHigh === null || currentHigh < lastHigh) {
-        lastHigh = currentHigh;
+    if (nearOrAboveEMA) {
+      if (lastLow === null || currentLow > lastLow) {
+        lastLow = currentLow;
       }
 
       // ✅ Final confirmation: most recent candle closes above EMA14
@@ -411,7 +411,7 @@ const detectBearishToBullish = (
 
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
 
-      if (isDescendingHigh && risingRSI && lowerThanCrossover && ascendingCloseAboveEMA) {
+      if (isAscendingLow && risingRSI && lowerThanCrossover && ascendingCloseAboveEMA) {
         return true;
       }
     }
