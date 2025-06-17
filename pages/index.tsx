@@ -567,11 +567,11 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
 
 const pumpDump = getRecentRSIDiff(rsi14, 14);
 
-if (rsiDiff) {
-  console.log("Recent RSI High:", rsiDiff.recentHigh);
-  console.log("Recent RSI Low:", rsiDiff.recentLow);
-  console.log("Pump Strength:", rsiDiff.pumpStrength);
-  console.log("Dump Strength:", rsiDiff.dumpStrength);
+if (pumpDump) {
+  console.log("Recent RSI High:", pumpDump.recentHigh);
+  console.log("Recent RSI Low:", pumpDump.recentLow);
+  console.log("Pump Strength:", pumpDump.pumpStrength);
+  console.log("Dump Strength:", pumpDump.dumpStrength);
 }
         
         
@@ -838,10 +838,10 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bearishCollapse ? 'Yes' : 'No'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpValue > 20 ? 'text-green-400' : 'text-white'}`}>
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpValue > 30 ? 'text-green-400' : 'text-white'}`}>
   {pumpDump?.pumpValue?.toFixed(2) ?? 'N/A'}
 </td>
-<td className={`px-1 py-0.5 text-center ${pumpDump?.dumpValue > 20 ? 'text-red-400' : 'text-white'}`}>
+<td className={`px-1 py-0.5 text-center ${pumpDump?.dumpValue > 30 ? 'text-red-400' : 'text-white'}`}>
   {pumpDump?.dumpValue?.toFixed(2) ?? 'N/A'}
 </td>
       </tr>
