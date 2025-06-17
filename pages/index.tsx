@@ -142,19 +142,6 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   
-const sortedSignals = [...filteredSignals].sort((a, b) => {
-  const valA = a[sortField];
-  const valB = b[sortField];
-
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return sortOrder === 'asc'
-      ? valA.localeCompare(valB)
-      : valB.localeCompare(valA);
-  }
-
-  return 0;
-});
-  
 
 useEffect(() => {
   const stored = localStorage.getItem("favorites");
@@ -192,6 +179,18 @@ const filteredAndSortedSignals = sortedSignals.filter((s) => {
   (!showOnlyFavorites || favorites.has(s.symbol))
 );
 
+  const sortedSignals = [...filteredSignals].sort((a, b) => {
+  const valA = a[sortField];
+  const valB = b[sortField];
+
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    return sortOrder === 'asc'
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
+  }
+
+  return 0;
+});
   
     // ✅ Declare counts here (inside the component, after filteredSignals)
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
