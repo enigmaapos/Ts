@@ -563,7 +563,7 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
 
         
 
-  const rsiPump = detectRSI14Pump(s.ris14);
+  const rsiPump = detectRSI14Pump(ris14);
 
   
 
@@ -784,7 +784,7 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Bull Rev</th>
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
-      <th className="px-1 py-0.5 text-center">RSI Div</th>
+      <th className="px-1 py-0.5 text-center">RSI Pump</th>
     </tr>
   </thead>
   <tbody>
