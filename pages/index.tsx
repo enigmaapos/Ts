@@ -380,7 +380,7 @@ const crossoverRSI = rsi14[crossoverIndex];
 let lastLow: number | null = null;
 
 for (let i = crossoverIndex + 1; i < len; i++) {
-const nearEMA = highs.at(-1)! >= ema70.at(-1)! && lows.at(-1)! <= ema70.at(-1)!;
+const nearEMA1 = lows.at(-1)! <= ema70.at(-1)! && highs.at(-1)! >= ema70.at(-1)!;
 const fallingRSI = rsi14[i] < crossoverRSI;
 const higherThanCrossover = closes[i] > crossoverLow;
 
