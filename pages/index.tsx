@@ -573,6 +573,10 @@ const detectBearishCollapse = (
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
+        const pumpDump = Array.isArray(s.rsi14) && s.rsi14.length >= 2 
+  ? detectRSI14PumpDump(s.rsi14) 
+  : null;
+console.log(s.symbol, s.rsi14 ?? "No RSI data");
 
         
         return {
@@ -593,6 +597,7 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bullishReversal,
   bearishCollapse,
   bullishSpike,
+          pumpDump,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -797,11 +802,6 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const pumpDump = Array.isArray(s.rsi14) && s.rsi14.length >= 2 
-  ? detectRSI14PumpDump(s.rsi14) 
-  : null;
-
-console.log(s.symbol, s.rsi14 ?? "No RSI data");
       <tr
         key={s.symbol}
         className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
