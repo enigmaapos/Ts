@@ -565,7 +565,6 @@ const detectBearishCollapse = (
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
-        const rsi14 = calculateRSI(closes);
 const pumpDump = getRecentRSIDiff(rsi14, 14);
 
 if (rsiDiff) {
