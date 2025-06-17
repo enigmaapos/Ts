@@ -560,12 +560,7 @@ const detectBearishCollapse = (
         
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
-
-        
-
-  const rsiPump = detectRSI14Pump(ris14);
-
-  
+         
 
         
         return {
@@ -578,7 +573,6 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bearishCollapseCount,
   bullishBreakoutCount,
   bearishBreakoutCount,
-  rsiPump,
   mainTrend,
   breakout,
   bullishBreakout,
@@ -788,71 +782,71 @@ if (loading) {
     </tr>
   </thead>
   <tbody>
-    {filteredAndSortedSignals.map((s: any) => {
-      const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-      return (
-        <tr
-          key={s.symbol}
-          className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
-            updatedRecently ? 'bg-yellow-900/30' : ''
+  {filteredAndSortedSignals.map((s: any) => {
+    const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+    const rsiPump = detectRSI14Pump(s.rsi14); // Compute RSI pump here
+
+    return (
+      <tr
+        key={s.symbol}
+        className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
+          updatedRecently ? 'bg-yellow-900/30' : ''
+        }`}
+      >
+        <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left flex items-center justify-between">
+          <span>{s.symbol}</span>
+          <button
+            className="ml-1 text-yellow-400 hover:text-yellow-300"
+            onClick={() => {
+              setFavorites((prev: Set<string>) => {
+                const newSet = new Set(prev);
+                newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+                return newSet;
+              });
+            }}
+          >
+            {favorites.has(s.symbol) ? '★' : '☆'}
+          </button>
+        </td>
+        <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+          {s.bullishBreakout ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+          {s.bearishBreakout ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+          {s.mainTrend}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bearishReversal ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bullishReversal ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bearishCollapse ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bullishSpike ? 'Yes' : 'No'}
+        </td>
+        <td
+          className={`px-1 py-0.5 text-center ${
+            !rsiPump
+              ? 'bg-gray-800 text-gray-500'
+              : rsiPump.pumpValue > 20
+              ? 'bg-green-900 text-green-300'
+              : rsiPump.pumpValue > 10
+              ? 'bg-yellow-900 text-yellow-300'
+              : 'bg-blue-900 text-blue-300'
           }`}
         >
-          <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left flex items-center justify-between">
-            <span>{s.symbol}</span>
-            <button
-              className="ml-1 text-yellow-400 hover:text-yellow-300"
-              onClick={() => {
-                setFavorites((prev: Set<string>) => {
-                  const newSet = new Set(prev);
-                  newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-                  return newSet;
-                });
-              }}
-            >
-              {favorites.has(s.symbol) ? '★' : '☆'}
-            </button>
-          </td>
-          <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
-          <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
-            {s.bullishBreakout ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
-            {s.bearishBreakout ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
-            {s.mainTrend}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bearishReversal ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bullishReversal ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bearishCollapse ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bullishSpike ? 'Yes' : 'No'}
-          </td>
-          <td
-  className={`px-1 py-0.5 text-center ${
-    !s.rsiPump
-      ? 'bg-gray-800 text-gray-500'
-      : s.rsiPump.pumpValue > 20
-      ? 'bg-green-900 text-green-300'
-      : s.rsiPump.pumpValue > 10
-      ? 'bg-yellow-900 text-yellow-300'
-      : 'bg-blue-900 text-blue-300'
-  }`}
->
-  {!s.rsiPump
-    ? '–'
-    : `↑ RSI +${s.rsiPump.pumpValue.toFixed(1)}`}
-</td>
-        </tr>
-      );
-    })}
-  </tbody>
+          {!rsiPump ? '–' : `↑ RSI +${rsiPump.pumpValue.toFixed(1)}`}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
 </table>
       </div>
     </div>                    
