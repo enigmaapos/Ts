@@ -785,7 +785,7 @@ if (loading) {
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
     const rsiPump = detectRSI14Pump(s.rsi14); // Compute RSI pump here
-
+console.log(rsiPump); 
     return (
       <tr
         key={s.symbol}
