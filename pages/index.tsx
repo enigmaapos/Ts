@@ -797,9 +797,11 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const pumpDump = detectRSI14PumpDump(s.rsi14); // Compute RSI pump here
-console.log(s.symbol, s.rsi14);  // See if it's undefined or too short
-    return (
+    const pumpDump = Array.isArray(s.rsi14) && s.rsi14.length >= 2 
+  ? detectRSI14PumpDump(s.rsi14) 
+  : null;
+
+console.log(s.symbol, s.rsi14 ?? "No RSI data");
       <tr
         key={s.symbol}
         className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
