@@ -835,6 +835,9 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bearishCollapse ? 'Yes' : 'No'}
         </td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            {s.bullishSpike ? 'Yes' : 'No'}
+          </td>
         <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
           {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
