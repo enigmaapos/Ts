@@ -750,9 +750,8 @@ if (loading) {
             }`}
           >
             {label}
-          </button>          
-        ))}
-         <button
+          </button> 
+          <button
     onClick={() => {
       setSearch('');
       setTrendFilter(null);
@@ -762,7 +761,9 @@ if (loading) {
   >
     Clear All Filters
   </button>
+        ))}      
 </div>
+          
       </div>
 
       <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">
