@@ -347,7 +347,7 @@ const detectBullishToBearish = (
 
       const descendingCloseBelowEMA = lastClose < lastEMA14;
 
-      if (isDescendingHigh && fallingRSI && higherThanCrossover && descendingCloseBelowEMA) {
+      if (isDescendingHigh && fallingRSI && lowerThanCrossover && descendingCloseBelowEMA) {
         return true;
       }
     }
@@ -411,7 +411,7 @@ const currentLow = lows[i];
 
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
 
-      if (isAscendingLow && risingRSI && lowerThanCrossover && ascendingCloseAboveEMA) {
+      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
         return true;
       }
     }
