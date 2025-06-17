@@ -735,23 +735,28 @@ if (loading) {
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">
         {[    
-          { label: 'Bullish Reversal', key: 'bullishReversal' },
- 				 { label: 'Bearish Reversal', key: 'bearishReversal' },
-          { label: 'Bullish Spike', key: 'bullishSpike' },
-          { label: 'Bearish Collapse', key: 'bearishCollapse' },
-          { label: 'Bullish Breakout', key: 'bullishBreakout' },
-  				{ label: 'Bearish Breakout', key: 'bearishBreakout' },
-        ].map(({ label, key }) => (
-          <button
-            key={key}
-            onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-            className={`px-3 py-1 rounded-full ${
-              trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
-            }`}
-          >
-            {label}
-          </button> 
-          <button
+    { label: 'Bullish Reversal', key: 'bullishReversal' },
+    { label: 'Bearish Reversal', key: 'bearishReversal' },
+    { label: 'Bullish Spike', key: 'bullishSpike' },
+    { label: 'Bearish Collapse', key: 'bearishCollapse' },
+    { label: 'Bullish Breakout', key: 'bullishBreakout' },
+    { label: 'Bearish Breakout', key: 'bearishBreakout' },
+  ].map(({ label, key }) => (
+    <button
+      key={key}
+      onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+      className={`px-3 py-1 rounded-full ${
+        trendFilter === key
+          ? 'bg-yellow-500 text-black'
+          : 'bg-gray-700 text-white'
+      }`}
+    >
+      {label}
+    </button>
+  ))}
+
+  {/* ✅ Clear Button */}
+  <button
     onClick={() => {
       setSearch('');
       setTrendFilter(null);
@@ -761,8 +766,8 @@ if (loading) {
   >
     Clear All Filters
   </button>
-        ))}      
 </div>
+          
           
       </div>
 
