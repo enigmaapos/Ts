@@ -523,7 +523,7 @@ const detectBullishSpike = (
   const crossoverRSI = rsi14[crossoverIndex];
   let lowestLowAfterCrossover = crossoverLow;
 
-  // 🔍 Check conditions after crossover up to the last candle
+  // 🔍 Track lowest low after crossover
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentLow = lows[i];
     if (currentLow < lowestLowAfterCrossover) {
@@ -537,6 +537,7 @@ const detectBullishSpike = (
   const currentHigh = highs[i];
   const close = closes[i];
   const rsi = rsi14[i];
+  const ema14Value = ema14[i];
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
 
@@ -545,20 +546,20 @@ const detectBullishSpike = (
   if (touchedEMA70) return false;
 
   // ✅ Spike conditions
-  const aboveEMA = close > ema70Value;
+  const aboveEMA70 = close > ema70Value;
   const aboveEMA200 = close > ema200Value;
+  const aboveEMA14 = close > ema14Value; // ✅ New condition
   const ascendingLow = currentLow > lowestLowAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
   const higherThanCrossover = close > crossoverLow;
-    const aboveEMA14 = close > ema14[i];
 
   return (
-    aboveEMA &&
+    aboveEMA70 &&
     aboveEMA200 &&
+    aboveEMA14 &&
     ascendingLow &&
     fallingRSI &&
-    higherThanCrossover &&
-     aboveEMA14 
+    higherThanCrossover
   );
 };
 
@@ -567,8 +568,8 @@ const detectBearishCollapse = (
   ema70: number[],
   ema200: number[],
   rsi14: number[],
-  highs: number[],
   lows: number[],
+  highs: number[],
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
@@ -601,7 +602,7 @@ const detectBearishCollapse = (
   }
   if (crossoverIndex200 === -1) return false;
 
-  // ✅ Choose later crossover as start point
+  // ✅ Choose the later crossover as starting point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
@@ -617,10 +618,11 @@ const detectBearishCollapse = (
 
   // 🧪 Final candle checks
   const i = len - 1;
-  const currentHigh = highs[i];
   const currentLow = lows[i];
+  const currentHigh = highs[i];
   const close = closes[i];
   const rsi = rsi14[i];
+  const ema14Value = ema14[i];
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
 
@@ -629,20 +631,20 @@ const detectBearishCollapse = (
   if (touchedEMA70) return false;
 
   // ✅ Spike conditions
-  const belowEMA = close < ema70Value;
+  const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
+  const belowEMA14 = close < ema14Value; // ✅ New condition
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const risingRSI = rsi > crossoverRSI;
   const lowerThanCrossover = close < crossoverHigh;
-  const belowEMA14 = close < ema14Value;
 
   return (
-    belowEMA &&
+    belowEMA70 &&
     belowEMA200 &&
+    belowEMA14 &&
     descendingHigh &&
     risingRSI &&
-    lowerThanCrossover &&
-     belowEMA14
+    lowerThanCrossover
   );
 };
 
