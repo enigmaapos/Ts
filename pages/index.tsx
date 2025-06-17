@@ -65,36 +65,28 @@ function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
   return close >= ema200 ? 'bullish' : 'bearish';
 }
 
-function detectRSI14PumpDump(rsi14: number[] | undefined): {
-  pumpValue: number;
-  dumpValue: number;
-} | null {
-  if (!Array.isArray(rsi14) || rsi14.length < 2) return null;
+function getRecentRSIDiff(rsi: number[], lookback = 14) {
+  if (rsi.length < lookback) return null;
 
-  let lowest = rsi14[0];
-  let highest = rsi14[0];
-  let maxPump = 0;
-  let maxDump = 0;
+  const recentRSI = rsi.slice(-lookback);
+  let recentHigh = -Infinity;
+  let recentLow = Infinity;
 
-  for (let i = 1; i < rsi14.length; i++) {
-    const current = rsi14[i];
-
-    // Track lowest point so far for pump
-    if (current < lowest) lowest = current;
-    const pump = current - lowest;
-    if (pump > maxPump) maxPump = pump;
-
-    // Track highest point so far for dump
-    if (current > highest) highest = current;
-    const dump = highest - current;
-    if (dump > maxDump) maxDump = dump;
+  for (const value of recentRSI) {
+    if (!isNaN(value)) {
+      if (value > recentHigh) recentHigh = value;
+      if (value < recentLow) recentLow = value;
+    }
   }
 
-  if (maxPump <= 0 && maxDump <= 0) return null;
+  const pumpStrength = recentHigh - recentLow;
+  const dumpStrength = recentLow - recentHigh;
 
   return {
-    pumpValue: maxPump,
-    dumpValue: maxDump,
+    recentHigh,
+    recentLow,
+    pumpStrength,
+    dumpStrength: Math.abs(dumpStrength)
   };
 }
 
@@ -573,6 +565,15 @@ const detectBearishCollapse = (
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
+        const rsi14 = calculateRSI(closes);
+const pumpDump = getRecentRSIDiff(rsi14, 14);
+
+if (rsiDiff) {
+  console.log("Recent RSI High:", rsiDiff.recentHigh);
+  console.log("Recent RSI Low:", rsiDiff.recentLow);
+  console.log("Pump Strength:", rsiDiff.pumpStrength);
+  console.log("Dump Strength:", rsiDiff.dumpStrength);
+}
         
         
         return {
@@ -593,6 +594,7 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bullishReversal,
   bearishCollapse,
   bullishSpike,
+          pumpDump,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -797,9 +799,6 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-           const pumpDump = Array.isArray(s.rsi14) && s.rsi14.length >= 2
-      ? detectRSI14PumpDump(s.rsi14)
-      : null;
       <tr
         key={s.symbol}
         className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
@@ -840,11 +839,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bearishCollapse ? 'Yes' : 'No'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bullishSpike ? 'Yes' : 'No'}
-          </td>
-           <td className="text-center">{pumpDump?.pumpValue.toFixed(2) ?? 'N/A'}</td>
-        <td className="text-center">{pumpDump?.dumpValue.toFixed(2) ?? 'N/A'}</td>
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpValue > 20 ? 'text-green-400' : 'text-white'}`}>
+  {pumpDump?.pumpValue?.toFixed(2) ?? 'N/A'}
+</td>
+<td className={`px-1 py-0.5 text-center ${pumpDump?.dumpValue > 20 ? 'text-red-400' : 'text-white'}`}>
+  {pumpDump?.dumpValue?.toFixed(2) ?? 'N/A'}
+</td>
       </tr>
     );
   })}
