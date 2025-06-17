@@ -141,25 +141,6 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
-
-  const sortedSignals = [...filteredSignals].sort((a, b) => {
-  const valA = a[sortField];
-  const valB = b[sortField];
-
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return sortOrder === 'asc'
-      ? valA.localeCompare(valB)
-      : valB.localeCompare(valA);
-  }
-
-  return 0;
-});
-
-  const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  if (!trendFilter) return true;
-  return s[trendFilter];
-});
-  
   
 
 useEffect(() => {
@@ -190,6 +171,24 @@ const toggleFavorite = (symbol: string) => {
   s.symbol.toLowerCase().includes(search.toLowerCase()) &&
   (!showOnlyFavorites || favorites.has(s.symbol))
 );
+
+  const sortedSignals = [...filteredSignals].sort((a, b) => {
+  const valA = a[sortField];
+  const valB = b[sortField];
+
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    return sortOrder === 'asc'
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
+  }
+
+  return 0;
+});
+
+  const filteredAndSortedSignals = sortedSignals.filter((s) => {
+  if (!trendFilter) return true;
+  return s[trendFilter];
+});
   
   
   
