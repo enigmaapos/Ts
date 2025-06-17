@@ -380,24 +380,28 @@ const crossoverRSI = rsi14[crossoverIndex];
 let lastLow: number | null = null;
 
 for (let i = crossoverIndex + 1; i < len; i++) {
-const nearEMA1 = lows.at(-1)! <= ema70.at(-1)! && highs.at(-1)! >= ema70.at(-1)!;
-const fallingRSI = rsi14[i] < crossoverRSI;
-const higherThanCrossover = closes[i] > crossoverLow;
+  const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+  const aboveEMA = closes[i] > ema70[i];
+  const nearOrAboveEMA = nearEMA || aboveEMA;
 
-const currentLow = lows[i];
-const isAscendingLow = lastLow !== null && currentLow > lastLow;
+  const fallingRSI = rsi14[i] < crossoverRSI;
+  const higherThanCrossover = closes[i] > crossoverLow;
 
-if (nearEMA) {
-if (lastLow === null || currentLow > lastLow) {
-lastLow = currentLow;
-}
+  const currentLow = lows[i];
+  const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-if (isAscendingLow && fallingRSI && higherThanCrossover) {
-return true;
-}
-}
+  if (nearOrAboveEMA) {
+    if (lastLow === null || currentLow > lastLow) {
+      lastLow = currentLow;
+    }
 
+    if (isAscendingLow && fallingRSI && higherThanCrossover) {
+      return true;
+    }
+  }
 }
+  return false;
+};
 
 return false;
 };
@@ -437,14 +441,17 @@ const crossoverRSI = rsi14[crossoverIndex];
 let lastHigh: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const nearEMA = highs.at(-1)! >= ema70.at(-1)! && lows.at(-1)! <= ema70.at(-1)!;
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const underEMA = closes[i] < ema70[i];
+    const nearOrUnderEMA = nearEMA || underEMA;
+
     const risingRSI = rsi14[i] > crossoverRSI;
     const lowerThanCrossover = closes[i] < crossoverHigh;
 
     const currentHigh = highs[i];
     const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
-    if (nearEMA) {
+    if (nearOrUnderEMA) {
       if (lastHigh === null || currentHigh < lastHigh) {
         lastHigh = currentHigh;
       }
