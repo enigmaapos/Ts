@@ -379,7 +379,7 @@ const detectBullishToBearish = (
   let lastLow: number | null = null;
 
   for (let i = crossoverIndex + 1; i < len - 1; i++) {
-    const nearEMA = lows[i] <= ema70[i] && high[i] >= ema70[i];
+    const nearEMA = lows[i] <= ema70[i] && highs[i] >= ema70[i];
     const aboveEMA = closes[i] > ema70[i];
     const nearOrAboveEMA = nearEMA || aboveEMA;
 
