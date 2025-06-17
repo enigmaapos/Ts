@@ -790,27 +790,31 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-          const pumpDump = getRecentRSIDiff(rsi14, 14);
+    const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+
+    return (
       <tr
         key={s.symbol}
         className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
           updatedRecently ? 'bg-yellow-900/30' : ''
         }`}
       >
-        <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left flex items-center justify-between">
-          <span>{s.symbol}</span>
-          <button
-            className="ml-1 text-yellow-400 hover:text-yellow-300"
-            onClick={() => {
-              setFavorites((prev: Set<string>) => {
-                const newSet = new Set(prev);
-                newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-                return newSet;
-              });
-            }}
-          >
-            {favorites.has(s.symbol) ? '★' : '☆'}
-          </button>
+        <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left">
+          <div className="flex items-center justify-between">
+            <span>{s.symbol}</span>
+            <button
+              className="ml-1 text-yellow-400 hover:text-yellow-300"
+              onClick={() => {
+                setFavorites((prev: Set<string>) => {
+                  const newSet = new Set(prev);
+                  newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+                  return newSet;
+                });
+              }}
+            >
+              {favorites.has(s.symbol) ? '★' : '☆'}
+            </button>
+          </div>
         </td>
         <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
         <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
@@ -831,12 +835,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bearishCollapse ? 'Yes' : 'No'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpValue > 30 ? 'text-green-400' : 'text-white'}`}>
-  {pumpDump?.pumpValue?.toFixed(2) ?? 'N/A'}
-</td>
-<td className={`px-1 py-0.5 text-center ${pumpDump?.dumpValue > 30 ? 'text-red-400' : 'text-white'}`}>
-  {pumpDump?.dumpValue?.toFixed(2) ?? 'N/A'}
-</td>
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
+          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
+          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
+        </td>
       </tr>
     );
   })}
