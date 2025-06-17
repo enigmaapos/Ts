@@ -831,18 +831,14 @@ if (loading) {
           {s.bullishSpike ? 'Yes' : 'No'}
         </td>
         <td
-          className={`px-1 py-0.5 text-center ${
-            !rsiPump
-              ? 'bg-gray-800 text-gray-500'
-              : rsiPump.pumpValue > 20
-              ? 'bg-green-900 text-green-300'
-              : rsiPump.pumpValue > 10
-              ? 'bg-yellow-900 text-yellow-300'
-              : 'bg-blue-900 text-blue-300'
-          }`}
-        >
-          {!rsiPump ? '–' : `↑ RSI +${rsiPump.pumpValue.toFixed(1)}`}
-        </td>
+  className={`px-1 py-0.5 text-center ${
+    rsiPump?.pumpValue > 30
+      ? 'bg-green-900 text-green-300'
+      : 'bg-gray-800 text-gray-500'
+  }`}
+>
+  {rsiPump?.pumpValue > 30 ? 'Yes' : 'No'}
+</td>
       </tr>
     );
   })}
