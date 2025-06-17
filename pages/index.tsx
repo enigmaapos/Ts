@@ -165,7 +165,7 @@ const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).leng
 const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
-const rsi14Count = filteredSignals.filter(s => s.rsi14).length;
+
 
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
@@ -700,7 +700,6 @@ if (loading) {
     { label: 'Bearish Collapse', key: 'bearishCollapse' },
     { label: 'Bullish Breakout', key: 'bullishBreakout' },
     { label: 'Bearish Breakout', key: 'bearishBreakout' },
-    { label: 'Pump Dump', key: 'rsi14' },
   ].map(({ label, key }) => (
     <button
       key={key}
