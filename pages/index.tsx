@@ -761,10 +761,6 @@ if (loading) {
             <span>Bearish Breakout:</span>
             <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span>Pump Dump:</span>
-            <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
-          </div>
         </div>
       </div>
 
