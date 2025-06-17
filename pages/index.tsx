@@ -23,36 +23,41 @@ function calculateEMA(data: number[], period: number) {
   return ema;
 }
 
-function calculateRSI(closes: number[], period = 14) {
+function calculateRSI(closes: number[], period = 14): number[] {
+  if (!Array.isArray(closes) || closes.length <= period) return [];
+
   const rsi: number[] = [];
   let gains = 0;
   let losses = 0;
 
-  for (let i = 1; i < closes.length; i++) {
+  for (let i = 1; i <= period; i++) {
     const diff = closes[i] - closes[i - 1];
-    if (i <= period) {
-      if (diff > 0) gains += diff;
-      else losses -= diff;
-
-      if (i === period) {
-        const avgGain = gains / period;
-        const avgLoss = losses / period;
-        const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-        rsi.push(100 - 100 / (1 + rs));
-      } else {
-        rsi.push(NaN);
-      }
-    } else {
-      const gain = diff > 0 ? diff : 0;
-      const loss = diff < 0 ? -diff : 0;
-      gains = (gains * (period - 1) + gain) / period;
-      losses = (losses * (period - 1) + loss) / period;
-      const rs = losses === 0 ? 100 : gains / losses;
-      rsi.push(100 - 100 / (1 + rs));
-    }
+    if (diff > 0) gains += diff;
+    else losses -= diff;
   }
 
-  rsi.unshift(...Array(closes.length - rsi.length).fill(NaN));
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  rsi[period] = 100 - 100 / (1 + rs);
+
+  for (let i = period + 1; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+
+    rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsi[i] = 100 - 100 / (1 + rs);
+  }
+
+  // Fill initial NaNs
+  for (let i = 0; i < period; i++) {
+    rsi[i] = NaN;
+  }
+
   return rsi;
 }
 
@@ -66,24 +71,30 @@ function detectRSI14PumpDump(rsi14: number[] | undefined): {
 } | null {
   if (!Array.isArray(rsi14) || rsi14.length < 2) return null;
 
-  let min = rsi14[0];
-  let max = rsi14[0];
-  let pump = 0;
-  let dump = 0;
+  let lowest = rsi14[0];
+  let highest = rsi14[0];
+  let maxPump = 0;
+  let maxDump = 0;
 
   for (let i = 1; i < rsi14.length; i++) {
-    if (rsi14[i] > max) max = rsi14[i];
-    if (rsi14[i] < min) min = rsi14[i];
+    const current = rsi14[i];
 
-    pump = Math.max(pump, rsi14[i] - min);  // up move
-    dump = Math.max(dump, max - rsi14[i]);  // down move
+    // Track lowest point so far for pump
+    if (current < lowest) lowest = current;
+    const pump = current - lowest;
+    if (pump > maxPump) maxPump = pump;
+
+    // Track highest point so far for dump
+    if (current > highest) highest = current;
+    const dump = highest - current;
+    if (dump > maxDump) maxDump = dump;
   }
 
-  if (pump <= 0 && dump <= 0) return null;
+  if (maxPump <= 0 && maxDump <= 0) return null;
 
   return {
-    pumpValue: pump,
-    dumpValue: dump,
+    pumpValue: maxPump,
+    dumpValue: maxDump,
   };
 }
 
