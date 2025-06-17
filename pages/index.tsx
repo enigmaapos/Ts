@@ -681,191 +681,149 @@ if (loading) {
 
     return (
     <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-4">
-        Binance 15m Signal Analysis (UTC)
-      </h1>
+  <h1 className="text-3xl font-bold text-yellow-400 mb-4">
+    Binance 15m Signal Analysis (UTC)
+  </h1>
 
-      <label className="flex items-center gap-2 mt-2 text-sm">
-  <input
-    type="checkbox"
-    checked={showOnlyFavorites}
-    onChange={() => setShowOnlyFavorites(prev => !prev)}
-  />
-  Show only favorites
-</label>
+  {/* Favorites Filter */}
+  <label className="flex items-center gap-2 mt-2 text-sm">
+    <input
+      type="checkbox"
+      checked={showOnlyFavorites}
+      onChange={() => setShowOnlyFavorites(prev => !prev)}
+      className="accent-yellow-400"
+    />
+    Show only favorites
+  </label>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search symbol..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-        />     
-  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700">
-  <div className="flex flex-wrap gap-4">
-    <div className="flex items-center gap-1">
-      <span>Bullish Main Trend:</span>
-      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Main Trend:</span>
-      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bullish Reversal:</span> 
-      <span className="text-green-300 font-semibold">{bullishReversalCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Reversal:</span>
-      <span className="text-red-300 font-semibold">{bearishReversalCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bullish Spike:</span> 
-      <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Collapse:</span>
-      <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bullish Breakout:</span>
-      <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Breakout:</span>
-      <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
+  {/* Search Input */}
+  <div className="relative mt-4 w-full max-w-xs">
+    <input
+      type="text"
+      placeholder="Search symbol..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="w-full p-2 pr-8 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+    />
+    {search && (
+      <button
+        onClick={() => setSearch('')}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+        aria-label="Clear search"
+      >
+        &times;
+      </button>
+    )}
+  </div>
+
+  {/* Summary Box */}
+  <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mt-4 rounded shadow-md">
+    <div className="flex flex-wrap gap-4">
+      {[
+        { label: 'Bullish Main Trend', value: bullishMainTrendCount, color: 'text-green-400' },
+        { label: 'Bearish Main Trend', value: bearishMainTrendCount, color: 'text-red-400' },
+        { label: 'Bullish Reversal', value: bullishReversalCount, color: 'text-green-300' },
+        { label: 'Bearish Reversal', value: bearishReversalCount, color: 'text-red-300' },
+        { label: 'Bullish Spike', value: bullishSpikeCount, color: 'text-green-300' },
+        { label: 'Bearish Collapse', value: bearishCollapseCount, color: 'text-red-300' },
+        { label: 'Bullish Breakout', value: bullishBreakoutCount, color: 'text-yellow-300' },
+        { label: 'Bearish Breakout', value: bearishBreakoutCount, color: 'text-yellow-400' },
+      ].map(({ label, value, color }) => (
+        <div key={label} className="flex items-center gap-1">
+          <span>{label}:</span>
+          <span className={`font-semibold ${color}`}>{value}</span>
+        </div>
+      ))}
     </div>
   </div>
-</div>
-      </div>      
-      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-  <table className="min-w-[1600px] text-xs border-collapse">
-    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-      <tr>
-        <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left align-middle">Symbol</th>
-        <th className="p-2 text-center align-middle">Breakout</th>
-        <th className="p-2 text-center align-middle">Bullish Break</th>
-        <th className="p-2 text-center align-middle">Bearish Break</th>
-        <th className="p-2 text-center align-middle">Main Trend (ema200)</th>
-        <th className="p-2 text-center align-middle">Bearish Reversal</th>
-        <th className="p-2 text-center align-middle">Bullish Reversal</th>
-        <th className="p-2 text-center align-middle">Bearish Collapse</th>
-        <th className="p-2 text-center align-middle">Bullish Spike</th>
-        <th className="p-2 text-center align-middle">RSI Divergence</th>
-      </tr>
-    </thead>
-    <tbody>
-      {filteredSignals.map((s) => {
-        const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-        return (
-          <tr
-            key={s.symbol}
-            className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
-              updatedRecently ? 'bg-yellow-900/30' : ''
-            }`}
-          >
-            <td
-  className="p-2 font-bold bg-gray-900 sticky left-0 z-10 hover:cursor-pointer text-left align-middle flex items-center justify-between"
->
-  <span>{s.symbol}</span>
-  <button
-    className="ml-2 text-yellow-400 hover:text-yellow-300"
-    onClick={() => {
-      setFavorites(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(s.symbol)) {
-          newSet.delete(s.symbol);
-        } else {
-          newSet.add(s.symbol);
-        }
-        return newSet;
-      });
-    }}
-  >
-    {favorites.has(s.symbol) ? '★' : '☆'}
-  </button>
-</td>
-            <td className="p-2 text-center align-middle">{s.breakout ? 'Yes' : 'No'}</td>
-            <td
-              className={`p-2 text-center align-middle ${
-                s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'
+
+  {/* Table */}
+  <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded mt-4">
+    <table className="min-w-[1600px] text-xs border-collapse">
+      <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+        <tr>
+          <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left">Symbol</th>
+          <th className="p-2 text-center">Breakout</th>
+          <th className="p-2 text-center">Bullish Break</th>
+          <th className="p-2 text-center">Bearish Break</th>
+          <th className="p-2 text-center">Main Trend (ema200)</th>
+          <th className="p-2 text-center">Bearish Reversal</th>
+          <th className="p-2 text-center">Bullish Reversal</th>
+          <th className="p-2 text-center">Bearish Collapse</th>
+          <th className="p-2 text-center">Bullish Spike</th>
+          <th className="p-2 text-center">RSI Divergence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredSignals.map((s) => {
+          const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+          return (
+            <tr
+              key={s.symbol}
+              className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
+                updatedRecently ? 'bg-yellow-900/30' : ''
               }`}
             >
-              {s.bullishBreakout ? 'Yes' : 'No'}
-            </td>
-            <td
-              className={`p-2 text-center align-middle ${
-                s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'
-              }`}
-            >
-              {s.bearishBreakout ? 'Yes' : 'No'}
-            </td>
-            <td
-              className={`p-2 text-center align-middle font-semibold ${
-                s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'
-              }`}
-            >
-              {s.mainTrend}
-            </td>
-            <td
-              className={`p-2 text-center align-middle ${
-                s.bearishReversal
-                  ? 'bg-purple-900 text-white'
-                  : 'bg-gray-800 text-gray-500'
-              }`}
-            >
-              {s.bearishReversal ? 'Yes' : 'No'}
-            </td>
-            <td
-              className={`p-2 text-center align-middle ${
-                s.bullishReversal
-                  ? 'bg-purple-900 text-white'
-                  : 'bg-gray-800 text-gray-500'
-              }`}
-            >
-              {s.bullishReversal ? 'Yes' : 'No'}
-            </td>
-            
-            <td
-              className={`p-2 text-center align-middle ${
-                s.bearishCollapse
-                  ? 'bg-red-900 text-white'
-                  : 'bg-gray-800 text-gray-500'
-              }`}
-            >
-              {s.bearishCollapse ? 'Yes' : 'No'}
-            </td>
-            <td
-              className={`p-2 text-center align-middle ${
-                s.bullishSpike
-                  ? 'bg-green-900 text-white'
-                  : 'bg-gray-800 text-gray-500'
-              }`}
-            >
-              {s.bullishSpike ? 'Yes' : 'No'}
-            </td>   <td
-        className={`p-2 text-center align-middle ${
-          s.rsiDivergence.descendingAboveEMA200
-            ? 'bg-yellow-900 text-yellow-300'
-            : s.rsiDivergence.ascendingBelowEMA200
-            ? 'bg-blue-900 text-blue-300'
-            : 'bg-gray-800 text-gray-500'
-        }`}
-      >
-        {s.rsiDivergence.descendingAboveEMA200
-          ? '↓ RSI is falling'
-          : s.rsiDivergence.ascendingBelowEMA200
-          ? '↑ RSI is rising'
-          : '–'}
-      </td>
-          </tr>
-        );
-      })}
-    </tbody>
-  </table>
-</div>
-    </div>
+              <td className="p-2 font-bold bg-gray-900 sticky left-0 z-10 text-left flex items-center justify-between">
+                <span>{s.symbol}</span>
+                <button
+                  className="ml-2 text-yellow-400 hover:text-yellow-300"
+                  onClick={() => {
+                    setFavorites(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(s.symbol)) newSet.delete(s.symbol);
+                      else newSet.add(s.symbol);
+                      return newSet;
+                    });
+                  }}
+                >
+                  {favorites.has(s.symbol) ? '★' : '☆'}
+                </button>
+              </td>
+              <td className="p-2 text-center">{s.breakout ? 'Yes' : 'No'}</td>
+              <td className={`p-2 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+                {s.bullishBreakout ? 'Yes' : 'No'}
+              </td>
+              <td className={`p-2 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+                {s.bearishBreakout ? 'Yes' : 'No'}
+              </td>
+              <td className={`p-2 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+                {s.mainTrend}
+              </td>
+              <td className={`p-2 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                {s.bearishReversal ? 'Yes' : 'No'}
+              </td>
+              <td className={`p-2 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                {s.bullishReversal ? 'Yes' : 'No'}
+              </td>
+              <td className={`p-2 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                {s.bearishCollapse ? 'Yes' : 'No'}
+              </td>
+              <td className={`p-2 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                {s.bullishSpike ? 'Yes' : 'No'}
+              </td>
+              <td
+                className={`p-2 text-center ${
+                  s.rsiDivergence.descendingAboveEMA200
+                    ? 'bg-yellow-900 text-yellow-300'
+                    : s.rsiDivergence.ascendingBelowEMA200
+                    ? 'bg-blue-900 text-blue-300'
+                    : 'bg-gray-800 text-gray-500'
+                }`}
+              >
+                {s.rsiDivergence.descendingAboveEMA200
+                  ? '↓ RSI is falling'
+                  : s.rsiDivergence.ascendingBelowEMA200
+                  ? '↑ RSI is rising'
+                  : '–'}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</div>          
   );
 }
   
