@@ -138,6 +138,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [sortField, setSortField] = useState<string>('symbol');
+const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+const [trendFilter, setTrendFilter] = useState<string | null>(null);
+  
+const sortedSignals = [...filteredSignals].sort((a, b) => {
+  const valA = a[sortField];
+  const valB = b[sortField];
+
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    return sortOrder === 'asc'
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
+  }
+
+  return 0;
+});
   
 
 useEffect(() => {
@@ -164,6 +180,12 @@ const toggleFavorite = (symbol: string) => {
   }));
 };
 
+  
+
+const filteredAndSortedSignals = sortedSignals.filter((s) => {
+  if (!trendFilter) return true;
+  return s[trendFilter];
+});
   
   const filteredSignals = signals.filter((s) =>
   s.symbol.toLowerCase().includes(search.toLowerCase()) &&
@@ -737,12 +759,38 @@ if (loading) {
     </div>
   </div>
 
+      <div className="flex gap-2 mb-4 flex-wrap">
+  {[
+    { label: 'Bullish Breakout', key: 'bullishBreakout' },
+    { label: 'Bearish Reversal', key: 'bearishReversal' },
+    { label: 'Bullish Spike', key: 'bullishSpike' },
+  ].map(({ label, key }) => (
+    <button
+      key={key}
+      onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+      className={`px-3 py-1 rounded-full text-sm ${
+        trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+      }`}
+    >
+      {label}
+    </button>
+  ))}
+</div>
+
   {/* Table */}
   <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded mt-4">
     <table className="min-w-[1600px] text-xs border-collapse">
       <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
         <tr>
-          <th className="p-2 bg-gray-800 sticky left-0 z-30 text-left">Symbol</th>
+          <th
+  className="p-2 bg-gray-800 sticky left-0 z-30 text-left cursor-pointer"
+  onClick={() => {
+    setSortField('symbol');
+    setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+>
+  Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
           <th className="p-2 text-center">Breakout</th>
           <th className="p-2 text-center">Bullish Break</th>
           <th className="p-2 text-center">Bearish Break</th>
@@ -755,7 +803,7 @@ if (loading) {
         </tr>
       </thead>
       <tbody>
-        {filteredSignals.map((s) => {
+        {sortedSignals.map((s) => {
           const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
           return (
             <tr
