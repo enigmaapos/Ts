@@ -565,14 +565,7 @@ const detectBearishCollapse = (
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
 
-const pumpDump = getRecentRSIDiff(rsi14, 14);
 
-if (pumpDump) {
-  console.log("Recent RSI High:", pumpDump.recentHigh);
-  console.log("Recent RSI Low:", pumpDump.recentLow);
-  console.log("Pump Strength:", pumpDump.pumpStrength);
-  console.log("Dump Strength:", pumpDump.dumpStrength);
-}
         
         
         return {
@@ -798,6 +791,14 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+          const pumpDump = getRecentRSIDiff(rsi14, 14);
+
+if (pumpDump) {
+  console.log("Recent RSI High:", pumpDump.recentHigh);
+  console.log("Recent RSI Low:", pumpDump.recentLow);
+  console.log("Pump Strength:", pumpDump.pumpStrength);
+  console.log("Dump Strength:", pumpDump.dumpStrength);
+}
       <tr
         key={s.symbol}
         className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
