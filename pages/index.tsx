@@ -167,6 +167,10 @@ const toggleFavorite = (symbol: string) => {
   }));
 };
 
+  const filteredSignals = signals.filter((s) =>
+  s.symbol.toLowerCase().includes(search.toLowerCase()) &&
+  (!showOnlyFavorites || favorites.has(s.symbol))
+);
   
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
@@ -174,10 +178,7 @@ const filteredAndSortedSignals = sortedSignals.filter((s) => {
   return s[trendFilter];
 });
   
-  const filteredSignals = signals.filter((s) =>
-  s.symbol.toLowerCase().includes(search.toLowerCase()) &&
-  (!showOnlyFavorites || favorites.has(s.symbol))
-);
+  
 
   const sortedSignals = [...filteredSignals].sort((a, b) => {
   const valA = a[sortField];
