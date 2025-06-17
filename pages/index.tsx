@@ -254,8 +254,6 @@ const lastEMA200 = ema200.at(-1)!;
 // Main trend from candle vs EMA200 (long-term trend)
 const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
 
-console.log('Short-term trend (EMA14/70):', trend);
-console.log('Main trend (Close vs EMA200):', mainTrend);
         
 
 
@@ -603,26 +601,9 @@ if (rsiDivergence.ascendingBelowEMA200) {
   bearishBreakoutCount,
   rsiDivergence,
   mainTrend,
-  trend,
   breakout,
   bullishBreakout,
   bearishBreakout,
-  divergence,
-  divergenceType,
-  ema14Bounce,
-  ema70Bounce,
-  ema200Bounce,
-  nearOrAtEMA70Divergence,
-  touchedEMA70Today,
-  touchedEMA200Today,
-  inferredLevel: level!,
-  inferredLevelType: type!,
-  inferredLevelWithinRange: level! <= todaysHighestHigh! && level! >= todaysLowestLow!,
-  differenceVsEMA70,
-  divergenceFromLevel,
-  divergenceFromLevelType,
-  lastOpen,
-  lastClose,
   bearishReversal,
   bullishReversal,
   bearishCollapse,
