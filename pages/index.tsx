@@ -695,8 +695,8 @@ if (rsiDivergence.ascendingBelowEMA200) {
   lastClose,
   bearishReversal,
   bullishReversal,
-  bearishSpike,
   bearishCollapse,
+  bullishSpike,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
