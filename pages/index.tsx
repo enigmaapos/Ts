@@ -60,12 +60,12 @@ function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
   return close >= ema200 ? 'bullish' : 'bearish';
 }
 
-function detectRSI14Pump(rsi14: number[]): {
+function detectRSI14Pump(rsi14: number[] | undefined): {
   pumpValue: number;
   lowestIndex: number;
   highestIndex: number;
 } | null {
-  if (rsi14.length < 2) return null;
+  if (!rsi14 || rsi14.length < 2) return null;
 
   let lowestIndex = 0;
   let highestIndex = 0;
@@ -560,7 +560,9 @@ const detectBearishCollapse = (
         
       const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
-         
+
+
+        const rsiPump = s.rsi14 ? detectRSI14Pump(s.rsi14) : null;
 
         
         return {
@@ -581,6 +583,7 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bullishReversal,
   bearishCollapse,
   bullishSpike,
+          rsiPump,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
