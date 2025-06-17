@@ -60,8 +60,9 @@ function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
   return close >= ema200 ? 'bullish' : 'bearish';
 }
 
-function detectRSI14Pump(rsi14: number[] | undefined): {
+function detectRSI14PumpDump(rsi14: number[] | undefined): {
   pumpValue: number;
+  dumpValue: number;
   lowestIndex: number;
   highestIndex: number;
 } | null {
@@ -73,7 +74,6 @@ function detectRSI14Pump(rsi14: number[] | undefined): {
 
   for (let i = 1; i < rsi14.length; i++) {
     if (rsi14[i] < rsi14[lowestIndex]) {
-      // New lower RSI found
       lowestIndex = i;
     }
 
@@ -84,10 +84,15 @@ function detectRSI14Pump(rsi14: number[] | undefined): {
     }
   }
 
-  if (maxPump <= 0) return null;
+  // Dump = drop from peak to most recent
+  const dumpValue =
+    highestIndex > 0 && highestIndex < rsi14.length - 1
+      ? rsi14[highestIndex] - rsi14[rsi14.length - 1]
+      : 0;
 
   return {
     pumpValue: maxPump,
+    dumpValue,
     lowestIndex,
     highestIndex
   };
@@ -779,13 +784,14 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
       <th className="px-1 py-0.5 text-center">RSI Pump</th>
+      <th className="px-1 py-0.5 text-center">RSI Dump</th>
     </tr>
   </thead>
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const rsiPump = detectRSI14Pump(s.rsi14); // Compute RSI pump here
-console.log(rsiPump); 
+    const rsiPumpDump = detectRSI14PumpDump(s.rsi14); // Compute RSI pump here
+console.log(rsiPumpDump); 
     return (
       <tr
         key={s.symbol}
@@ -830,14 +836,11 @@ console.log(rsiPump);
         <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
           {s.bullishSpike ? 'Yes' : 'No'}
         </td>
-        <td
-  className={`px-1 py-0.5 text-center ${
-    rsiPump?.pumpValue > 30
-      ? 'bg-green-900 text-green-300'
-      : 'bg-gray-800 text-gray-500'
-  }`}
->
-  {rsiPump?.pumpValue > 30 ? 'Yes' : 'No'}
+<td>
+  {rsiPumpDump && rsiPumpDump.pumpValue > 30 ? "Yes" : "No"}
+</td>
+<td>
+  {rsiPumpDump && rsiPumpDump.dumpValue > 30 ? "Yes" : "No"}
 </td>
       </tr>
     );
