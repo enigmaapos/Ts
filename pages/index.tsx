@@ -593,7 +593,6 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bullishReversal,
   bearishCollapse,
   bullishSpike,
-          pumpDump,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
