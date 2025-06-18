@@ -277,7 +277,19 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
 
-        const detectBullishToBearish = (
+const isDescendingRSI = (rsi: number[], window = 3): boolean => {
+  const len = rsi.length;
+  if (len < window) return false;
+
+  for (let i = len - window; i < len - 1; i++) {
+    if (rsi[i] <= rsi[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -332,7 +344,10 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
 
       const descendingCloseBelowEMA = lastClose < lastEMA14;
 
-      if (isDescendingHigh && fallingRSI && lowerThanCrossover && descendingCloseBelowEMA) {
+      // ✅ New: Check descending RSI over last 3 candles
+      const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
+
+      if (isDescendingHigh && fallingRSI && lowerThanCrossover && descendingCloseBelowEMA && descendingCurrentRSI) {
         return true;
       }
     }
@@ -340,8 +355,20 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
 
   return false;
 };
+        
+const isAscendingRSI = (rsi: number[], window = 3): boolean => {
+  const len = rsi.length;
+  if (len < window) return false;
 
-const detectBearishToBullish = (
+  for (let i = len - window; i < len - 1; i++) {
+    if (rsi[i] >= rsi[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+       const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -382,7 +409,7 @@ const detectBearishToBullish = (
     const risingRSI = rsi14[i] > crossoverRSI;
     const higherThanCrossover = closes[i] > crossoverHigh;
 
-const currentLow = lows[i];
+    const currentLow = lows[i];
     const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
     if (nearOrAboveEMA) {
@@ -396,14 +423,17 @@ const currentLow = lows[i];
 
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
 
-      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
+      // ✅ Check RSI is currently ascending
+      const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
+
+      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA && ascendingCurrentRSI) {
         return true;
       }
     }
   }
 
   return false;
-};
+}; 
 
     
 // Usage
