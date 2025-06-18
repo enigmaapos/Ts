@@ -474,8 +474,7 @@ if (bearishReversal) {
 }      
 
 
-        
-        const detectBullishSpike = (
+      const detectBullishSpike = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
@@ -528,16 +527,42 @@ if (bearishReversal) {
     }
   }
 
-  // ✅ Check current RSI is ascending
+  // 🧪 Final candle checks
+  const i = len - 1;
+  const currentLow = lows[i];
+  const currentHigh = highs[i];
+  const close = closes[i];
+  const rsi = rsi14[i];
+  const ema14Value = ema14[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
+
+  // ❌ Invalidate if the most recent candle touches EMA70
+  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
+  if (touchedEMA70) return false;
+
+  // ✅ Spike conditions
+  const aboveEMA70 = close > ema70Value;
+  const aboveEMA200 = close > ema200Value;
+  const aboveEMA14 = close > ema14Value;
+  const ascendingLow = currentLow > lowestLowAfterCrossover;
+  const risingRSI = rsi > crossoverRSI;
+  const higherThanCrossover = close > crossoverLow;
+
+  // ✅ Check ascending current RSI
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
 
-  // 🟢 Example final condition including ascending RSI
-  if (closes[len - 1] > ema14[len - 1] && rsi14[len - 1] > crossoverRSI && ascendingCurrentRSI) {
-    return true;
-  }
-
-  return false;
-};
+  return (
+    aboveEMA70 &&
+    aboveEMA200 &&
+    aboveEMA14 &&
+    ascendingLow &&
+    risingRSI &&
+    higherThanCrossover &&
+    ascendingCurrentRSI
+  );
+};  
+        
 
 
 
@@ -608,7 +633,7 @@ if (bearishReversal) {
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return false;
 
-  // ✅ Spike conditions
+  // ✅ Collapse conditions
   const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
   const belowEMA14 = close < ema14Value;
