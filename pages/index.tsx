@@ -181,6 +181,10 @@ const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'beari
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
 const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === true).length;
 
+const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
+const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
+  
+  
   useEffect(() => {
     let isMounted = true;
 
@@ -268,6 +272,139 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
         const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
+
+        const detectBullishToBearish = (
+  ema14: number[],
+  ema70: number[],
+  rsi14: number[],
+  lows: number[],
+  highs: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
+): boolean => {
+  const len = closes.length;
+  if (len < 5) return false;
+
+  if (!bullishBreakout && !bearishBreakout) return false;
+
+  // Confirm bullish trend
+  if (ema14[len - 1] <= ema70[len - 1]) return false;
+
+  // Find crossover: EMA14 crossing above EMA70
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  const crossoverLow = lows[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+
+  let lastHigh: number | null = null;
+
+  for (let i = crossoverIndex + 1; i < len - 1; i++) {
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const underEMA = closes[i] > ema70[i];
+    const nearOrUnderEMA = nearEMA || underEMA;
+
+    const fallingRSI = rsi14[i] < crossoverRSI;
+    const lowerThanCrossover = closes[i] < crossoverLow;
+
+    const currentHigh = highs[i];
+    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
+
+    if (nearOrUnderEMA) {
+      if (lastHigh === null || currentHigh < lastHigh) {
+        lastHigh = currentHigh;
+      }
+
+      // ✅ Final confirmation: most recent candle closes above EMA14
+      const lastClose = closes[len - 1];
+      const lastEMA14 = ema14[len - 1];
+
+      const descendingCloseBelowEMA = lastClose < lastEMA14;
+
+      if (isDescendingHigh && fallingRSI && lowerThanCrossover && descendingCloseBelowEMA) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+const detectBearishToBullish = (
+  ema14: number[],
+  ema70: number[],
+  rsi14: number[],
+  lows: number[],
+  highs: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
+): boolean => {
+  const len = closes.length;
+  if (len < 5) return false;
+
+  if (!bullishBreakout && !bearishBreakout) return false;
+
+  // Confirm bearish trend
+  if (ema14[len - 1] >= ema70[len - 1]) return false;
+
+  // Find crossover: EMA14 crossing below EMA70
+  let crossoverIndex = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
+      crossoverIndex = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex === -1) return false;
+
+  const crossoverHigh = highs[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+
+  let lastLow: number | null = null;
+
+  for (let i = crossoverIndex + 1; i < len - 1; i++) {
+    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
+    const aboveEMA = closes[i] < ema70[i];
+    const nearOrAboveEMA = nearEMA || aboveEMA;
+
+    const risingRSI = rsi14[i] > crossoverRSI;
+    const higherThanCrossover = closes[i] > crossoverHigh;
+
+const currentLow = lows[i];
+    const isAscendingLow = lastLow !== null && currentLow > lastLow;
+
+    if (nearOrAboveEMA) {
+      if (lastLow === null || currentLow > lastLow) {
+        lastLow = currentLow;
+      }
+
+      // ✅ Final confirmation: most recent candle closes above EMA14
+      const lastClose = closes[len - 1];
+      const lastEMA14 = ema14[len - 1];
+
+      const ascendingCloseAboveEMA = lastClose > lastEMA14;
+
+      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+    
+// Usage
+const bullishReversal = detectBullishToBearish(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout); // from bullish trend to bearish trend
+const bearishReversal = detectBearishToBullish(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout); // from bearish trend to bullish trend
   
         
         
@@ -281,6 +418,8 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
   breakout,
   bullishBreakout,
   bearishBreakout,
+  bullishReversalCount,
+  bearishReversalCount,        
           rsi14,
 };
       } catch (err) {
@@ -387,7 +526,9 @@ if (loading) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">
-        {[    
+        {[
+             { label: 'Bullish Reversal', key: 'bullishReversal' },
+    { label: 'Bearish Reversal', key: 'bearishReversal' },
     { label: 'Bullish Breakout', key: 'bullishBreakout' },
     { label: 'Bearish Breakout', key: 'bearishBreakout' },
   ].map(({ label, key }) => (
@@ -428,6 +569,14 @@ if (loading) {
             <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
           </div>
           <div className="flex items-center gap-1">
+            <span>Bullish Reversal:</span>
+            <span className="text-green-300 font-semibold">{bullishReversalCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bearish Reversal:</span>
+            <span className="text-red-300 font-semibold">{bearishReversalCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
             <span>Bullish Breakout:</span>
             <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
           </div>
@@ -455,6 +604,8 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Bull BO</th>
       <th className="px-1 py-0.5 text-center">Bear BO</th>
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
+      <th className="px-1 py-0.5 text-center">Bear Rev</th>
+      <th className="px-1 py-0.5 text-center">Bull Rev</th>
       <th
   onClick={() => {
     setSortField('pumpStrength');
@@ -515,6 +666,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            {s.bearishReversal ? 'Yes' : 'No'}
+          </td>
+          <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            {s.bullishReversal ? 'Yes' : 'No'}
+          </td>
 <td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
           {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
