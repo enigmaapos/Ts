@@ -133,16 +133,15 @@ const toggleFavorite = (symbol: string) => {
   });
 };
 
-  const filteredSignals = signals.filter((s) =>
+const filteredSignals = signals.filter((s) =>
   s.symbol.toLowerCase().includes(search.toLowerCase()) &&
   (!showOnlyFavorites || favorites.has(s.symbol))
 );
 
-  const sortedSignals = [...filteredSignals].sort((a, b) => {
+const sortedSignals = [...filteredSignals].sort((a, b) => {
   let valA: any = a[sortField];
   let valB: any = b[sortField];
 
-  // Handle derived values for pump/dump strength
   if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
     const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
     const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
@@ -151,17 +150,20 @@ const toggleFavorite = (symbol: string) => {
     valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
   }
 
-  // Sort strings
   if (typeof valA === 'string' && typeof valB === 'string') {
     return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
   }
 
-  // Sort numbers
   if (typeof valA === 'number' && typeof valB === 'number') {
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
+    return sortOrder === 'asc' ? valA - valB : b - a;
   }
 
-  return 0; // fallback for undefined or mismatched types
+  return 0;
+});
+
+const filteredAndSortedSignals = sortedSignals.filter((s) => {
+  if (!trendFilter) return true;
+  return s[trendFilter];
 });
   
   
@@ -509,12 +511,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-           <td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
-        {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-      </td>
-      <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
-        {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
-      </td>
+              <td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
+          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
+        </td>
+        <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
+          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
+        </td>
       </tr>
     );
   })}
