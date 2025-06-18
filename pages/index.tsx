@@ -403,10 +403,41 @@ const currentLow = lows[i];
 
     
 // Usage
-const bullishReversal = detectBullishToBearish(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout); // from bullish trend to bearish trend
-const bearishReversal = detectBearishToBullish(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout); // from bearish trend to bullish trend
-  
-        
+  const bullishReversal = detectBullishToBearish(
+  ema14,
+  ema70,
+  rsi14,
+  lows,
+  highs,
+  closes,
+  bullishBreakout,
+  bearishBreakout
+);
+
+if (bullishReversal) {
+  console.log(`[Bullish Reversal Detected]`);
+  console.log(`→ EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
+  console.log(`→ RSI14: ${rsi14.at(-1)}`);
+  console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
+}
+
+const bearishReversal = detectBearishToBullish(
+  ema14,
+  ema70,
+  rsi14,
+  highs,
+  lows,
+  closes,
+  bullishBreakout,
+  bearishBreakout
+);
+
+if (bearishReversal) {
+  console.log(`[Bearish Reversal Detected]`);
+  console.log(`→ EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
+  console.log(`→ RSI14: ${rsi14.at(-1)}`);
+  console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
+}      
         
         return {
   symbol,
