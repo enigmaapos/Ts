@@ -473,17 +473,7 @@ if (bearishReversal) {
   console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
 }      
 
-const isAscendingRSI = (rsi: number[], window = 3): boolean => {
-  const len = rsi.length;
-  if (len < window) return false;
 
-  for (let i = len - window; i < len - 1; i++) {
-    if (rsi[i] >= rsi[i + 1]) {
-      return false;
-    }
-  }
-  return true;
-};
         
         const detectBullishSpike = (
   ema14: number[],
@@ -549,17 +539,7 @@ const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   return false;
 };
 
-const isDescendingRSI = (rsi: number[], window = 3): boolean => {
-  const len = rsi.length;
-  if (len < window) return false;
 
-  for (let i = len - window; i < len - 1; i++) {
-    if (rsi[i] <= rsi[i + 1]) {
-      return false;
-    }
-  }
-  return true;
-};
 
         const detectBearishCollapse = (
   ema14: number[],
