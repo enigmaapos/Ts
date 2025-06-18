@@ -69,24 +69,23 @@ function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
 
   const recentRSI = rsi.slice(-lookback);
-  let recentHigh = -Infinity;
-  let recentLow = Infinity;
+  let pumpStrength = 0;
+  let dumpStrength = 0;
 
-  for (const value of recentRSI) {
-    if (!isNaN(value)) {
-      if (value > recentHigh) recentHigh = value;
-      if (value < recentLow) recentLow = value;
-    }
+  for (let i = 1; i < recentRSI.length; i++) {
+    const change = recentRSI[i] - recentRSI[i - 1];
+    if (change > 0) pumpStrength += change;
+    else dumpStrength += Math.abs(change);
   }
 
-  const pumpStrength = recentHigh - recentLow;
-  const dumpStrength = recentLow - recentHigh;
+  const recentHigh = Math.max(...recentRSI);
+  const recentLow = Math.min(...recentRSI);
 
   return {
     recentHigh,
     recentLow,
-    pumpStrength,
-    dumpStrength: Math.abs(dumpStrength)
+    pumpStrength: +pumpStrength.toFixed(2),
+    dumpStrength: +dumpStrength.toFixed(2),
   };
 }
 
@@ -788,7 +787,7 @@ if (loading) {
       <th
   onClick={() => {
     setSortField('pumpStrength');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setSortOrder((prev) => (sortField === 'pumpStrength' && prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
@@ -798,7 +797,7 @@ if (loading) {
 <th
   onClick={() => {
     setSortField('dumpStrength');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setSortOrder((prev) => (sortField === 'dumpStrength' && prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
@@ -809,7 +808,14 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+    const processedData = rawData.map((s) => {
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+  return {
+    ...s,
+    pumpStrength: pumpDump?.pumpStrength ?? null,
+    dumpStrength: pumpDump?.dumpStrength ?? null,
+  };
+});
 
     return (
       <tr
@@ -857,12 +863,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bullishSpike ? 'Yes' : 'No'}
           </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 25 ? 'text-green-400' : 'text-white'}`}>
-          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.dumpStrength > 25 ? 'text-red-400' : 'text-white'}`}>
-          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
+            <td className={`px-1 py-0.5 text-center ${s.pumpStrength > 25 ? 'text-green-400' : 'text-white'}`}>
+      {s.pumpStrength?.toFixed(2) ?? 'N/A'}
+    </td>
+    <td className={`px-1 py-0.5 text-center ${s.dumpStrength > 25 ? 'text-red-400' : 'text-white'}`}>
+      {s.dumpStrength?.toFixed(2) ?? 'N/A'}
+    </td>
       </tr>
     );
   })}
