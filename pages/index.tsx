@@ -183,6 +183,10 @@ const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === t
 
 const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
 const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
+
+const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
+const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
+
   
   
   useEffect(() => {
@@ -438,6 +442,181 @@ if (bearishReversal) {
   console.log(`→ RSI14: ${rsi14.at(-1)}`);
   console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
 }      
+
+        const detectBullishSpike = (
+  ema14: number[],
+  ema70: number[],
+  ema200: number[],
+  rsi14: number[],
+  lows: number[],
+  highs: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
+): boolean => {
+  const breakout = bullishBreakout || bearishBreakout;
+  if (!breakout || !bullishBreakout) return false;
+
+  const len = closes.length;
+  if (len < 3) return false;
+
+  if (ema14[len - 1] <= ema70[len - 1]) return false;
+
+  // 🔁 Detect EMA14 > EMA70 crossover
+  let crossoverIndex70 = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
+      crossoverIndex70 = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex70 === -1) return false;
+
+  // 🔁 Detect EMA14 > EMA200 crossover
+  let crossoverIndex200 = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] <= ema200[i] && ema14[i + 1] > ema200[i + 1]) {
+      crossoverIndex200 = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex200 === -1) return false;
+
+  // ✅ Choose the later crossover as starting point
+  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
+  const crossoverLow = lows[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+  let lowestLowAfterCrossover = crossoverLow;
+
+  // 🔍 Track lowest low after crossover
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const currentLow = lows[i];
+    if (currentLow < lowestLowAfterCrossover) {
+      lowestLowAfterCrossover = currentLow;
+    }
+  }
+
+  // 🧪 Final candle checks
+  const i = len - 1;
+  const currentLow = lows[i];
+  const currentHigh = highs[i];
+  const close = closes[i];
+  const rsi = rsi14[i];
+  const ema14Value = ema14[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
+
+  // ❌ Invalidate if the most recent candle touches EMA70
+  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
+  if (touchedEMA70) return false;
+
+  // ✅ Spike conditions
+  const aboveEMA70 = close > ema70Value;
+  const aboveEMA200 = close > ema200Value;
+  const aboveEMA14 = close > ema14Value; // ✅ New condition
+  const ascendingLow = currentLow > lowestLowAfterCrossover;
+  const risingRSI = rsi > crossoverRSI;
+  const higherThanCrossover = close > crossoverLow;
+
+  return (
+    aboveEMA70 &&
+    aboveEMA200 &&
+    aboveEMA14 &&
+    ascendingLow &&
+    risingRSI &&
+    higherThanCrossover
+  );
+};
+
+const detectBearishCollapse = (
+  ema14: number[],
+  ema70: number[],
+  ema200: number[],
+  rsi14: number[],
+  lows: number[],
+  highs: number[],
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
+): boolean => {
+  const breakout = bullishBreakout || bearishBreakout;
+  if (!breakout || !bearishBreakout) return false;
+
+  const len = closes.length;
+  if (len < 3) return false;
+
+  if (ema14[len - 1] >= ema70[len - 1]) return false;
+
+  // 🔁 Detect EMA14 < EMA70 crossover
+  let crossoverIndex70 = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
+      crossoverIndex70 = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex70 === -1) return false;
+
+  // 🔁 Detect EMA14 < EMA200 crossover
+  let crossoverIndex200 = -1;
+  for (let i = len - 2; i >= 1; i--) {
+    if (ema14[i] >= ema200[i] && ema14[i + 1] < ema200[i + 1]) {
+      crossoverIndex200 = i + 1;
+      break;
+    }
+  }
+  if (crossoverIndex200 === -1) return false;
+
+  // ✅ Choose the later crossover as starting point
+  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
+  const crossoverHigh = highs[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+  let highestHighAfterCrossover = crossoverHigh;
+
+  // 🔍 Track highest high after crossover
+  for (let i = crossoverIndex + 1; i < len; i++) {
+    const currentHigh = highs[i];
+    if (currentHigh > highestHighAfterCrossover) {
+      highestHighAfterCrossover = currentHigh;
+    }
+  }
+
+  // 🧪 Final candle checks
+  const i = len - 1;
+  const currentLow = lows[i];
+  const currentHigh = highs[i];
+  const close = closes[i];
+  const rsi = rsi14[i];
+  const ema14Value = ema14[i];
+  const ema70Value = ema70[i];
+  const ema200Value = ema200[i];
+
+  // ❌ Invalidate if the most recent candle touches EMA70
+  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
+  if (touchedEMA70) return false;
+
+  // ✅ Spike conditions
+  const belowEMA70 = close < ema70Value;
+  const belowEMA200 = close < ema200Value;
+  const belowEMA14 = close < ema14Value; // ✅ New condition
+  const descendingHigh = currentHigh < highestHighAfterCrossover;
+  const fallingRSI = rsi < crossoverRSI;
+  const lowerThanCrossover = close < crossoverHigh;
+
+  return (
+    belowEMA70 &&
+    belowEMA200 &&
+    belowEMA14 &&
+    descendingHigh &&
+    fallingRSI &&
+    lowerThanCrossover
+  );
+};
+
+        
+      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
+const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
+        
         
         return {
   symbol,
@@ -452,7 +631,9 @@ if (bearishReversal) {
   bullishReversalCount,
   bearishReversalCount,
   bullishReversal,
-  bearishReversal,        
+  bearishReversal,
+   bullishSpike,
+   bearishCollapse,       
           rsi14,
 };
       } catch (err) {
@@ -564,6 +745,8 @@ if (loading) {
     { label: 'Bearish Reversal', key: 'bearishReversal' },
     { label: 'Bullish Breakout', key: 'bullishBreakout' },
     { label: 'Bearish Breakout', key: 'bearishBreakout' },
+             { label: 'Bullish Spike', key: 'bullishSpike' },
+    { label: 'Bearish Collapse', key: 'bearishCollapse' },
   ].map(({ label, key }) => (
     <button
       key={key}
@@ -603,11 +786,11 @@ if (loading) {
           </div>
           <div className="flex items-center gap-1">
             <span>Bullish Reversal:</span>
-            <span className="text-green-300 font-semibold">{bullishReversalCount}</span>
+            <span className="text-purple-300 font-semibold">{bullishReversalCount}</span>
           </div>
           <div className="flex items-center gap-1">
             <span>Bearish Reversal:</span>
-            <span className="text-red-300 font-semibold">{bearishReversalCount}</span>
+            <span className="text-purple-300 font-semibold">{bearishReversalCount}</span>
           </div>
           <div className="flex items-center gap-1">
             <span>Bullish Breakout:</span>
@@ -619,6 +802,14 @@ if (loading) {
           </div>
         </div>
       </div>
+          <div className="flex items-center gap-1">
+            <span>Bullish Spike:</span>
+            <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bearish Collapse:</span>
+            <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
+          </div>
 
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
         <table className="w-full text-[11px] border-collapse">
@@ -658,6 +849,9 @@ if (loading) {
 >
   RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
+      <th className="px-1 py-0.5 text-center">Collapse</th>
+      <th className="px-1 py-0.5 text-center">Spike</th>
+      
     </tr>
   </thead>
   <tbody>
@@ -711,6 +905,12 @@ if (loading) {
         <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
           {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            {s.bearishCollapse ? 'Yes' : 'No'}
+          </td>
+          <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            {s.bullishSpike ? 'Yes' : 'No'}
+          </td>
       </tr>
     );
   })}
