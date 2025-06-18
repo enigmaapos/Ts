@@ -150,12 +150,15 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
     valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
   }
 
+  if (valA == null) return 1;
+  if (valB == null) return -1;
+
   if (typeof valA === 'string' && typeof valB === 'string') {
     return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
   }
 
   if (typeof valA === 'number' && typeof valB === 'number') {
-    return sortOrder === 'asc' ? valA - valB : b - a;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
   }
 
   return 0;
