@@ -69,23 +69,24 @@ function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
 
   const recentRSI = rsi.slice(-lookback);
-  let pumpStrength = 0;
-  let dumpStrength = 0;
+  let recentHigh = -Infinity;
+  let recentLow = Infinity;
 
-  for (let i = 1; i < recentRSI.length; i++) {
-    const change = recentRSI[i] - recentRSI[i - 1];
-    if (change > 0) pumpStrength += change;
-    else dumpStrength += Math.abs(change);
+  for (const value of recentRSI) {
+    if (!isNaN(value)) {
+      if (value > recentHigh) recentHigh = value;
+      if (value < recentLow) recentLow = value;
+    }
   }
 
-  const recentHigh = Math.max(...recentRSI);
-  const recentLow = Math.min(...recentRSI);
+  const pumpStrength = recentHigh - recentLow;
+  const dumpStrength = recentLow - recentHigh;
 
   return {
     recentHigh,
     recentLow,
-    pumpStrength: +pumpStrength.toFixed(2),
-    dumpStrength: +dumpStrength.toFixed(2),
+    pumpStrength,
+    dumpStrength: Math.abs(dumpStrength)
   };
 }
 
@@ -160,10 +161,6 @@ const toggleFavorite = (symbol: string) => {
     // ✅ Declare counts here (inside the component, after filteredSignals)
 const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
 const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
-const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
-const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
-const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
 
 // ✅ Add these to count 'yes' (true) for breakouts
@@ -257,335 +254,19 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
         const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
-
-const detectBullishToBearish = (
-  ema14: number[],
-  ema70: number[],
-  rsi14: number[],
-  lows: number[],
-  highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
-): boolean => {
-  const len = closes.length;
-  if (len < 5) return false;
-
-  if (!bullishBreakout && !bearishBreakout) return false;
-
-  // Confirm bullish trend
-  if (ema14[len - 1] <= ema70[len - 1]) return false;
-
-  // Find crossover: EMA14 crossing above EMA70
-  let crossoverIndex = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
-      crossoverIndex = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex === -1) return false;
-
-  const crossoverLow = lows[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
-
-  let lastHigh: number | null = null;
-
-  for (let i = crossoverIndex + 1; i < len - 1; i++) {
-    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-    const underEMA = closes[i] > ema70[i];
-    const nearOrUnderEMA = nearEMA || underEMA;
-
-    const fallingRSI = rsi14[i] < crossoverRSI;
-    const lowerThanCrossover = closes[i] < crossoverLow;
-
-    const currentHigh = highs[i];
-    const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
-
-    if (nearOrUnderEMA) {
-      if (lastHigh === null || currentHigh < lastHigh) {
-        lastHigh = currentHigh;
-      }
-
-      // ✅ Final confirmation: most recent candle closes above EMA14
-      const lastClose = closes[len - 1];
-      const lastEMA14 = ema14[len - 1];
-
-      const descendingCloseBelowEMA = lastClose < lastEMA14;
-
-      if (isDescendingHigh && fallingRSI && lowerThanCrossover && descendingCloseBelowEMA) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-};
-
-const detectBearishToBullish = (
-  ema14: number[],
-  ema70: number[],
-  rsi14: number[],
-  lows: number[],
-  highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
-): boolean => {
-  const len = closes.length;
-  if (len < 5) return false;
-
-  if (!bullishBreakout && !bearishBreakout) return false;
-
-  // Confirm bearish trend
-  if (ema14[len - 1] >= ema70[len - 1]) return false;
-
-  // Find crossover: EMA14 crossing below EMA70
-  let crossoverIndex = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
-      crossoverIndex = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex === -1) return false;
-
-  const crossoverHigh = highs[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
-
-  let lastLow: number | null = null;
-
-  for (let i = crossoverIndex + 1; i < len - 1; i++) {
-    const nearEMA = highs[i] >= ema70[i] && lows[i] <= ema70[i];
-    const aboveEMA = closes[i] < ema70[i];
-    const nearOrAboveEMA = nearEMA || aboveEMA;
-
-    const risingRSI = rsi14[i] > crossoverRSI;
-    const higherThanCrossover = closes[i] > crossoverHigh;
-
-const currentLow = lows[i];
-    const isAscendingLow = lastLow !== null && currentLow > lastLow;
-
-    if (nearOrAboveEMA) {
-      if (lastLow === null || currentLow > lastLow) {
-        lastLow = currentLow;
-      }
-
-      // ✅ Final confirmation: most recent candle closes above EMA14
-      const lastClose = closes[len - 1];
-      const lastEMA14 = ema14[len - 1];
-
-      const ascendingCloseAboveEMA = lastClose > lastEMA14;
-
-      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-};
-
-    
-// Usage
-const bullishReversal = detectBullishToBearish(ema14, ema70, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout); // from bullish trend to bearish trend
-const bearishReversal = detectBearishToBullish(ema14, ema70, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout); // from bearish trend to bullish trend 
-
-const detectBullishSpike = (
-  ema14: number[],
-  ema70: number[],
-  ema200: number[],
-  rsi14: number[],
-  lows: number[],
-  highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
-): boolean => {
-  const breakout = bullishBreakout || bearishBreakout;
-  if (!breakout || !bullishBreakout) return false;
-
-  const len = closes.length;
-  if (len < 3) return false;
-
-  if (ema14[len - 1] <= ema70[len - 1]) return false;
-
-  // 🔁 Detect EMA14 > EMA70 crossover
-  let crossoverIndex70 = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
-      crossoverIndex70 = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex70 === -1) return false;
-
-  // 🔁 Detect EMA14 > EMA200 crossover
-  let crossoverIndex200 = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] <= ema200[i] && ema14[i + 1] > ema200[i + 1]) {
-      crossoverIndex200 = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex200 === -1) return false;
-
-  // ✅ Choose the later crossover as starting point
-  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
-  const crossoverLow = lows[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
-  let lowestLowAfterCrossover = crossoverLow;
-
-  // 🔍 Track lowest low after crossover
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentLow = lows[i];
-    if (currentLow < lowestLowAfterCrossover) {
-      lowestLowAfterCrossover = currentLow;
-    }
-  }
-
-  // 🧪 Final candle checks
-  const i = len - 1;
-  const currentLow = lows[i];
-  const currentHigh = highs[i];
-  const close = closes[i];
-  const rsi = rsi14[i];
-  const ema14Value = ema14[i];
-  const ema70Value = ema70[i];
-  const ema200Value = ema200[i];
-
-  // ❌ Invalidate if the most recent candle touches EMA70
-  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
-  if (touchedEMA70) return false;
-
-  // ✅ Spike conditions
-  const aboveEMA70 = close > ema70Value;
-  const aboveEMA200 = close > ema200Value;
-  const aboveEMA14 = close > ema14Value; // ✅ New condition
-  const ascendingLow = currentLow > lowestLowAfterCrossover;
-  const risingRSI = rsi > crossoverRSI;
-  const higherThanCrossover = close > crossoverLow;
-
-  return (
-    aboveEMA70 &&
-    aboveEMA200 &&
-    aboveEMA14 &&
-    ascendingLow &&
-    risingRSI &&
-    higherThanCrossover
-  );
-};
-
-const detectBearishCollapse = (
-  ema14: number[],
-  ema70: number[],
-  ema200: number[],
-  rsi14: number[],
-  lows: number[],
-  highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
-): boolean => {
-  const breakout = bullishBreakout || bearishBreakout;
-  if (!breakout || !bearishBreakout) return false;
-
-  const len = closes.length;
-  if (len < 3) return false;
-
-  if (ema14[len - 1] >= ema70[len - 1]) return false;
-
-  // 🔁 Detect EMA14 < EMA70 crossover
-  let crossoverIndex70 = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
-      crossoverIndex70 = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex70 === -1) return false;
-
-  // 🔁 Detect EMA14 < EMA200 crossover
-  let crossoverIndex200 = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] >= ema200[i] && ema14[i + 1] < ema200[i + 1]) {
-      crossoverIndex200 = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex200 === -1) return false;
-
-  // ✅ Choose the later crossover as starting point
-  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
-  const crossoverHigh = highs[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
-  let highestHighAfterCrossover = crossoverHigh;
-
-  // 🔍 Track highest high after crossover
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentHigh = highs[i];
-    if (currentHigh > highestHighAfterCrossover) {
-      highestHighAfterCrossover = currentHigh;
-    }
-  }
-
-  // 🧪 Final candle checks
-  const i = len - 1;
-  const currentLow = lows[i];
-  const currentHigh = highs[i];
-  const close = closes[i];
-  const rsi = rsi14[i];
-  const ema14Value = ema14[i];
-  const ema70Value = ema70[i];
-  const ema200Value = ema200[i];
-
-  // ❌ Invalidate if the most recent candle touches EMA70
-  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
-  if (touchedEMA70) return false;
-
-  // ✅ Spike conditions
-  const belowEMA70 = close < ema70Value;
-  const belowEMA200 = close < ema200Value;
-  const belowEMA14 = close < ema14Value; // ✅ New condition
-  const descendingHigh = currentHigh < highestHighAfterCrossover;
-  const fallingRSI = rsi < crossoverRSI;
-  const lowerThanCrossover = close < crossoverHigh;
-
-  return (
-    belowEMA70 &&
-    belowEMA200 &&
-    belowEMA14 &&
-    descendingHigh &&
-    fallingRSI &&
-    lowerThanCrossover
-  );
-};
-
-        
-      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
-const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
-
-
+  
         
         
         return {
   symbol,
   bullishMainTrendCount,
   bearishMainTrendCount,
-  bullishReversalCount,
-  bearishReversalCount,
-  bullishSpikeCount,
-  bearishCollapseCount,
   bullishBreakoutCount,
   bearishBreakoutCount,
   mainTrend,
   breakout,
   bullishBreakout,
   bearishBreakout,
-  bearishReversal,
-  bullishReversal,
-  bearishCollapse,
-  bullishSpike,
           rsi14,
 };
       } catch (err) {
@@ -693,10 +374,6 @@ if (loading) {
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">
         {[    
-    { label: 'Bullish Reversal', key: 'bullishReversal' },
-    { label: 'Bearish Reversal', key: 'bearishReversal' },
-    { label: 'Bullish Spike', key: 'bullishSpike' },
-    { label: 'Bearish Collapse', key: 'bearishCollapse' },
     { label: 'Bullish Breakout', key: 'bullishBreakout' },
     { label: 'Bearish Breakout', key: 'bearishBreakout' },
   ].map(({ label, key }) => (
@@ -737,22 +414,6 @@ if (loading) {
             <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
           </div>
           <div className="flex items-center gap-1">
-            <span>Bullish Reversal:</span>
-            <span className="text-green-300 font-semibold">{bullishReversalCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bearish Reversal:</span>
-            <span className="text-red-300 font-semibold">{bearishReversalCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bullish Spike:</span>
-            <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bearish Collapse:</span>
-            <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
             <span>Bullish Breakout:</span>
             <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
           </div>
@@ -780,14 +441,10 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Bull BO</th>
       <th className="px-1 py-0.5 text-center">Bear BO</th>
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
-      <th className="px-1 py-0.5 text-center">Bear Rev</th>
-      <th className="px-1 py-0.5 text-center">Bull Rev</th>
-      <th className="px-1 py-0.5 text-center">Collapse</th>
-      <th className="px-1 py-0.5 text-center">Spike</th>
       <th
   onClick={() => {
     setSortField('pumpStrength');
-    setSortOrder((prev) => (sortField === 'pumpStrength' && prev === 'asc' ? 'desc' : 'asc'));
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
@@ -797,7 +454,7 @@ if (loading) {
 <th
   onClick={() => {
     setSortField('dumpStrength');
-    setSortOrder((prev) => (sortField === 'dumpStrength' && prev === 'asc' ? 'desc' : 'asc'));
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
@@ -808,7 +465,7 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+    const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 
     return (
       <tr
@@ -844,24 +501,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bearishReversal ? 'Yes' : 'No'}
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
+          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bullishReversal ? 'Yes' : 'No'}
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
+          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bearishCollapse ? 'Yes' : 'No'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bullishSpike ? 'Yes' : 'No'}
-          </td>
-            <td className={`px-1 py-0.5 text-center ${s.pumpStrength > 25 ? 'text-green-400' : 'text-white'}`}>
-      {s.pumpStrength?.toFixed(2) ?? 'N/A'}
-    </td>
-    <td className={`px-1 py-0.5 text-center ${s.dumpStrength > 25 ? 'text-red-400' : 'text-white'}`}>
-      {s.dumpStrength?.toFixed(2) ?? 'N/A'}
-    </td>
       </tr>
     );
   })}
