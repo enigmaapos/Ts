@@ -163,8 +163,8 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
   let valB: any = b[sortField];
 
   if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
-    const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
-    const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
+    const pumpDumpA = a.rsi14 ? getRecentRSIDiffWithLegs(a.rsi14, 14) : null;
+    const pumpDumpB = b.rsi14 ? getRecentRSIDiffWithLegs(b.rsi14, 14) : null;
 
     valA = sortField === 'pumpStrength' ? pumpDumpA?.pumpStrength : pumpDumpA?.dumpStrength;
     valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
