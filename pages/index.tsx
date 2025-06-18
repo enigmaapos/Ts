@@ -785,8 +785,25 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Bull Rev</th>
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
-      <th className="px-1 py-0.5 text-center">RSI Pump</th>
-      <th className="px-1 py-0.5 text-center">RSI Dump</th>
+      <th
+  onClick={() => {
+    setSortField('pumpStrength');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  RSI Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+
+<th
+  onClick={() => {
+    setSortField('dumpStrength');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
     </tr>
   </thead>
   <tbody>
@@ -840,10 +857,10 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bullishSpike ? 'Yes' : 'No'}
           </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 25 ? 'text-green-400' : 'text-white'}`}>
           {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
+        <td className={`px-1 py-0.5 text-center ${pumpDump?.dumpStrength > 25 ? 'text-red-400' : 'text-white'}`}>
           {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
         </td>
       </tr>
