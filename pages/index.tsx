@@ -483,7 +483,7 @@ if (loading) {
     return (
       <tr
         key={s.symbol}
-        className={`border-b border-gray-700 transition-all duration-300 hover:bg-yellow-800/20 ${
+        className={`border-b border-gray-700 transition-all duration-300 hover:bg-purple-800/20 ${
           updatedRecently ? 'bg-yellow-900/30' : ''
         }`}
       >
@@ -514,12 +514,27 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-<td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
-          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
-          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
+<td className="text-center">
+  {pumpDump?.pumpStrength > 0 || pumpDump?.dumpStrength > 0 ? (
+    <>
+      {pumpDump?.pumpStrength > 0 && (
+        <span className={pumpDump.pumpStrength > 30 ? 'text-green-400' : 'text-white'}>
+          Pump: {pumpDump.pumpStrength.toFixed(2)}
+        </span>
+      )}
+      {pumpDump?.pumpStrength > 0 && pumpDump?.dumpStrength > 0 && (
+        <span className="mx-1 text-gray-400">|</span>
+      )}
+      {pumpDump?.dumpStrength > 0 && (
+        <span className={pumpDump.dumpStrength > 30 ? 'text-red-400' : 'text-white'}>
+          Dump: {pumpDump.dumpStrength.toFixed(2)}
+        </span>
+      )}
+    </>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>
       </tr>
     );
   })}
