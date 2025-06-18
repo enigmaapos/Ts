@@ -942,12 +942,29 @@ if (loading) {
           <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bullishReversal ? 'Yes' : 'No'}
           </td>
-<td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
-          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
-          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
+<td
+  className={`text-center ${
+    pumpDump?.pumpStrength > 30
+      ? 'text-green-400'
+      : pumpDump?.pumpStrength >= 20 && pumpDump?.pumpStrength <= 25
+      ? 'text-blue-400'
+      : 'text-white'
+  }`}
+>
+  {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
+</td>
+
+<td
+  className={`text-center ${
+    pumpDump?.dumpStrength > 30
+      ? 'text-red-400'
+      : pumpDump?.dumpStrength >= 20 && pumpDump?.dumpStrength <= 25
+      ? 'text-blue-400'
+      : 'text-white'
+  }`}
+>
+  {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
+</td>
         <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bearishCollapse ? 'Yes' : 'No'}
           </td>
