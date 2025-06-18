@@ -946,7 +946,7 @@ if (loading) {
   className={`text-center ${
     pumpDump?.pumpStrength > 30
       ? 'text-green-400'
-      : pumpDump?.pumpStrength >= 20 && pumpDump?.pumpStrength <= 25
+      : pumpDump?.pumpStrength >= 21 && pumpDump?.pumpStrength <= 24
       ? 'text-blue-400'
       : 'text-white'
   }`}
@@ -956,9 +956,9 @@ if (loading) {
 
 <td
   className={`text-center ${
-    pumpDump?.dumpStrength > 30
+    pumpDump?.dumpStrength > 27
       ? 'text-red-400'
-      : pumpDump?.dumpStrength >= 20 && pumpDump?.dumpStrength <= 25
+      : pumpDump?.dumpStrength >= 21 && pumpDump?.dumpStrength <= 24
       ? 'text-blue-400'
       : 'text-white'
   }`}
