@@ -808,14 +808,7 @@ if (loading) {
   <tbody>
   {filteredAndSortedSignals.map((s: any) => {
     const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const processedData = rawData.map((s) => {
   const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-  return {
-    ...s,
-    pumpStrength: pumpDump?.pumpStrength ?? null,
-    dumpStrength: pumpDump?.dumpStrength ?? null,
-  };
-});
 
     return (
       <tr
