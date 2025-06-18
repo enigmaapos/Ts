@@ -483,7 +483,7 @@ if (loading) {
     return (
       <tr
         key={s.symbol}
-        className={`border-b border-gray-700 transition-all duration-300 hover:bg-purple-800/20 ${
+        className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
           updatedRecently ? 'bg-yellow-900/30' : ''
         }`}
       >
@@ -519,7 +519,7 @@ if (loading) {
     <>
       {pumpDump?.pumpStrength > 0 && (
         <span className={pumpDump.pumpStrength > 30 ? 'text-green-400' : 'text-white'}>
-          Pump: {pumpDump.pumpStrength.toFixed(2)}
+          Pump
         </span>
       )}
       {pumpDump?.pumpStrength > 0 && pumpDump?.dumpStrength > 0 && (
@@ -527,7 +527,7 @@ if (loading) {
       )}
       {pumpDump?.dumpStrength > 0 && (
         <span className={pumpDump.dumpStrength > 30 ? 'text-red-400' : 'text-white'}>
-          Dump: {pumpDump.dumpStrength.toFixed(2)}
+          Dump
         </span>
       )}
     </>
