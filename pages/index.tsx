@@ -139,21 +139,29 @@ const toggleFavorite = (symbol: string) => {
 );
 
   const sortedSignals = [...filteredSignals].sort((a, b) => {
-  const valA = a[sortField];
-  const valB = b[sortField];
+  let valA: any = a[sortField];
+  let valB: any = b[sortField];
 
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return sortOrder === 'asc'
-      ? valA.localeCompare(valB)
-      : valB.localeCompare(valA);
+  // Handle derived values for pump/dump strength
+  if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
+    const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
+    const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
+
+    valA = sortField === 'pumpStrength' ? pumpDumpA?.pumpStrength : pumpDumpA?.dumpStrength;
+    valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
   }
 
-  return 0;
-});
+  // Sort strings
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+  }
 
-  const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  if (!trendFilter) return true;
-  return s[trendFilter];
+  // Sort numbers
+  if (typeof valA === 'number' && typeof valB === 'number') {
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
+
+  return 0; // fallback for undefined or mismatched types
 });
   
   
@@ -443,7 +451,7 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
       <th
   onClick={() => {
-    setSortField('rsi14');
+    setSortField('pumpStrength');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
@@ -453,7 +461,7 @@ if (loading) {
 
 <th
   onClick={() => {
-    setSortField('rsi14');
+    setSortField('dumpStrength');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
@@ -501,12 +509,12 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
-          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
-          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
+           <td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
+        {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
+      </td>
+      <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
+        {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
+      </td>
       </tr>
     );
   })}
