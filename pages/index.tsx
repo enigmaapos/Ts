@@ -443,7 +443,7 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
       <th
   onClick={() => {
-    setSortField('pumpStrength');
+    setSortField('rsi14');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
@@ -453,7 +453,7 @@ if (loading) {
 
 <th
   onClick={() => {
-    setSortField('dumpStrength');
+    setSortField('rsi14');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
