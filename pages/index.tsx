@@ -450,7 +450,9 @@ if (bearishReversal) {
   bullishBreakout,
   bearishBreakout,
   bullishReversalCount,
-  bearishReversalCount,        
+  bearishReversalCount,
+  bullishReversal,
+  bearishReversal,        
           rsi14,
 };
       } catch (err) {
