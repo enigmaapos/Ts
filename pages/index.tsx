@@ -514,12 +514,23 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-              <td className={`text-center ${pumpDump?.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
-          {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`text-center ${pumpDump?.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
-          {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
-        </td>
+                 {/* RSI Pump Column */}
+        {pumpDump?.pumpStrength > 0 ? (
+          <td className={`text-center ${pumpDump.pumpStrength > 30 ? 'text-green-400' : 'text-white'}`}>
+            {pumpDump.pumpStrength.toFixed(2)}
+          </td>
+        ) : (
+          <td className="text-center text-gray-500">–</td>
+        )}
+
+        {/* RSI Dump Column */}
+        {pumpDump?.dumpStrength > 0 ? (
+          <td className={`text-center ${pumpDump.dumpStrength > 30 ? 'text-red-400' : 'text-white'}`}>
+            {pumpDump.dumpStrength.toFixed(2)}
+          </td>
+        ) : (
+          <td className="text-center text-gray-500">–</td>
+        )}
       </tr>
     );
   })}
