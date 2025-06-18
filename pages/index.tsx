@@ -100,6 +100,7 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   
 
 
@@ -482,12 +483,14 @@ if (loading) {
 
     return (
       <tr
-        key={s.symbol}
-         title={s.symbol}
-        className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
-          updatedRecently ? 'bg-yellow-900/30' : ''
-        }`}
-      >
+  key={s.symbol}
+  onClick={() => setSelectedSymbol(s.symbol)}
+  className={`cursor-pointer border-b border-gray-700 transition-all duration-300
+    hover:bg-blue-800/20
+    ${updatedRecently ? 'bg-yellow-900/30' : ''}
+    ${selectedSymbol === s.symbol ? 'bg-blue-900/40' : ''}
+  `}
+>
         <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left">
           <div className="flex items-center justify-between">
             <span>{s.symbol}</span>
