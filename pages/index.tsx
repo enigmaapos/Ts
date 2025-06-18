@@ -800,8 +800,6 @@ if (loading) {
             <span>Bearish Breakout:</span>
             <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
           </div>
-        </div>
-      </div>
           <div className="flex items-center gap-1">
             <span>Bullish Spike:</span>
             <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
@@ -810,6 +808,9 @@ if (loading) {
             <span>Bearish Collapse:</span>
             <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
           </div>
+        </div>
+      </div>
+          
 
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
         <table className="w-full text-[11px] border-collapse">
