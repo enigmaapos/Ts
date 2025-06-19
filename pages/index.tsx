@@ -956,77 +956,84 @@ if (loading) {
   </button>
 </div>
           
-    <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">    
-  <div className="flex flex-wrap gap-4">    
-    <div className="flex items-center gap-1">    
-      <span>Bullish Main Trend:</span>    
-      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bearish Main Trend:</span>    
-      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bullish Reversal:</span>    
-      <span className="text-purple-300 font-semibold">{bullishReversalCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bearish Reversal:</span>    
-      <span className="text-purple-300 font-semibold">{bearishReversalCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bullish Breakout:</span>    
-      <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bearish Breakout:</span>    
-      <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bullish Spike:</span>    
-      <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>    
-    </div>    
-    <div className="flex items-center gap-1">    
-      <span>Bearish Collapse:</span>    
-      <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>    
-    </div>  {/* ✅ Signal Counts */}    
-<div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">    <div className="flex items-center gap-1">    
-    <span className="text-green-400 font-semibold">BUY:</span>    
-    <span>{signalCounts.buy}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-red-400 font-semibold">SELL:</span>    
-    <span>{signalCounts.sell}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-blue-400 font-semibold">INDECISION:</span>    
-    <span>{signalCounts.indecision}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-green-300 font-semibold">START BUYING:</span>    
-    <span>{signalCounts.startBuying}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-green-300 font-semibold">CONTINUE BUYING:</span>    
-    <span>{signalCounts.continueBuying}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-red-300 font-semibold">START SELLING:</span>    
-    <span>{signalCounts.startSelling}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-red-300 font-semibold">CONTINUE SELLING:</span>    
-    <span>{signalCounts.continueSelling}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-yellow-300 font-semibold">POSSIBLE REVERSE:</span>    
-    <span>{signalCounts.possibleReverse}</span>    
-  </div>    
-  <div className="flex items-center gap-1">    
-    <span className="text-yellow-500 font-semibold">YESTERDAY'S REVERSE:</span>    
-    <span>{signalCounts.yesterdayReverse}</span>    
-  </div>    
-</div>    
+    <div className="sticky left-0 top-0 z-30 bg-gray-900 border-r border-gray-700 p-4 mb-4 text-white text-sm md:text-base shadow-md">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    {/* 🔷 Trend Overview */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📈 Bull Trend:</span>
+        <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📉 Bear Trend:</span>
+        <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">🔄 Bull Reversal:</span>
+        <span className="text-purple-300 font-bold">{bullishReversalCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">🔃 Bear Reversal:</span>
+        <span className="text-purple-300 font-bold">{bearishReversalCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">🚀 Bull Breakout:</span>
+        <span className="text-yellow-300 font-bold">{bullishBreakoutCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📉 Bear Breakout:</span>
+        <span className="text-yellow-400 font-bold">{bearishBreakoutCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">⚡ Bull Spike:</span>
+        <span className="text-green-300 font-bold">{bullishSpikeCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">💥 Bear Collapse:</span>
+        <span className="text-red-300 font-bold">{bearishCollapseCount}</span>
+      </div>
+    </div>
+
+    {/* ✅ Signal Summary */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-green-400 font-semibold">🟢 BUY:</span>
+        <span>{signalCounts.buy}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-red-400 font-semibold">🔴 SELL:</span>
+        <span>{signalCounts.sell}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-blue-400 font-semibold">🔵 INDECISION:</span>
+        <span>{signalCounts.indecision}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-green-300 font-semibold">🟢 START BUY:</span>
+        <span>{signalCounts.startBuying}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-green-300 font-semibold">🔁 PULLBACK BUY:</span>
+        <span>{signalCounts.continueBuying}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-red-300 font-semibold">🟥 START SELL:</span>
+        <span>{signalCounts.startSelling}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-red-300 font-semibold">🔁 PULLBACK SELL:</span>
+        <span>{signalCounts.continueSelling}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE REVERSE:</span>
+        <span>{signalCounts.possibleReverse}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-yellow-500 font-semibold">🕒 YESTERDAY'S REVERSE:</span>
+        <span>{signalCounts.yesterdayReverse}</span>
+      </div>
+    </div>
   </div>
 </div>
 
