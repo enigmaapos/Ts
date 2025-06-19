@@ -956,11 +956,9 @@ if (loading) {
   </button>
 </div>
           
-     <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">  
-   <div className="flex flex-wrap gap-4">  
-       {/* 🔷 Trend Overview */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <div className="flex items-center gap-2">
+    <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">  
+  <div className="flex flex-wrap gap-4">  
+    <div className="flex items-center gap-1">  
         <span className="text-gray-300">📈 Bull Trend:</span>
         <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
       </div>
@@ -1034,10 +1032,10 @@ if (loading) {
       </div>
     </div>
   </div>
-</div>     
+</div>
+     
           
-      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-        
+      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">  
           <table className="w-full text-[11px] border-collapse">
   <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
     <tr>
