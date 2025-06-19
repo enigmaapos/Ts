@@ -484,21 +484,21 @@ const detectBullishToBearish = (
         lastHigh = currentHigh;
       }
 
-      // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
 
       const descendingCloseBelowEMA = lastClose < lastEMA14;
-
-      // ✅ New: Check descending RSI over last 3 candles
       const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
+
+      const strongRSIDrop = rsi14[len - 1] <= 23; // ✅ New condition
 
       if (
         isDescendingHigh &&
         fallingRSI &&
         lowerThanCrossover &&
         descendingCloseBelowEMA &&
-        descendingCurrentRSI
+        descendingCurrentRSI &&
+        strongRSIDrop // ✅ Final requirement for perfect reversal
       ) {
         return true;
       }
@@ -508,8 +508,6 @@ const detectBullishToBearish = (
   return false;
 };
         
-
-
 const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
@@ -528,7 +526,7 @@ const detectBearishToBullish = (
   // Confirm bearish trend
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
-  // 🛑 New: End early if RSI is descending (trend shift to bullish is weakening)
+  // 🛑 End early if RSI is descending (bullish momentum weakening)
   if (isDescendingRSI(rsi14, 3)) return false;
 
   // Find crossover: EMA14 crossing below EMA70
@@ -562,21 +560,21 @@ const detectBearishToBullish = (
         lastLow = currentLow;
       }
 
-      // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
 
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
-
-      // ✅ Check RSI is currently ascending
       const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
+
+      const strongRSIPump = rsi14[len - 1] >= 23; // ✅ RSI14 pump to 23+
 
       if (
         isAscendingLow &&
         risingRSI &&
         higherThanCrossover &&
         ascendingCloseAboveEMA &&
-        ascendingCurrentRSI
+        ascendingCurrentRSI &&
+        strongRSIPump // ✅ Final condition for perfect reversal
       ) {
         return true;
       }
@@ -585,6 +583,8 @@ const detectBearishToBullish = (
 
   return false;
 };
+
+
     
 // Usage
   const bullishReversal = detectBullishToBearish(
@@ -701,6 +701,7 @@ if (bearishReversal) {
 
   // ✅ Check ascending current RSI
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
+  const weakRSIDrop = rsi14[len - 1] <= 20;
 
   return (
     aboveEMA70 &&
@@ -710,6 +711,7 @@ if (bearishReversal) {
     risingRSI &&
     higherThanCrossover &&
     ascendingCurrentRSI
+    weakRSIDrop
   );
 };  
         
@@ -793,7 +795,8 @@ if (bearishReversal) {
 
   // ✅ Add descending RSI14 check
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
-
+const weakPumpRSI = rsi14[len - 1] <= 20; // ✅ New condition
+  
   return (
     belowEMA70 &&
     belowEMA200 &&
@@ -802,6 +805,7 @@ if (bearishReversal) {
     fallingRSI &&
     lowerThanCrossover &&
     descendingCurrentRSI
+    weakPumpRSI
   );
 };
 
