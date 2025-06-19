@@ -193,7 +193,7 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
     if (trendFilter && !s[trendFilter]) return false;
-    
+    if (signalFilter && getSignal(s) !== signalFilter) return false;
     return true;
   });
   
@@ -214,56 +214,7 @@ const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).leng
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
-    const signalCounts = useMemo(() => {
-  const counts = {
-    buy: 0,
-    sell: 0,
-    indecision: 0,
-    startBuying: 0,
-    continueBuying: 0,
-    startSelling: 0,
-    continueSelling: 0,
-    possibleReverse: 0,
-    yesterdayReverse: 0,
-  };
-
-  signals.forEach((s: any) => {
-    const signal = getSignal(s)?.trim().toUpperCase();
-
-    switch (signal) {
-      case 'BUY':
-        counts.buy++;
-        break;
-      case 'SELL':
-        counts.sell++;
-        break;
-      case 'INDECISION':
-        counts.indecision++;
-        break;
-      case 'START BUYING':
-        counts.startBuying++;
-        break;
-      case 'CONTINUE BUYING':
-        counts.continueBuying++;
-        break;
-      case 'START SELLING':
-        counts.startSelling++;
-        break;
-      case 'CONTINUE SELLING':
-        counts.continueSelling++;
-        break;
-      case 'POSSIBLE REVERSE':
-        counts.possibleReverse++;
-        break;
-      case "YESTERDAY'S TREND REVERSE":
-        counts.yesterdayReverse++;
-        break;
-    }
-  });
-
-  return counts;
-}, [signals]);
-
+    
   
   
   useEffect(() => {
@@ -1055,40 +1006,47 @@ if (loading) {
 
     const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
 
-    let signal = '';
+    function getSignal(s: SignalData) {
+  let signal = '';
 
-const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+  const pump = getRecentRSIDiff(s.rsi14, 14)?.pumpStrength;
+  const dump = getRecentRSIDiff(s.rsi14, 14)?.dumpStrength;
 
-if (
-  (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
-  (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
-) {
-  signal = "YESTERDAY'S TREND REVERSE";
-} else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
-  signal = 'START SELLING';
-} else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
-  signal = 'CONTINUE SELLING';
-} else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
-  signal = 'START BUYING';
-} else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
-  signal = 'CONTINUE BUYING';
-} else if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
-  signal = 'POSSIBLE REVERSE';
-} else if (
-  (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-  s.bearishReversal
-) {
-  signal = 'BUY';
-} else if (
-  (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-  s.bullishReversal
-) {
-  signal = 'SELL';
-} else if (
-  (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
-  (s.bullishReversal || s.bearishReversal)
-) {
-  signal = 'INDECISION';
+  const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+
+  if (
+    (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
+    (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+  ) {
+    signal = "YESTERDAY'S TREND REVERSE";
+  } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
+    signal = 'START SELLING';
+  } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
+    signal = 'CONTINUE SELLING';
+  } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+    signal = 'START BUYING';
+  } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
+    signal = 'CONTINUE BUYING';
+  } else if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
+    signal = 'POSSIBLE REVERSE';
+  } else if (
+    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+    s.bearishReversal
+  ) {
+    signal = 'BUY';
+  } else if (
+    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+    s.bullishReversal
+  ) {
+    signal = 'SELL';
+  } else if (
+    (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
+    (s.bullishReversal || s.bearishReversal)
+  ) {
+    signal = 'INDECISION';
+  }
+
+  return signal; // ✅ THIS LINE IS MANDATORY
 }
 
     return (
