@@ -1024,22 +1024,19 @@ if (loading) {
     </tr>
   </thead>
            <tbody>
-  {filteredAndSortedSignals.map((s: any) => {
-    const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-    const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-    const pump = pumpDump?.pumpStrength;
-    const dump = pumpDump?.dumpStrength;
+{filteredAndSortedSignals.map((s: any) => {
+  const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+  const pump = pumpDump?.pumpStrength;
+  const dump = pumpDump?.dumpStrength;
 
-    const inRange = (val: number | undefined, min: number, max: number) =>
-      val !== undefined && val >= min && val <= max;
+  const inRange = (val: number | undefined, min: number, max: number) =>
+    val !== undefined && val >= min && val <= max;
 
-    const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
+  const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
 
-    
+
   let signal = '';
-
-  const pump = getRecentRSIDiff(s.rsi14, 14)?.pumpStrength;
-  const dump = getRecentRSIDiff(s.rsi14, 14)?.dumpStrength;
 
   const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
 
@@ -1075,8 +1072,6 @@ if (loading) {
     signal = 'INDECISION';
   }
 
-  return signal; // ✅ THIS LINE IS MANDATORY
-}
 
     return (
       <tr
