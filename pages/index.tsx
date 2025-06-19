@@ -944,9 +944,9 @@ if (loading) {
           </td>
 <td
   className={`text-center ${
-    pumpDump?.pumpStrength > 30
+    pumpDump?.pumpStrength > 27
       ? 'text-green-400'
-      : pumpDump?.pumpStrength >= 21 && pumpDump?.pumpStrength <= 24
+      : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 22
       ? 'text-blue-400'
       : 'text-white'
   }`}
@@ -958,7 +958,7 @@ if (loading) {
   className={`text-center ${
     pumpDump?.dumpStrength > 27
       ? 'text-red-400'
-      : pumpDump?.dumpStrength >= 21 && pumpDump?.dumpStrength <= 24
+      : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 22
       ? 'text-blue-400'
       : 'text-white'
   }`}
