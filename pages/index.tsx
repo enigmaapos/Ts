@@ -944,7 +944,9 @@ if (loading) {
           </td>
 <td
   className={`text-center ${
-    pumpDump?.pumpStrength > 27
+    [8, 9, 10, 11].includes(pumpDump?.pumpStrength)
+      ? 'text-yellow-400'
+      : pumpDump?.pumpStrength > 27
       ? 'text-green-400'
       : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 22
       ? 'text-blue-400'
@@ -956,7 +958,9 @@ if (loading) {
 
 <td
   className={`text-center ${
-    pumpDump?.dumpStrength > 27
+    [8, 9, 10, 11].includes(pumpDump?.dumpStrength)
+      ? 'text-yellow-400'
+      : pumpDump?.dumpStrength > 27
       ? 'text-red-400'
       : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 22
       ? 'text-blue-400'
