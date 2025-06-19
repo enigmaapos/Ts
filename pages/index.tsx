@@ -893,7 +893,7 @@ if (loading) {
       </th>
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
-      <th className="px-1 py-0.5 text-center">Signal</th> {/* New column */}
+      <th className="px-1 py-0.5 text-center">Signal</th>
     </tr>
   </thead>
   <tbody>
@@ -912,7 +912,7 @@ if (loading) {
       } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
         signal = 'INDECISION';
       } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
-        signal = 'SELL';
+        signal = 'BUY';
       } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
         signal = 'INDECISION';
       }
@@ -993,6 +993,8 @@ if (loading) {
             className={`px-1 py-0.5 text-center font-semibold ${
               signal === 'SELL'
                 ? 'text-red-400'
+                : signal === 'BUY'
+                ? 'text-green-400'
                 : signal === 'INDECISION'
                 ? 'text-blue-400'
                 : 'text-gray-500'
