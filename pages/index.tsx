@@ -916,110 +916,125 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Signal</th>
     </tr>
   </thead>
-  <tbody>
-    {filteredAndSortedSignals.map((s: any) => {
-      const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-      const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-      const pump = pumpDump?.pumpStrength;
-      const dump = pumpDump?.dumpStrength;
+           <tbody>
+  {filteredAndSortedSignals.map((s: any) => {
+    const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+    const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+    const pump = pumpDump?.pumpStrength;
+    const dump = pumpDump?.dumpStrength;
 
-      const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
-      const isIn19to23 = (val: number | undefined) => val !== undefined && val >= 19 && val <= 23;
+    const inRange = (val: number | undefined, min: number, max: number) =>
+      val !== undefined && val >= min && val <= max;
 
-      let signal = '';
-      if ((isAbove27(pump) || isAbove27(dump)) && s.bearishReversal) {
-        signal = 'BUY';
-      } else if ((isAbove27(pump) || isAbove27(dump)) && s.bullishReversal) {
-        signal = 'SELL';
-      } else if ((isIn19to23(pump) || isIn19to23(dump)) && (s.bearishReversal || s.bullishReversal)) {
-        signal = 'INDECISION';
-      }
+    const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
 
-      return (
-        <tr
-          key={s.symbol}
-          className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
-            updatedRecently ? 'bg-yellow-900/30' : ''
+    let signal = '';
+    if (
+      (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+      s.bearishReversal
+    ) {
+      signal = 'BUY';
+    } else if (
+      (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+      s.bullishReversal
+    ) {
+      signal = 'SELL';
+    } else if (
+      (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
+      (s.bullishReversal || s.bearishReversal)
+    ) {
+      signal = 'INDECISION';
+    }
+
+    return (
+      <tr
+        key={s.symbol}
+        className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
+          updatedRecently ? 'bg-yellow-900/30' : ''
+        }`}
+      >
+        <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left">
+          <div className="flex items-center justify-between">
+            <span>{s.symbol}</span>
+            <button
+              className="ml-1 text-yellow-400 hover:text-yellow-300"
+              onClick={() => {
+                setFavorites((prev: Set<string>) => {
+                  const newSet = new Set(prev);
+                  newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+                  return newSet;
+                });
+              }}
+            >
+              {favorites.has(s.symbol) ? '★' : '☆'}
+            </button>
+          </div>
+        </td>
+        <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+          {s.bullishBreakout ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+          {s.bearishBreakout ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+          {s.mainTrend}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bearishReversal ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bullishReversal ? 'Yes' : 'No'}
+        </td>
+        <td
+          className={`text-center ${
+            pump > 27
+              ? 'text-green-400'
+              : inRange(pump, 19, 23)
+              ? 'text-blue-400'
+              : inRange(pump, 8, 12)
+              ? 'text-yellow-400'
+              : 'text-white'
           }`}
         >
-          <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left">
-            <div className="flex items-center justify-between">
-              <span>{s.symbol}</span>
-              <button
-                className="ml-1 text-yellow-400 hover:text-yellow-300"
-                onClick={() => {
-                  setFavorites((prev: Set<string>) => {
-                    const newSet = new Set(prev);
-                    newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-                    return newSet;
-                  });
-                }}
-              >
-                {favorites.has(s.symbol) ? '★' : '☆'}
-              </button>
-            </div>
-          </td>
-          <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
-          <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
-            {s.bullishBreakout ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
-            {s.bearishBreakout ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
-            {s.mainTrend}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bearishReversal ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bullishReversal ? 'Yes' : 'No'}
-          </td>
-          <td
-            className={`text-center ${
-              pump > 27
-                ? 'text-green-400'
-                : pump >= 19 && pump <= 23
-                ? 'text-blue-400'
-                : 'text-white'
-            }`}
-          >
-            {pump?.toFixed(2) ?? 'N/A'}
-          </td>
-          <td
-            className={`text-center ${
-              dump > 27
-                ? 'text-red-400'
-                : dump >= 19 && dump <= 23
-                ? 'text-blue-400'
-                : 'text-white'
-            }`}
-          >
-            {dump?.toFixed(2) ?? 'N/A'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bearishCollapse ? 'Yes' : 'No'}
-          </td>
-          <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-            {s.bullishSpike ? 'Yes' : 'No'}
-          </td>
-          <td
-            className={`px-1 py-0.5 text-center font-semibold ${
-              signal === 'SELL'
-                ? 'text-red-400'
-                : signal === 'BUY'
-                ? 'text-green-400'
-                : signal === 'INDECISION'
-                ? 'text-blue-400'
-                : 'text-gray-500'
-            }`}
-          >
-            {signal}
-          </td>
-        </tr>
-      );
-    })}
-  </tbody>
+          {pump?.toFixed(2) ?? 'N/A'}
+        </td>
+        <td
+          className={`text-center ${
+            dump > 27
+              ? 'text-red-400'
+              : inRange(dump, 19, 23)
+              ? 'text-blue-400'
+              : inRange(dump, 8, 12)
+              ? 'text-yellow-400'
+              : 'text-white'
+          }`}
+        >
+          {dump?.toFixed(2) ?? 'N/A'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bearishCollapse ? 'Yes' : 'No'}
+        </td>
+        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+          {s.bullishSpike ? 'Yes' : 'No'}
+        </td>
+        <td
+          className={`px-1 py-0.5 text-center font-semibold ${
+            signal === 'SELL'
+              ? 'text-red-400'
+              : signal === 'BUY'
+              ? 'text-green-400'
+              : signal === 'INDECISION'
+              ? 'text-blue-400'
+              : 'text-gray-500'
+          }`}
+        >
+          {signal}
+        </td>
+      </tr>
+    );
+  })}
+</tbody> 
 </table>
           
       </div>
