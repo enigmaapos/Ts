@@ -1066,16 +1066,16 @@ if (loading) {
             setSortField('symbol');
             setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
           }}
-          className="px-1 py-0.5 w-[90px] sticky left-0 z-30 bg-gray-800 text-left cursor-pointer whitespace-nowrap"
+          className="px-1 py-0.5 w-[110px] sticky left-0 z-30 bg-gray-800 text-left cursor-pointer whitespace-nowrap"
         >
           Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
         </th>
         <th className="px-1 py-0.5 w-[40px] text-center">BO</th>
-        <th className="px-1 py-0.5 w-[60px] text-center">Bull</th>
-        <th className="px-1 py-0.5 w-[60px] text-center">Bear</th>
-        <th className="px-1 py-0.5 w-[80px] text-center">Trend</th>
-        <th className="px-1 py-0.5 w-[60px] text-center">BearRev</th>
-        <th className="px-1 py-0.5 w-[60px] text-center">BullRev</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">Bull</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">Bear</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">Trend</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">BearRev</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">BullRev</th>
         <th
           onClick={() => {
             setSortField('pumpStrength');
@@ -1094,8 +1094,8 @@ if (loading) {
         >
           Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
         </th>
-        <th className="px-1 py-0.5 w-[60px] text-center">Collapse</th>
-        <th className="px-1 py-0.5 w-[60px] text-center">Spike</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">Collapse</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">Spike</th>
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
       </tr>
     </thead>
