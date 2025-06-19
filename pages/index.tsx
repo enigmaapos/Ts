@@ -1057,220 +1057,194 @@ if (loading) {
   </div>
 </div>
 
-     
-          
-      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">  
-          <table className="w-full text-[11px] border-collapse">
-  <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-    <tr>
-      <th
-        onClick={() => {
-          setSortField('symbol');
-          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-        }}
-        className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
-      >
-        Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-      </th>
-      <th className="px-1 py-0.5 text-center">BO</th>
-      <th className="px-1 py-0.5 text-center">Bull BO</th>
-      <th className="px-1 py-0.5 text-center">Bear BO</th>
-      <th className="px-1 py-0.5 text-center">Trend (200)</th>
-      <th className="px-1 py-0.5 text-center">Bear Rev</th>
-      <th className="px-1 py-0.5 text-center">Bull Rev</th>
-      <th
-        onClick={() => {
-          setSortField('pumpStrength');
-          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-        }}
-        className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-      >
-        RSI Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-      </th>
-      <th
-        onClick={() => {
-          setSortField('dumpStrength');
-          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-        }}
-        className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-      >
-        RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-      </th>
-      <th className="px-1 py-0.5 text-center">Collapse</th>
-      <th className="px-1 py-0.5 text-center">Spike</th>
-      <th className="px-1 py-0.5 text-center">Signal</th>
-    </tr>
-  </thead>
-           <tbody>
-{filteredAndSortedSignals.map((s: any) => {
-  const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-  const pump = pumpDump?.pumpStrength;
-  const dump = pumpDump?.dumpStrength;
-
-  const inRange = (val: number | undefined, min: number, max: number) =>
-    val !== undefined && val >= min && val <= max;
-
-  const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
-
-
-  let signal = '';
-
-const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
-const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
-const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
-
-// 1. Reversal + Breakout from previous day
-if (
-  (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
-  (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
-) {
-  signal = "YESTERDAY'S TREND REVERSE";
-}
-
-// 2. Bearish selling zone
-else if (pumpOrDumpInRangeEntry && s.bearishCollapse) {
-  signal = 'START SELLING';
-} else if (pumpOrDumpInRange && s.bearishCollapse) {
-  signal = 'PULLBACK SELL';
-}
-
-// 3. Bullish buying zone
-else if (pumpOrDumpInRangeEntry && s.bullishSpike) {
-  signal = 'START BUYING';
-} else if (pumpOrDumpInRange && s.bullishSpike) {
-  signal = 'PULLBACK BUY';
-}
-
-// 4. Overextended = wait for reversal
-else if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
-  signal = 'POSSIBLE REVERSE';
-}
-
-// 5. Clean reversal entries
-else if (pumpOrDumpInRangeEntry && s.bearishReversal) {
-  signal = 'BUY';
-} else if (pumpOrDumpInRangeEntry && s.bullishReversal) {
-  signal = 'SELL';
-}
-
-// 6. Overextended reversal caution
-else if (pumpOrDumpAbove27 && s.bearishReversal) {
-  signal = 'POSSIBLE REVERSE';
-} else if (pumpOrDumpAbove27 && s.bullishReversal) {
-  signal = 'POSSIBLE REVERSE';
-}
-
-// 7. Mid-range reversal = indecision
-else if (pumpOrDumpInRange && s.bearishReversal) {
-  signal = 'INDECISION / BUY';
-} else if (pumpOrDumpInRange && s.bullishReversal) {
-  signal = 'INDECISION / SELL';
-}
-
-return signal;
-
-
-    return (
-      <tr
-        key={s.symbol}
-        className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
-          updatedRecently ? 'bg-yellow-900/30' : ''
-        }`}
-      >
-        <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left">
-          <div className="flex items-center justify-between">
-            <span>{s.symbol}</span>
-            <button
-              className="ml-1 text-yellow-400 hover:text-yellow-300"
-              onClick={() => {
-                setFavorites((prev: Set<string>) => {
-                  const newSet = new Set(prev);
-                  newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-                  return newSet;
-                });
-              }}
-            >
-              {favorites.has(s.symbol) ? '★' : '☆'}
-            </button>
-          </div>
-        </td>
-        <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
-          {s.bullishBreakout ? 'Yes' : 'No'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
-          {s.bearishBreakout ? 'Yes' : 'No'}
-        </td>
-        <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
-          {s.mainTrend}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bearishReversal ? 'Yes' : 'No'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bullishReversal ? 'Yes' : 'No'}
-        </td>
-        <td
-          className={`text-center ${
-            pump > 27
-              ? 'text-green-400'
-              : inRange(pump, 19, 23)
-              ? 'text-blue-400'
-              : inRange(pump, 8, 12)
-              ? 'text-yellow-400'
-              : 'text-white'
-          }`}
+   <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+  <table className="w-full text-[11px] border-collapse table-fixed">
+    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+      <tr>
+        <th
+          onClick={() => {
+            setSortField('symbol');
+            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+          }}
+          className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer whitespace-nowrap"
         >
-          {pump?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td
-          className={`text-center ${
-            dump > 27
-              ? 'text-red-400'
-              : inRange(dump, 19, 23)
-              ? 'text-blue-400'
-              : inRange(dump, 8, 12)
-              ? 'text-yellow-400'
-              : 'text-white'
-          }`}
+          Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+        </th>
+        <th className="px-1 py-0.5 text-center">BO</th>
+        <th className="px-1 py-0.5 text-center">Bull BO</th>
+        <th className="px-1 py-0.5 text-center">Bear BO</th>
+        <th className="px-1 py-0.5 text-center">Trend (200)</th>
+        <th className="px-1 py-0.5 text-center">Bear Rev</th>
+        <th className="px-1 py-0.5 text-center">Bull Rev</th>
+        <th
+          onClick={() => {
+            setSortField('pumpStrength');
+            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+          }}
+          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
         >
-          {dump?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bearishCollapse ? 'Yes' : 'No'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
-          {s.bullishSpike ? 'Yes' : 'No'}
-        </td>
-        <td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    signal === 'SELL'
-      ? 'text-red-400'
-      : signal === 'BUY'
-      ? 'text-green-400'
-      : signal === 'INDECISION / BUY' || signal === 'INDECISION / SELL'
-      ? 'text-blue-400'
-      : signal === 'START BUYING' || signal === 'PULLBACK BUY'
-      ? 'text-green-300'
-      : signal === 'START SELLING' || signal === 'PULLBACK SELL'
-      ? 'text-red-300'
-      : signal === 'POSSIBLE REVERSE'
-      ? 'text-yellow-300'
-      : signal === "YESTERDAY'S TREND REVERSE"
-      ? 'text-yellow-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal}
-</td>
+          RSI Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+        </th>
+        <th
+          onClick={() => {
+            setSortField('dumpStrength');
+            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+          }}
+          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+        >
+          RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+        </th>
+        <th className="px-1 py-0.5 text-center">Collapse</th>
+        <th className="px-1 py-0.5 text-center">Spike</th>
+        <th className="px-1 py-0.5 text-center">Signal</th>
       </tr>
-    );
-  })}
-</tbody>
-</table>
-          
-      </div>
+    </thead>
+
+    <tbody>
+      {filteredAndSortedSignals.map((s: any) => {
+        const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+        const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+        const pump = pumpDump?.pumpStrength;
+        const dump = pumpDump?.dumpStrength;
+
+        const inRange = (val: number | undefined, min: number, max: number) =>
+          val !== undefined && val >= min && val <= max;
+
+        const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
+
+        let signal = '';
+
+        const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+        const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
+        const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
+
+        if (
+          (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
+          (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+        ) {
+          signal = "YESTERDAY'S TREND REVERSE";
+        } else if (pumpOrDumpInRangeEntry && s.bearishCollapse) {
+          signal = 'START SELLING';
+        } else if (pumpOrDumpInRange && s.bearishCollapse) {
+          signal = 'PULLBACK SELL';
+        } else if (pumpOrDumpInRangeEntry && s.bullishSpike) {
+          signal = 'START BUYING';
+        } else if (pumpOrDumpInRange && s.bullishSpike) {
+          signal = 'PULLBACK BUY';
+        } else if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
+          signal = 'POSSIBLE REVERSE';
+        } else if (pumpOrDumpInRangeEntry && s.bearishReversal) {
+          signal = 'BUY';
+        } else if (pumpOrDumpInRangeEntry && s.bullishReversal) {
+          signal = 'SELL';
+        } else if (pumpOrDumpAbove27 && (s.bearishReversal || s.bullishReversal)) {
+          signal = 'POSSIBLE REVERSE';
+        } else if (pumpOrDumpInRange && s.bearishReversal) {
+          signal = 'INDECISION / BUY';
+        } else if (pumpOrDumpInRange && s.bullishReversal) {
+          signal = 'INDECISION / SELL';
+        }
+
+        return (
+          <tr
+            key={s.symbol}
+            className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
+              updatedRecently ? 'bg-yellow-900/30' : ''
+            }`}
+          >
+            <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left whitespace-nowrap">
+              <div className="flex items-center justify-between">
+                <span>{s.symbol}</span>
+                <button
+                  className="ml-1 text-yellow-400 hover:text-yellow-300"
+                  onClick={() => {
+                    setFavorites((prev: Set<string>) => {
+                      const newSet = new Set(prev);
+                      newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+                      return newSet;
+                    });
+                  }}
+                >
+                  {favorites.has(s.symbol) ? '★' : '☆'}
+                </button>
+              </div>
+            </td>
+
+            <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
+            <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+              {s.bullishBreakout ? 'Yes' : 'No'}
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+              {s.bearishBreakout ? 'Yes' : 'No'}
+            </td>
+            <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+              {s.mainTrend}
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+              {s.bearishReversal ? 'Yes' : 'No'}
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+              {s.bullishReversal ? 'Yes' : 'No'}
+            </td>
+            <td
+              className={`text-center ${
+                pump > 27
+                  ? 'text-green-400'
+                  : inRange(pump, 19, 23)
+                  ? 'text-blue-400'
+                  : inRange(pump, 8, 12)
+                  ? 'text-yellow-400'
+                  : 'text-white'
+              }`}
+            >
+              {pump?.toFixed(2) ?? 'N/A'}
+            </td>
+            <td
+              className={`text-center ${
+                dump > 27
+                  ? 'text-red-400'
+                  : inRange(dump, 19, 23)
+                  ? 'text-blue-400'
+                  : inRange(dump, 8, 12)
+                  ? 'text-yellow-400'
+                  : 'text-white'
+              }`}
+            >
+              {dump?.toFixed(2) ?? 'N/A'}
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+              {s.bearishCollapse ? 'Yes' : 'No'}
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+              {s.bullishSpike ? 'Yes' : 'No'}
+            </td>
+            <td
+              className={`px-1 py-0.5 text-center font-semibold ${
+                signal === 'SELL'
+                  ? 'text-red-400'
+                  : signal === 'BUY'
+                  ? 'text-green-400'
+                  : signal === 'INDECISION / BUY' || signal === 'INDECISION / SELL'
+                  ? 'text-blue-400'
+                  : signal === 'START BUYING' || signal === 'PULLBACK BUY'
+                  ? 'text-green-300'
+                  : signal === 'START SELLING' || signal === 'PULLBACK SELL'
+                  ? 'text-red-300'
+                  : signal === 'POSSIBLE REVERSE'
+                  ? 'text-yellow-300'
+                  : signal === "YESTERDAY'S TREND REVERSE"
+                  ? 'text-yellow-500 font-bold'
+                  : 'text-gray-500'
+              }`}
+            >
+              {signal}
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>            
     </div>                    
   );
 }
