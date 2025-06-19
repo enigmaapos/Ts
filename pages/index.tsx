@@ -932,7 +932,7 @@ if (loading) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">     
- {['BUY', 'SELL', 'INDECISION / BUY', 'INDECISION / SELL', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK SELL', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
+ {['BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK SELL', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
           <button
             key={type}
             onClick={() => setSignalFilter(signalFilter === type ? null : type)}
@@ -1005,11 +1005,7 @@ if (loading) {
         <span>{signalCounts.sell}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-blue-400 font-semibold">🔵 INDECISION / BUY:</span>
-        <span>{signalCounts.indecision}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-blue-400 font-semibold">🔵 INDECISION / SELL:</span>
+        <span className="text-blue-400 font-semibold">🔵 INDECISION:</span>
         <span>{signalCounts.indecision}</span>
       </div>
       <div className="flex items-center gap-2">
