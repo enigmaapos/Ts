@@ -227,8 +227,9 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
     yesterdayReverse: 0,
   };
 
-  filteredAndSortedSignals.forEach((s: any) => {
-    const signal = getSignal(s);
+  signals.forEach((s: any) => {
+    const signal = getSignal(s)?.trim().toUpperCase();
+
     switch (signal) {
       case 'BUY':
         counts.buy++;
@@ -261,7 +262,7 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
   });
 
   return counts;
-}, [filteredAndSortedSignals]);
+}, [signals]);
 
   
   
