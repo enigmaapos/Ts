@@ -956,9 +956,9 @@ if (loading) {
   </button>
 </div>
           
-     <div className="sticky left-0 top-0 z-30 bg-gray-900 border-r border-gray-700 p-4 mb-4 text-white text-sm md:text-base shadow-md">
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
+     <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">  
+   <div className="flex flex-wrap gap-4">  
+    <div className="flex items-center gap-1">  
     {/* 🔷 Trend Overview */}
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       <div className="flex items-center gap-2">
