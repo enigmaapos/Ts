@@ -931,28 +931,7 @@ if (loading) {
    
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4 text-sm">
-        {[
-             { label: 'Bullish Reversal', key: 'bullishReversal' },
-    { label: 'Bearish Reversal', key: 'bearishReversal' },
-    { label: 'Bullish Breakout', key: 'bullishBreakout' },
-    { label: 'Bearish Breakout', key: 'bearishBreakout' },
-             { label: 'Bullish Spike', key: 'bullishSpike' },
-    { label: 'Bearish Collapse', key: 'bearishCollapse' },
-  ].map(({ label, key }) => (
-    <button
-      key={key}
-      onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-      className={`px-3 py-1 rounded-full ${
-        trendFilter === key
-          ? 'bg-yellow-500 text-black'
-          : 'bg-gray-700 text-white'
-      }`}
-    >
-      {label}
-    </button>
-  ))}
-        
+      <div className="flex flex-wrap gap-2 mb-4 text-sm">     
  {['BUY', 'SELL', 'INDECISION / BUY', 'INDECISION / SELL', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK SELL', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
           <button
             key={type}
