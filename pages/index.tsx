@@ -896,7 +896,8 @@ if (loading) {
           
 
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-        <table className="w-full text-[11px] border-collapse">
+        
+          <table className="w-full text-[11px] border-collapse">
   <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
     <tr>
       <th
@@ -944,17 +945,15 @@ if (loading) {
       const pump = pumpDump?.pumpStrength;
       const dump = pumpDump?.dumpStrength;
 
-      const inRange = (val: number | undefined, min: number, max: number) =>
-        val !== undefined && val >= min && val <= max;
+      const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
+      const isIn19to23 = (val: number | undefined) => val !== undefined && val >= 19 && val <= 23;
 
       let signal = '';
-      if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
-        signal = 'SELL';
-      } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
-        signal = 'INDECISION';
-      } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+      if ((isAbove27(pump) || isAbove27(dump)) && s.bearishReversal) {
         signal = 'BUY';
-      } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
+      } else if ((isAbove27(pump) || isAbove27(dump)) && s.bullishReversal) {
+        signal = 'SELL';
+      } else if ((isIn19to23(pump) || isIn19to23(dump)) && (s.bearishReversal || s.bullishReversal)) {
         signal = 'INDECISION';
       }
 
@@ -1002,8 +1001,6 @@ if (loading) {
             className={`text-center ${
               pump > 27
                 ? 'text-green-400'
-                : pump >= 8 && pump <= 12
-                ? 'text-yellow-400'
                 : pump >= 19 && pump <= 23
                 ? 'text-blue-400'
                 : 'text-white'
@@ -1015,8 +1012,6 @@ if (loading) {
             className={`text-center ${
               dump > 27
                 ? 'text-red-400'
-                : dump >= 8 && dump <= 12
-                ? 'text-yellow-400'
                 : dump >= 19 && dump <= 23
                 ? 'text-blue-400'
                 : 'text-white'
