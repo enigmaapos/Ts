@@ -1059,46 +1059,46 @@ if (loading) {
 
          <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
           <table className="w-full text-[11px] border-collapse">
-  <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20"> 
-      <tr>
-        <th
-          onClick={() => {
-            setSortField('symbol');
-            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-          }}
-          className="px-1 py-0.5 w-[110px] sticky left-0 z-30 bg-gray-800 text-left cursor-pointer whitespace-nowrap"
-        >
-          Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-        </th>
-        <th className="px-1 py-0.5 w-[40px] text-center">BO</th>
-        <th className="px-1 py-0.5 w-[40px] text-center">Bull</th>
-        <th className="px-1 py-0.5 w-[40px] text-center">Bear</th>
-        <th className="px-1 py-0.5 w-[60px] text-center">Trend</th>
-        <th className="px-1 py-0.5 w-[40px] text-center">BearRev</th>
-        <th className="px-1 py-0.5 w-[40px] text-center">BullRev</th>
-        <th
-          onClick={() => {
-            setSortField('pumpStrength');
-            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-          }}
-          className="px-1 py-0.5 w-[70px] text-center cursor-pointer"
-        >
-          Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-        </th>
-        <th
-          onClick={() => {
-            setSortField('dumpStrength');
-            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-          }}
-          className="px-1 py-0.5 w-[70px] text-center cursor-pointer"
-        >
-          Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-        </th>
-        <th className="px-1 py-0.5 w-[40px] text-center">Collapse</th>
-        <th className="px-1 py-0.5 w-[40px] text-center">Spike</th>
-        <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
-      </tr>
-    </thead>
+<thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+    <tr>
+      <th
+        onClick={() => {
+          setSortField('symbol');
+          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        }}
+        className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
+      >
+        Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+      </th>
+      <th className="px-1 py-0.5 text-center">BO</th>
+      <th className="px-1 py-0.5 text-center">Bull BO</th>
+      <th className="px-1 py-0.5 text-center">Bear BO</th>
+      <th className="px-1 py-0.5 text-center">Trend (200)</th>
+      <th className="px-1 py-0.5 text-center">Bear Rev</th>
+      <th className="px-1 py-0.5 text-center">Bull Rev</th>
+      <th
+        onClick={() => {
+          setSortField('pumpStrength');
+          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        }}
+        className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+      >
+        RSI Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+      </th>
+      <th
+        onClick={() => {
+          setSortField('dumpStrength');
+          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        }}
+        className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+      >
+        RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+      </th>
+      <th className="px-1 py-0.5 text-center">Collapse</th>
+      <th className="px-1 py-0.5 text-center">Spike</th>
+      <th className="px-1 py-0.5 text-center">Signal</th>
+    </tr>
+  </thead>
 
     <tbody>
       {filteredAndSortedSignals.map((s: any) => {
