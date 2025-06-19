@@ -214,7 +214,36 @@ const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).leng
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
-    
+  const signalCounts = useMemo(() => {
+    const counts = {
+      buy: 0,
+      sell: 0,
+      indecision: 0,
+      startBuying: 0,
+      continueBuying: 0,
+      startSelling: 0,
+      continueSelling: 0,
+      possibleReverse: 0,
+      yesterdayReverse: 0,
+    };
+
+    signals.forEach((s: any) => {
+      const signal = getSignal(s)?.trim().toUpperCase();
+      switch (signal) {
+        case 'BUY': counts.buy++; break;
+        case 'SELL': counts.sell++; break;
+        case 'INDECISION': counts.indecision++; break;
+        case 'START BUYING': counts.startBuying++; break;
+        case 'CONTINUE BUYING': counts.continueBuying++; break;
+        case 'START SELLING': counts.startSelling++; break;
+        case 'CONTINUE SELLING': counts.continueSelling++; break;
+        case 'POSSIBLE REVERSE': counts.possibleReverse++; break;
+        case "YESTERDAY'S TREND REVERSE": counts.yesterdayReverse++; break;
+      }
+    });
+
+    return counts;
+  }, [signals]); // ✅ Don't forget the dependency    
   
   
   useEffect(() => {
