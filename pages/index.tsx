@@ -953,7 +953,7 @@ if (loading) {
     </button>
   ))}
         
- {['BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK SELL', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
+ {['BUY', 'SELL', 'INDECISION / BUY', 'INDECISION / SELL', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK SELL', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
           <button
             key={type}
             onClick={() => setSignalFilter(signalFilter === type ? null : type)}
