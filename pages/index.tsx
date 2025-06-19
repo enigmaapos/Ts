@@ -99,16 +99,58 @@ const getSignal = (s: any): string => {
   const inRange = (val: number | undefined, min: number, max: number) =>
     val !== undefined && val >= min && val <= max;
 
-  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bearishReversal)
+  const isAbove27 = (val: number | undefined) =>
+    val !== undefined && val >= 27;
+
+  const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+
+  if (
+    (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
+    (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+  ) {
+    return "YESTERDAY'S TREND REVERSE";
+  }
+
+  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
+    return 'START SELLING';
+  }
+
+  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
+    return 'CONTINUE SELLING';
+  }
+
+  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+    return 'START BUYING';
+  }
+
+  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
+    return 'CONTINUE BUYING';
+  }
+
+  if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
+    return 'POSSIBLE REVERSE';
+  }
+
+  if (
+    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+    s.bearishReversal
+  ) {
     return 'BUY';
-  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bullishReversal)
+  }
+
+  if (
+    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+    s.bullishReversal
+  ) {
     return 'SELL';
-  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && (s.bearishReversal || s.bullishReversal))
+  }
+
+  if (
+    (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
+    (s.bearishReversal || s.bullishReversal)
+  ) {
     return 'INDECISION';
-  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishReversal)
-    return 'BUY';
-  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishReversal)
-    return 'SELL';
+  }
 
   return '';
 };
