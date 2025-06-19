@@ -1057,9 +1057,9 @@ if (loading) {
   </div>
 </div>
 
-          <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-  <table className="w-full text-[11px] border-collapse table-fixed">
-    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+         <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+          <table className="w-full text-[11px] border-collapse">
+  <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20"> 
       <tr>
         <th
           onClick={() => {
