@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+
 
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
@@ -90,6 +91,28 @@ function getRecentRSIDiff(rsi: number[], lookback = 14) {
   };
 }
 
+const getSignal = (s: any): string => {
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+  const pump = pumpDump?.pumpStrength;
+  const dump = pumpDump?.dumpStrength;
+
+  const inRange = (val: number | undefined, min: number, max: number) =>
+    val !== undefined && val >= min && val <= max;
+
+  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bearishReversal)
+    return 'BUY';
+  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bullishReversal)
+    return 'SELL';
+  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && (s.bearishReversal || s.bullishReversal))
+    return 'INDECISION';
+  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishReversal)
+    return 'BUY';
+  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishReversal)
+    return 'SELL';
+
+  return '';
+};
+
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -140,27 +163,7 @@ const filteredSignals = signals.filter((s) =>
   (!showOnlyFavorites || favorites.has(s.symbol))
 );
 
-  const getSignal = (s: any): string => {
-  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-  const pump = pumpDump?.pumpStrength;
-  const dump = pumpDump?.dumpStrength;
-
-  const inRange = (val: number | undefined, min: number, max: number) =>
-    val !== undefined && val >= min && val <= max;
-
-  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bearishReversal)
-    return 'BUY';
-  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bullishReversal)
-    return 'SELL';
-  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && (s.bearishReversal || s.bullishReversal))
-    return 'INDECISION';
-  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishReversal)
-    return 'BUY';
-  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishReversal)
-    return 'SELL';
-
-  return '';
-};
+  
 
 const sortedSignals = [...filteredSignals].sort((a, b) => {
   let valA: any = a[sortField];
@@ -209,6 +212,18 @@ const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).leng
 
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
+
+    // ✅ Count BUY / SELL / INDECISION
+  const signalCounts = useMemo(() => {
+    const counts = { buy: 0, sell: 0, indecision: 0 };
+    filteredAndSortedSignals.forEach((s: any) => {
+      const signal = getSignal(s);
+      if (signal === 'BUY') counts.buy++;
+      else if (signal === 'SELL') counts.sell++;
+      else if (signal === 'INDECISION') counts.indecision++;
+    });
+    return counts;
+  }, [filteredAndSortedSignals]);
 
   
   
