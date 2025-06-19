@@ -1096,7 +1096,7 @@ if (loading) {
       </th>
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
-      <th className="px-1 py-0.5 text-center">Signal</th>
+       <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
     </tr>
   </thead>
 
