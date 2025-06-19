@@ -1026,7 +1026,11 @@ if (loading) {
         <span>{signalCounts.sell}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-blue-400 font-semibold">🔵 INDECISION:</span>
+        <span className="text-blue-400 font-semibold">🔵 INDECISION / BUY:</span>
+        <span>{signalCounts.indecision}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-blue-400 font-semibold">🔵 INDECISION / SELL:</span>
         <span>{signalCounts.indecision}</span>
       </div>
       <div className="flex items-center gap-2">
