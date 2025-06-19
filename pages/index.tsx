@@ -942,32 +942,32 @@ if (loading) {
           <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bullishReversal ? 'Yes' : 'No'}
           </td>
-<td
-  className={`text-center ${
-    [8, 9, 10, 11].includes(pumpDump?.pumpStrength)
-      ? 'text-yellow-400'
-      : pumpDump?.pumpStrength > 27
-      ? 'text-green-400'
-      : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 22
-      ? 'text-blue-400'
-      : 'text-white'
-  }`}
->
-  {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
-</td>
+<td  
+  className={`text-center ${  
+    pumpDump?.pumpStrength > 27  
+      ? 'text-green-400'  
+      : pumpDump?.pumpStrength >= 9 && pumpDump?.pumpStrength <= 10  
+      ? 'text-yellow-400'  
+      : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 22  
+      ? 'text-blue-400'  
+      : 'text-white'  
+  }`}  
+>  
+  {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}  
+</td>  
 
-<td
-  className={`text-center ${
-    [8, 9, 10, 11].includes(pumpDump?.dumpStrength)
-      ? 'text-yellow-400'
-      : pumpDump?.dumpStrength > 27
-      ? 'text-red-400'
-      : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 22
-      ? 'text-blue-400'
-      : 'text-white'
-  }`}
->
-  {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
+<td  
+  className={`text-center ${  
+    pumpDump?.dumpStrength > 27  
+      ? 'text-red-400'  
+      : pumpDump?.dumpStrength >= 9 && pumpDump?.dumpStrength <= 10  
+      ? 'text-yellow-400'  
+      : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 22  
+      ? 'text-blue-400'  
+      : 'text-white'  
+  }`}  
+>  
+  {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}  
 </td>
         <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bearishCollapse ? 'Yes' : 'No'}
