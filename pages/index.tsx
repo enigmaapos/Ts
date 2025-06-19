@@ -1218,7 +1218,7 @@ if (loading) {
               {s.bullishSpike ? 'Yes' : 'No'}
             </td>
             <td
-              className={`px-1 py-0.5 min-w-[60px] text-center font-semibold ${
+                className={`px-1 py-0.5 text-center truncate ${
                 signal === 'SELL'
                   ? 'text-red-400'
                   : signal === 'BUY'
