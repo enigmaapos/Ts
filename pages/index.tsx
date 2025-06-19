@@ -946,9 +946,9 @@ if (loading) {
   className={`text-center ${  
     pumpDump?.pumpStrength > 27  
       ? 'text-green-400'  
-      : pumpDump?.pumpStrength >= 9 && pumpDump?.pumpStrength <= 10  
+      : pumpDump?.pumpStrength >= 8 && pumpDump?.pumpStrength <= 12  
       ? 'text-yellow-400'  
-      : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 22  
+      : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 23  
       ? 'text-blue-400'  
       : 'text-white'  
   }`}  
@@ -960,9 +960,9 @@ if (loading) {
   className={`text-center ${  
     pumpDump?.dumpStrength > 27  
       ? 'text-red-400'  
-      : pumpDump?.dumpStrength >= 9 && pumpDump?.dumpStrength <= 10  
+      : pumpDump?.dumpStrength >= 8 && pumpDump?.dumpStrength <= 12  
       ? 'text-yellow-400'  
-      : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 22  
+      : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 23  
       ? 'text-blue-400'  
       : 'text-white'  
   }`}  
