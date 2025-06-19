@@ -1057,7 +1057,7 @@ if (loading) {
   </div>
 </div>
 
-   <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+          <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse table-fixed">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
@@ -1066,37 +1066,37 @@ if (loading) {
             setSortField('symbol');
             setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
           }}
-          className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer whitespace-nowrap"
+          className="px-1 py-0.5 w-[90px] sticky left-0 z-30 bg-gray-800 text-left cursor-pointer whitespace-nowrap"
         >
           Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
         </th>
-        <th className="px-1 py-0.5 text-center">BO</th>
-        <th className="px-1 py-0.5 text-center">Bull BO</th>
-        <th className="px-1 py-0.5 text-center">Bear BO</th>
-        <th className="px-1 py-0.5 text-center">Trend (200)</th>
-        <th className="px-1 py-0.5 text-center">Bear Rev</th>
-        <th className="px-1 py-0.5 text-center">Bull Rev</th>
+        <th className="px-1 py-0.5 w-[40px] text-center">BO</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">Bull</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">Bear</th>
+        <th className="px-1 py-0.5 w-[80px] text-center">Trend</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">BearRev</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">BullRev</th>
         <th
           onClick={() => {
             setSortField('pumpStrength');
             setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
           }}
-          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+          className="px-1 py-0.5 w-[70px] text-center cursor-pointer"
         >
-          RSI Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+          Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
         </th>
         <th
           onClick={() => {
             setSortField('dumpStrength');
             setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
           }}
-          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+          className="px-1 py-0.5 w-[70px] text-center cursor-pointer"
         >
-          RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+          Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
         </th>
-        <th className="px-1 py-0.5 text-center">Collapse</th>
-        <th className="px-1 py-0.5 text-center">Spike</th>
-        <th className="px-1 py-0.5 text-center">Signal</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">Collapse</th>
+        <th className="px-1 py-0.5 w-[60px] text-center">Spike</th>
+        <th className="px-1 py-0.5 min-w-[110px] text-center">Signal</th>
       </tr>
     </thead>
 
@@ -1152,9 +1152,9 @@ if (loading) {
               updatedRecently ? 'bg-yellow-900/30' : ''
             }`}
           >
-            <td className="px-1 py-0.5 font-bold bg-gray-900 sticky left-0 z-10 text-left whitespace-nowrap">
+            <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
               <div className="flex items-center justify-between">
-                <span>{s.symbol}</span>
+                <span className="truncate">{s.symbol}</span>
                 <button
                   className="ml-1 text-yellow-400 hover:text-yellow-300"
                   onClick={() => {
@@ -1169,21 +1169,20 @@ if (loading) {
                 </button>
               </div>
             </td>
-
             <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
-            <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
               {s.bullishBreakout ? 'Yes' : 'No'}
             </td>
-            <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
               {s.bearishBreakout ? 'Yes' : 'No'}
             </td>
-            <td className={`px-1 py-0.5 text-center font-semibold ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
               {s.mainTrend}
             </td>
-            <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'text-gray-500'}`}>
               {s.bearishReversal ? 'Yes' : 'No'}
             </td>
-            <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'text-gray-500'}`}>
               {s.bullishReversal ? 'Yes' : 'No'}
             </td>
             <td
@@ -1212,14 +1211,14 @@ if (loading) {
             >
               {dump?.toFixed(2) ?? 'N/A'}
             </td>
-            <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
               {s.bearishCollapse ? 'Yes' : 'No'}
             </td>
-            <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
+            <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
               {s.bullishSpike ? 'Yes' : 'No'}
             </td>
             <td
-              className={`px-1 py-0.5 text-center font-semibold ${
+              className={`px-1 py-0.5 text-center truncate ${
                 signal === 'SELL'
                   ? 'text-red-400'
                   : signal === 'BUY'
@@ -1243,7 +1242,7 @@ if (loading) {
         );
       })}
     </tbody>
-  </table>
+  </table>       
 </div>            
     </div>                    
   );
