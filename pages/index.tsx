@@ -993,32 +993,39 @@ if (loading) {
 
     let signal = '';
 
-    if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
-      signal = 'START SELLING';
-    } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
-      signal = 'CONTINUE SELLING';
-    } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
-      signal = 'START BUYING';
-    } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
-      signal = 'CONTINUE BUYING';
-    } else if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
-      signal = 'POSSIBLE REVERSE';
-    } else if (
-      (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-      s.bearishReversal
-    ) {
-      signal = 'BUY';
-    } else if (
-      (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-      s.bullishReversal
-    ) {
-      signal = 'SELL';
-    } else if (
-      (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
-      (s.bullishReversal || s.bearishReversal)
-    ) {
-      signal = 'INDECISION';
-    }
+const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+
+if (
+  (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
+  (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+) {
+  signal = "YESTERDAY'S TREND REVERSE";
+} else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
+  signal = 'START SELLING';
+} else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
+  signal = 'CONTINUE SELLING';
+} else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+  signal = 'START BUYING';
+} else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
+  signal = 'CONTINUE BUYING';
+} else if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
+  signal = 'POSSIBLE REVERSE';
+} else if (
+  (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+  s.bearishReversal
+) {
+  signal = 'BUY';
+} else if (
+  (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
+  s.bullishReversal
+) {
+  signal = 'SELL';
+} else if (
+  (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
+  (s.bullishReversal || s.bearishReversal)
+) {
+  signal = 'INDECISION';
+}
 
     return (
       <tr
@@ -1093,24 +1100,26 @@ if (loading) {
           {s.bullishSpike ? 'Yes' : 'No'}
         </td>
         <td
-          className={`px-1 py-0.5 text-center font-semibold ${
-            signal === 'SELL'
-              ? 'text-red-400'
-              : signal === 'BUY'
-              ? 'text-green-400'
-              : signal === 'INDECISION'
-              ? 'text-blue-400'
-              : signal === 'START BUYING' || signal === 'CONTINUE BUYING'
-              ? 'text-green-300'
-              : signal === 'START SELLING' || signal === 'CONTINUE SELLING'
-              ? 'text-red-300'
-              : signal === 'POSSIBLE REVERSE'
-              ? 'text-yellow-300'
-              : 'text-gray-500'
-          }`}
-        >
-          {signal}
-        </td>
+  className={`px-1 py-0.5 text-center font-semibold ${
+    signal === 'SELL'
+      ? 'text-red-400'
+      : signal === 'BUY'
+      ? 'text-green-400'
+      : signal === 'INDECISION'
+      ? 'text-blue-400'
+      : signal === 'START BUYING' || signal === 'CONTINUE BUYING'
+      ? 'text-green-300'
+      : signal === 'START SELLING' || signal === 'CONTINUE SELLING'
+      ? 'text-red-300'
+      : signal === 'POSSIBLE REVERSE'
+      ? 'text-yellow-300'
+      : signal === "YESTERDAY'S TREND REVERSE"
+      ? 'text-yellow-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal}
+</td>
       </tr>
     );
   })}
