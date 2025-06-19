@@ -1035,7 +1035,7 @@ if (loading) {
 
     const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
 
-    function getSignal(s: SignalData) {
+    
   let signal = '';
 
   const pump = getRecentRSIDiff(s.rsi14, 14)?.pumpStrength;
