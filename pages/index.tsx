@@ -893,12 +893,29 @@ if (loading) {
       </th>
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
+      <th className="px-1 py-0.5 text-center">Signal</th> {/* New column */}
     </tr>
   </thead>
   <tbody>
     {filteredAndSortedSignals.map((s: any) => {
       const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
       const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+      const pump = pumpDump?.pumpStrength;
+      const dump = pumpDump?.dumpStrength;
+
+      const inRange = (val: number | undefined, min: number, max: number) =>
+        val !== undefined && val >= min && val <= max;
+
+      let signal = '';
+      if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
+        signal = 'SELL';
+      } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
+        signal = 'INDECISION';
+      } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+        signal = 'SELL';
+      } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
+        signal = 'INDECISION';
+      }
 
       return (
         <tr
@@ -942,29 +959,29 @@ if (loading) {
           </td>
           <td
             className={`text-center ${
-              pumpDump?.pumpStrength > 27
+              pump > 27
                 ? 'text-green-400'
-                : pumpDump?.pumpStrength >= 8 && pumpDump?.pumpStrength <= 12
+                : pump >= 8 && pump <= 12
                 ? 'text-yellow-400'
-                : pumpDump?.pumpStrength >= 19 && pumpDump?.pumpStrength <= 23
+                : pump >= 19 && pump <= 23
                 ? 'text-blue-400'
                 : 'text-white'
             }`}
           >
-            {pumpDump?.pumpStrength?.toFixed(2) ?? 'N/A'}
+            {pump?.toFixed(2) ?? 'N/A'}
           </td>
           <td
             className={`text-center ${
-              pumpDump?.dumpStrength > 27
+              dump > 27
                 ? 'text-red-400'
-                : pumpDump?.dumpStrength >= 8 && pumpDump?.dumpStrength <= 12
+                : dump >= 8 && dump <= 12
                 ? 'text-yellow-400'
-                : pumpDump?.dumpStrength >= 19 && pumpDump?.dumpStrength <= 23
+                : dump >= 19 && dump <= 23
                 ? 'text-blue-400'
                 : 'text-white'
             }`}
           >
-            {pumpDump?.dumpStrength?.toFixed(2) ?? 'N/A'}
+            {dump?.toFixed(2) ?? 'N/A'}
           </td>
           <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bearishCollapse ? 'Yes' : 'No'}
@@ -972,49 +989,23 @@ if (loading) {
           <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'bg-gray-800 text-gray-500'}`}>
             {s.bullishSpike ? 'Yes' : 'No'}
           </td>
-        </tr>
-      );
-    })}
-  </tbody>
-</table>
-
-{/* BUY / SELL SIGNAL TABLE */}
-<table className="w-full text-[11px] mt-4 border-collapse">
-  <thead className="bg-gray-900 text-yellow-300">
-    <tr>
-      <th className="px-1 py-0.5 text-left">Symbol</th>
-      <th className="px-1 py-0.5 text-center">Signal</th>
-      <th className="px-1 py-0.5 text-center">Pump</th>
-      <th className="px-1 py-0.5 text-center">Dump</th>
-    </tr>
-  </thead>
-  <tbody>
-    {filteredAndSortedSignals.map((s: any) => {
-      const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-      const pump = pumpDump?.pumpStrength;
-      const dump = pumpDump?.dumpStrength;
-
-      const inSignalRange = (val: number | undefined) =>
-        val !== undefined && ((val >= 8 && val <= 12) || (val >= 19 && val <= 23));
-
-      const isBuySignal = (inSignalRange(pump) || inSignalRange(dump)) && s.bearishCollapse;
-      const isSellSignal = (inSignalRange(pump) || inSignalRange(dump)) && s.bullishSpike;
-
-      if (!isBuySignal && !isSellSignal) return null;
-
-      return (
-        <tr key={s.symbol} className="border-b border-gray-700">
-          <td className="px-1 py-0.5 font-bold text-white">{s.symbol}</td>
-          <td className={`px-1 py-0.5 text-center font-semibold ${isBuySignal ? 'text-green-400' : 'text-red-400'}`}>
-            {isBuySignal ? 'BUY' : 'SELL'}
+          <td
+            className={`px-1 py-0.5 text-center font-semibold ${
+              signal === 'SELL'
+                ? 'text-red-400'
+                : signal === 'INDECISION'
+                ? 'text-blue-400'
+                : 'text-gray-500'
+            }`}
+          >
+            {signal}
           </td>
-          <td className="px-1 py-0.5 text-center">{pump?.toFixed(2) ?? 'N/A'}</td>
-          <td className="px-1 py-0.5 text-center">{dump?.toFixed(2) ?? 'N/A'}</td>
         </tr>
       );
     })}
   </tbody>
 </table>
+          
       </div>
     </div>                    
   );
