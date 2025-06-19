@@ -102,54 +102,66 @@ const getSignal = (s: any): string => {
   const isAbove27 = (val: number | undefined) =>
     val !== undefined && val >= 27;
 
-  const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+  const pumpOrDumpInRange_19_23 = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+  const pumpOrDumpInRange_8_12 = inRange(pump, 8, 12) || inRange(dump, 8, 12);
+  const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
+  // Trend flipped compared to yesterday with a strong impulse
   if (
-    (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
-    (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+    (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange_19_23) ||
+    (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange_19_23)
   ) {
     return "YESTERDAY'S TREND REVERSE";
   }
 
-  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
+  // Selling signals
+  if (pumpOrDumpInRange_8_12 && s.bearishCollapse) {
     return 'START SELLING';
   }
 
-  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
-    return 'CONTINUE SELLING';
+  if (pumpOrDumpInRange_19_23 && s.bearishCollapse) {
+    return 'PULLBACK SELL';
   }
 
-  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+  // Buying signals
+  if (pumpOrDumpInRange_8_12 && s.bullishSpike) {
     return 'START BUYING';
   }
 
-  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
-    return 'CONTINUE BUYING';
+  if (pumpOrDumpInRange_19_23 && s.bullishSpike) {
+    return 'PULLBACK BUY';
   }
 
-  if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
+  // Overextended moves may suggest exhaustion/reversal
+  if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
     return 'POSSIBLE REVERSE';
   }
 
-  if (
-    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-    s.bearishReversal
-  ) {
+  // Entry: moderate pump/dump + clear reversal
+  if (pumpOrDumpInRange_8_12 && s.bearishReversal) {
     return 'BUY';
   }
 
-  if (
-    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-    s.bullishReversal
-  ) {
+  if (pumpOrDumpInRange_8_12 && s.bullishReversal) {
     return 'SELL';
   }
 
-  if (
-    (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
-    (s.bearishReversal || s.bullishReversal)
-  ) {
-    return 'INDECISION';
+  // Overextended + reversal = caution
+  if (pumpOrDumpAbove27 && s.bearishReversal) {
+    return 'POSSIBLE REVERSE';
+  }
+
+  if (pumpOrDumpAbove27 && s.bullishReversal) {
+    return 'POSSIBLE REVERSE';
+  }
+
+  // Special case: 19–23 + reversal = INDECISION/weak confirmation
+  if (pumpOrDumpInRange_19_23 && s.bearishReversal) {
+    return 'INDECISION / BUY';
+  }
+
+  if (pumpOrDumpInRange_19_23 && s.bullishReversal) {
+    return 'INDECISION / SELL';
   }
 
   return '';
@@ -944,84 +956,87 @@ if (loading) {
   </button>
 </div>
           
-      <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">
-  <div className="flex flex-wrap gap-4">
-    <div className="flex items-center gap-1">
-      <span>Bullish Main Trend:</span>
-      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Main Trend:</span>
-      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bullish Reversal:</span>
-      <span className="text-purple-300 font-semibold">{bullishReversalCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Reversal:</span>
-      <span className="text-purple-300 font-semibold">{bearishReversalCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bullish Breakout:</span>
-      <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Breakout:</span>
-      <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bullish Spike:</span>
-      <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span>Bearish Collapse:</span>
-      <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
+     <div className="sticky left-0 top-0 z-30 bg-gray-900 border-r border-gray-700 p-4 mb-4 text-white text-sm md:text-base shadow-md">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    {/* 🔷 Trend Overview */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📈 Bull Trend:</span>
+        <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📉 Bear Trend:</span>
+        <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">🔄 Bull Reversal:</span>
+        <span className="text-purple-300 font-bold">{bullishReversalCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">🔃 Bear Reversal:</span>
+        <span className="text-purple-300 font-bold">{bearishReversalCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">🚀 Bull Breakout:</span>
+        <span className="text-yellow-300 font-bold">{bullishBreakoutCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📉 Bear Breakout:</span>
+        <span className="text-yellow-400 font-bold">{bearishBreakoutCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">⚡ Bull Spike:</span>
+        <span className="text-green-300 font-bold">{bullishSpikeCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">💥 Bear Collapse:</span>
+        <span className="text-red-300 font-bold">{bearishCollapseCount}</span>
+      </div>
     </div>
 
-    {/* ✅ Signal Counts */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-  <div className="flex items-center gap-1">
-    <span className="text-green-400 font-semibold">BUY:</span>
-    <span>{signalCounts.buy}</span>
+    {/* ✅ Signal Summary */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-green-400 font-semibold">🟢 BUY:</span>
+        <span>{signalCounts.buy}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-red-400 font-semibold">🔴 SELL:</span>
+        <span>{signalCounts.sell}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-blue-400 font-semibold">🔵 INDECISION:</span>
+        <span>{signalCounts.indecision}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-green-300 font-semibold">🟢 START BUY:</span>
+        <span>{signalCounts.startBuying}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-green-300 font-semibold">🔁 PULLBACK BUY:</span>
+        <span>{signalCounts.continueBuying}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-red-300 font-semibold">🟥 START SELL:</span>
+        <span>{signalCounts.startSelling}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-red-300 font-semibold">🔁 PULLBACK SELL:</span>
+        <span>{signalCounts.continueSelling}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE REVERSE:</span>
+        <span>{signalCounts.possibleReverse}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-yellow-500 font-semibold">🕒 YESTERDAY'S REVERSE:</span>
+        <span>{signalCounts.yesterdayReverse}</span>
+      </div>
+    </div>
   </div>
-  <div className="flex items-center gap-1">
-    <span className="text-red-400 font-semibold">SELL:</span>
-    <span>{signalCounts.sell}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-blue-400 font-semibold">INDECISION:</span>
-    <span>{signalCounts.indecision}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-green-300 font-semibold">START BUYING:</span>
-    <span>{signalCounts.startBuying}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-green-300 font-semibold">CONTINUE BUYING:</span>
-    <span>{signalCounts.continueBuying}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-red-300 font-semibold">START SELLING:</span>
-    <span>{signalCounts.startSelling}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-red-300 font-semibold">CONTINUE SELLING:</span>
-    <span>{signalCounts.continueSelling}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-yellow-300 font-semibold">POSSIBLE REVERSE:</span>
-    <span>{signalCounts.possibleReverse}</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <span className="text-yellow-500 font-semibold">YESTERDAY'S REVERSE:</span>
-    <span>{signalCounts.yesterdayReverse}</span>
-  </div>
-</div>
-  </div>
-</div>
+</div>     
           
-
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
         
           <table className="w-full text-[11px] border-collapse">
@@ -1080,39 +1095,59 @@ if (loading) {
 
   let signal = '';
 
-  const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
+const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
-  if (
-    (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
-    (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
-  ) {
-    signal = "YESTERDAY'S TREND REVERSE";
-  } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
-    signal = 'START SELLING';
-  } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
-    signal = 'CONTINUE SELLING';
-  } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
-    signal = 'START BUYING';
-  } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
-    signal = 'CONTINUE BUYING';
-  } else if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
-    signal = 'POSSIBLE REVERSE';
-  } else if (
-    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-    s.bearishReversal
-  ) {
-    signal = 'BUY';
-  } else if (
-    (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
-    s.bullishReversal
-  ) {
-    signal = 'SELL';
-  } else if (
-    (inRange(pump, 19, 23) || inRange(dump, 19, 23)) &&
-    (s.bullishReversal || s.bearishReversal)
-  ) {
-    signal = 'INDECISION';
-  }
+// 1. Reversal + Breakout from previous day
+if (
+  (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
+  (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+) {
+  signal = "YESTERDAY'S TREND REVERSE";
+}
+
+// 2. Bearish selling zone
+else if (pumpOrDumpInRangeEntry && s.bearishCollapse) {
+  signal = 'START SELLING';
+} else if (pumpOrDumpInRange && s.bearishCollapse) {
+  signal = 'PULLBACK SELL';
+}
+
+// 3. Bullish buying zone
+else if (pumpOrDumpInRangeEntry && s.bullishSpike) {
+  signal = 'START BUYING';
+} else if (pumpOrDumpInRange && s.bullishSpike) {
+  signal = 'PULLBACK BUY';
+}
+
+// 4. Overextended = wait for reversal
+else if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
+  signal = 'POSSIBLE REVERSE';
+}
+
+// 5. Clean reversal entries
+else if (pumpOrDumpInRangeEntry && s.bearishReversal) {
+  signal = 'BUY';
+} else if (pumpOrDumpInRangeEntry && s.bullishReversal) {
+  signal = 'SELL';
+}
+
+// 6. Overextended reversal caution
+else if (pumpOrDumpAbove27 && s.bearishReversal) {
+  signal = 'POSSIBLE REVERSE';
+} else if (pumpOrDumpAbove27 && s.bullishReversal) {
+  signal = 'POSSIBLE REVERSE';
+}
+
+// 7. Mid-range reversal = indecision
+else if (pumpOrDumpInRange && s.bearishReversal) {
+  signal = 'INDECISION / BUY';
+} else if (pumpOrDumpInRange && s.bullishReversal) {
+  signal = 'INDECISION / SELL';
+}
+
+return signal;
 
 
     return (
@@ -1193,11 +1228,11 @@ if (loading) {
       ? 'text-red-400'
       : signal === 'BUY'
       ? 'text-green-400'
-      : signal === 'INDECISION'
+      : signal === 'INDECISION / BUY' || signal === 'INDECISION / SELL'
       ? 'text-blue-400'
-      : signal === 'START BUYING' || signal === 'CONTINUE BUYING'
+      : signal === 'START BUYING' || signal === 'PULLBACK BUY'
       ? 'text-green-300'
-      : signal === 'START SELLING' || signal === 'CONTINUE SELLING'
+      : signal === 'START SELLING' || signal === 'PULLBACK SELL'
       ? 'text-red-300'
       : signal === 'POSSIBLE REVERSE'
       ? 'text-yellow-300'
