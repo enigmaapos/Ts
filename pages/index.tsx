@@ -214,17 +214,54 @@ const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).leng
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
-    // ✅ Count BUY / SELL / INDECISION
-  const signalCounts = useMemo(() => {
-    const counts = { buy: 0, sell: 0, indecision: 0 };
-    filteredAndSortedSignals.forEach((s: any) => {
-      const signal = getSignal(s);
-      if (signal === 'BUY') counts.buy++;
-      else if (signal === 'SELL') counts.sell++;
-      else if (signal === 'INDECISION') counts.indecision++;
-    });
-    return counts;
-  }, [filteredAndSortedSignals]);
+    const signalCounts = useMemo(() => {
+  const counts = {
+    buy: 0,
+    sell: 0,
+    indecision: 0,
+    startBuying: 0,
+    continueBuying: 0,
+    startSelling: 0,
+    continueSelling: 0,
+    possibleReverse: 0,
+    yesterdayReverse: 0,
+  };
+
+  filteredAndSortedSignals.forEach((s: any) => {
+    const signal = getSignal(s);
+    switch (signal) {
+      case 'BUY':
+        counts.buy++;
+        break;
+      case 'SELL':
+        counts.sell++;
+        break;
+      case 'INDECISION':
+        counts.indecision++;
+        break;
+      case 'START BUYING':
+        counts.startBuying++;
+        break;
+      case 'CONTINUE BUYING':
+        counts.continueBuying++;
+        break;
+      case 'START SELLING':
+        counts.startSelling++;
+        break;
+      case 'CONTINUE SELLING':
+        counts.continueSelling++;
+        break;
+      case 'POSSIBLE REVERSE':
+        counts.possibleReverse++;
+        break;
+      case "YESTERDAY'S TREND REVERSE":
+        counts.yesterdayReverse++;
+        break;
+    }
+  });
+
+  return counts;
+}, [filteredAndSortedSignals]);
 
   
   
@@ -920,18 +957,44 @@ if (loading) {
     </div>
 
     {/* ✅ Signal Counts */}
-    <div className="flex items-center gap-1">
-      <span className="text-green-400 font-semibold">BUY:</span>
-      <span>{signalCounts.buy}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span className="text-red-400 font-semibold">SELL:</span>
-      <span>{signalCounts.sell}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      <span className="text-blue-400 font-semibold">INDECISION:</span>
-      <span>{signalCounts.indecision}</span>
-    </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+  <div className="flex items-center gap-1">
+    <span className="text-green-400 font-semibold">BUY:</span>
+    <span>{signalCounts.buy}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-red-400 font-semibold">SELL:</span>
+    <span>{signalCounts.sell}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-blue-400 font-semibold">INDECISION:</span>
+    <span>{signalCounts.indecision}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-green-300 font-semibold">START BUYING:</span>
+    <span>{signalCounts.startBuying}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-green-300 font-semibold">CONTINUE BUYING:</span>
+    <span>{signalCounts.continueBuying}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-red-300 font-semibold">START SELLING:</span>
+    <span>{signalCounts.startSelling}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-red-300 font-semibold">CONTINUE SELLING:</span>
+    <span>{signalCounts.continueSelling}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-yellow-300 font-semibold">POSSIBLE REVERSE:</span>
+    <span>{signalCounts.possibleReverse}</span>
+  </div>
+  <div className="flex items-center gap-1">
+    <span className="text-yellow-500 font-semibold">YESTERDAY'S REVERSE:</span>
+    <span>{signalCounts.yesterdayReverse}</span>
+  </div>
+</div>
   </div>
 </div>
           
