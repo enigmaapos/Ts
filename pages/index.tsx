@@ -992,7 +992,18 @@ if (loading) {
     const isAbove27 = (val: number | undefined) => val !== undefined && val >= 27;
 
     let signal = '';
-    if (
+
+    if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishCollapse) {
+      signal = 'START SELLING';
+    } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bearishCollapse) {
+      signal = 'CONTINUE SELLING';
+    } else if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishSpike) {
+      signal = 'START BUYING';
+    } else if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && s.bullishSpike) {
+      signal = 'CONTINUE BUYING';
+    } else if ((isAbove27(pump) || isAbove27(dump)) && (s.bullishSpike || s.bearishCollapse)) {
+      signal = 'POSSIBLE REVERSE';
+    } else if (
       (isAbove27(pump) || isAbove27(dump) || inRange(pump, 8, 12) || inRange(dump, 8, 12)) &&
       s.bearishReversal
     ) {
@@ -1089,6 +1100,12 @@ if (loading) {
               ? 'text-green-400'
               : signal === 'INDECISION'
               ? 'text-blue-400'
+              : signal === 'START BUYING' || signal === 'CONTINUE BUYING'
+              ? 'text-green-300'
+              : signal === 'START SELLING' || signal === 'CONTINUE SELLING'
+              ? 'text-red-300'
+              : signal === 'POSSIBLE REVERSE'
+              ? 'text-yellow-300'
               : 'text-gray-500'
           }`}
         >
@@ -1097,7 +1114,7 @@ if (loading) {
       </tr>
     );
   })}
-</tbody> 
+</tbody>
 </table>
           
       </div>
