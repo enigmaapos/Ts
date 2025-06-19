@@ -192,9 +192,10 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
 });
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  if (!trendFilter) return true;
-  return s[trendFilter];
-});
+    if (trendFilter && !s[trendFilter]) return false;
+    if (signalFilter && getSignal(s) !== signalFilter) return false;
+    return true;
+  });
   
   
   
@@ -876,6 +877,7 @@ if (loading) {
     onClick={() => {
       setSearch('');
       setTrendFilter(null);
+      setSignalFilter(null);
       setShowOnlyFavorites(false);
     }}
     className="px-3 py-1 rounded-full bg-red-500 text-white hover:bg-red-600"
