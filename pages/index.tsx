@@ -289,6 +289,18 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   return true;
 };
 
+const isAscendingRSI = (rsi: number[], window = 3): boolean => {
+  const len = rsi.length;
+  if (len < window) return false;
+
+  for (let i = len - window; i < len - 1; i++) {
+    if (rsi[i] >= rsi[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
@@ -306,6 +318,9 @@ const detectBullishToBearish = (
 
   // Confirm bullish trend
   if (ema14[len - 1] <= ema70[len - 1]) return false;
+
+  // 🛑 New: End early if RSI is ascending
+  if (isAscendingRSI(rsi14, 3)) return false;
 
   // Find crossover: EMA14 crossing above EMA70
   let crossoverIndex = -1;
@@ -347,7 +362,13 @@ const detectBullishToBearish = (
       // ✅ New: Check descending RSI over last 3 candles
       const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
 
-      if (isDescendingHigh && fallingRSI && lowerThanCrossover && descendingCloseBelowEMA && descendingCurrentRSI) {
+      if (
+        isDescendingHigh &&
+        fallingRSI &&
+        lowerThanCrossover &&
+        descendingCloseBelowEMA &&
+        descendingCurrentRSI
+      ) {
         return true;
       }
     }
@@ -368,7 +389,19 @@ const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   return true;
 };
 
-       const detectBearishToBullish = (
+const isDescendingRSI = (rsi: number[], window = 3): boolean => {
+  const len = rsi.length;
+  if (len < window) return false;
+
+  for (let i = len - window; i < len - 1; i++) {
+    if (rsi[i] <= rsi[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
@@ -385,6 +418,9 @@ const isAscendingRSI = (rsi: number[], window = 3): boolean => {
 
   // Confirm bearish trend
   if (ema14[len - 1] >= ema70[len - 1]) return false;
+
+  // 🛑 New: End early if RSI is descending (trend shift to bullish is weakening)
+  if (isDescendingRSI(rsi14, 3)) return false;
 
   // Find crossover: EMA14 crossing below EMA70
   let crossoverIndex = -1;
@@ -426,15 +462,20 @@ const isAscendingRSI = (rsi: number[], window = 3): boolean => {
       // ✅ Check RSI is currently ascending
       const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
 
-      if (isAscendingLow && risingRSI && higherThanCrossover && ascendingCloseAboveEMA && ascendingCurrentRSI) {
+      if (
+        isAscendingLow &&
+        risingRSI &&
+        higherThanCrossover &&
+        ascendingCloseAboveEMA &&
+        ascendingCurrentRSI
+      ) {
         return true;
       }
     }
   }
 
   return false;
-}; 
-
+};
     
 // Usage
   const bullishReversal = detectBullishToBearish(
