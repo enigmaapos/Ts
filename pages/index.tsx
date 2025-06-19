@@ -711,7 +711,7 @@ if (bearishReversal) {
     risingRSI &&
     higherThanCrossover &&
     ascendingCurrentRSI
-    weakRSIDrop
+    weakRSIDrop &&
   );
 };  
         
@@ -805,7 +805,7 @@ const weakPumpRSI = rsi14[len - 1] <= 20; // ✅ New condition
     fallingRSI &&
     lowerThanCrossover &&
     descendingCurrentRSI
-    weakPumpRSI
+    weakPumpRSI &&
   );
 };
 
