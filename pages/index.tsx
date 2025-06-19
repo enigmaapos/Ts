@@ -860,18 +860,16 @@ if (loading) {
       {label}
     </button>
   ))}
-        {['BUY', 'SELL', 'INDECISION'].map((type) => (
-  <button
-    key={type}
-    onClick={() => setSignalFilter(signalFilter === type ? null : type)}
-    className={`px-3 py-1 rounded-full ${
-      signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
-    }`}
-  >
-    {type}
-  </button>
-))}
-
+        
+ {['BUY', 'SELL', 'INDECISION'].map((type) => (
+          <button
+            key={type}
+            onClick={() => setSignalFilter(signalFilter === type ? null : type)}
+            className={`px-3 py-1 rounded-full ${signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'}`}
+          >
+            {type}
+          </button>
+        ))}
   {/* ✅ Clear Button */}
   <button
     onClick={() => {
