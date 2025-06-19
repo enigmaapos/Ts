@@ -100,6 +100,7 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
+  const [signalFilter, setSignalFilter] = useState<string | null>(null);
   
   
 
@@ -138,6 +139,28 @@ const filteredSignals = signals.filter((s) =>
   s.symbol.toLowerCase().includes(search.toLowerCase()) &&
   (!showOnlyFavorites || favorites.has(s.symbol))
 );
+
+  const getSignal = (s: any): string => {
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+  const pump = pumpDump?.pumpStrength;
+  const dump = pumpDump?.dumpStrength;
+
+  const inRange = (val: number | undefined, min: number, max: number) =>
+    val !== undefined && val >= min && val <= max;
+
+  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bearishReversal)
+    return 'BUY';
+  if ((inRange(pump, 27, Infinity) || inRange(dump, 27, Infinity)) && s.bullishReversal)
+    return 'SELL';
+  if ((inRange(pump, 19, 23) || inRange(dump, 19, 23)) && (s.bearishReversal || s.bullishReversal))
+    return 'INDECISION';
+  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bearishReversal)
+    return 'BUY';
+  if ((inRange(pump, 8, 12) || inRange(dump, 8, 12)) && s.bullishReversal)
+    return 'SELL';
+
+  return '';
+};
 
 const sortedSignals = [...filteredSignals].sort((a, b) => {
   let valA: any = a[sortField];
@@ -821,6 +844,17 @@ if (loading) {
       {label}
     </button>
   ))}
+        {['BUY', 'SELL', 'INDECISION'].map((type) => (
+  <button
+    key={type}
+    onClick={() => setSignalFilter(signalFilter === type ? null : type)}
+    className={`px-3 py-1 rounded-full ${
+      signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
+    }`}
+  >
+    {type}
+  </button>
+))}
 
   {/* ✅ Clear Button */}
   <button
@@ -836,41 +870,55 @@ if (loading) {
 </div>
           
       <div className="sticky left-0 top-0 bg-gray-900 p-4 z-30 text-white text-sm md:text-base border-r border-gray-700 mb-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-1">
-            <span>Bullish Main Trend:</span>
-            <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bearish Main Trend:</span>
-            <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bullish Reversal:</span>
-            <span className="text-purple-300 font-semibold">{bullishReversalCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bearish Reversal:</span>
-            <span className="text-purple-300 font-semibold">{bearishReversalCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bullish Breakout:</span>
-            <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bearish Breakout:</span>
-            <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bullish Spike:</span>
-            <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>Bearish Collapse:</span>
-            <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
-          </div>
-        </div>
-      </div>
+  <div className="flex flex-wrap gap-4">
+    <div className="flex items-center gap-1">
+      <span>Bullish Main Trend:</span>
+      <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bearish Main Trend:</span>
+      <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bullish Reversal:</span>
+      <span className="text-purple-300 font-semibold">{bullishReversalCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bearish Reversal:</span>
+      <span className="text-purple-300 font-semibold">{bearishReversalCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bullish Breakout:</span>
+      <span className="text-yellow-300 font-semibold">{bullishBreakoutCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bearish Breakout:</span>
+      <span className="text-yellow-400 font-semibold">{bearishBreakoutCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bullish Spike:</span>
+      <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span>Bearish Collapse:</span>
+      <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
+    </div>
+
+    {/* ✅ Signal Counts */}
+    <div className="flex items-center gap-1">
+      <span className="text-green-400 font-semibold">BUY:</span>
+      <span>{signalCounts.buy}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span className="text-red-400 font-semibold">SELL:</span>
+      <span>{signalCounts.sell}</span>
+    </div>
+    <div className="flex items-center gap-1">
+      <span className="text-blue-400 font-semibold">INDECISION:</span>
+      <span>{signalCounts.indecision}</span>
+    </div>
+  </div>
+</div>
           
 
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
