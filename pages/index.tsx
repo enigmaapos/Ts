@@ -193,7 +193,7 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
     if (trendFilter && !s[trendFilter]) return false;
-    if (signalFilter && getSignal(s) !== signalFilter) return false;
+    
     return true;
   });
   
