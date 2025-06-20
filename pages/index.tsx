@@ -455,6 +455,27 @@ const detectStrongRSIDrop = (
   return minRSI <= 23; // ✅ Defines "strong" RSI drop
 };
 
+const now = Date.now();
+
+// Adjust this depending on your timezone. For Binance UTC-based session: 11:45am UTC previous day
+const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
+  Date.UTC(y, m, d, hPH - 8, min);
+
+const getDailyCloseTimestamp = () => {
+  const nowDate = new Date(now);
+  const year = nowDate.getUTCFullYear();
+  const month = nowDate.getUTCMonth();
+  const day = nowDate.getUTCDate();
+
+  const todayClose = getUTCMillis(year, month, day, 7, 45); // 7:45am UTC
+  if (now < todayClose) {
+    return getUTCMillis(year, month, day - 1, 7, 45); // use yesterday's if not reached today’s
+  }
+  return todayClose;
+};
+
+const dailyCloseTimestamp = getDailyCloseTimestamp();
+        
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
@@ -641,7 +662,9 @@ const detectBearishToBullish = (
   return false;
 };       
        
-    
+  // ✅ Calculate dailyCloseTimestamp before calling the detection
+const dailyCloseTimestamp = getDailyCloseTimestamp();
+        
 // Usage
 // ✅ Detect Bullish-to-Bearish Reversal
 const bullishReversal = detectBullishToBearish(
