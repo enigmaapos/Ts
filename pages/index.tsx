@@ -663,7 +663,8 @@ const detectBearishToBullish = (
 };       
        
   // ✅ Calculate dailyCloseTimestamp before calling the detection
-const dailyCloseTimestamp = getDailyCloseTimestamp();
+const dailyCloseTimestampBullish = getDailyCloseTimestamp();
+const dailyCloseTimestampBearish = getDailyCloseTimestamp();
         
 // Usage
 // ✅ Detect Bullish-to-Bearish Reversal
