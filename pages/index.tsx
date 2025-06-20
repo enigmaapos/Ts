@@ -1107,7 +1107,7 @@ if (loading) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">     
- {['BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK SELL', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
+ {['BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK BUY', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
           <button
             key={type}
             onClick={() => setSignalFilter(signalFilter === type ? null : type)}
