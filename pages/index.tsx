@@ -1114,7 +1114,7 @@ const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
 const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
 // 🔥 New Impulse Signal logic
-if (pumpOrDumpImpulse &&) {
+if (pumpOrDumpImpulse) {
   signal = 'IMPULSE SIGNAL';
 } else if (
   (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
