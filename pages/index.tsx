@@ -107,10 +107,25 @@ const getSignal = (s: any): string => {
   const pumpOrDumpInRange_8_12 = inRange(pump, 8, 12) || inRange(dump, 8, 12);
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
-  // 🔥 New condition: Special impulse strength
-  if (pumpOrDumpInRange_23_26) {
-    return 'IMPULSE SIGNAL';
-  }
+  // No breakout + bearish trend + tested + failed = IMPULSE BUY
+if (
+  !breakout &&
+  mainTrend === 'bearish' &&
+  testedPrevLow &&
+  failedBearishBreak
+) {
+  return 'IMPULSE SIGNAL / BUY';
+}
+
+// No breakout + bullish trend + tested + failed = IMPULSE SELL
+if (
+  !breakout &&
+  mainTrend === 'bullish' &&
+  testedPrevHigh &&
+  failedBullishBreak
+) {
+  return 'IMPULSE SIGNAL / SELL';
+}
 
   // Trend flipped compared to yesterday with a strong impulse
   if (
@@ -267,7 +282,6 @@ const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'beari
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
 const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === true).length;
-const noBreakoutCount = filteredSignals.filter(s => !s.bullishBreakout && !s.bearishBreakout).length; 
 
 const testedPrevHighCount = filteredSignals.filter(s => s.testedPrevHigh === true).length;
 const testedPrevLowCount = filteredSignals.filter(s => s.testedPrevLow === true).length;
@@ -284,12 +298,12 @@ const signalCounts = useMemo(() => {
     sell: 0,
     indecision: 0,
     startBuying: 0,
-    continueBuying: 0, // Now refers to "PULLBACK BUY"
+    continueBuying: 0, // "PULLBACK BUY"
     startSelling: 0,
-    continueSelling: 0, // Now refers to "PULLBACK SELL"
+    continueSelling: 0, // "PULLBACK SELL"
     possibleReverse: 0,
     yesterdayReverse: 0,
-    impulseSignal: 0, // 🔥 New counter
+    impulseSignal: 0, // 🔥 Includes all impulse variants
   };
 
   signals.forEach((s: any) => {
@@ -324,7 +338,9 @@ const signalCounts = useMemo(() => {
       case "YESTERDAY'S TREND REVERSE":
         counts.yesterdayReverse++;
         break;
-      case 'IMPULSE SIGNAL': // 🔥 New case
+      case 'IMPULSE SIGNAL':
+      case 'IMPULSE SIGNAL / BUY':
+      case 'IMPULSE SIGNAL / SELL':
         counts.impulseSignal++;
         break;
     }
@@ -435,7 +451,7 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
   const breakoutFailure = failedBullishBreak && failedBearishBreak;
 
   // Optional: Add test failure signal
-  const testThreshold = 0.0005; // 0.0005 = ~0.05% range for testing
+  const testThreshold = 0.0002; // 0.0002 = ~0.02% range for testing
 
   const testedPrevHigh =
     todaysHighestHigh !== null &&
@@ -860,8 +876,7 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bullishMainTrendCount,
   bearishMainTrendCount,
   bullishBreakoutCount,
-  bearishBreakoutCount,
-   noBreakoutCount,       
+  bearishBreakoutCount,       
   testedPrevHighCount,   // ✅ New
   testedPrevLowCount,    // ✅ New
   mainTrend,
@@ -878,6 +893,9 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   testedPrevHigh,
   testedPrevLow,
   breakoutTestSignal,
+          breakoutFailure,
+          failedBearishBreak,
+          failedBullishBreak,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1051,9 +1069,6 @@ if (loading) {
     <span className="text-gray-300">🟡 Tested Prev Low:</span>
     <span className="text-blue-300 font-bold">{testedPrevLowCount}</span>
   </div>
-      <div className="flex items-center gap-2">
-  <span className="text-gray-300">🛑 No Breakout:</span>
-  <span className="text-gray-400 font-bold">{noBreakoutCount}</span>
     </div>
 
     {/* ✅ Signal Summary */}
@@ -1167,8 +1182,15 @@ const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
 const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
 const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
-// 🔥 New Impulse Signal logic
-if (pumpOrDumpImpulse) {
+// ✅ Custom tested + failed breakout logic
+if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBearishBreak) {
+  signal = 'IMPULSE SIGNAL / BUY';
+} else if (!s.breakout && s.mainTrend === 'bullish' && s.testedPrevHigh && s.failedBullishBreak) {
+  signal = 'IMPULSE SIGNAL / SELL';
+}
+
+// 🔥 Original Impulse and pattern logic
+else if (pumpOrDumpImpulse) {
   signal = 'IMPULSE SIGNAL';
 } else if (
   (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
@@ -1195,7 +1217,6 @@ if (pumpOrDumpImpulse) {
   signal = 'INDECISION / BUY';
 } else if (pumpOrDumpInRange && s.bullishReversal) {
   signal = 'INDECISION / SELL';
-}
 
         return (
           <tr
