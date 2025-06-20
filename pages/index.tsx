@@ -1326,6 +1326,9 @@ else if (pumpOrDumpImpulse) {
 <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
   {s.testedPrevLow ? 'Yes' : '-'}
 </td>
+            <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+  {s.breakoutFailure ? 'Yes' : '-'}
+</td>
               <td
               className={`text-center ${
                 pump > 27
@@ -1358,9 +1361,6 @@ else if (pumpOrDumpImpulse) {
             <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
               {s.bullishSpike ? 'Yes' : 'No'}
             </td>
-            <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
-  {s.breakoutFailure ? 'Yes' : '-'}
-</td>
             <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
     signal === 'SELL'
