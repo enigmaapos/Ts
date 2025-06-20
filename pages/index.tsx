@@ -372,6 +372,8 @@ const signalCounts = useMemo(() => {
           volume: +c[5],
         }));
 
+        const timestamps = candles.map(c => c.timestamp);
+        const opens = candles.map(c => c.open);
         const closes = candles.map((c) => c.close);
 const highs = candles.map(c => c.high);
 const lows = candles.map(c => c.low);
