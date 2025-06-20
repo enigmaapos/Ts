@@ -102,7 +102,7 @@ const getSignal = (s: any): string => {
   const isAbove27 = (val: number | undefined) =>
     val !== undefined && val >= 27;
 
-  const pumpOrDumpInRange_23_25 = inRange(pump, 23, 25) || inRange(dump, 23, 25);
+  const pumpOrDumpInRange_23_25_26 = inRange(pump, 23, 25, 26) || inRange(dump, 23, 25, 26);
   const pumpOrDumpInRange_19_23 = inRange(pump, 19, 23) || inRange(dump, 19, 23);
   const pumpOrDumpInRange_8_12 = inRange(pump, 8, 12) || inRange(dump, 8, 12);
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
