@@ -108,7 +108,7 @@ const getSignal = (s: any): string => {
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
   // 🔥 New condition: Special impulse strength
-  if (pumpOrDumpInRange_23_25) {
+  if (pumpOrDumpInRange_23_26) {
     return 'IMPULSE SIGNAL';
   }
 
