@@ -453,15 +453,15 @@ const detectStrongRSIDrop = (
   return minRSI <= 23; // ✅ Defines "strong" RSI drop
 };
 
-        const detectBullishToBearish = (
+const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
   lows: number[],
   highs: number[],
   closes: number[],
-  timestamps: number[],            // 🆕 Added
-  dailyCloseTimestamp: number,     // 🆕 Added
+  timestamps: number[],
+  dailyCloseTimestamp: number,
   bullishBreakout: boolean,
   bearishBreakout: boolean
 ): boolean => {
@@ -473,10 +473,10 @@ const detectStrongRSIDrop = (
   // Confirm bullish trend
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-  // End early if RSI is ascending
+  // End early if RSI is still rising
   if (isAscendingRSI(rsi14, 3)) return false;
 
-  // Find EMA14 crossing above EMA70
+  // Find EMA14 > EMA70 crossover
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
@@ -511,6 +511,7 @@ const detectStrongRSIDrop = (
       const descendingCloseBelowEMA = lastClose < lastEMA14;
       const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
 
+      // ✅ New: Check for strong RSI drop between daily close and now
       const strongRSIDrop = detectStrongRSIDrop(
         rsi14,
         timestamps,
@@ -533,8 +534,9 @@ const detectStrongRSIDrop = (
 
   return false;
 };
+
         
-const detectStrongRSIPump = (
+ const detectStrongRSIPump = (
   rsi14: number[],
   timestamps: number[],
   dailyCloseTime: number,
@@ -555,15 +557,15 @@ const detectStrongRSIPump = (
   return maxRSI >= 23; // ✅ Defines a strong RSI pump
 };
 
-        const detectBearishToBullish = (
+const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
   lows: number[],
   highs: number[],
   closes: number[],
-  timestamps: number[],            // 🆕 Added
-  dailyCloseTimestamp: number,     // 🆕 Added
+  timestamps: number[],
+  dailyCloseTimestamp: number,
   bullishBreakout: boolean,
   bearishBreakout: boolean
 ): boolean => {
@@ -575,8 +577,10 @@ const detectStrongRSIPump = (
   // Confirm bearish trend
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
+  // 🛑 Skip if RSI is still descending
   if (isDescendingRSI(rsi14, 3)) return false;
 
+  // 🔁 Detect EMA14 < EMA70 crossover
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
@@ -611,6 +615,7 @@ const detectStrongRSIPump = (
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
       const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
 
+      // ✅ Strong RSI pump check from daily close to now
       const strongRSIPump = detectStrongRSIPump(
         rsi14,
         timestamps,
@@ -632,31 +637,32 @@ const detectStrongRSIPump = (
   }
 
   return false;
-};
-
-
+};       
+       
     
 // Usage
-  const bullishReversal = detectBullishToBearish(
+// ✅ Detect Bullish-to-Bearish Reversal
+const bullishReversal = detectBullishToBearish(
   ema14,
   ema70,
   rsi14,
   lows,
   highs,
   closes,
-  timestamps,            // 🆕 Added
-  dailyCloseTimestamp,     // 🆕 Added
+  timestamps,
+  dailyCloseTimestamp,
   bullishBreakout,
   bearishBreakout
 );
 
 if (bullishReversal) {
-  console.log(`[Bullish Reversal Detected]`);
-  console.log(`→ EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
-  console.log(`→ RSI14: ${rsi14.at(-1)}`);
-  console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
+  console.log(`[🔻 Bullish → Bearish Reversal Detected]`);
+  console.log(`📉 EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
+  console.log(`📊 RSI14: ${rsi14.at(-1)}`);
+  console.log(`🕯️ Close: ${closes.at(-1)}, High: ${highs.at(-1)}, Low: ${lows.at(-1)}`);
 }
 
+// ✅ Detect Bearish-to-Bullish Reversal
 const bearishReversal = detectBearishToBullish(
   ema14,
   ema70,
@@ -664,21 +670,22 @@ const bearishReversal = detectBearishToBullish(
   highs,
   lows,
   closes,
-  timestamps,            // 🆕 Added
-  dailyCloseTimestamp,     // 🆕 Added
+  timestamps,
+  dailyCloseTimestamp,
   bullishBreakout,
   bearishBreakout
 );
 
 if (bearishReversal) {
-  console.log(`[Bearish Reversal Detected]`);
-  console.log(`→ EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
-  console.log(`→ RSI14: ${rsi14.at(-1)}`);
-  console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
-}      
+  console.log(`[🟢 Bearish → Bullish Reversal Detected]`);
+  console.log(`📈 EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
+  console.log(`📊 RSI14: ${rsi14.at(-1)}`);
+  console.log(`🕯️ Close: ${closes.at(-1)}, High: ${highs.at(-1)}, Low: ${lows.at(-1)}`);
+}        
 
 
-      const detectWeakestRSIDrop = (
+      // ✅ Detect if weakest RSI from dailyCloseTime to now is ≤ 20
+const detectWeakestRSIDrop = (
   rsi14: number[],
   timestamps: number[],
   dailyCloseTime: number,
@@ -696,10 +703,11 @@ if (bearishReversal) {
     }
   }
 
-  return minRSI <= 20; // ✅ Only true if weakest RSI was 20 or below
+  return minRSI <= 20;
 };
 
-        const detectBullishSpike = (
+// ✅ Detect bullish spike with weak RSI drop
+const detectBullishSpike = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
@@ -707,8 +715,8 @@ if (bearishReversal) {
   lows: number[],
   highs: number[],
   closes: number[],
-  timestamps: number[],           // 🆕 Required to scan for RSI drop
-  dailyCloseTimestamp: number,    // 🆕 Start of the scan range
+  timestamps: number[],
+  dailyCloseTimestamp: number,
   bullishBreakout: boolean,
   bearishBreakout: boolean
 ): boolean => {
@@ -740,7 +748,6 @@ if (bearishReversal) {
   }
   if (crossoverIndex200 === -1) return false;
 
-  // ✅ Use the later crossover
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
@@ -752,7 +759,6 @@ if (bearishReversal) {
     }
   }
 
-  // Final checks
   const i = len - 1;
   const currentLow = lows[i];
   const currentHigh = highs[i];
@@ -762,10 +768,9 @@ if (bearishReversal) {
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
 
-  // ❌ Skip if touches EMA70
-  if (currentLow <= ema70Value && currentHigh >= ema70Value) return false;
+  const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
+  if (touchedEMA70) return false;
 
-  // ✅ Bullish spike conditions
   const aboveEMA70 = close > ema70Value;
   const aboveEMA200 = close > ema200Value;
   const aboveEMA14 = close > ema14Value;
@@ -774,7 +779,6 @@ if (bearishReversal) {
   const higherThanCrossover = close > crossoverLow;
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
 
-  // ✅ Scan for weakest RSI drop in 15m timeframe
   const weakRSIDrop = detectWeakestRSIDrop(
     rsi14,
     timestamps,
@@ -795,8 +799,8 @@ if (bearishReversal) {
 };
 
 
-
-        const detectWeakPumpRSI = (
+// ✅ Updated: Check if weakest RSI during session was ≤ 20
+const detectWeakPumpRSI = (
   rsi14: number[],
   timestamps: number[],
   dailyCloseTime: number,
@@ -804,15 +808,17 @@ if (bearishReversal) {
 ): boolean => {
   if (rsi14.length !== timestamps.length) return false;
 
+  let minRSI = Infinity;
+
   for (let i = 0; i < timestamps.length; i++) {
     if (timestamps[i] >= dailyCloseTime && timestamps[i] <= now) {
-      if (rsi14[i] <= 20) {
-        return true; // Weak RSI detected during the range
+      if (rsi14[i] < minRSI) {
+        minRSI = rsi14[i];
       }
     }
   }
 
-  return false;
+  return minRSI <= 20; // ✅ Weak RSI detected during the session
 };
 
 const detectBearishCollapse = (
@@ -823,8 +829,8 @@ const detectBearishCollapse = (
   lows: number[],
   highs: number[],
   closes: number[],
-  timestamps: number[],          // <-- Add timestamps here
-  dailyCloseTimestamp: number,   // <-- Add daily close timestamp here
+  timestamps: number[],
+  dailyCloseTimestamp: number,
   bullishBreakout: boolean,
   bearishBreakout: boolean
 ): boolean => {
@@ -856,21 +862,17 @@ const detectBearishCollapse = (
   }
   if (crossoverIndex200 === -1) return false;
 
-  // Choose the later crossover as starting point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
-  let highestHighAfterCrossover = crossoverHigh;
 
-  // Track highest high after crossover
+  let highestHighAfterCrossover = crossoverHigh;
   for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentHigh = highs[i];
-    if (currentHigh > highestHighAfterCrossover) {
-      highestHighAfterCrossover = currentHigh;
+    if (highs[i] > highestHighAfterCrossover) {
+      highestHighAfterCrossover = highs[i];
     }
   }
 
-  // Final candle checks
   const i = len - 1;
   const currentLow = lows[i];
   const currentHigh = highs[i];
@@ -880,23 +882,24 @@ const detectBearishCollapse = (
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
 
-  // Invalidate if the most recent candle touches EMA70
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return false;
 
-  // Collapse conditions
   const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
   const belowEMA14 = close < ema14Value;
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
   const lowerThanCrossover = close < crossoverHigh;
-
-  // Add descending RSI14 check
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
 
-  // Integrate weak RSI pump check over daily-close to now period
-  const weakPumpRSI = detectWeakPumpRSI(rsi14, timestamps, dailyCloseTimestamp, Date.now());
+  // ✅ Use updated weakPumpRSI (minimum RSI in session)
+  const weakPumpRSI = detectWeakPumpRSI(
+    rsi14,
+    timestamps,
+    dailyCloseTimestamp,
+    Date.now()
+  );
 
   return (
     belowEMA70 &&
@@ -909,11 +912,38 @@ const detectBearishCollapse = (
     weakPumpRSI
   );
 };
+        
+
+const bullishSpike = detectBullishSpike(
+  ema14,
+  ema70,
+  ema200,
+  rsi14,
+  lows,
+  highs,
+  closes,
+  timestamps,
+  dailyCloseTimestamp,
+  bullishBreakout,
+  bearishBreakout
+);
+
+const bearishCollapse = detectBearishCollapse(
+  ema14,
+  ema70,
+  ema200,
+  rsi14,
+  lows,  // ✅ Correct: lows go here
+  highs, // ✅ Correct: highs go here
+  closes,
+  timestamps,
+  dailyCloseTimestamp,
+  bullishBreakout,
+  bearishBreakout
+);
 
         
-      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, timestamps, dailyCloseTimestamp, bullishBreakout, bearishBreakout);
-const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, timestamps, dailyCloseTimestamp, bullishBreakout, bearishBreakout);  
-        
+      
         
         return {
   symbol,
