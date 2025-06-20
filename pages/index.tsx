@@ -268,6 +268,9 @@ const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'beari
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
 const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === true).length;
 
+const testedPrevHighCount = filteredSignals.filter(s => s.testedPrevHigh === true).length;
+const testedPrevLowCount = filteredSignals.filter(s => s.testedPrevLow === true).length;
+  
 const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
 const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
 
@@ -417,6 +420,37 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
         const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
+
+          const failedBullishBreak =
+    todaysHighestHigh !== null &&
+    prevSessionHigh !== null &&
+    todaysHighestHigh <= prevSessionHigh;
+
+  const failedBearishBreak =
+    todaysLowestLow !== null &&
+    prevSessionLow !== null &&
+    todaysLowestLow >= prevSessionLow;
+
+  const breakoutFailure = failedBullishBreak && failedBearishBreak;
+
+  // Optional: Add test failure signal
+  const testThreshold = 0.0005; // 0.0005 = ~0.05% range for testing
+
+  const testedPrevHigh =
+    todaysHighestHigh !== null &&
+    prevSessionHigh !== null &&
+    Math.abs(todaysHighestHigh - prevSessionHigh) <= testThreshold &&
+    todaysHighestHigh <= prevSessionHigh;
+
+  const testedPrevLow =
+    todaysLowestLow !== null &&
+    prevSessionLow !== null &&
+    Math.abs(todaysLowestLow - prevSessionLow) <= testThreshold &&
+    todaysLowestLow >= prevSessionLow;
+
+  let breakoutTestSignal = '';
+  if (testedPrevHigh) breakoutTestSignal = '🟡 Tested & Failed to Break Previous High';
+  else if (testedPrevLow) breakoutTestSignal = '🟡 Tested & Failed to Break Previous Low';
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -826,6 +860,8 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bearishMainTrendCount,
   bullishBreakoutCount,
   bearishBreakoutCount,
+  testedPrevHighCount,   // ✅ New
+  testedPrevLowCount,    // ✅ New
   mainTrend,
   breakout,
   bullishBreakout,
@@ -834,9 +870,12 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   bearishReversalCount,
   bullishReversal,
   bearishReversal,
-   bullishSpike,
-   bearishCollapse,       
-          rsi14,
+  bullishSpike,
+  bearishCollapse,
+  rsi14,
+  testedPrevHigh,
+  testedPrevLow,
+  breakoutTestSignal,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1002,6 +1041,14 @@ if (loading) {
         <span className="text-gray-300">💥 Bear Collapse:</span>
         <span className="text-red-300 font-bold">{bearishCollapseCount}</span>
       </div>
+        <div className="flex items-center gap-2">
+    <span className="text-gray-300">🟡 Tested Prev High:</span>
+    <span className="text-blue-300 font-bold">{testedPrevHighCount}</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <span className="text-gray-300">🟡 Tested Prev Low:</span>
+    <span className="text-blue-300 font-bold">{testedPrevLowCount}</span>
+  </div>
     </div>
 
     {/* ✅ Signal Summary */}
@@ -1070,6 +1117,8 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
       <th className="px-1 py-0.5 text-center">Bear Rev</th>
       <th className="px-1 py-0.5 text-center">Bull Rev</th>
+        <th className="px-1 py-0.5 text-center">🟡 Tested High</th>
+    <th className="px-1 py-0.5 text-center">🟡 Tested Low</th>
       <th
         onClick={() => {
           setSortField('pumpStrength');
@@ -1183,6 +1232,8 @@ if (pumpOrDumpImpulse) {
             <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'text-gray-500'}`}>
               {s.bullishReversal ? 'Yes' : 'No'}
             </td>
+            <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">{testedPrevHigh ? 'Yes' : '-'}</td>
+<td className="px-1 py-0.5 text-center text-blue-300 font-semibold">{testedPrevLow ? 'Yes' : '-'}</td>
             <td
               className={`text-center ${
                 pump > 27
