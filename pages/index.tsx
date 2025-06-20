@@ -990,14 +990,7 @@ if (loading) {
         <span className="text-gray-300">📉 Bear Trend:</span>
         <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">🔄 Bull Reversal:</span>
-        <span className="text-purple-300 font-bold">{bullishReversalCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">🔃 Bear Reversal:</span>
-        <span className="text-purple-300 font-bold">{bearishReversalCount}</span>
-      </div>
+      
       <div className="flex items-center gap-2">
         <span className="text-gray-300">🚀 Bull Breakout:</span>
         <span className="text-yellow-300 font-bold">{bullishBreakoutCount}</span>
@@ -1006,22 +999,6 @@ if (loading) {
         <span className="text-gray-300">📉 Bear Breakout:</span>
         <span className="text-yellow-400 font-bold">{bearishBreakoutCount}</span>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">⚡ Bull Spike:</span>
-        <span className="text-green-300 font-bold">{bullishSpikeCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">💥 Bear Collapse:</span>
-        <span className="text-red-300 font-bold">{bearishCollapseCount}</span>
-      </div>
-        <div className="flex items-center gap-2">
-    <span className="text-gray-300">🟡 Tested Prev High:</span>
-    <span className="text-blue-300 font-bold">{testedPrevHighCount}</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <span className="text-gray-300">🟡 Tested Prev Low:</span>
-    <span className="text-blue-300 font-bold">{testedPrevLowCount}</span>
-  </div>
     </div>
 
     {/* ✅ Signal Summary */}
@@ -1059,7 +1036,6 @@ if (loading) {
       >
         Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
       </th>
-      <th className="px-1 py-0.5 text-center">BO</th>
       <th className="px-1 py-0.5 text-center">Bull BO</th>
       <th className="px-1 py-0.5 text-center">Bear BO</th>
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
@@ -1162,7 +1138,6 @@ if (loading) {
             </button>
           </div>
         </td>
-        <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
         <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
           {s.bullishBreakout ? 'Yes' : 'No'}
         </td>
@@ -1172,10 +1147,10 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-purple-900 text-white' : 'text-gray-500'}`}>
+        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
           {s.bearishReversal ? 'Yes' : 'No'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'text-gray-500'}`}>
+        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
           {s.bullishReversal ? 'Yes' : 'No'}
         </td>
         <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
