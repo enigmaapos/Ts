@@ -916,9 +916,9 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   testedPrevHigh,
   testedPrevLow,
   breakoutTestSignal,
-          breakoutFailure,
-          failedBearishBreak,
-          failedBullishBreak,
+  breakoutFailure,
+  failedBearishBreak,
+  failedBullishBreak,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1234,9 +1234,9 @@ const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
 const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
 // ✅ Custom tested + failed breakout logic
-if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBearishBreak && pumpOrDumpImpulse) {
+if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBearishBreak) {
   signal = 'IMPULSE SIGNAL / BUY';
-} else if (!s.breakout && s.mainTrend === 'bullish' && s.testedPrevHigh && s.failedBullishBreak && pumpOrDumpImpulse) {
+} else if (!s.breakout && s.mainTrend === 'bullish' && s.testedPrevHigh && s.failedBullishBreak) {
   signal = 'IMPULSE SIGNAL / SELL';
 }
 
