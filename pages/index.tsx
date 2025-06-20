@@ -1113,6 +1113,12 @@ if (loading) {
     <span className="text-gray-300">🟡 Tested Prev Low:</span>
     <span className="text-blue-300 font-bold">{testedPrevLowCount}</span>
   </div>
+      <div className="flex items-center gap-2">
+  <span className="text-gray-300">🔴 Breakout Failure:</span>
+  <span className="text-red-400 font-bold">
+    {breakoutFailure ? 'Yes' : '-'}
+  </span>
+</div>
     </div>
 
     {/* ✅ Signal Summary */}
@@ -1195,6 +1201,7 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Bull Rev</th>
         <th className="px-1 py-0.5 text-center">Tested High</th>
     <th className="px-1 py-0.5 text-center">Tested Low</th>
+      <th className="px-1 py-0.5 text-center">Breakout Fail</th>
       <th
         onClick={() => {
           setSortField('pumpStrength');
@@ -1355,6 +1362,9 @@ else if (pumpOrDumpImpulse) {
             <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
               {s.bullishSpike ? 'Yes' : 'No'}
             </td>
+            <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+  {s.breakoutFailure ? 'Yes' : '-'}
+</td>
             <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
     signal === 'SELL'
