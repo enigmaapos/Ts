@@ -442,17 +442,21 @@ const detectStrongRSIDrop = (
 ): boolean => {
   if (rsi14.length !== timestamps.length) return false;
 
-  let minRSI = Infinity;
-
   for (let i = 0; i < timestamps.length; i++) {
-    if (timestamps[i] >= dailyCloseTime && timestamps[i] <= now) {
-      if (rsi14[i] < minRSI) {
-        minRSI = rsi14[i];
-      }
+    const time = timestamps[i];
+    const rsi = rsi14[i];
+
+    if (
+      time >= dailyCloseTime &&
+      time <= now &&
+      rsi >= 22 &&  // ✅ Lower bound
+      rsi <= 80     // ✅ Upper bound
+    ) {
+      return true;
     }
   }
 
-  return minRSI <= 23; // ✅ Defines "strong" RSI drop
+  return false;
 };
 
 const now = Date.now();
@@ -568,17 +572,21 @@ const detectBullishToBearish = (
 ): boolean => {
   if (rsi14.length !== timestamps.length) return false;
 
-  let maxRSI = -Infinity;
-
   for (let i = 0; i < timestamps.length; i++) {
-    if (timestamps[i] >= dailyCloseTime && timestamps[i] <= now) {
-      if (rsi14[i] > maxRSI) {
-        maxRSI = rsi14[i];
-      }
+    const time = timestamps[i];
+    const rsi = rsi14[i];
+
+    if (
+      time >= dailyCloseTime &&
+      time <= now &&
+      rsi >= 22 &&  // ✅ Lower bound
+      rsi <= 80     // ✅ Upper bound
+    ) {
+      return true;
     }
   }
 
-  return maxRSI >= 23; // ✅ Defines a strong RSI pump
+  return false;
 };
 
 const detectBearishToBullish = (
@@ -720,17 +728,21 @@ const detectWeakestRSIDrop = (
 ): boolean => {
   if (rsi14.length !== timestamps.length) return false;
 
-  let minRSI = Infinity;
-
   for (let i = 0; i < timestamps.length; i++) {
-    if (timestamps[i] >= dailyCloseTime && timestamps[i] <= now) {
-      if (rsi14[i] < minRSI) {
-        minRSI = rsi14[i];
-      }
+    const time = timestamps[i];
+    const rsi = rsi14[i];
+
+    if (
+      time >= dailyCloseTime &&
+      time <= now &&
+      rsi >= 0 &&
+      rsi <= 21
+    ) {
+      return true;
     }
   }
 
-  return minRSI <= 20;
+  return false;
 };
 
 // ✅ Detect bullish spike with weak RSI drop
@@ -835,17 +847,18 @@ const detectWeakPumpRSI = (
 ): boolean => {
   if (rsi14.length !== timestamps.length) return false;
 
-  let minRSI = Infinity;
-
   for (let i = 0; i < timestamps.length; i++) {
-    if (timestamps[i] >= dailyCloseTime && timestamps[i] <= now) {
-      if (rsi14[i] < minRSI) {
-        minRSI = rsi14[i];
-      }
+    if (
+      timestamps[i] >= dailyCloseTime &&
+      timestamps[i] <= now &&
+      rsi14[i] >= 0 &&
+      rsi14[i] <= 21
+    ) {
+      return true;
     }
   }
 
-  return minRSI <= 20; // ✅ Weak RSI detected during the session
+  return false;
 };
 
 const detectBearishCollapse = (
