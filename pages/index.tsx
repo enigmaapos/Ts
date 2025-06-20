@@ -483,7 +483,7 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
   const breakoutFailure = failedBullishBreak && failedBearishBreak;
 
   // Optional: Add test failure signal
-  const testThreshold = 0.0002; // 0.0002 = ~0.02% range for testing
+  const testThreshold = 0.00002; // 0.00005 = ~0.005% range for testing
 
   const testedPrevHigh =
     todaysHighestHigh !== null &&
