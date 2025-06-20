@@ -303,6 +303,8 @@ const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'beari
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
 const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === true).length;
 
+const breakoutFailureCount = filteredSignals.filter(s => s.breakoutFailure === true).length;
+  
 const testedPrevHighCount = filteredSignals.filter(s => s.testedPrevHigh === true).length;
 const testedPrevLowCount = filteredSignals.filter(s => s.testedPrevLow === true).length;
   
@@ -1113,12 +1115,6 @@ if (loading) {
     <span className="text-gray-300">🟡 Tested Prev Low:</span>
     <span className="text-blue-300 font-bold">{testedPrevLowCount}</span>
   </div>
-      <div className="flex items-center gap-2">
-  <span className="text-gray-300">🔴 Breakout Failure:</span>
-  <span className="text-red-400 font-bold">
-    {breakoutFailure ? 'Yes' : '-'}
-  </span>
-</div>
     </div>
 
     {/* ✅ Signal Summary */}
