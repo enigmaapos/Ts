@@ -1232,9 +1232,13 @@ if (pumpOrDumpImpulse) {
             <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-purple-900 text-white' : 'text-gray-500'}`}>
               {s.bullishReversal ? 'Yes' : 'No'}
             </td>
-            <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">{testedPrevHigh ? 'Yes' : '-'}</td>
-<td className="px-1 py-0.5 text-center text-blue-300 font-semibold">{testedPrevLow ? 'Yes' : '-'}</td>
-            <td
+            <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
+  {s.testedPrevHigh ? 'Yes' : '-'}
+</td>
+<td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
+  {s.testedPrevLow ? 'Yes' : '-'}
+</td>
+              <td
               className={`text-center ${
                 pump > 27
                   ? 'text-green-400'
