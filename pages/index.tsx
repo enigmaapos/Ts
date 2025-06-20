@@ -99,12 +99,10 @@ const getSignal = (s: any): string => {
   const inRange = (val: number | undefined, min: number, max: number) =>
     val !== undefined && val >= min && val <= max;
 
-  const isAbove27 = (val: number | undefined) =>
-    val !== undefined && val >= 27;
+  const isAbove35 = (val: number | undefined) =>
+    val !== undefined && val >= 35;
 
   const pumpOrDumpInRange_23_26 = inRange(pump, 23, 26) || inRange(dump, 23, 26);
-  const pumpOrDumpInRange_19_23 = inRange(pump, 19, 23) || inRange(dump, 19, 23);
-  const pumpOrDumpInRange_8_12 = inRange(pump, 8, 12) || inRange(dump, 8, 12);
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
   const {
@@ -146,62 +144,18 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL';
   }
 
-  // Yesterday’s trend reversal + strong move
-  if (
-    (bullishReversal && bullishBreakout && pumpOrDumpInRange_19_23) ||
-    (bearishReversal && bearishBreakout && pumpOrDumpInRange_19_23)
-  ) {
-    return "YESTERDAY'S TREND REVERSE";
-  }
-
-  // Selling signals
-  if (pumpOrDumpInRange_8_12 && bearishCollapse) {
-    return 'START SELLING';
-  }
-
-  if (pumpOrDumpInRange_19_23 && bearishCollapse) {
-    return 'PULLBACK SELL';
-  }
-
-  // Buying signals
-  if (pumpOrDumpInRange_8_12 && bullishSpike) {
-    return 'START BUYING';
-  }
-
-  if (pumpOrDumpInRange_19_23 && bullishSpike) {
-    return 'PULLBACK BUY';
-  }
-
   // Overextended: Possible reversals
-  if (pumpOrDumpAbove27 && (bullishSpike || bearishCollapse)) {
+  if (pumpOrDumpAbove35 && (bullishSpike || bearishCollapse)) {
     return 'POSSIBLE REVERSE';
-  }
-
-  // Moderate impulse + reversal = entry
-  if (pumpOrDumpInRange_8_12 && bearishReversal) {
-    return 'BUY';
-  }
-
-  if (pumpOrDumpInRange_8_12 && bullishReversal) {
-    return 'SELL';
   }
 
   // Overextended + reversal = caution
-  if (pumpOrDumpAbove27 && bearishReversal) {
+  if (pumpOrDumpAbove35 && bearishReversal) {
     return 'POSSIBLE REVERSE';
   }
 
-  if (pumpOrDumpAbove27 && bullishReversal) {
+  if (pumpOrDumpAbove35 && bullishReversal) {
     return 'POSSIBLE REVERSE';
-  }
-
-  // Mid-impulse indecision
-  if (pumpOrDumpInRange_19_23 && bearishReversal) {
-    return 'INDECISION / BUY';
-  }
-
-  if (pumpOrDumpInRange_19_23 && bullishReversal) {
-    return 'INDECISION / SELL';
   }
 
   return '';
@@ -316,17 +270,7 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 
 const signalCounts = useMemo(() => {
   const counts = {
-    buy: 0,
-    sell: 0,
-    indecision: 0,
-    indecisionBuy: 0,
-    indecisionSell: 0,
-    startBuying: 0,
-    continueBuying: 0,
-    startSelling: 0,
-    continueSelling: 0,
     possibleReverse: 0,
-    yesterdayReverse: 0,
     impulseSignal: 0,
     impulseBuy: 0,
     impulseSell: 0,
@@ -336,37 +280,8 @@ const signalCounts = useMemo(() => {
     const signal = getSignal(s)?.trim().toUpperCase(); // ✅ make sure signal is defined here
 
     switch (signal) {
-      case 'BUY':
-        counts.buy++;
-        break;
-      case 'SELL':
-        counts.sell++;
-        break;
-      case 'INDECISION / BUY':
-        counts.indecision++;
-        counts.indecisionBuy++;
-        break;
-      case 'INDECISION / SELL':
-        counts.indecision++;
-        counts.indecisionSell++;
-        break;
-      case 'START BUYING':
-        counts.startBuying++;
-        break;
-      case 'PULLBACK BUY':
-        counts.continueBuying++;
-        break;
-      case 'START SELLING':
-        counts.startSelling++;
-        break;
-      case 'PULLBACK SELL':
-        counts.continueSelling++;
-        break;
       case 'POSSIBLE REVERSE':
         counts.possibleReverse++;
-        break;
-      case "YESTERDAY'S TREND REVERSE":
-        counts.yesterdayReverse++;
         break;
       case 'IMPULSE SIGNAL':
         counts.impulseSignal++;
@@ -1035,14 +950,6 @@ if (loading) {
     'IMPULSE SIGNAL',
     'IMPULSE SIGNAL / BUY',
     'IMPULSE SIGNAL / SELL',
-    'BUY',
-    'SELL',
-    'INDECISION / BUY',
-    'INDECISION / SELL',
-    'START BUYING',
-    'PULLBACK BUY',
-    'START SELLING',
-    'PULLBACK SELL',
     'POSSIBLE REVERSE',
   ].map((type) => (
     <button
@@ -1118,46 +1025,9 @@ if (loading) {
     </div>
 
     {/* ✅ Signal Summary */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <div className="flex items-center gap-2">
-        <span className="text-green-400 font-semibold">🟢 BUY:</span>
-        <span>{signalCounts.buy}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-red-400 font-semibold">🔴 SELL:</span>
-        <span>{signalCounts.sell}</span>
-      </div>
-         <div className="flex items-center gap-2 ml-4">
-      <span className="text-blue-300">↳ INDECISION / BUY:</span>
-      <span>{signalCounts.indecisionBuy}</span>
-    </div>
-    <div className="flex items-center gap-2 ml-4">
-      <span className="text-blue-300">↳ INDECISION / SELL:</span>
-      <span>{signalCounts.indecisionSell}</span>
-    </div>
-      <div className="flex items-center gap-2">
-        <span className="text-green-300 font-semibold">🟢 START BUY:</span>
-        <span>{signalCounts.startBuying}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-green-300 font-semibold">🔁 PULLBACK BUY:</span>
-        <span>{signalCounts.continueBuying}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-red-300 font-semibold">🟥 START SELL:</span>
-        <span>{signalCounts.startSelling}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-red-300 font-semibold">🔁 PULLBACK SELL:</span>
-        <span>{signalCounts.continueSelling}</span>
-      </div>
       <div className="flex items-center gap-2">
         <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE REVERSE:</span>
         <span>{signalCounts.possibleReverse}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-yellow-500 font-semibold">🕒 YESTERDAY'S REVERSE:</span>
-        <span>{signalCounts.yesterdayReverse}</span>
       </div>
        {/* 🔥 New IMPULSE SIGNAL block */}
   <div className="flex items-center gap-2">
@@ -1239,9 +1109,7 @@ if (loading) {
 const validPump = pump && pump !== 0;
 const validDump = dump && dump !== 0;
 const pumpOrDumpImpulse = inRange(pump, 23, 26) || inRange(dump, 23, 26);
-const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
-const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
-const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
+const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
 // ✅ Custom tested + failed breakout logic
 if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBearishBreak && validPump && validDump) {
@@ -1253,31 +1121,8 @@ if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBeari
 // 🔥 Original Impulse and pattern logic
 else if (pumpOrDumpImpulse) {
   signal = 'IMPULSE SIGNAL';
-} else if (
-  (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
-  (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
-) {
-  signal = "YESTERDAY'S TREND REVERSE";
-} else if (pumpOrDumpInRangeEntry && s.bearishCollapse) {
-  signal = 'START SELLING';
-} else if (pumpOrDumpInRange && s.bearishCollapse) {
-  signal = 'PULLBACK SELL';
-} else if (pumpOrDumpInRangeEntry && s.bullishSpike) {
-  signal = 'START BUYING';
-} else if (pumpOrDumpInRange && s.bullishSpike) {
-  signal = 'PULLBACK BUY';
-} else if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
+} else if (pumpOrDumpAbove35 && (s.bullishSpike || s.bearishCollapse)) {
   signal = 'POSSIBLE REVERSE';
-} else if (pumpOrDumpInRangeEntry && s.bearishReversal) {
-  signal = 'BUY';
-} else if (pumpOrDumpInRangeEntry && s.bullishReversal) {
-  signal = 'SELL';
-} else if (pumpOrDumpAbove27 && (s.bearishReversal || s.bullishReversal)) {
-  signal = 'POSSIBLE REVERSE';
-} else if (pumpOrDumpInRange && s.bearishReversal) {
-  signal = 'INDECISION / BUY';
-} else if (pumpOrDumpInRange && s.bullishReversal) {
-  signal = 'INDECISION / SELL';
 }
   
         return (
@@ -1331,12 +1176,10 @@ else if (pumpOrDumpImpulse) {
 </td>
               <td
               className={`text-center ${
-                pump > 27
+                pump > 35
                   ? 'text-green-400'
                   : inRange(pump, 19, 23)
                   ? 'text-blue-400'
-                  : inRange(pump, 8, 12)
-                  ? 'text-yellow-400'
                   : 'text-white'
               }`}
             >
@@ -1344,12 +1187,10 @@ else if (pumpOrDumpImpulse) {
             </td>
             <td
               className={`text-center ${
-                dump > 27
+                dump > 35
                   ? 'text-red-400'
                   : inRange(dump, 19, 23)
-                  ? 'text-blue-400'
-                  : inRange(dump, 8, 12)
-                  ? 'text-yellow-400'
+                  ? 'text-blue-400'                  
                   : 'text-white'
               }`}
             >
@@ -1363,20 +1204,8 @@ else if (pumpOrDumpImpulse) {
             </td>
             <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal === 'SELL'
-      ? 'text-red-400'
-      : signal === 'BUY'
-      ? 'text-green-400'
-      : signal === 'INDECISION / BUY' || signal === 'INDECISION / SELL'
-      ? 'text-blue-400'
-      : signal === 'START BUYING' || signal === 'PULLBACK BUY'
-      ? 'text-green-300'
-      : signal === 'START SELLING' || signal === 'PULLBACK SELL'
-      ? 'text-red-300'
-      : signal === 'POSSIBLE REVERSE'
+      signal === 'POSSIBLE REVERSE'
       ? 'text-yellow-300'
-      : signal === "YESTERDAY'S TREND REVERSE"
-      ? 'text-yellow-500 font-bold'
       : signal === 'IMPULSE SIGNAL / BUY'
       ? 'text-green-500 font-bold'
       : signal === 'IMPULSE SIGNAL / SELL'
