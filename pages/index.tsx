@@ -127,8 +127,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
-    failedBearishBreak &&
-    pumpOrDumpInRange_23_26
+    failedBearishBreak 
   ) {
     return 'IMPULSE SIGNAL / BUY';
   }
@@ -137,8 +136,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bullish' &&
     testedPrevHigh &&
-    failedBullishBreak &&
-    pumpOrDumpInRange_23_26
+    failedBullishBreak 
   ) {
     return 'IMPULSE SIGNAL / SELL';
   }
@@ -1039,7 +1037,6 @@ if (loading) {
     'START SELLING',
     'PULLBACK SELL',
     'POSSIBLE REVERSE',
-    "YESTERDAY'S TREND REVERSE"
   ].map((type) => (
     <button
       key={type}
