@@ -127,7 +127,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
-    failedBearishBreak &&
+    failedBearishBreak 
   ) {
     return 'IMPULSE SIGNAL / BUY';
   }
