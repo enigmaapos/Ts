@@ -483,19 +483,24 @@ const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
   const breakoutFailure = failedBullishBreak && failedBearishBreak;
 
   // Optional: Add test failure signal
-  const testThreshold = 0.00002; // 0.00005 = ~0.005% range for testing
-
+  const getTestThreshold = (price: number): number => {
+  if (price > 10000) return price * 0.00005;     // 0.005% for BTC/ETH
+  if (price > 1000) return price * 0.0001;       // 0.01%
+  if (price > 1) return price * 0.001;           // 0.1%
+  return price * 0.01;                           // 1% for sub-$1 coins
+};
+        
   const testedPrevHigh =
-    todaysHighestHigh !== null &&
-    prevSessionHigh !== null &&
-    Math.abs(todaysHighestHigh - prevSessionHigh) <= testThreshold &&
-    todaysHighestHigh <= prevSessionHigh;
+  todaysHighestHigh !== null &&
+  prevSessionHigh !== null &&
+  Math.abs(todaysHighestHigh - prevSessionHigh) <= getTestThreshold(prevSessionHigh) &&
+  todaysHighestHigh <= prevSessionHigh;
 
-  const testedPrevLow =
-    todaysLowestLow !== null &&
-    prevSessionLow !== null &&
-    Math.abs(todaysLowestLow - prevSessionLow) <= testThreshold &&
-    todaysLowestLow >= prevSessionLow;
+const testedPrevLow =
+  todaysLowestLow !== null &&
+  prevSessionLow !== null &&
+  Math.abs(todaysLowestLow - prevSessionLow) <= getTestThreshold(prevSessionLow) &&
+  todaysLowestLow >= prevSessionLow;
 
   let breakoutTestSignal = '';
   if (testedPrevHigh) breakoutTestSignal = '🟡 Tested & Failed to Break Previous High';
@@ -1188,8 +1193,8 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
       <th className="px-1 py-0.5 text-center">Bear Rev</th>
       <th className="px-1 py-0.5 text-center">Bull Rev</th>
-        <th className="px-1 py-0.5 text-center">🟡 Tested High</th>
-    <th className="px-1 py-0.5 text-center">🟡 Tested Low</th>
+        <th className="px-1 py-0.5 text-center">Tested High</th>
+    <th className="px-1 py-0.5 text-center">Tested Low</th>
       <th
         onClick={() => {
           setSortField('pumpStrength');
