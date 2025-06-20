@@ -312,62 +312,66 @@ const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).leng
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
-const signalCounts = useMemo(() => {
-  const counts = {
-    buy: 0,
-    sell: 0,
-    indecision: 0,
-    startBuying: 0,
-    continueBuying: 0, // "PULLBACK BUY"
-    startSelling: 0,
-    continueSelling: 0, // "PULLBACK SELL"
-    possibleReverse: 0,
-    yesterdayReverse: 0,
-    impulseSignal: 0, // 🔥 Includes all impulse variants
-  };
+const counts = {
+  buy: 0,
+  sell: 0,
+  indecision: 0,
+  indecisionBuy: 0,
+  indecisionSell: 0,
+  startBuying: 0,
+  continueBuying: 0,
+  startSelling: 0,
+  continueSelling: 0,
+  possibleReverse: 0,
+  yesterdayReverse: 0,
+  impulseSignal: 0,
+  impulseBuy: 0,
+  impulseSell: 0,
+};
 
-  signals.forEach((s: any) => {
-    const signal = getSignal(s)?.trim().toUpperCase();
-
-    switch (signal) {
-      case 'BUY':
-        counts.buy++;
-        break;
-      case 'SELL':
-        counts.sell++;
-        break;
-      case 'INDECISION / BUY':
-      case 'INDECISION / SELL':
-        counts.indecision++;
-        break;
-      case 'START BUYING':
-        counts.startBuying++;
-        break;
-      case 'PULLBACK BUY':
-        counts.continueBuying++;
-        break;
-      case 'START SELLING':
-        counts.startSelling++;
-        break;
-      case 'PULLBACK SELL':
-        counts.continueSelling++;
-        break;
-      case 'POSSIBLE REVERSE':
-        counts.possibleReverse++;
-        break;
-      case "YESTERDAY'S TREND REVERSE":
-        counts.yesterdayReverse++;
-        break;
-      case 'IMPULSE SIGNAL':
-      case 'IMPULSE SIGNAL / BUY':
-      case 'IMPULSE SIGNAL / SELL':
-        counts.impulseSignal++;
-        break;
-    }
-  });
-
-  return counts;
-}, [signals]);
+switch (signal) {
+  case 'BUY':
+    counts.buy++;
+    break;
+  case 'SELL':
+    counts.sell++;
+    break;
+  case 'INDECISION / BUY':
+    counts.indecision++;
+    counts.indecisionBuy++;
+    break;
+  case 'INDECISION / SELL':
+    counts.indecision++;
+    counts.indecisionSell++;
+    break;
+  case 'START BUYING':
+    counts.startBuying++;
+    break;
+  case 'PULLBACK BUY':
+    counts.continueBuying++;
+    break;
+  case 'START SELLING':
+    counts.startSelling++;
+    break;
+  case 'PULLBACK SELL':
+    counts.continueSelling++;
+    break;
+  case 'POSSIBLE REVERSE':
+    counts.possibleReverse++;
+    break;
+  case "YESTERDAY'S TREND REVERSE":
+    counts.yesterdayReverse++;
+    break;
+  case 'IMPULSE SIGNAL':
+    counts.impulseSignal++;
+    break;
+  case 'IMPULSE SIGNAL / BUY':
+    counts.impulseBuy++;
+    break;
+  case 'IMPULSE SIGNAL / SELL':
+    counts.impulseSell++;
+    break;
+}
   
   
   useEffect(() => {
@@ -1021,14 +1025,32 @@ if (loading) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">     
- {['IMPULSE SIGNAL', 'BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK BUY', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setSignalFilter(signalFilter === type ? null : type)}
-            className={`px-3 py-1 rounded-full ${signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'}`}
-          >
-            {type}
-          </button>
+  {[
+    'IMPULSE SIGNAL',
+    'IMPULSE SIGNAL / BUY',
+    'IMPULSE SIGNAL / SELL',
+    'BUY',
+    'SELL',
+    'INDECISION',
+    'INDECISION / BUY',
+    'INDECISION / SELL',
+    'START BUYING',
+    'PULLBACK BUY',
+    'START SELLING',
+    'PULLBACK SELL',
+    'POSSIBLE REVERSE',
+    "YESTERDAY'S TREND REVERSE"
+  ].map((type) => (
+    <button
+      key={type}
+      onClick={() => setSignalFilter(signalFilter === type ? null : type)}
+      className={`px-3 py-1 rounded-full ${
+        signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
+      }`}
+    >
+      {type}
+    </button>
+    
         ))}
   {/* ✅ Clear Button */}
   <button
@@ -1105,6 +1127,14 @@ if (loading) {
         <span className="text-blue-400 font-semibold">🔵 INDECISION:</span>
         <span>{signalCounts.indecision}</span>
       </div>
+         <div className="flex items-center gap-2 ml-4">
+      <span className="text-blue-300">↳ INDECISION / BUY:</span>
+      <span>{signalCounts.indecisionBuy}</span>
+    </div>
+    <div className="flex items-center gap-2 ml-4">
+      <span className="text-blue-300">↳ INDECISION / SELL:</span>
+      <span>{signalCounts.indecisionSell}</span>
+    </div>
       <div className="flex items-center gap-2">
         <span className="text-green-300 font-semibold">🟢 START BUY:</span>
         <span>{signalCounts.startBuying}</span>
@@ -1133,6 +1163,14 @@ if (loading) {
   <div className="flex items-center gap-2">
     <span className="text-purple-400 font-semibold">⚡ IMPULSE SIGNAL:</span>
     <span>{signalCounts.impulseSignal}</span>
+  </div>
+       <div className="flex items-center gap-2">
+    <span className="text-green-500 font-semibold">⚡ IMPULSE BUY:</span>
+    <span>{signalCounts.impulseBuy}</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <span className="text-red-500 font-semibold">⚡ IMPULSE SELL:</span>
+    <span>{signalCounts.impulseSell}</span>
   </div>
     </div>
   </div>
@@ -1237,7 +1275,8 @@ else if (pumpOrDumpImpulse) {
   signal = 'INDECISION / BUY';
 } else if (pumpOrDumpInRange && s.bullishReversal) {
   signal = 'INDECISION / SELL';
-
+}
+  
         return (
           <tr
             key={s.symbol}
