@@ -644,6 +644,8 @@ const detectStrongRSIPump = (
   lows,
   highs,
   closes,
+  timestamps,            // 🆕 Added
+  dailyCloseTimestamp,     // 🆕 Added
   bullishBreakout,
   bearishBreakout
 );
@@ -662,6 +664,8 @@ const bearishReversal = detectBearishToBullish(
   highs,
   lows,
   closes,
+  timestamps,            // 🆕 Added
+  dailyCloseTimestamp,     // 🆕 Added
   bullishBreakout,
   bearishBreakout
 );
@@ -907,8 +911,8 @@ const detectBearishCollapse = (
 };
 
         
-      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
-const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
+      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, timestamps, dailyCloseTimestamp, bullishBreakout, bearishBreakout);
+const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, timestamps, dailyCloseTimestamp, bullishBreakout, bearishBreakout);  
         
         
         return {
