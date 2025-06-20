@@ -107,86 +107,106 @@ const getSignal = (s: any): string => {
   const pumpOrDumpInRange_8_12 = inRange(pump, 8, 12) || inRange(dump, 8, 12);
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
-  // No breakout + bearish trend + tested + failed = IMPULSE BUY
-if (
-  !breakout &&
-  mainTrend === 'bearish' &&
-  testedPrevLow &&
-  failedBearishBreak
-) {
-  return 'IMPULSE SIGNAL / BUY';
-}
+  const {
+    mainTrend,
+    breakout,
+    testedPrevHigh,
+    testedPrevLow,
+    failedBullishBreak,
+    failedBearishBreak,
+    bullishReversal,
+    bearishReversal,
+    bullishBreakout,
+    bearishBreakout,
+    bullishSpike,
+    bearishCollapse
+  } = s;
 
-// No breakout + bullish trend + tested + failed = IMPULSE SELL
-if (
-  !breakout &&
-  mainTrend === 'bullish' &&
-  testedPrevHigh &&
-  failedBullishBreak
-) {
-  return 'IMPULSE SIGNAL / SELL';
-}
-
-  // Trend flipped compared to yesterday with a strong impulse
+  // 🔥 New: no breakout + trend + test + failure = impulse signal
   if (
-    (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange_19_23) ||
-    (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange_19_23)
+    !breakout &&
+    mainTrend === 'bearish' &&
+    testedPrevLow &&
+    failedBearishBreak
+  ) {
+    return 'IMPULSE SIGNAL / BUY';
+  }
+
+  if (
+    !breakout &&
+    mainTrend === 'bullish' &&
+    testedPrevHigh &&
+    failedBullishBreak
+  ) {
+    return 'IMPULSE SIGNAL / SELL';
+  }
+
+  // 🔥 Impulse strength zone
+  if (pumpOrDumpInRange_23_26) {
+    return 'IMPULSE SIGNAL';
+  }
+
+  // Yesterday’s trend reversal + strong move
+  if (
+    (bullishReversal && bullishBreakout && pumpOrDumpInRange_19_23) ||
+    (bearishReversal && bearishBreakout && pumpOrDumpInRange_19_23)
   ) {
     return "YESTERDAY'S TREND REVERSE";
   }
 
   // Selling signals
-  if (pumpOrDumpInRange_8_12 && s.bearishCollapse) {
+  if (pumpOrDumpInRange_8_12 && bearishCollapse) {
     return 'START SELLING';
   }
 
-  if (pumpOrDumpInRange_19_23 && s.bearishCollapse) {
+  if (pumpOrDumpInRange_19_23 && bearishCollapse) {
     return 'PULLBACK SELL';
   }
 
   // Buying signals
-  if (pumpOrDumpInRange_8_12 && s.bullishSpike) {
+  if (pumpOrDumpInRange_8_12 && bullishSpike) {
     return 'START BUYING';
   }
 
-  if (pumpOrDumpInRange_19_23 && s.bullishSpike) {
+  if (pumpOrDumpInRange_19_23 && bullishSpike) {
     return 'PULLBACK BUY';
   }
 
-  // Overextended moves may suggest exhaustion/reversal
-  if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
+  // Overextended: Possible reversals
+  if (pumpOrDumpAbove27 && (bullishSpike || bearishCollapse)) {
     return 'POSSIBLE REVERSE';
   }
 
-  // Entry: moderate pump/dump + clear reversal
-  if (pumpOrDumpInRange_8_12 && s.bearishReversal) {
+  // Moderate impulse + reversal = entry
+  if (pumpOrDumpInRange_8_12 && bearishReversal) {
     return 'BUY';
   }
 
-  if (pumpOrDumpInRange_8_12 && s.bullishReversal) {
+  if (pumpOrDumpInRange_8_12 && bullishReversal) {
     return 'SELL';
   }
 
   // Overextended + reversal = caution
-  if (pumpOrDumpAbove27 && s.bearishReversal) {
+  if (pumpOrDumpAbove27 && bearishReversal) {
     return 'POSSIBLE REVERSE';
   }
 
-  if (pumpOrDumpAbove27 && s.bullishReversal) {
+  if (pumpOrDumpAbove27 && bullishReversal) {
     return 'POSSIBLE REVERSE';
   }
 
-  // Special case: 19–23 + reversal = INDECISION/weak confirmation
-  if (pumpOrDumpInRange_19_23 && s.bearishReversal) {
+  // Mid-impulse indecision
+  if (pumpOrDumpInRange_19_23 && bearishReversal) {
     return 'INDECISION / BUY';
   }
 
-  if (pumpOrDumpInRange_19_23 && s.bullishReversal) {
+  if (pumpOrDumpInRange_19_23 && bullishReversal) {
     return 'INDECISION / SELL';
   }
 
   return '';
 };
+
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
