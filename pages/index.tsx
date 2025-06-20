@@ -102,9 +102,15 @@ const getSignal = (s: any): string => {
   const isAbove27 = (val: number | undefined) =>
     val !== undefined && val >= 27;
 
+  const pumpOrDumpInRange_23_25 = inRange(pump, 23, 25) || inRange(dump, 23, 25);
   const pumpOrDumpInRange_19_23 = inRange(pump, 19, 23) || inRange(dump, 19, 23);
   const pumpOrDumpInRange_8_12 = inRange(pump, 8, 12) || inRange(dump, 8, 12);
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
+
+  // 🔥 New condition: Special impulse strength
+  if (pumpOrDumpInRange_23_25) {
+    return 'IMPULSE SIGNAL';
+  }
 
   // Trend flipped compared to yesterday with a strong impulse
   if (
@@ -279,6 +285,7 @@ const signalCounts = useMemo(() => {
     continueSelling: 0, // Now refers to "PULLBACK SELL"
     possibleReverse: 0,
     yesterdayReverse: 0,
+    impulseSignal: 0, // 🔥 New counter
   };
 
   signals.forEach((s: any) => {
@@ -312,6 +319,9 @@ const signalCounts = useMemo(() => {
         break;
       case "YESTERDAY'S TREND REVERSE":
         counts.yesterdayReverse++;
+        break;
+      case 'IMPULSE SIGNAL': // 🔥 New case
+        counts.impulseSignal++;
         break;
     }
   });
@@ -932,7 +942,7 @@ if (loading) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 text-sm">     
- {['BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK BUY', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
+ {['IMPULSE SIGNAL', 'BUY', 'SELL', 'INDECISION', 'START BUYING', 'PULLBACK SELL', 'START SELLING', 'PULLBACK BUY', 'POSSIBLE REVERSE', "YESTERDAY'S TREND REVERSE"].map((type) => (
           <button
             key={type}
             onClick={() => setSignalFilter(signalFilter === type ? null : type)}
@@ -1032,6 +1042,11 @@ if (loading) {
         <span className="text-yellow-500 font-semibold">🕒 YESTERDAY'S REVERSE:</span>
         <span>{signalCounts.yesterdayReverse}</span>
       </div>
+       {/* 🔥 New IMPULSE SIGNAL block */}
+  <div className="flex items-center gap-2">
+    <span className="text-purple-400 font-semibold">⚡ IMPULSE SIGNAL:</span>
+    <span>{signalCounts.impulseSignal}</span>
+  </div>
     </div>
   </div>
 </div>
@@ -1093,36 +1108,40 @@ if (loading) {
 
         let signal = '';
 
-        const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
-        const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
-        const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
+const pumpOrDumpImpulse = inRange(pump, 23, 25) || inRange(dump, 23, 25);
+const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
+const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
+const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
-        if (
-          (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
-          (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
-        ) {
-          signal = "YESTERDAY'S TREND REVERSE";
-        } else if (pumpOrDumpInRangeEntry && s.bearishCollapse) {
-          signal = 'START SELLING';
-        } else if (pumpOrDumpInRange && s.bearishCollapse) {
-          signal = 'PULLBACK SELL';
-        } else if (pumpOrDumpInRangeEntry && s.bullishSpike) {
-          signal = 'START BUYING';
-        } else if (pumpOrDumpInRange && s.bullishSpike) {
-          signal = 'PULLBACK BUY';
-        } else if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
-          signal = 'POSSIBLE REVERSE';
-        } else if (pumpOrDumpInRangeEntry && s.bearishReversal) {
-          signal = 'BUY';
-        } else if (pumpOrDumpInRangeEntry && s.bullishReversal) {
-          signal = 'SELL';
-        } else if (pumpOrDumpAbove27 && (s.bearishReversal || s.bullishReversal)) {
-          signal = 'POSSIBLE REVERSE';
-        } else if (pumpOrDumpInRange && s.bearishReversal) {
-          signal = 'INDECISION / BUY';
-        } else if (pumpOrDumpInRange && s.bullishReversal) {
-          signal = 'INDECISION / SELL';
-        }
+// 🔥 New Impulse Signal logic
+if (pumpOrDumpImpulse &&) {
+  signal = 'IMPULSE SIGNAL';
+} else if (
+  (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
+  (s.bearishReversal && s.bearishBreakout && pumpOrDumpInRange)
+) {
+  signal = "YESTERDAY'S TREND REVERSE";
+} else if (pumpOrDumpInRangeEntry && s.bearishCollapse) {
+  signal = 'START SELLING';
+} else if (pumpOrDumpInRange && s.bearishCollapse) {
+  signal = 'PULLBACK SELL';
+} else if (pumpOrDumpInRangeEntry && s.bullishSpike) {
+  signal = 'START BUYING';
+} else if (pumpOrDumpInRange && s.bullishSpike) {
+  signal = 'PULLBACK BUY';
+} else if (pumpOrDumpAbove27 && (s.bullishSpike || s.bearishCollapse)) {
+  signal = 'POSSIBLE REVERSE';
+} else if (pumpOrDumpInRangeEntry && s.bearishReversal) {
+  signal = 'BUY';
+} else if (pumpOrDumpInRangeEntry && s.bullishReversal) {
+  signal = 'SELL';
+} else if (pumpOrDumpAbove27 && (s.bearishReversal || s.bullishReversal)) {
+  signal = 'POSSIBLE REVERSE';
+} else if (pumpOrDumpInRange && s.bearishReversal) {
+  signal = 'INDECISION / BUY';
+} else if (pumpOrDumpInRange && s.bullishReversal) {
+  signal = 'INDECISION / SELL';
+}
 
         return (
           <tr
