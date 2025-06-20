@@ -1108,7 +1108,7 @@ if (loading) {
 
         let signal = '';
 
-const pumpOrDumpImpulse = inRange(pump, 23, 25) || inRange(dump, 23, 25);
+const pumpOrDumpImpulse = inRange(pump, 23, 26) || inRange(dump, 23, 26);
 const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
 const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
 const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
