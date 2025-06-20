@@ -461,17 +461,18 @@ const now = Date.now();
 const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
   Date.UTC(y, m, d, hPH - 8, min);
 
-const getDailyCloseTimestamp = () => {
-  const nowDate = new Date(now);
-  const year = nowDate.getUTCFullYear();
-  const month = nowDate.getUTCMonth();
-  const day = nowDate.getUTCDate();
+// ✅ No timezone shift. Just UTC hour and minute.
+const getDailyCloseTimestamp = (): number => {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const day = now.getUTCDate();
 
-  const todayClose = getUTCMillis(year, month, day, 7, 45); // 7:45am UTC
-  if (now < todayClose) {
-    return getUTCMillis(year, month, day - 1, 7, 45); // use yesterday's if not reached today’s
-  }
-  return todayClose;
+  const todayCloseUTC = Date.UTC(year, month, day, 7, 45); // 07:45 UTC
+
+  return now.getTime() < todayCloseUTC
+    ? Date.UTC(year, month, day - 1, 7, 45)
+    : todayCloseUTC;
 };
 
 const dailyCloseTimestamp = getDailyCloseTimestamp();
