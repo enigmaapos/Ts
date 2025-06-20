@@ -127,7 +127,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
-    failedBearishBreak 
+    failedBearishBreak &&
   ) {
     return 'IMPULSE SIGNAL / BUY';
   }
@@ -1233,15 +1233,17 @@ if (loading) {
 
         let signal = '';
 
+const validPump = pump && pump !== 0;
+const validDump = dump && dump !== 0;
 const pumpOrDumpImpulse = inRange(pump, 23, 26) || inRange(dump, 23, 26);
 const pumpOrDumpInRange = inRange(pump, 19, 23) || inRange(dump, 19, 23);
 const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
 const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
 // ✅ Custom tested + failed breakout logic
-if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBearishBreak) {
+if (!s.breakout && s.mainTrend === 'bearish' && s.testedPrevLow && s.failedBearishBreak && validPump && validDump) {
   signal = 'IMPULSE SIGNAL / BUY';
-} else if (!s.breakout && s.mainTrend === 'bullish' && s.testedPrevHigh && s.failedBullishBreak) {
+} else if (!s.breakout && s.mainTrend === 'bullish' && s.testedPrevHigh && s.failedBullishBreak&& validPump && validDump) {
   signal = 'IMPULSE SIGNAL / SELL';
 }
 
