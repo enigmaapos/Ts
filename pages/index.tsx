@@ -119,7 +119,9 @@ const getSignal = (s: any): string => {
     bullishBreakout,
     bearishBreakout,
     bullishSpike,
-    bearishCollapse
+    bearishCollapse,
+    detectBullishToBearish,
+    detectBearishToBullish
   } = s;
 
   // 🔥 New: no breakout + trend + test + failure = impulse signal
