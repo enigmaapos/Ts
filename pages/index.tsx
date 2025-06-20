@@ -108,7 +108,7 @@ const getSignal = (s: any): string => {
   const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
   // 🔥 New condition: Special impulse strength
-  if (pumpOrDumpInRange_23_25 && (s.bullishSpike || s.bearishCollapse) && (s.bearishReversal || s.bullishReversal)) {
+  if (pumpOrDumpInRange_23_25) {
     return 'IMPULSE SIGNAL';
   }
 
@@ -1114,7 +1114,7 @@ const pumpOrDumpInRangeEntry = inRange(pump, 8, 12) || inRange(dump, 8, 12);
 const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
 
 // 🔥 New Impulse Signal logic
-if (pumpOrDumpImpulse && (s.bullishSpike || s.bearishCollapse) && (s.bearishReversal || s.bullishReversal)) {
+if (pumpOrDumpImpulse) {
   signal = 'IMPULSE SIGNAL';
 } else if (
   (s.bullishReversal && s.bullishBreakout && pumpOrDumpInRange) ||
