@@ -538,9 +538,7 @@ const detectBullishToBearish = (
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
+  closes: number[]
 ): boolean => {
   const len = closes.length;
   if (len < 5) return false;
@@ -615,9 +613,7 @@ const detectBearishToBullish = (
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
+  closes: number[]
 ): boolean => {
   const len = closes.length;
   if (len < 5) return false;
