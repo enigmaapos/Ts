@@ -1262,7 +1262,7 @@ else if (pumpOrDumpImpulse) {
                 </button>
               </div>
             </td>
-            <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
+             <td className="px-1 py-0.5 text-center">{s.breakout ? 'Yes' : 'No'}</td>
             <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
               {s.bullishBreakout ? 'Yes' : 'No'}
             </td>
@@ -1317,26 +1317,32 @@ else if (pumpOrDumpImpulse) {
               {s.bullishSpike ? 'Yes' : 'No'}
             </td>
             <td
-                className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-                signal === 'SELL'
-                  ? 'text-red-400'
-                  : signal === 'BUY'
-                  ? 'text-green-400'
-                  : signal === 'INDECISION / BUY' || signal === 'INDECISION / SELL'
-                  ? 'text-blue-400'
-                  : signal === 'START BUYING' || signal === 'PULLBACK BUY'
-                  ? 'text-green-300'
-                  : signal === 'START SELLING' || signal === 'PULLBACK SELL'
-                  ? 'text-red-300'
-                  : signal === 'POSSIBLE REVERSE'
-                  ? 'text-yellow-300'
-                  : signal === "YESTERDAY'S TREND REVERSE"
-                  ? 'text-yellow-500 font-bold'
-                  : 'text-gray-500'
-              }`}
-            >
-              {signal}
-            </td>
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal === 'SELL'
+      ? 'text-red-400'
+      : signal === 'BUY'
+      ? 'text-green-400'
+      : signal === 'INDECISION / BUY' || signal === 'INDECISION / SELL'
+      ? 'text-blue-400'
+      : signal === 'START BUYING' || signal === 'PULLBACK BUY'
+      ? 'text-green-300'
+      : signal === 'START SELLING' || signal === 'PULLBACK SELL'
+      ? 'text-red-300'
+      : signal === 'POSSIBLE REVERSE'
+      ? 'text-yellow-300'
+      : signal === "YESTERDAY'S TREND REVERSE"
+      ? 'text-yellow-500 font-bold'
+      : signal === 'IMPULSE SIGNAL / BUY'
+      ? 'text-green-500 font-bold'
+      : signal === 'IMPULSE SIGNAL / SELL'
+      ? 'text-red-500 font-bold'
+      : signal === 'IMPULSE SIGNAL'
+      ? 'text-purple-400 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal}
+</td>
           </tr>
         );
       })}
