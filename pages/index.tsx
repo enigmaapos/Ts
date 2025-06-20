@@ -124,6 +124,7 @@ const getSignal = (s: any): string => {
 
   // 🔥 New: no breakout + trend + test + failure = impulse signal
   if (
+    pumpOrDumpInRange_23_26 &&
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
@@ -133,6 +134,7 @@ const getSignal = (s: any): string => {
   }
 
   if (
+    pumpOrDumpInRange_23_26 &&
     !breakout &&
     mainTrend === 'bullish' &&
     testedPrevHigh &&
