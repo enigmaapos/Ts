@@ -1035,7 +1035,6 @@ if (loading) {
     'IMPULSE SIGNAL / SELL',
     'BUY',
     'SELL',
-    'INDECISION',
     'INDECISION / BUY',
     'INDECISION / SELL',
     'START BUYING',
@@ -1126,10 +1125,6 @@ if (loading) {
       <div className="flex items-center gap-2">
         <span className="text-red-400 font-semibold">🔴 SELL:</span>
         <span>{signalCounts.sell}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-blue-400 font-semibold">🔵 INDECISION:</span>
-        <span>{signalCounts.indecision}</span>
       </div>
          <div className="flex items-center gap-2 ml-4">
       <span className="text-blue-300">↳ INDECISION / BUY:</span>
