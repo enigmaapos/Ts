@@ -103,7 +103,7 @@ const getSignal = (s: any): string => {
     val !== undefined && val >= 35;
 
   const pumpOrDumpInRange_23_26 = inRange(pump, 23, 26) || inRange(dump, 23, 26);
-  const pumpOrDumpAbove27 = isAbove27(pump) || isAbove27(dump);
+  const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
   const {
     mainTrend,
