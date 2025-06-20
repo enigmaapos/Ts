@@ -312,66 +312,74 @@ const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).leng
 const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
-const counts = {
-  buy: 0,
-  sell: 0,
-  indecision: 0,
-  indecisionBuy: 0,
-  indecisionSell: 0,
-  startBuying: 0,
-  continueBuying: 0,
-  startSelling: 0,
-  continueSelling: 0,
-  possibleReverse: 0,
-  yesterdayReverse: 0,
-  impulseSignal: 0,
-  impulseBuy: 0,
-  impulseSell: 0,
-};
+const signalCounts = useMemo(() => {
+  const counts = {
+    buy: 0,
+    sell: 0,
+    indecision: 0,
+    indecisionBuy: 0,
+    indecisionSell: 0,
+    startBuying: 0,
+    continueBuying: 0,
+    startSelling: 0,
+    continueSelling: 0,
+    possibleReverse: 0,
+    yesterdayReverse: 0,
+    impulseSignal: 0,
+    impulseBuy: 0,
+    impulseSell: 0,
+  };
 
-switch (signal) {
-  case 'BUY':
-    counts.buy++;
-    break;
-  case 'SELL':
-    counts.sell++;
-    break;
-  case 'INDECISION / BUY':
-    counts.indecision++;
-    counts.indecisionBuy++;
-    break;
-  case 'INDECISION / SELL':
-    counts.indecision++;
-    counts.indecisionSell++;
-    break;
-  case 'START BUYING':
-    counts.startBuying++;
-    break;
-  case 'PULLBACK BUY':
-    counts.continueBuying++;
-    break;
-  case 'START SELLING':
-    counts.startSelling++;
-    break;
-  case 'PULLBACK SELL':
-    counts.continueSelling++;
-    break;
-  case 'POSSIBLE REVERSE':
-    counts.possibleReverse++;
-    break;
-  case "YESTERDAY'S TREND REVERSE":
-    counts.yesterdayReverse++;
-    break;
-  case 'IMPULSE SIGNAL':
-    counts.impulseSignal++;
-    break;
-  case 'IMPULSE SIGNAL / BUY':
-    counts.impulseBuy++;
-    break;
-  case 'IMPULSE SIGNAL / SELL':
-    counts.impulseSell++;
-    break;
-}
+  signals.forEach((s: any) => {
+    const signal = getSignal(s)?.trim().toUpperCase(); // ✅ make sure signal is defined here
+
+    switch (signal) {
+      case 'BUY':
+        counts.buy++;
+        break;
+      case 'SELL':
+        counts.sell++;
+        break;
+      case 'INDECISION / BUY':
+        counts.indecision++;
+        counts.indecisionBuy++;
+        break;
+      case 'INDECISION / SELL':
+        counts.indecision++;
+        counts.indecisionSell++;
+        break;
+      case 'START BUYING':
+        counts.startBuying++;
+        break;
+      case 'PULLBACK BUY':
+        counts.continueBuying++;
+        break;
+      case 'START SELLING':
+        counts.startSelling++;
+        break;
+      case 'PULLBACK SELL':
+        counts.continueSelling++;
+        break;
+      case 'POSSIBLE REVERSE':
+        counts.possibleReverse++;
+        break;
+      case "YESTERDAY'S TREND REVERSE":
+        counts.yesterdayReverse++;
+        break;
+      case 'IMPULSE SIGNAL':
+        counts.impulseSignal++;
+        break;
+      case 'IMPULSE SIGNAL / BUY':
+        counts.impulseBuy++;
+        break;
+      case 'IMPULSE SIGNAL / SELL':
+        counts.impulseSell++;
+        break;
+    }
+  });
+
+  return counts;
+}, [signals]);
   
   
   useEffect(() => {
