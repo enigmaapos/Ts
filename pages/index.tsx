@@ -547,7 +547,7 @@ if (breakoutFailure) {
   const sessionLows = getRecentSessionLows(candles, sessionStartTimes);       
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
-
+  }
  // === Use in UI Table (example row):
 const patternLabelTop = breakoutFailure
   ? isDoubleTopFailure
