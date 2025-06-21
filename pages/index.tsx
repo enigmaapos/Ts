@@ -1281,10 +1281,11 @@ if (
   signal = 'POSSIBLE REVERSE';
 } else if (
   s.breakout &&
+  (s.bullishSpike || s.bearishCollapse) &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
 ) {
-  signal = 'SIGNAL TREND SLOWING';
+  signal = 'TREND SLOWING';
 }
   
 
