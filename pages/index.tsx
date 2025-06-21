@@ -402,17 +402,6 @@ console.log("Main Trend:", mainTrend);
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
 
-          const failedBullishBreak =
-    todaysHighestHigh !== null &&
-    prevSessionHigh !== null &&
-    todaysHighestHigh <= prevSessionHigh;
-
-  const failedBearishBreak =
-    todaysLowestLow !== null &&
-    prevSessionLow !== null &&
-    todaysLowestLow >= prevSessionLow;
-
-  const breakoutFailure = failedBullishBreak && failedBearishBreak;
 
   // Optional: Add test failure signal
   const getTestThreshold = (price: number): number => {
@@ -529,6 +518,19 @@ const detectBottomPatterns = (lows: number[]) => {
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
 };
 
+const failedBullishBreak =
+    todaysHighestHigh !== null &&
+    prevSessionHigh !== null &&
+    todaysHighestHigh <= prevSessionHigh;
+
+  const failedBearishBreak =
+    todaysLowestLow !== null &&
+    prevSessionLow !== null &&
+    todaysLowestLow >= prevSessionLow;
+
+  const breakoutFailure = failedBullishBreak && failedBearishBreak;
+
+        
  // === Pattern Analysis (Only If Breakout Fails) ===
 let isDoubleTop = false;
 let isDescendingTop = false;
