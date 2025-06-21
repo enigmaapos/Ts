@@ -171,12 +171,7 @@ const getSignal = (s: any): string => {
     return 'POSSIBLE REVERSE';
   }
 
-  // Overextended + reversal = caution
-  if (pumpOrDumpAbove35 && bearishReversal) {
-    return 'POSSIBLE REVERSE';
-  }
-
-  if (pumpOrDumpAbove35 && bullishReversal) {
+  if (pumpOrDumpAbove35 && (bullishReversal || bearishReversal)) {
     return 'POSSIBLE REVERSE';
   }
 
