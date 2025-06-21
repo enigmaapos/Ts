@@ -171,11 +171,11 @@ const getSignal = (s: any): string => {
   }
 
   if (pumpOrDumpAbove35 && (bullishSpike || bearishCollapse)) {
-    return 'POSSIBLE REVERSE';
+    return 'POSSIBLE PULLBACK';
   }
 
   if (pumpOrDumpAbove35 && (bullishReversal || bearishReversal)) {
-    return 'POSSIBLE REVERSE';
+    return 'POSSIBLE PULLBACK';
   }
 
   // ✅ NEW: REVERSE CONFIRMED
@@ -329,7 +329,7 @@ const signalCounts = useMemo(() => {
     const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
-      case 'POSSIBLE REVERSE':
+      case 'POSSIBLE PULLBACK':
         counts.possibleReverse++;
         break;
       case 'IMPULSE SIGNAL':
@@ -1132,23 +1132,24 @@ if (loading) {
       {label}
     </button>
     ))}
-  {[
-    'IMPULSE SIGNAL',
-    'IMPULSE SIGNAL / BUY',
-    'IMPULSE SIGNAL / SELL',
-    'POSSIBLE REVERSE',
-  ].map((type) => (
-    <button
-      key={type}
-      onClick={() => setSignalFilter(signalFilter === type ? null : type)}
-      className={`px-3 py-1 rounded-full ${
-        signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
-      }`}
-    >
-      {type}
-    </button>
-    
-        ))}
+{[
+  'IMPULSE SIGNAL',
+  'IMPULSE SIGNAL / BUY',
+  'IMPULSE SIGNAL / SELL',
+  'POSSIBLE PULLBACK',
+  'TREND SLOWING',           // ✅ New signal
+  'REVERSE CONFIRMED',       // ✅ New signal
+].map((type) => (
+  <button
+    key={type}
+    onClick={() => setSignalFilter(signalFilter === type ? null : type)}
+    className={`px-3 py-1 rounded-full ${
+      signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
+    }`}
+  >
+    {type}
+  </button>
+))}
   {/* ✅ Clear Button */}
   <button
     onClick={() => {
@@ -1191,24 +1192,44 @@ if (loading) {
       </div>
     </div>
 
-    {/* ✅ Signal Summary */}
-      <div className="flex items-center gap-2">
-        <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE REVERSE:</span>
-        <span>{signalCounts.possibleReverse}</span>
-      </div>
-       {/* 🔥 New IMPULSE SIGNAL block */}
+
+      {/* ✅ Signal Summary */}
+<div className="flex flex-col gap-2 text-sm">
+
+  <div className="flex items-center gap-2">
+    <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE PULLBACK:</span>
+    <span>{signalCounts.possibleReverse}</span>
+  </div>
+
+  {/* 🔥 IMPULSE SIGNAL blocks */}
   <div className="flex items-center gap-2">
     <span className="text-purple-400 font-semibold">⚡ IMPULSE SIGNAL:</span>
     <span>{signalCounts.impulseSignal}</span>
   </div>
-       <div className="flex items-center gap-2">
+
+  <div className="flex items-center gap-2">
     <span className="text-green-500 font-semibold">⚡ IMPULSE BUY:</span>
     <span>{signalCounts.impulseBuy}</span>
   </div>
+
   <div className="flex items-center gap-2">
     <span className="text-red-500 font-semibold">⚡ IMPULSE SELL:</span>
     <span>{signalCounts.impulseSell}</span>
   </div>
+
+  {/* 🟠 TREND SLOWING */}
+  <div className="flex items-center gap-2">
+    <span className="text-orange-400 font-semibold">🕒 TREND SLOWING:</span>
+    <span>{signalCounts.trendSlowing}</span>
+  </div>
+
+  {/* 🔵 REVERSE CONFIRMED */}
+  <div className="flex items-center gap-2">
+    <span className="text-blue-400 font-semibold">✅ REVERSE CONFIRMED:</span>
+    <span>{signalCounts.reverseConfirmed}</span>
+  </div>
+
+</div>
     </div>
   </div>
 
@@ -1306,7 +1327,7 @@ if (
   pumpOrDumpAbove35 &&
   (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
 ) {
-  signal = 'POSSIBLE REVERSE';
+  signal = 'POSSIBLE PULLBACK';
 } else if (
   s.breakout &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
@@ -1435,7 +1456,7 @@ if (
         </td>
         <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal === 'POSSIBLE REVERSE'
+    signal === 'POSSIBLE PULLBACK'
       ? 'text-yellow-300'
       : signal === 'IMPULSE SIGNAL / BUY'
       ? 'text-green-500 font-bold'
