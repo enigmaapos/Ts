@@ -175,6 +175,7 @@ const getSignal = (s: any): string => {
   // ✅ NEW: Signal Trend Slowing
   if (
     breakout &&
+    (bullishSpike || bearishCollapse) &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
   ) {
@@ -578,11 +579,14 @@ const detectBullishToBearish = (
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[]
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
 ): boolean => {
   const len = closes.length;
   if (len < 5) return false;
 
+    if (!bullishBreakout && !bearishBreakout) return false;
 
   // Confirm bullish trend
   if (ema14[len - 1] <= ema70[len - 1]) return false;
@@ -653,12 +657,14 @@ const detectBearishToBullish = (
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[]
+  closes: number[],
+  bullishBreakout: boolean,
+  bearishBreakout: boolean
 ): boolean => {
   const len = closes.length;
   if (len < 5) return false;
 
-  
+    if (!bullishBreakout && !bearishBreakout) return false;
 
   // Confirm bearish trend
   if (ema14[len - 1] >= ema70[len - 1]) return false;
@@ -729,6 +735,7 @@ const detectBearishToBullish = (
   lows,
   highs,
   closes,
+    bullishBreakout, bearishBreakout)
 );
 
 if (bullishReversal) {
@@ -745,6 +752,7 @@ const bearishReversal = detectBearishToBullish(
   highs,
   lows,
   closes,
+  bullishBreakout, bearishBreakout)
 );
 
 if (bearishReversal) {
@@ -1388,7 +1396,7 @@ if (
       ? 'text-red-500 font-bold'
       : signal === 'IMPULSE SIGNAL'
       ? 'text-purple-400 font-bold'
-      : signal === 'SIGNAL TREND SLOWING'
+      : signal === 'TREND SLOWING'
       ? 'text-orange-400 font-bold'
       : 'text-gray-500'
   }`}
