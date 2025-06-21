@@ -1127,30 +1127,31 @@ if (loading) {
 
     // Custom breakout + reversal signal logic
     if (
-      !s.breakout &&
-      s.mainTrend === 'bearish' &&
-      s.testedPrevLow &&
-      s.failedBearishBreak &&
-      validPump &&
-      validDump
-    ) {
-      signal = 'IMPULSE SIGNAL / BUY';
-    } else if (
-      !s.breakout &&
-      s.mainTrend === 'bullish' &&
-      s.testedPrevHigh &&
-      s.failedBullishBreak &&
-      validPump &&
-      validDump
-    ) {
-      signal = 'IMPULSE SIGNAL / SELL';
-    } else if (pumpOrDumpImpulse) {
-      signal = 'IMPULSE SIGNAL';
-    } else if (pumpOrDumpAbove35 && (s.bullishSpike || s.bearishCollapse)) {
-      signal = 'POSSIBLE REVERSE';
-    } else if (pumpOrDumpAbove35 && (s.bearishReversal || s.bullishReversal)) {
+  !s.breakout &&
+  s.mainTrend === 'bearish' &&
+  s.testedPrevLow &&
+  s.failedBearishBreak &&
+  validPump &&
+  validDump
+) {
+  signal = 'IMPULSE SIGNAL / BUY';
+} else if (
+  !s.breakout &&
+  s.mainTrend === 'bullish' &&
+  s.testedPrevHigh &&
+  s.failedBullishBreak &&
+  validPump &&
+  validDump
+) {
+  signal = 'IMPULSE SIGNAL / SELL';
+} else if (pumpOrDumpImpulse) {
+  signal = 'IMPULSE SIGNAL';
+} else if (
+  pumpOrDumpAbove35 &&
+  (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
+) {
   signal = 'POSSIBLE REVERSE';
-    }
+}
   
 
     return (
