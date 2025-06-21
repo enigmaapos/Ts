@@ -211,7 +211,7 @@ const getSignal = (s: any): string => {
   if (
     breakout &&
     (bullishReversal ||
-      bearishReversal ||) &&
+      bearishReversal) &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     (isDoubleTop || isDescendingTop || isDoubleTopFailure) &&
     (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
@@ -1378,7 +1378,7 @@ if (
 } else if (
   s.breakout &&
   (s.bullishReversal ||
-      s.bearishReversal ||) &&
+      s.bearishReversal) &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
   (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
