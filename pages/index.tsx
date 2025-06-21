@@ -1153,7 +1153,10 @@ if (loading) {
       signal = 'IMPULSE SIGNAL';
     } else if (pumpOrDumpAbove35 && (s.bullishSpike || s.bearishCollapse)) {
       signal = 'POSSIBLE REVERSE';
+    } else if (pumpOrDumpAbove35 && (s.bearishReversal || s.bullishReversal)) {
+  signal = 'POSSIBLE REVERSE';
     }
+  
 
     return (
       <tr
