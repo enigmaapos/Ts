@@ -495,12 +495,6 @@ const detectTopPatterns = (highs: number[]) => {
   return { isDoubleTop, isDescendingTop, isDoubleTopFailure };
 };
 
-// Detect top patterns from last N sessions
-const sessionStartTimes = getLastNSessionStartTimes(10);
-const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
-const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
-
-
 const getRecentSessionLows = (
   ohlcvData: { timestamp: number; low: number }[],
   sessionStartTimes: number[]
@@ -534,7 +528,12 @@ const detectBottomPatterns = (lows: number[]) => {
 
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
 };
-        
+
+
+// Detect top patterns from last N sessions
+const sessionStartTimes = getLastNSessionStartTimes(10);
+const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
+const sessionLows = getRecentSessionLows(candles, sessionStartTimes);        
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
         
