@@ -530,6 +530,27 @@ const failedBullishBreak =
 
   const breakoutFailure = failedBullishBreak && failedBearishBreak;
 
+        const patternLabelTop = breakoutFailure
+  ? isDoubleTopFailure
+    ? 'Top Fail'
+    : isDoubleTop
+    ? 'Double Top'
+    : isDescendingTop
+    ? 'Descending Top'
+    : '-'
+  : '-';
+
+const patternLabelBottom = breakoutFailure
+  ? isDoubleBottomFailure
+    ? 'Bottom Fail'
+    : isDoubleBottom
+    ? 'Double Bottom'
+    : isAscendingBottom
+    ? 'Ascending Bottom'
+    : '-'
+  : '-';
+
+
         
  // === Pattern Analysis (Only If Breakout Fails) ===
 let isDoubleTop = false;
@@ -1271,26 +1292,6 @@ if (loading) {
 ) {
   signal = 'POSSIBLE REVERSE';
 }
-  
-const patternLabelTop = breakoutFailure
-  ? isDoubleTopFailure
-    ? 'Top Fail'
-    : isDoubleTop
-    ? 'Double Top'
-    : isDescendingTop
-    ? 'Descending Top'
-    : '-'
-  : '-';
-
-const patternLabelBottom = breakoutFailure
-  ? isDoubleBottomFailure
-    ? 'Bottom Fail'
-    : isDoubleBottom
-    ? 'Double Bottom'
-    : isAscendingBottom
-    ? 'Ascending Bottom'
-    : '-'
-  : '-';
 
   
     return (
