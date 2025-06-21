@@ -1377,12 +1377,16 @@ if (
   signal = 'TREND SLOWING';
 } else if (
   s.breakout &&
-  (s.bullishReversal ||
-      s.bearishReversal) &&
+  (s.bullishReversal || s.bearishReversal) &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
   (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-  (inRange(pump, 29, 32) || inRange(dump, 29, 32 || inRange(pump, 9, 12) || inRange(dump, 9, 12))
+  (
+    inRange(pump, 29, 32) ||
+    inRange(dump, 29, 32) ||
+    inRange(pump, 9, 12) ||
+    inRange(dump, 9, 12)
+  )
 ) {
   signal = 'CONSOLIDATION';
 }
