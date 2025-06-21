@@ -140,13 +140,19 @@ const getSignal = (s: any): string => {
     bearishBreakout,
     bullishSpike,
     bearishCollapse,
+    isDoubleTop,
+    isDescendingTop,
+    isDoubleTopFailure,
+    isDoubleBottom,
+    isAscendingBottom,
+    isDoubleBottomFailure,
   } = s;
 
   if (
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
-    failedBearishBreak 
+    failedBearishBreak
   ) {
     return 'IMPULSE SIGNAL / BUY';
   }
@@ -155,7 +161,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bullish' &&
     testedPrevHigh &&
-    failedBullishBreak 
+    failedBullishBreak
   ) {
     return 'IMPULSE SIGNAL / SELL';
   }
@@ -172,7 +178,24 @@ const getSignal = (s: any): string => {
     return 'POSSIBLE REVERSE';
   }
 
-  // ✅ NEW: Signal Trend Slowing
+  // ✅ NEW: REVERSE CONFIRMED
+  if (
+    breakout &&
+    (mainTrend === 'bullish' || mainTrend === 'bearish') &&
+    (bullishReversal ||
+      bearishReversal ||
+      isDoubleTop ||
+      isDescendingTop ||
+      isDoubleTopFailure ||
+      isDoubleBottom ||
+      isAscendingBottom ||
+      isDoubleBottomFailure) &&
+    pumpOrDumpAbove35
+  ) {
+    return 'REVERSE CONFIRMED';
+  }
+
+  // ✅ TREND SLOWING
   if (
     breakout &&
     (bullishSpike || bearishCollapse) &&
@@ -298,7 +321,8 @@ const signalCounts = useMemo(() => {
     impulseSignal: 0,
     impulseBuy: 0,
     impulseSell: 0,
-    trendSlowing: 0, // ✅ New entry
+    trendSlowing: 0,
+    reverseConfirmed: 0, // ✅ New entry
   };
 
   signals.forEach((s: any) => {
@@ -317,8 +341,12 @@ const signalCounts = useMemo(() => {
       case 'IMPULSE SIGNAL / SELL':
         counts.impulseSell++;
         break;
-      case 'SIGNAL TREND SLOWING': // ✅ Handle new case
+      case 'TREND SLOWING':
+      case 'SIGNAL TREND SLOWING': // in case you use either label
         counts.trendSlowing++;
+        break;
+      case 'REVERSE CONFIRMED':
+        counts.reverseConfirmed++;
         break;
     }
   });
@@ -1281,6 +1309,22 @@ if (
   signal = 'POSSIBLE REVERSE';
 } else if (
   s.breakout &&
+  (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+  (
+    s.bullishReversal ||
+    s.bearishReversal ||
+    s.isDoubleTop ||
+    s.isDescendingTop ||
+    s.isDoubleTopFailure ||
+    s.isDoubleBottom ||
+    s.isAscendingBottom ||
+    s.isDoubleBottomFailure
+  ) &&
+  (isAbove35(pump) || isAbove35(dump))
+) {
+  signal = 'REVERSE CONFIRMED';
+} else if (
+  s.breakout &&
   (s.bullishSpike || s.bearishCollapse) &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
@@ -1401,6 +1445,8 @@ if (
       ? 'text-purple-400 font-bold'
       : signal === 'TREND SLOWING'
       ? 'text-orange-400 font-bold'
+      : signal === 'REVERSE CONFIRMED'
+      ? 'text-blue-400 font-bold'
       : 'text-gray-500'
   }`}
 >
