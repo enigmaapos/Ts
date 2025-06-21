@@ -62,25 +62,25 @@ function calculateRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
-function getMainTrend(
+function getMainTrendFromEMAs(
   ema70: number[],
   ema200: number[]
-): { trend: 'bullish' | 'bearish'; index: number } | null {
+): 'bullish' | 'bearish' | null {
   const len = ema70.length;
 
   for (let i = len - 2; i >= 1; i--) {
-    // Bullish crossover
+    // Bullish crossover: EMA70 crosses above EMA200
     if (ema70[i] <= ema200[i] && ema70[i + 1] > ema200[i + 1]) {
-      return { trend: 'bullish', index: i + 1 };
+      return 'bullish';
     }
 
-    // Bearish crossover
+    // Bearish crossover: EMA70 crosses below EMA200
     if (ema70[i] >= ema200[i] && ema70[i + 1] < ema200[i + 1]) {
-      return { trend: 'bearish', index: i + 1 };
+      return 'bearish';
     }
   }
 
-  return null;
+  return null; // No crossover found
 }
 
 
