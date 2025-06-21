@@ -148,6 +148,7 @@ const getSignal = (s: any): string => {
     isDoubleBottomFailure,
   } = s;
 
+  // ✅ IMPULSE BUY
   if (
     !breakout &&
     mainTrend === 'bearish' &&
@@ -157,6 +158,7 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL / BUY';
   }
 
+  // ✅ IMPULSE SELL
   if (
     !breakout &&
     mainTrend === 'bullish' &&
@@ -166,19 +168,20 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL / SELL';
   }
 
+  // ✅ IMPULSE ZONE
   if (pumpOrDumpInRange_23_26) {
     return 'IMPULSE SIGNAL';
   }
 
-  if (pumpOrDumpAbove35 && (bullishSpike || bearishCollapse)) {
+  // ✅ POSSIBLE PULLBACK (overextended)
+  if (
+    pumpOrDumpAbove35 &&
+    (bullishSpike || bearishCollapse || bullishReversal || bearishReversal)
+  ) {
     return 'POSSIBLE PULLBACK';
   }
 
-  if (pumpOrDumpAbove35 && (bullishReversal || bearishReversal)) {
-    return 'POSSIBLE PULLBACK';
-  }
-
-  // ✅ NEW: REVERSE CONFIRMED
+  // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
   if (
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     (bullishReversal ||
@@ -194,7 +197,7 @@ const getSignal = (s: any): string => {
     return 'REVERSE CONFIRMED';
   }
 
-  // ✅ TREND SLOWING
+  // ✅ TREND SLOWING (spike/collapse + breakout + weak pump/dump)
   if (
     breakout &&
     (bullishSpike || bearishCollapse) &&
@@ -202,6 +205,17 @@ const getSignal = (s: any): string => {
     ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
   ) {
     return 'TREND SLOWING';
+  }
+
+  // ✅ CONSOLIDATION (top + bottom + breakout + trend + 29–32 pump/dump)
+  if (
+    breakout &&
+    (mainTrend === 'bullish' || mainTrend === 'bearish') &&
+    (isDoubleTop || isDescendingTop || isDoubleTopFailure) &&
+    (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
+    (inRange(pump, 29, 32) || inRange(dump, 29, 32))
+  ) {
+    return 'CONSOLIDATION';
   }
 
   return '';
@@ -321,7 +335,8 @@ const signalCounts = useMemo(() => {
     impulseBuy: 0,
     impulseSell: 0,
     trendSlowing: 0,
-    reverseConfirmed: 0, // ✅ New entry
+    reverseConfirmed: 0,
+    consolidation: 0, // ✅ New entry
   };
 
   signals.forEach((s: any) => {
@@ -341,18 +356,20 @@ const signalCounts = useMemo(() => {
         counts.impulseSell++;
         break;
       case 'TREND SLOWING':
-      case 'SIGNAL TREND SLOWING': // in case you use either label
+      case 'SIGNAL TREND SLOWING':
         counts.trendSlowing++;
         break;
       case 'REVERSE CONFIRMED':
         counts.reverseConfirmed++;
+        break;
+      case 'CONSOLIDATION': // ✅ Handle new case
+        counts.consolidation++;
         break;
     }
   });
 
   return counts;
 }, [signals]);
-  
   
   useEffect(() => {
     let isMounted = true;
@@ -1138,6 +1155,7 @@ if (loading) {
   'POSSIBLE PULLBACK',
   'TREND SLOWING',           // ✅ New signal
   'REVERSE CONFIRMED',       // ✅ New signal
+  'CONSOLIDATION',
 ].map((type) => (
   <button
     key={type}
@@ -1228,6 +1246,11 @@ if (loading) {
     <span>{signalCounts.reverseConfirmed}</span>
   </div>
 
+  {/* 🟢 CONSOLIDATION */}
+<div className="flex items-center gap-2">
+  <span className="text-teal-400 font-semibold">🟢 CONSOLIDATION:</span>
+  <span>{signalCounts.consolidation}</span>
+</div>
 </div>
     </div>
   </div>
@@ -1349,6 +1372,14 @@ if (
   ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
 ) {
   signal = 'TREND SLOWING';
+} else if (
+  s.breakout &&
+  (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+  (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
+  (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
+  (inRange(pump, 29, 32) || inRange(dump, 29, 32))
+) {
+  signal = 'CONSOLIDATION';
 }
   
 
@@ -1466,6 +1497,8 @@ if (
       ? 'text-orange-400 font-bold'
       : signal === 'REVERSE CONFIRMED'
       ? 'text-blue-400 font-bold'
+      : signal === 'CONSOLIDATION'
+      ? 'text-teal-400 font-bold'
       : 'text-gray-500'
   }`}
 >
