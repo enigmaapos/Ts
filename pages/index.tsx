@@ -387,15 +387,7 @@ const lastEMA200 = ema200.at(-1)!;
 
 // Main trend
 const mainTrend = getMainTrend(ema70, ema200);
-
-if (mainTrend) {
-  const { trend, index } = mainTrend;
-  console.log(`Trend: ${trend}, Crossover happened at index: ${index}`);
-} else {
-  console.log('No EMA70/EMA200 crossover found');
-}
-
-        
+     
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
 
         const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
