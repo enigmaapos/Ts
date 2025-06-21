@@ -62,9 +62,27 @@ function calculateRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
-function getMainTrend(close: number, ema200: number): 'bullish' | 'bearish' {
-  return close >= ema200 ? 'bullish' : 'bearish';
-}
+function getMainTrend(
+  ema70: number[],
+  ema200: number[]
+): 'bullish' | 'bearish' | null {
+  const len = ema70.length;
+
+  for (let i = len - 2; i >= 1; i--) {
+    // Bullish crossover: EMA70 crosses above EMA200
+    if (ema70[i] <= ema200[i] && ema70[i + 1] > ema200[i + 1]) {
+      return 'bullish';
+    }
+
+    // Bearish crossover: EMA70 crosses below EMA200
+    if (ema70[i] >= ema200[i] && ema70[i + 1] < ema200[i + 1]) {
+      return 'bearish';
+    }
+  }
+
+  return null; // No crossover found
+      }
+
 
 function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
@@ -367,12 +385,10 @@ const lastEMA70 = ema70.at(-1)!;
 const lastEMA200 = ema200.at(-1)!;
 
 
-// Main trend from candle vs EMA200 (long-term trend)
-const mainTrend = lastClose >= lastEMA200 ? "bullish" : "bearish";
+// Main trend
+const mainTrend = getMainTrend(ema70, ema200);
 
         
-
-
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
 
         const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
