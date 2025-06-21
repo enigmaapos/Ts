@@ -142,7 +142,6 @@ const getSignal = (s: any): string => {
     bearishCollapse,
   } = s;
 
-  // 🔥 New: no breakout + trend + test + failure = impulse signal
   if (
     !breakout &&
     mainTrend === 'bearish' &&
@@ -161,18 +160,25 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL / SELL';
   }
 
-  // 🔥 Impulse strength zone
   if (pumpOrDumpInRange_23_26) {
     return 'IMPULSE SIGNAL';
   }
 
-  // Overextended: Possible reversals
   if (pumpOrDumpAbove35 && (bullishSpike || bearishCollapse)) {
     return 'POSSIBLE REVERSE';
   }
 
   if (pumpOrDumpAbove35 && (bullishReversal || bearishReversal)) {
     return 'POSSIBLE REVERSE';
+  }
+
+  // ✅ NEW: Signal Trend Slowing
+  if (
+    breakout &&
+    (mainTrend === 'bullish' || mainTrend === 'bearish') &&
+    ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+  ) {
+    return 'TREND SLOWING';
   }
 
   return '';
@@ -291,10 +297,11 @@ const signalCounts = useMemo(() => {
     impulseSignal: 0,
     impulseBuy: 0,
     impulseSell: 0,
+    trendSlowing: 0, // ✅ New entry
   };
 
   signals.forEach((s: any) => {
-    const signal = getSignal(s)?.trim().toUpperCase(); // ✅ make sure signal is defined here
+    const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
       case 'POSSIBLE REVERSE':
@@ -308,6 +315,9 @@ const signalCounts = useMemo(() => {
         break;
       case 'IMPULSE SIGNAL / SELL':
         counts.impulseSell++;
+        break;
+      case 'SIGNAL TREND SLOWING': // ✅ Handle new case
+        counts.trendSlowing++;
         break;
     }
   });
@@ -1363,20 +1373,22 @@ if (loading) {
           {s.bullishSpike ? 'Yes' : 'No'}
         </td>
         <td
-          className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-            signal === 'POSSIBLE REVERSE'
-              ? 'text-yellow-300'
-              : signal === 'IMPULSE SIGNAL / BUY'
-              ? 'text-green-500 font-bold'
-              : signal === 'IMPULSE SIGNAL / SELL'
-              ? 'text-red-500 font-bold'
-              : signal === 'IMPULSE SIGNAL'
-              ? 'text-purple-400 font-bold'
-              : 'text-gray-500'
-          }`}
-        >
-          {signal}
-        </td>
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal === 'POSSIBLE REVERSE'
+      ? 'text-yellow-300'
+      : signal === 'IMPULSE SIGNAL / BUY'
+      ? 'text-green-500 font-bold'
+      : signal === 'IMPULSE SIGNAL / SELL'
+      ? 'text-red-500 font-bold'
+      : signal === 'IMPULSE SIGNAL'
+      ? 'text-purple-400 font-bold'
+      : signal === 'SIGNAL TREND SLOWING'
+      ? 'text-orange-400 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal}
+</td>
       </tr>
     );
   })}
