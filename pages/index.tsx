@@ -65,23 +65,23 @@ function calculateRSI(closes: number[], period = 14): number[] {
 function getMainTrend(
   ema70: number[],
   ema200: number[]
-): 'bullish' | 'bearish' | null {
+): { trend: 'bullish' | 'bearish'; index: number } | null {
   const len = ema70.length;
 
   for (let i = len - 2; i >= 1; i--) {
-    // Bullish crossover: EMA70 crosses above EMA200
+    // Bullish crossover
     if (ema70[i] <= ema200[i] && ema70[i + 1] > ema200[i + 1]) {
-      return 'bullish';
+      return { trend: 'bullish', index: i + 1 };
     }
 
-    // Bearish crossover: EMA70 crosses below EMA200
+    // Bearish crossover
     if (ema70[i] >= ema200[i] && ema70[i + 1] < ema200[i + 1]) {
-      return 'bearish';
+      return { trend: 'bearish', index: i + 1 };
     }
   }
 
-  return null; // No crossover found
-      }
+  return null;
+}
 
 
 function getRecentRSIDiff(rsi: number[], lookback = 14) {
@@ -386,7 +386,14 @@ const lastEMA200 = ema200.at(-1)!;
 
 
 // Main trend
-const mainTrend = getMainTrend(ema70, ema200);
+const mainTrendData = getMainTrend(ema70, ema200);
+
+if (mainTrendData) {
+  const { trend, index } = mainTrendData;
+  console.log(`Trend: ${trend}, Crossover happened at index: ${index}`);
+} else {
+  console.log('No EMA70/EMA200 crossover found');
+}
 
         
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
