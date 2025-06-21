@@ -1241,10 +1241,10 @@ if (loading) {
     const pumpOrDumpImpulse = inRange(pump, 23, 26) || inRange(dump, 23, 26);
     const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
-    let signal = '';
+let signal = '';
 
-    // Custom breakout + reversal signal logic
-    if (
+// Custom breakout + reversal signal logic
+if (
   !s.breakout &&
   s.mainTrend === 'bearish' &&
   s.testedPrevLow &&
@@ -1269,6 +1269,12 @@ if (loading) {
   (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
 ) {
   signal = 'POSSIBLE REVERSE';
+} else if (
+  s.breakout &&
+  (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+  ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+) {
+  signal = 'SIGNAL TREND SLOWING';
 }
   
 
