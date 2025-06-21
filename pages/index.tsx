@@ -402,6 +402,17 @@ console.log("Main Trend:", mainTrend);
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
 
+          const failedBullishBreak =
+    todaysHighestHigh !== null &&
+    prevSessionHigh !== null &&
+    todaysHighestHigh <= prevSessionHigh;
+
+  const failedBearishBreak =
+    todaysLowestLow !== null &&
+    prevSessionLow !== null &&
+    todaysLowestLow >= prevSessionLow;
+
+  const breakoutFailure = failedBullishBreak && failedBearishBreak;
 
   // Optional: Add test failure signal
   const getTestThreshold = (price: number): number => {
@@ -518,57 +529,27 @@ const detectBottomPatterns = (lows: number[]) => {
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
 };
 
-const failedBullishBreak =
-    todaysHighestHigh !== null &&
-    prevSessionHigh !== null &&
-    todaysHighestHigh <= prevSessionHigh;
 
-  const failedBearishBreak =
-    todaysLowestLow !== null &&
-    prevSessionLow !== null &&
-    todaysLowestLow >= prevSessionLow;
+// Detect top patterns from last N sessions
+const sessionStartTimes = getLastNSessionStartTimes(10);
+const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
+const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 
-  const breakoutFailure = failedBullishBreak && failedBearishBreak;
+const trend = getMainTrend(ema70, ema200, closes);
 
-        const patternLabelTop = breakoutFailure
-  ? isDoubleTopFailure
-    ? 'Top Fail'
-    : isDoubleTop
-    ? 'Double Top'
-    : isDescendingTop
-    ? 'Descending Top'
-    : '-'
-  : '-';
+let patternResult: ReturnType<typeof detectTopPatterns> | ReturnType<typeof detectBottomPatterns> | null = null;
 
-const patternLabelBottom = breakoutFailure
-  ? isDoubleBottomFailure
-    ? 'Bottom Fail'
-    : isDoubleBottom
-    ? 'Double Bottom'
-    : isAscendingBottom
-    ? 'Ascending Bottom'
-    : '-'
-  : '-';
+if (trend === 'bullish') {
+  patternResult = detectTopPatterns(sessionHighs);
+} else if (trend === 'bearish') {
+  patternResult = detectBottomPatterns(sessionLows);
+}
 
-
+if (patternResult) {
+  console.log('Trend:', trend);
+  console.log('Pattern Detected:', patternResult);
+}
         
- // === Pattern Analysis (Only If Breakout Fails) ===
-let isDoubleTop = false;
-let isDescendingTop = false;
-let isDoubleTopFailure = false;
-
-let isDoubleBottom = false;
-let isAscendingBottom = false;
-let isDoubleBottomFailure = false;
-
-// Detect top patterns from last N sessions        
-if (breakoutFailure) {
-  const sessionStartTimes = getLastNSessionStartTimes(10);
-  const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
-  const sessionLows = getRecentSessionLows(candles, sessionStartTimes);       
-const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
-const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
-  }  
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1292,8 +1273,8 @@ if (loading) {
 ) {
   signal = 'POSSIBLE REVERSE';
 }
-
   
+
     return (
       <tr
         key={s.symbol}
@@ -1342,8 +1323,21 @@ if (loading) {
         <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
           {s.breakoutFailure ? 'Yes' : '-'}
         </td>
-          <td className="text-center text-yellow-400 font-semibold">{patternLabelTop}</td>
-    <td className="text-center text-green-400 font-semibold">{patternLabelBottom}</td>
+        <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
+  {
+    s.isDoubleTopFailure ? 'Top Fail' :
+    s.isDoubleTop ? 'Double Top' :
+    s.isDescendingTop ? 'Descending Top' : '-'
+  }
+</td>
+
+<td className="px-1 py-0.5 text-center text-green-400 font-semibold">
+  {
+    s.isDoubleBottomFailure ? 'Bottom Fail' :
+    s.isDoubleBottom ? 'Double Bottom' :
+    s.isAscendingBottom ? 'Ascending Bottom' : '-'
+  }
+</td>
         <td
           className={`text-center ${
             pump !== undefined
