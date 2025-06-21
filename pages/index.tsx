@@ -532,23 +532,10 @@ const detectBottomPatterns = (lows: number[]) => {
 
 // Detect top patterns from last N sessions
 const sessionStartTimes = getLastNSessionStartTimes(10);
-const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
-const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
-
-const trend = getMainTrend(ema70, ema200, closes);
-
-let patternResult: ReturnType<typeof detectTopPatterns> | ReturnType<typeof detectBottomPatterns> | null = null;
-
-if (trend === 'bullish') {
-  patternResult = detectTopPatterns(sessionHighs);
-} else if (trend === 'bearish') {
-  patternResult = detectBottomPatterns(sessionLows);
-}
-
-if (patternResult) {
-  console.log('Trend:', trend);
-  console.log('Pattern Detected:', patternResult);
-}
+const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
+const sessionLows = getRecentSessionLows(candles, sessionStartTimes);        
+const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
+const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
         
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
@@ -1325,17 +1312,22 @@ if (loading) {
         </td>
         <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
   {
-    s.isDoubleTopFailure ? 'Top Fail' :
-    s.isDoubleTop ? 'Double Top' :
-    s.isDescendingTop ? 'Descending Top' : '-'
+    s.mainTrend === 'bullish' ? (
+      s.isDoubleTopFailure ? 'Top Fail' :
+      s.isDoubleTop ? 'Double Top' :
+      s.isDescendingTop ? 'Descending Top' : '-'
+    ) : '-'
   }
 </td>
 
+{/* Bottom Pattern – Only Show if Bearish */}
 <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
   {
-    s.isDoubleBottomFailure ? 'Bottom Fail' :
-    s.isDoubleBottom ? 'Double Bottom' :
-    s.isAscendingBottom ? 'Ascending Bottom' : '-'
+    s.mainTrend === 'bearish' ? (
+      s.isDoubleBottomFailure ? 'Bottom Fail' :
+      s.isDoubleBottom ? 'Double Bottom' :
+      s.isAscendingBottom ? 'Ascending Bottom' : '-'
+    ) : '-'
   }
 </td>
         <td
