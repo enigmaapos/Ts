@@ -529,14 +529,45 @@ const detectBottomPatterns = (lows: number[]) => {
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
 };
 
+ // === Pattern Analysis (Only If Breakout Fails) ===
+let isDoubleTop = false;
+let isDescendingTop = false;
+let isDoubleTopFailure = false;
 
-// Detect top patterns from last N sessions
-const sessionStartTimes = getLastNSessionStartTimes(10);
-const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
-const sessionLows = getRecentSessionLows(candles, sessionStartTimes);        
+let isDoubleBottom = false;
+let isAscendingBottom = false;
+let isDoubleBottomFailure = false;
+
+// Detect top patterns from last N sessions        
+if (breakoutFailure) {
+  const sessionStartTimes = getLastNSessionStartTimes(10);
+  const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
+  const sessionLows = getRecentSessionLows(candles, sessionStartTimes);       
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
-        
+
+ // === Use in UI Table (example row):
+const patternLabelTop = breakoutFailure
+  ? isDoubleTopFailure
+    ? 'Top Fail'
+    : isDoubleTop
+    ? 'Double Top'
+    : isDescendingTop
+    ? 'Descending Top'
+    : '-'
+  : '-';
+
+const patternLabelBottom = breakoutFailure
+  ? isDoubleBottomFailure
+    ? 'Bottom Fail'
+    : isDoubleBottom
+    ? 'Double Bottom'
+    : isAscendingBottom
+    ? 'Ascending Bottom'
+    : '-'
+  : '-'; 
+
+  
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1310,21 +1341,8 @@ if (loading) {
         <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
           {s.breakoutFailure ? 'Yes' : '-'}
         </td>
-        <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
-  {
-    s.isDoubleTopFailure ? 'Top Fail' :
-    s.isDoubleTop ? 'Double Top' :
-    s.isDescendingTop ? 'Descending Top' : '-'
-  }
-</td>
-
-<td className="px-1 py-0.5 text-center text-green-400 font-semibold">
-  {
-    s.isDoubleBottomFailure ? 'Bottom Fail' :
-    s.isDoubleBottom ? 'Double Bottom' :
-    s.isAscendingBottom ? 'Ascending Bottom' : '-'
-  }
-</td>
+          <td className="text-center text-yellow-400 font-semibold">{patternLabelTop}</td>
+    <td className="text-center text-green-400 font-semibold">{patternLabelBottom}</td>
         <td
           className={`text-center ${
             pump !== undefined
