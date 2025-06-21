@@ -945,7 +945,23 @@ if (loading) {
    
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4 text-sm">     
+      <div className="flex flex-wrap gap-2 mb-4 text-sm">
+              {[    
+    { label: 'Breakout Failure', key: 'breakoutFailure' },
+    { label: 'Bullish Breakout', key: 'bullishBreakout' },
+    { label: 'Bearish Breakout', key: 'bearishBreakout' },
+  ].map(({ label, key }) => (
+    <button
+      key={key}
+      onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+      className={`px-3 py-1 rounded-full ${
+        trendFilter === key
+          ? 'bg-yellow-500 text-black'
+          : 'bg-gray-700 text-white'
+      }`}
+    >
+      {label}
+    </button>
   {[
     'IMPULSE SIGNAL',
     'IMPULSE SIGNAL / BUY',
@@ -998,6 +1014,10 @@ if (loading) {
       <div className="flex items-center gap-2">
         <span className="text-gray-300">📉 Bear Breakout:</span>
         <span className="text-yellow-400 font-bold">{bearishBreakoutCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-300">📈 Breakout Failure:</span>
+        <span className="text-green-400 font-bold">{breakoutFailureCount}</span>
       </div>
     </div>
 
@@ -1147,10 +1167,10 @@ if (loading) {
         <td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
           {s.mainTrend}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+        <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
           {s.bearishReversal ? 'Yes' : 'No'}
         </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+        <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
           {s.bullishReversal ? 'Yes' : 'No'}
         </td>
         <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
