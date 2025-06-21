@@ -207,19 +207,19 @@ const getSignal = (s: any): string => {
     return 'TREND SLOWING';
   }
 
-  // ✅ CONSOLIDATION (top + bottom + breakout + trend + 29–32 pump/dump)
-  if (
-    breakout &&
-    (bullishReversal ||
-      bearishReversal) &&
-    (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-    (isDoubleTop || isDescendingTop || isDoubleTopFailure) &&
-    (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
-    (inRange(pump, 29, 32) || inRange(dump, 29, 32))
-    (inRange(pump, 9, 12) || inRange(dump, 9, 12))
-  ) {
-    return 'CONSOLIDATION';
-  }
+  // ✅ CONSOLIDATION (top + bottom + breakout + trend + pump/dump in 29–32 OR 9–12)
+if (
+  breakout &&
+  (mainTrend === 'bullish' || mainTrend === 'bearish') &&
+  (isDoubleTop || isDescendingTop || isDoubleTopFailure || bullishReversal || bearishReversal) &&
+  (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
+  (
+    inRange(pump, 29, 32) || inRange(dump, 29, 32) ||
+    inRange(pump, 9, 12) || inRange(dump, 9, 12)
+  )
+) {
+  return 'CONSOLIDATION';
+}
 
   return '';
 };
@@ -1382,8 +1382,7 @@ if (
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
   (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-  (inRange(pump, 29, 32) || inRange(dump, 29, 32))
-  (inRange(pump, 9, 12) || inRange(dump, 9, 12))
+  (inRange(pump, 29, 32) || inRange(dump, 29, 32 || inRange(pump, 9, 12) || inRange(dump, 9, 12))
 ) {
   signal = 'CONSOLIDATION';
 }
