@@ -438,6 +438,107 @@ const testedPrevLow =
   if (testedPrevHigh) breakoutTestSignal = '🟡 Tested & Failed to Break Previous High';
   else if (testedPrevLow) breakoutTestSignal = '🟡 Tested & Failed to Break Previous Low';
 
+
+// Get the start times for the last N sessions at 8AM UTC
+const getLastNSessionStartTimes = (n: number): number[] => {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const date = now.getUTCDate();
+
+  const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
+  const isAfter8AM = now.getTime() >= today8AM_UTC;
+
+  const baseDate = isAfter8AM ? date : date - 1;
+
+  const sessionStarts: number[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const sessionDate = baseDate - i;
+    sessionStarts.push(getUTCMillis(year, month, sessionDate, 8, 0));
+  }
+
+  return sessionStarts;
+};
+
+// Extract session highs from your candle data
+const getRecentSessionHighs = (
+  ohlcvData: { timestamp: number; high: number }[],
+  sessionStartTimes: number[]
+): number[] => {
+  return sessionStartTimes.map((start, i) => {
+    const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
+    const candles = ohlcvData.filter(c => c.timestamp >= start && c.timestamp < end);
+    return candles.length ? Math.max(...candles.map(c => c.high)) : 0;
+  });
+};
+
+// Detect pattern types based on highs
+const detectTopPatterns = (highs: number[]) => {
+  const recentTop = highs.at(-1);
+  const previousTops = highs.slice(0, -1).filter(h => h > 0);
+
+  if (!recentTop || previousTops.length === 0) {
+    return { isDoubleTop: false, isDescendingTop: false, isDoubleTopFailure: false };
+  }
+
+  const lastTop = previousTops.at(-1);
+  const isDoubleTop =
+    Math.abs(recentTop - lastTop!) / lastTop! < 0.003 &&
+    recentTop < Math.max(...previousTops);
+
+  const isDescendingTop = previousTops
+    .slice(-3)
+    .every((h, i, arr) => i === 0 || h < arr[i - 1]);
+
+  const isDoubleTopFailure = recentTop > Math.max(...previousTops);
+
+  return { isDoubleTop, isDescendingTop, isDoubleTopFailure };
+};
+
+// Detect top patterns from last N sessions
+const sessionStartTimes = getLastNSessionStartTimes(10);
+const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
+const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
+
+
+const getRecentSessionLows = (
+  ohlcvData: { timestamp: number; low: number }[],
+  sessionStartTimes: number[]
+): number[] => {
+  return sessionStartTimes.map((start, i) => {
+    const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
+    const candles = ohlcvData.filter(c => c.timestamp >= start && c.timestamp < end);
+    return candles.length ? Math.min(...candles.map(c => c.low)) : Infinity;
+  });
+};
+
+        // Detect bottom pattern types
+const detectBottomPatterns = (lows: number[]) => {
+  const recentLow = lows.at(-1);
+  const previousLows = lows.slice(0, -1).filter(l => l < Infinity);
+
+  if (!recentLow || previousLows.length === 0) {
+    return { isDoubleBottom: false, isAscendingBottom: false, isDoubleBottomFailure: false };
+  }
+
+  const lastLow = previousLows.at(-1);
+  const isDoubleBottom =
+    Math.abs(recentLow - lastLow!) / lastLow! < 0.003 &&
+    recentLow > Math.min(...previousLows);
+
+  const isAscendingBottom = previousLows
+    .slice(-3)
+    .every((l, i, arr) => i === 0 || l > arr[i - 1]);
+
+  const isDoubleBottomFailure = recentLow < Math.min(...previousLows);
+
+  return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
+};
+        
+const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
+const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
+        
+
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
   if (len < window) return false;
@@ -852,6 +953,12 @@ const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs
   rsi14,
   testedPrevHigh,
   testedPrevLow,
+     isDoubleTop,
+  isDescendingTop,
+  isDoubleTopFailure,
+  isDoubleBottom,
+  isAscendingBottom,
+  isDoubleBottomFailure,       
   breakoutTestSignal,
   breakoutFailure,
   failedBearishBreak,
@@ -1080,6 +1187,8 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Tested High</th>
     <th className="px-1 py-0.5 text-center">Tested Low</th>
       <th className="px-1 py-0.5 text-center">Breakout Fail</th>
+      <th className="px-1 py-0.5 text-center">Top Pattern</th>
+<th className="px-1 py-0.5 text-center">Bottom Pattern</th>
       <th
         onClick={() => {
           setSortField('pumpStrength');
@@ -1202,6 +1311,21 @@ if (loading) {
         <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
           {s.breakoutFailure ? 'Yes' : '-'}
         </td>
+        <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
+  {
+    s.isDoubleTopFailure ? 'Top Fail' :
+    s.isDoubleTop ? 'Double Top' :
+    s.isDescendingTop ? 'Descending Top' : '-'
+  }
+</td>
+
+<td className="px-1 py-0.5 text-center text-green-400 font-semibold">
+  {
+    s.isDoubleBottomFailure ? 'Bottom Fail' :
+    s.isDoubleBottom ? 'Double Bottom' :
+    s.isAscendingBottom ? 'Ascending Bottom' : '-'
+  }
+</td>
         <td
           className={`text-center ${
             pump !== undefined
