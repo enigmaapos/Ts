@@ -735,7 +735,8 @@ const detectBearishToBullish = (
   lows,
   highs,
   closes,
-    bullishBreakout, bearishBreakout)
+  bullishBreakout, 
+  bearishBreakout
 );
 
 if (bullishReversal) {
@@ -752,7 +753,8 @@ const bearishReversal = detectBearishToBullish(
   highs,
   lows,
   closes,
-  bullishBreakout, bearishBreakout)
+  bullishBreakout, 
+  bearishBreakout
 );
 
 if (bearishReversal) {
