@@ -962,6 +962,7 @@ if (loading) {
     >
       {label}
     </button>
+    ))}
   {[
     'IMPULSE SIGNAL',
     'IMPULSE SIGNAL / BUY',
