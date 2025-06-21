@@ -180,7 +180,6 @@ const getSignal = (s: any): string => {
 
   // ✅ NEW: REVERSE CONFIRMED
   if (
-    breakout &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     (bullishReversal ||
       bearishReversal ||
@@ -1329,7 +1328,6 @@ if (
 ) {
   signal = 'POSSIBLE PULLBACK';
 } else if (
-  s.breakout &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   (
     s.bullishReversal ||
