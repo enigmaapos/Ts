@@ -337,7 +337,7 @@ const signalCounts = useMemo(() => {
     impulseSignal: 0,
     impulseBuy: 0,
     impulseSell: 0,
-    trendSlowing: 0,
+    strongTrend: 0,
     reverseConfirmed: 0,
     consolidation: 0, // ✅ New entry
   };
