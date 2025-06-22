@@ -170,7 +170,7 @@ const getSignal = (s: any): string => {
 
   // ✅ IMPULSE ZONE
   if (pumpOrDumpInRange_21_26) {
-    return 'IMPULSE SIGNAL';
+    return 'WAITING ZONE';
   }
 
   // ✅ RISK ZONE (overextended)
@@ -356,7 +356,7 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 const signalCounts = useMemo(() => {
   const counts = {
     riskZone: 0,
-    impulseSignal: 0,
+    waitingZone: 0,
     impulseBuy: 0,
     impulseSell: 0,
     strongTrend: 0,
@@ -373,8 +373,8 @@ const signalCounts = useMemo(() => {
       case 'RISK ZONE':
         counts.riskZone++;
         break;
-      case 'IMPULSE SIGNAL':
-        counts.impulseSignal++;
+      case 'WAITING ZONE':
+        counts.waitingZone++;
         break;
       case 'IMPULSE SIGNAL / BUY':
         counts.impulseBuy++;
@@ -1184,7 +1184,7 @@ if (loading) {
     ))}
 
     {[
-      'IMPULSE SIGNAL',
+      'WAITING ZONE',
       'IMPULSE SIGNAL / BUY',
       'IMPULSE SIGNAL / SELL',
       'RISK ZONE',
@@ -1255,8 +1255,8 @@ if (loading) {
           <span>{signalCounts.riskZone}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-purple-400 font-semibold">⚡ IMPULSE SIGNAL:</span>
-          <span>{signalCounts.impulseSignal}</span>
+          <span className="text-purple-400 font-semibold">⚡ WAITING ZONE:</span>
+          <span>{signalCounts.waitingZone}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-green-500 font-semibold">⚡ IMPULSE BUY:</span>
@@ -1369,7 +1369,7 @@ let signal = '';
         ) {
           signal = 'IMPULSE SIGNAL / SELL';
         } else if (pumpOrDumpImpulse) {
-          signal = 'IMPULSE SIGNAL';
+          signal = 'WAITING ZONE';
         } else if (
           pumpOrDumpAbove35 &&
           (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
@@ -1530,7 +1530,7 @@ let signal = '';
       ? 'text-green-500 font-bold'
       : signal.trim() === 'IMPULSE SIGNAL / SELL'
       ? 'text-red-500 font-bold'
-      : signal.trim() === 'IMPULSE SIGNAL'
+      : signal.trim() === 'WAITING ZONE'
       ? 'text-purple-400 font-bold'
       : signal.trim() === 'STRONG TREND'
       ? 'text-orange-400 font-bold'
