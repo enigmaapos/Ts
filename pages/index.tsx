@@ -1283,23 +1283,14 @@ if (loading) {
       <th className="px-1 py-0.5 text-center">Top Pattern</th>
 <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
       <th
-        onClick={() => {
-          setSortField('pumpStrength');
-          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-        }}
-        className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-      >
-        RSI Pump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-      </th>
-      <th
-        onClick={() => {
-          setSortField('dumpStrength');
-          setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-        }}
-        className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-      >
-        RSI Dump {sortField === 'dumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-      </th>
+  onClick={() => {
+    setSortField('pumpStrength'); // You can choose to sort by pumpStrength only
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
       <th className="px-1 py-0.5 text-center">Collapse</th>
       <th className="px-1 py-0.5 text-center">Spike</th>
        <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
@@ -1460,38 +1451,23 @@ if (
     ) : '-'
   }
 </td>
-        <td
-          className={`text-center ${
-            pump !== undefined
-              ? pump > 35
-                ? 'text-green-400'
-                : inRange(pump, 19, 23)
-                ? 'text-blue-400'
-                : 'text-white'
-              : 'text-gray-500'
-          }`}
-        >
-          {pump?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td
-          className={`text-center ${
-            dump !== undefined
-              ? dump > 35
-                ? 'text-red-400'
-                : inRange(dump, 19, 23)
-                ? 'text-blue-400'
-                : 'text-white'
-              : 'text-gray-500'
-          }`}
-        >
-          {dump?.toFixed(2) ?? 'N/A'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-          {s.bearishCollapse ? 'Yes' : 'No'}
-        </td>
-        <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-          {s.bullishSpike ? 'Yes' : 'No'}
-        </td>
+       <td
+  className={`text-center font-bold ${
+    pump !== undefined && pump > 35
+      ? 'text-green-400'
+      : dump !== undefined && dump > 35
+      ? 'text-red-400'
+      : (inRange(pump, 22, 25) || inRange(dump, 22, 25))
+      ? 'text-blue-400'
+      : (inRange(pump, 29, 32) || inRange(pump, 9, 12) || inRange(dump, 29, 32) || inRange(dump, 9, 12))
+      ? 'text-teal-400'
+      : (pump === undefined && dump === undefined)
+      ? 'text-gray-500'
+      : 'text-white'
+  }`}
+>
+  Pump: {pump?.toFixed(2) ?? 'N/A'} | Dump: {dump?.toFixed(2) ?? 'N/A'}
+</td> 
         <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
     signal === 'POSSIBLE PULLBACK'
