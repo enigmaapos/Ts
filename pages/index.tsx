@@ -1160,146 +1160,140 @@ if (loading) {
         >
           Clear
         </button>
-   
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4 text-sm">
-              {[    
-    { label: 'Breakout Failure', key: 'breakoutFailure' },
-    { label: 'Bullish Breakout', key: 'bullishBreakout' },
-    { label: 'Bearish Breakout', key: 'bearishBreakout' },
-  ].map(({ label, key }) => (
-    <button
-      key={key}
-      onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-      className={`px-3 py-1 rounded-full ${
-        trendFilter === key
-          ? 'bg-yellow-500 text-black'
-          : 'bg-gray-700 text-white'
-      }`}
-    >
-      {label}
-    </button>
+ <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
+  {/* ✅ Filters Section */}
+  <div className="flex flex-wrap gap-2 text-sm">
+    {[
+      { label: 'Breakout Failure', key: 'breakoutFailure' },
+      { label: 'Bullish Breakout', key: 'bullishBreakout' },
+      { label: 'Bearish Breakout', key: 'bearishBreakout' },
+    ].map(({ label, key }) => (
+      <button
+        key={key}
+        onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+        className={`px-3 py-1 rounded-full ${
+          trendFilter === key
+            ? 'bg-yellow-500 text-black'
+            : 'bg-gray-700 text-white'
+        }`}
+      >
+        {label}
+      </button>
     ))}
-{[
-  'IMPULSE SIGNAL',
-  'IMPULSE SIGNAL / BUY',
-  'IMPULSE SIGNAL / SELL',
-  'RISK ZONE',
-  'BULLISH PULLBACK',       // ✅ New
-  'BEARISH PULLBACK',       // ✅ New
-  'STRONG TREND',
-  'REVERSE CONFIRMED',
-  'CONSOLIDATION',
-].map((type) => (
-  <button
-    key={type}
-    onClick={() => setSignalFilter(signalFilter === type ? null : type)}
-    className={`px-3 py-1 rounded-full ${
-      signalFilter === type ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
-    }`}
-  >
-    {type}
-  </button>
-))}
-  {/* ✅ Clear Button */}
-  <button
-    onClick={() => {
-      setSearch('');
-      setTrendFilter(null);
-      setSignalFilter(null);
-      setShowOnlyFavorites(false);
-    }}
-    className="px-3 py-1 rounded-full bg-red-500 text-white hover:bg-red-600"
-  >
-    Clear All Filters
-  </button>
-</div>
-          
-    <div className="sticky left-0 top-0 z-30 bg-gray-900 border-r border-gray-700 p-4 mb-4 text-white text-sm md:text-base shadow-md">
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-    {/* 🔷 Trend Overview */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">📈 Bull Trend:</span>
-        <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">📉 Bear Trend:</span>
-        <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">🚀 Bull Breakout:</span>
-        <span className="text-yellow-300 font-bold">{bullishBreakoutCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">📉 Bear Breakout:</span>
-        <span className="text-yellow-400 font-bold">{bearishBreakoutCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-300">📈 Breakout Failure:</span>
-        <span className="text-green-400 font-bold">{breakoutFailureCount}</span>
-      </div>
-    </div>
+    {[
+      'IMPULSE SIGNAL',
+      'IMPULSE SIGNAL / BUY',
+      'IMPULSE SIGNAL / SELL',
+      'RISK ZONE',
+      'BULLISH PULLBACK',
+      'BEARISH PULLBACK',
+      'STRONG TREND',
+      'REVERSE CONFIRMED',
+      'CONSOLIDATION',
+    ].map((type) => (
+      <button
+        key={type}
+        onClick={() => setSignalFilter(signalFilter === type ? null : type)}
+        className={`px-3 py-1 rounded-full ${
+          signalFilter === type
+            ? 'bg-green-500 text-black'
+            : 'bg-gray-700 text-white'
+        }`}
+      >
+        {type}
+      </button>
+    ))}
 
+    {/* 🔴 Clear Button */}
+    <button
+      onClick={() => {
+        setSearch('');
+        setTrendFilter(null);
+        setSignalFilter(null);
+        setShowOnlyFavorites(false);
+      }}
+      className="px-3 py-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+    >
+      Clear All Filters
+    </button>
+  </div>
+
+  {/* 📊 Summary Panel */}
+  <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* 🔷 Trend Overview */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-300">📈 Bull Trend:</span>
+          <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-300">📉 Bear Trend:</span>
+          <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-300">🚀 Bull Breakout:</span>
+          <span className="text-yellow-300 font-bold">{bullishBreakoutCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-300">📉 Bear Breakout:</span>
+          <span className="text-yellow-400 font-bold">{bearishBreakoutCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-300">📈 Breakout Failure:</span>
+          <span className="text-green-400 font-bold">{breakoutFailureCount}</span>
+        </div>
+      </div>
 
       {/* ✅ Signal Summary */}
-<div className="flex flex-col gap-2 text-sm">
-
-  <div className="flex items-center gap-2">
-    <span className="text-yellow-300 font-semibold">⚠️ RISK ZONE:</span>
-    <span>{signalCounts.riskZone}</span>
-  </div>
-
-  {/* 🔥 IMPULSE SIGNAL blocks */}
-  <div className="flex items-center gap-2">
-    <span className="text-purple-400 font-semibold">⚡ IMPULSE SIGNAL:</span>
-    <span>{signalCounts.impulseSignal}</span>
-  </div>
-
-  <div className="flex items-center gap-2">
-    <span className="text-green-500 font-semibold">⚡ IMPULSE BUY:</span>
-    <span>{signalCounts.impulseBuy}</span>
-  </div>
-
-  <div className="flex items-center gap-2">
-    <span className="text-red-500 font-semibold">⚡ IMPULSE SELL:</span>
-    <span>{signalCounts.impulseSell}</span>
-  </div>
-
-  {/* 🟠 STRONG TREND */}
-  <div className="flex items-center gap-2">
-    <span className="text-orange-400 font-semibold">🕒 STRONG TREND:</span>
-    <span>{signalCounts.strongTrend}</span>
-  </div>
-
-  {/* 🔵 REVERSE CONFIRMED */}
-  <div className="flex items-center gap-2">
-    <span className="text-blue-400 font-semibold">✅ REVERSE CONFIRMED:</span>
-    <span>{signalCounts.reverseConfirmed}</span>
-  </div>
-
-  {/* 🟢 CONSOLIDATION */}
-<div className="flex items-center gap-2">
-  <span className="text-teal-400 font-semibold">🟢 CONSOLIDATION:</span>
-  <span>{signalCounts.consolidation}</span>
-</div>
-  {/* 🔴 BEARISH PULLBACK */}
-<div className="flex items-center gap-2">
-  <span className="text-red-400 font-semibold">🔴 BEARISH PULLBACK:</span>
-  <span>{signalCounts.bearishPullback}</span>
-</div>
-
-{/* 🟢 BULLISH PULLBACK */}
-<div className="flex items-center gap-2">
-  <span className="text-green-400 font-semibold">🟢 BULLISH PULLBACK:</span>
-  <span>{signalCounts.bullishPullback}</span>
-</div>
-</div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-yellow-300 font-semibold">⚠️ RISK ZONE:</span>
+          <span>{signalCounts.riskZone}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-purple-400 font-semibold">⚡ IMPULSE SIGNAL:</span>
+          <span>{signalCounts.impulseSignal}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-green-500 font-semibold">⚡ IMPULSE BUY:</span>
+          <span>{signalCounts.impulseBuy}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-red-500 font-semibold">⚡ IMPULSE SELL:</span>
+          <span>{signalCounts.impulseSell}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-orange-400 font-semibold">🕒 STRONG TREND:</span>
+          <span>{signalCounts.strongTrend}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-blue-400 font-semibold">✅ REVERSE CONFIRMED:</span>
+          <span>{signalCounts.reverseConfirmed}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-teal-400 font-semibold">🟢 CONSOLIDATION:</span>
+          <span>{signalCounts.consolidation}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-red-400 font-semibold">🔴 BEARISH PULLBACK:</span>
+          <span>{signalCounts.bearishPullback}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-green-400 font-semibold">🟢 BULLISH PULLBACK:</span>
+          <span>{signalCounts.bullishPullback}</span>
+        </div>
+      </div>
     </div>
   </div>
+</div>     
+          
+    
+
+  
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
