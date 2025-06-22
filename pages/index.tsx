@@ -215,7 +215,7 @@ if (
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
   (isDoubleTop || isDescendingTop || isDoubleTopFailure || bullishReversal || bearishReversal) &&
   (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
-  (pumpOrDumpInRange_29_32 || pumpOrDumpInRange_9_1)
+  (pumpOrDumpInRange_29_32 || pumpOrDumpInRange_9_12)
 ) {
   return 'CONSOLIDATION';
 }
