@@ -175,12 +175,12 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL';
   }
 
-  // ✅ POSSIBLE PULLBACK (overextended)
+  // ✅ PULLBACK (overextended)
   if (
     pumpOrDumpAbove35 &&
     (bullishSpike || bearishCollapse || bullishReversal || bearishReversal)
   ) {
-    return 'POSSIBLE PULLBACK';
+    return 'PULLBACK';
   }
 
   // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
@@ -212,8 +212,9 @@ const getSignal = (s: any): string => {
   // ✅ CONSOLIDATION (top + bottom + breakout + trend + pump/dump in 29–32 OR 9–12)
 if (
   breakout &&
+  (bullishReversal || bearishReversal) &&
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-  (isDoubleTop || isDescendingTop || isDoubleTopFailure || bullishReversal || bearishReversal) &&
+  (isDoubleTop || isDescendingTop || isDoubleTopFailure) &&
   (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
   (pumpOrDumpInRange_29_32 || pumpOrDumpInRange_9_12)
 ) {
@@ -345,8 +346,8 @@ const signalCounts = useMemo(() => {
     const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
-      case 'POSSIBLE PULLBACK':
-        counts.possibleReverse++;
+      case 'PULLBACK':
+        counts.pullBack++;
         break;
       case 'IMPULSE SIGNAL':
         counts.impulseSignal++;
@@ -1154,7 +1155,7 @@ if (loading) {
   'IMPULSE SIGNAL',
   'IMPULSE SIGNAL / BUY',
   'IMPULSE SIGNAL / SELL',
-  'POSSIBLE PULLBACK',
+  'PULLBACK',
   'STRONG TREND',           // ✅ New signal
   'REVERSE CONFIRMED',       // ✅ New signal
   'CONSOLIDATION',
@@ -1217,7 +1218,7 @@ if (loading) {
 
   <div className="flex items-center gap-2">
     <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE PULLBACK:</span>
-    <span>{signalCounts.possibleReverse}</span>
+    <span>{signalCounts.pullBack}</span>
   </div>
 
   {/* 🔥 IMPULSE SIGNAL blocks */}
