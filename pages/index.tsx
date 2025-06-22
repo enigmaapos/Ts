@@ -336,7 +336,7 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 
 const signalCounts = useMemo(() => {
   const counts = {
-    possibleReverse: 0,
+    pullBack: 0,
     impulseSignal: 0,
     impulseBuy: 0,
     impulseSell: 0,
@@ -1314,7 +1314,7 @@ if (loading) {
         const pumpOrDumpImpulse = inRange(pump, 21, 26) || inRange(dump, 21, 26);
         const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
-const signal = getSignal(s);
+let signal = '';
 
         if (
           !s.breakout &&
