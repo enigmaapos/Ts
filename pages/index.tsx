@@ -207,7 +207,7 @@ const getSignal = (s: any): string => {
     return 'STRONG TREND';
   }
 
-  // ✅ CONSOLIDATION (top + bottom + breakout + trend + pump/dump in 29–32 OR 9–12)
+  // ✅ CONSOLIDATION / BUY / SELL based on breakout direction
 if (
   breakout &&
   (bullishReversal || bearishReversal) &&
@@ -215,12 +215,14 @@ if (
   (isDoubleTop || isDescendingTop || isDoubleTopFailure
   || isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
   (
-            inRange(pump, 29, 32) ||
-            inRange(dump, 29, 32) ||
-            inRange(pump, 9, 12) ||
-            inRange(dump, 9, 12)
-          )
+    inRange(pump, 29, 32) ||
+    inRange(dump, 29, 32) ||
+    inRange(pump, 9, 12) ||
+    inRange(dump, 9, 12)
+  )
 ) {
+  if (bullishBreakout) return 'CONSOLIDATION / BUY';
+  if (bearishBreakout) return 'CONSOLIDATION / SELL';
   return 'CONSOLIDATION';
 }
   // ✅ BULLISH PULLBACK
@@ -380,10 +382,12 @@ const signalCounts = useMemo(() => {
     strongTrend: 0,
     reverseConfirmed: 0,
     consolidation: 0,
+    consolidationBuy: 0,     // ✅ New
+    consolidationSell: 0,    // ✅ New
     bullishPullback: 0,
     bearishPullback: 0,
-    buyingZone: 0,       // ✅ New
-    sellingZone: 0,      // ✅ New
+    buyingZone: 0,
+    sellingZone: 0,
   };
 
   signals.forEach((s: any) => {
@@ -412,16 +416,22 @@ const signalCounts = useMemo(() => {
       case 'CONSOLIDATION':
         counts.consolidation++;
         break;
+      case 'CONSOLIDATION / BUY':
+        counts.consolidationBuy++;
+        break;
+      case 'CONSOLIDATION / SELL':
+        counts.consolidationSell++;
+        break;
       case 'BULLISH PULLBACK':
         counts.bullishPullback++;
         break;
       case 'BEARISH PULLBACK':
         counts.bearishPullback++;
         break;
-      case 'BUYING ZONE':           // ✅ Handle new BUYING ZONE
+      case 'BUYING ZONE':
         counts.buyingZone++;
         break;
-      case 'SELLING ZONE':          // ✅ Handle new SELLING ZONE
+      case 'SELLING ZONE':
         counts.sellingZone++;
         break;
     }
@@ -1237,6 +1247,8 @@ if (loading) {
           { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
           { label: 'REVERSE CONFIRMED', key: 'REVERSE CONFIRMED', count: signalCounts.reverseConfirmed, color: 'text-blue-300' },
           { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
+  				{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
+					{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1388,19 +1400,25 @@ let signal = '';
         ) {
           signal = 'STRONG TREND';
         } else if (
-          s.breakout &&
-          (s.bullishReversal || s.bearishReversal) &&
-          (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
-          (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
-          || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-            (
-            inRange(pump, 29, 32) ||
-            inRange(dump, 29, 32) ||
-            inRange(pump, 9, 12) ||
-            inRange(dump, 9, 12)
-          )
-        ) {
-          signal = 'CONSOLIDATION';
+  s.breakout &&
+  (s.bullishReversal || s.bearishReversal) &&
+  (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+  (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
+    || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
+  (
+    inRange(pump, 29, 32) ||
+    inRange(dump, 29, 32) ||
+    inRange(pump, 9, 12) ||
+    inRange(dump, 9, 12)
+  )
+) {
+  if (s.bullishBreakout) {
+    signal = 'CONSOLIDATION / BUY';
+  } else if (s.bearishBreakout) {
+    signal = 'CONSOLIDATION / SELL';
+  } else {
+    signal = 'CONSOLIDATION';
+   }
         }	else if (
           s.breakout &&
           s.bullishBreakout &&
@@ -1540,6 +1558,10 @@ let signal = '';
       ? 'text-blue-400 font-bold'
       : signal.trim() === 'CONSOLIDATION'
       ? 'text-teal-400 font-bold'
+      : signal.trim() === 'CONSOLIDATION / BUY'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'CONSOLIDATION / SELL'
+      ? 'text-red-400 font-bold'
       : signal.trim() === 'BULLISH PULLBACK'
       ? 'text-green-400 font-bold'
       : signal.trim() === 'BEARISH PULLBACK'
