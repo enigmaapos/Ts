@@ -125,8 +125,6 @@ const getSignal = (s: any): string => {
     val !== undefined && val >= 35;
 
   const pumpOrDumpInRange_21_26 = inRange(pump, 21, 26) || inRange(dump, 21, 26);
-  const pumpOrDumpInRange_29_32 = inRange(pump, 29, 32) || inRange(dump, 29, 32);
-  const pumpOrDumpInRange_9_12 = inRange(pump, 9, 12) || inRange(dump, 9, 12);
   const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
   const {
@@ -216,7 +214,12 @@ if (
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
   (isDoubleTop || isDescendingTop || isDoubleTopFailure) &&
   (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
-  (pumpOrDumpInRange_29_32 || pumpOrDumpInRange_9_12)
+  (
+            inRange(pump, 29, 32) ||
+            inRange(dump, 29, 32) ||
+            inRange(pump, 9, 12) ||
+            inRange(dump, 9, 12)
+          )
 ) {
   return 'CONSOLIDATION';
 }
@@ -1308,8 +1311,7 @@ if (loading) {
         const isAbove35 = (val: number | undefined) => val !== undefined && val >= 35;
         const validPump = pump !== undefined && pump !== 0;
         const validDump = dump !== undefined && dump !== 0;
-        const pumpOrDumpImpulse = inRange(pump, 23, 26) || inRange(dump, 23, 26);
-  			const pumpOrDumpConso = inRange(pump, 9, 12) || inRange(dump, 9, 12) || inRange(pump, 19, 32) || inRange(dump, 19, 32);
+        const pumpOrDumpImpulse = inRange(pump, 21, 26) || inRange(dump, 21, 26);
         const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
         let signal = '';
@@ -1367,7 +1369,12 @@ if (loading) {
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
           (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
           (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-          (pumpOrDumpConso)
+            (
+            inRange(pump, 29, 32) ||
+            inRange(dump, 29, 32) ||
+            inRange(pump, 9, 12) ||
+            inRange(dump, 9, 12)
+          )
         ) {
           signal = 'CONSOLIDATION';
         }
