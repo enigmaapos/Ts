@@ -1314,7 +1314,7 @@ if (loading) {
         const pumpOrDumpImpulse = inRange(pump, 21, 26) || inRange(dump, 21, 26);
         const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
-        let signal = '';
+const signal = getSignal(s);
 
         if (
           !s.breakout &&
