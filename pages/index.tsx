@@ -1314,6 +1314,11 @@ if (loading) {
           <span className="text-green-400 font-semibold">🟢 BULLISH PULLBACK:</span>
           <span>{signalCounts.bullishPullback}</span>
         </div>
+        {/* ✅ SELLING ZONE */}
+<div className="flex items-center gap-2">
+  <span className="text-pink-400 font-semibold">📉 SELLING ZONE:</span>
+  <span>{signalCounts.sellingZone}</span>
+</div>
         {/* ✅ BUYING ZONE */}
 <div className="flex items-center gap-2">
   <span className="text-lime-400 font-semibold">📈 BUYING ZONE:</span>
