@@ -1188,76 +1188,89 @@ if (loading) {
         </button>
       </div>
 
- <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
-  {/* ✅ Filter Buttons with Counts */}
-  <div className="flex flex-wrap gap-2 text-sm">
-    {/* 🔷 Trend Filters */}
-    {[
-      { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
-      { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
-      { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
-      { label: 'Bearish Collapse', key: 'bearishCollapse', count: bearishCollapseCount, color: 'text-red-300' },
-      { label: 'Breakout Failure', key: 'breakoutFailure', count: breakoutFailureCount, color: 'text-yellow-300' },
-      { label: 'Bullish Breakout', key: 'bullishBreakout', count: bullishBreakoutCount, color: 'text-yellow-400' },
-      { label: 'Bearish Breakout', key: 'bearishBreakout', count: bearishBreakoutCount, color: 'text-yellow-400' },
-    ].map(({ label, key, count, color }) => (
-      <button
-        key={key}
-        onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-        className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-          trendFilter === key
-            ? 'bg-yellow-500 text-black'
-            : 'bg-gray-700 text-white'
-        }`}
-      >
-        <span>{label}</span>
-        <span className={`text-xs font-bold ${color}`}>{count}</span>
-      </button>
-    ))}
+<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
+  {/* 🟢 Filter Controls Section */}
+  <div className="flex flex-col gap-4 text-sm">
 
-    {/* ✅ Signal Filters */}
-    {[
-      { label: 'WAITING ZONE', key: 'WAITING ZONE', count: signalCounts.waitingZone, color: 'text-yellow-300' },
-      { label: 'IMPULSE BUY', key: 'IMPULSE SIGNAL / BUY', count: signalCounts.impulseBuy, color: 'text-green-400' },
-      { label: 'IMPULSE SELL', key: 'IMPULSE SIGNAL / SELL', count: signalCounts.impulseSell, color: 'text-red-400' },
-      { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
-      { label: 'BULLISH PULLBACK', key: 'BULLISH PULLBACK', count: signalCounts.bullishPullback, color: 'text-green-300' },
-      { label: 'BEARISH PULLBACK', key: 'BEARISH PULLBACK', count: signalCounts.bearishPullback, color: 'text-red-300' },
-      { label: 'BUYING ZONE', key: 'BUYING ZONE', count: signalCounts.buyingZone, color: 'text-lime-400' },
-      { label: 'SELLING ZONE', key: 'SELLING ZONE', count: signalCounts.sellingZone, color: 'text-pink-400' },
-      { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
-      { label: 'REVERSE CONFIRMED', key: 'REVERSE CONFIRMED', count: signalCounts.reverseConfirmed, color: 'text-blue-300' },
-      { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
-    ].map(({ label, key, count, color }) => (
-      <button
-        key={key}
-        onClick={() => setSignalFilter(signalFilter === key ? null : key)}
-        className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-          signalFilter === key
-            ? 'bg-green-500 text-black'
-            : 'bg-gray-700 text-white'
-        }`}
-      >
-        <span>{label}</span>
-        <span className={`text-xs font-bold ${color}`}>{count}</span>
-      </button>
-    ))}
+    {/* 🔷 Trend Filters Section */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):</p>
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
+          { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
+          { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
+          { label: 'Bearish Collapse', key: 'bearishCollapse', count: bearishCollapseCount, color: 'text-red-300' },
+          { label: 'Breakout Failure', key: 'breakoutFailure', count: breakoutFailureCount, color: 'text-yellow-300' },
+          { label: 'Bullish Breakout', key: 'bullishBreakout', count: bullishBreakoutCount, color: 'text-yellow-400' },
+          { label: 'Bearish Breakout', key: 'bearishBreakout', count: bearishBreakoutCount, color: 'text-yellow-400' },
+        ].map(({ label, key, count, color }) => (
+          <button
+            key={key}
+            onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+            className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+              trendFilter === key
+                ? 'bg-yellow-500 text-black'
+                : 'bg-gray-700 text-white'
+            }`}
+          >
+            <span>{label}</span>
+            <span className={`text-xs font-bold ${color}`}>{count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* ✅ Signal Filters Section */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: 'WAITING ZONE', key: 'WAITING ZONE', count: signalCounts.waitingZone, color: 'text-yellow-300' },
+          { label: 'IMPULSE BUY', key: 'IMPULSE SIGNAL / BUY', count: signalCounts.impulseBuy, color: 'text-green-400' },
+          { label: 'IMPULSE SELL', key: 'IMPULSE SIGNAL / SELL', count: signalCounts.impulseSell, color: 'text-red-400' },
+          { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
+          { label: 'BULLISH PULLBACK', key: 'BULLISH PULLBACK', count: signalCounts.bullishPullback, color: 'text-green-300' },
+          { label: 'BEARISH PULLBACK', key: 'BEARISH PULLBACK', count: signalCounts.bearishPullback, color: 'text-red-300' },
+          { label: 'BUYING ZONE', key: 'BUYING ZONE', count: signalCounts.buyingZone, color: 'text-lime-400' },
+          { label: 'SELLING ZONE', key: 'SELLING ZONE', count: signalCounts.sellingZone, color: 'text-pink-400' },
+          { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
+          { label: 'REVERSE CONFIRMED', key: 'REVERSE CONFIRMED', count: signalCounts.reverseConfirmed, color: 'text-blue-300' },
+          { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
+        ].map(({ label, key, count, color }) => (
+          <button
+            key={key}
+            onClick={() => setSignalFilter(signalFilter === key ? null : key)}
+            className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+              signalFilter === key
+                ? 'bg-green-500 text-black'
+                : 'bg-gray-700 text-white'
+            }`}
+          >
+            <span>{label}</span>
+            <span className={`text-xs font-bold ${color}`}>{count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
 
     {/* 🔴 Clear Button */}
-    <button
-      onClick={() => {
-        setSearch('');
-        setTrendFilter(null);
-        setSignalFilter(null);
-        setShowOnlyFavorites(false);
-      }}
-      className="px-3 py-1 rounded-full bg-red-500 text-white hover:bg-red-600"
-    >
-      Clear All Filters
-    </button>
+    <div>
+      <button
+        onClick={() => {
+          setSearch('');
+          setTrendFilter(null);
+          setSignalFilter(null);
+          setShowOnlyFavorites(false);
+        }}
+        className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
+      >
+        Clear All Filters
+      </button>
+    </div>
   </div>
 
-  {/* 📊 Summary Panel – Optional if using button counts */}
+  {/* 📊 Summary Panel */}
   <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
