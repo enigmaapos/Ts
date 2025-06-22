@@ -204,7 +204,7 @@ const getSignal = (s: any): string => {
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
   ) {
-    return 'TREND SLOWING';
+    return 'STRONG TREND';
   }
 
   // ✅ CONSOLIDATION (top + bottom + breakout + trend + pump/dump in 29–32 OR 9–12)
@@ -1156,7 +1156,7 @@ if (loading) {
   'IMPULSE SIGNAL / BUY',
   'IMPULSE SIGNAL / SELL',
   'POSSIBLE PULLBACK',
-  'TREND SLOWING',           // ✅ New signal
+  'STRONG TREND',           // ✅ New signal
   'REVERSE CONFIRMED',       // ✅ New signal
   'CONSOLIDATION',
 ].map((type) => (
@@ -1237,9 +1237,9 @@ if (loading) {
     <span>{signalCounts.impulseSell}</span>
   </div>
 
-  {/* 🟠 TREND SLOWING */}
+  {/* 🟠 STRONG TREND */}
   <div className="flex items-center gap-2">
-    <span className="text-orange-400 font-semibold">🕒 TREND SLOWING:</span>
+    <span className="text-orange-400 font-semibold">🕒 STRONG TREND:</span>
     <span>{signalCounts.trendSlowing}</span>
   </div>
 
@@ -1374,7 +1374,7 @@ if (
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
 ) {
-  signal = 'TREND SLOWING';
+  signal = 'STRONG TREND';
 } else if (
   s.breakout &&
   (s.bullishReversal || s.bearishReversal) &&
@@ -1502,7 +1502,7 @@ if (
       ? 'text-red-500 font-bold'
       : signal === 'IMPULSE SIGNAL'
       ? 'text-purple-400 font-bold'
-      : signal === 'TREND SLOWING'
+      : signal === 'STRONG TREND'
       ? 'text-orange-400 font-bold'
       : signal === 'REVERSE CONFIRMED'
       ? 'text-blue-400 font-bold'
