@@ -1457,7 +1457,7 @@ if (
       ? 'text-green-400'
       : dump !== undefined && dump > 35
       ? 'text-red-400'
-      : (inRange(pump, 22, 25) || inRange(dump, 22, 25))
+      : (inRange(pump, 21, 26) || inRange(dump, 21, 26))
       ? 'text-blue-400'
       : (pump === undefined && dump === undefined)
       ? 'text-gray-500'
