@@ -124,7 +124,9 @@ const getSignal = (s: any): string => {
   const isAbove35 = (val: number | undefined) =>
     val !== undefined && val >= 35;
 
-  const pumpOrDumpInRange_23_26 = inRange(pump, 23, 26) || inRange(dump, 23, 26);
+  const pumpOrDumpInRange_21_26 = inRange(pump, 21, 26) || inRange(dump, 21, 26);
+  const pumpOrDumpInRange_29_32 = inRange(pump, 29, 32) || inRange(dump, 29, 32);
+  const pumpOrDumpInRange_9_12 = inRange(pump, 9, 12) || inRange(dump, 9, 12);
   const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
   const {
@@ -169,7 +171,7 @@ const getSignal = (s: any): string => {
   }
 
   // ✅ IMPULSE ZONE
-  if (pumpOrDumpInRange_23_26) {
+  if (pumpOrDumpInRange_21_26) {
     return 'IMPULSE SIGNAL';
   }
 
@@ -213,10 +215,7 @@ if (
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
   (isDoubleTop || isDescendingTop || isDoubleTopFailure || bullishReversal || bearishReversal) &&
   (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
-  (
-    inRange(pump, 29, 32) || inRange(dump, 29, 32) ||
-    inRange(pump, 9, 12) || inRange(dump, 9, 12)
-  )
+  (pumpOrDumpInRange_29_32 || pumpOrDumpInRange_9_1)
 ) {
   return 'CONSOLIDATION';
 }
@@ -1309,6 +1308,7 @@ if (loading) {
         const validPump = pump !== undefined && pump !== 0;
         const validDump = dump !== undefined && dump !== 0;
         const pumpOrDumpImpulse = inRange(pump, 23, 26) || inRange(dump, 23, 26);
+  			const pumpOrDumpConso = inRange(pump, 9, 12) || inRange(dump, 9, 12) || inRange(pump, 19, 32) || inRange(dump, 19, 32);
         const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
         let signal = '';
@@ -1366,12 +1366,7 @@ if (loading) {
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
           (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
           (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-          (
-            inRange(pump, 29, 32) ||
-            inRange(dump, 29, 32) ||
-            inRange(pump, 9, 12) ||
-            inRange(dump, 9, 12)
-          )
+          (pumpOrDumpConso)
         ) {
           signal = 'CONSOLIDATION';
         }
