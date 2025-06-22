@@ -1185,7 +1185,7 @@ if (loading) {
   'IMPULSE SIGNAL',
   'IMPULSE SIGNAL / BUY',
   'IMPULSE SIGNAL / SELL',
-  'PULLBACK',
+  'RISK ZONE',
   'BULLISH PULLBACK',       // ✅ New
   'BEARISH PULLBACK',       // ✅ New
   'STRONG TREND',
