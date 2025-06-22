@@ -1458,8 +1458,6 @@ if (loading) {
                   ? 'text-red-400'
                   : inRange(pump, 21, 26) || inRange(dump, 21, 26)
                   ? 'text-blue-400'
-                  : inRange(pump, 29, 32) || inRange(dump, 29, 32) || inRange(pump, 9, 12) || inRange(dump, 9, 12)
-                  ? 'text-teal-400'
                   : pump === undefined && dump === undefined
                   ? 'text-gray-500'
                   : 'text-white'
