@@ -1192,6 +1192,10 @@ if (loading) {
   {/* ✅ Filters Section */}
   <div className="flex flex-wrap gap-2 text-sm">
     {[
+            { label: 'Bullish Reversal', key: 'bullishReversal' },
+    { label: 'Bearish Reversal', key: 'bearishReversal' },
+    { label: 'Bullish Spike', key: 'bullishSpike' },
+    { label: 'Bearish Collapse', key: 'bearishCollapse' },
       { label: 'Breakout Failure', key: 'breakoutFailure' },
       { label: 'Bullish Breakout', key: 'bullishBreakout' },
       { label: 'Bearish Breakout', key: 'bearishBreakout' },
