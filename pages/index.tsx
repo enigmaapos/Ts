@@ -243,6 +243,24 @@ if (
     return 'BEARISH PULLBACK';
   }
 
+  // ✅ BUYING ZONE (bullish breakout + weak pump/dump 6–8)
+if (
+  breakout &&
+  bullishBreakout &&
+  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+) {
+  return 'BUYING ZONE';
+}
+
+// ✅ SELLING ZONE (bearish breakout + weak pump/dump 6–8)
+if (
+  breakout &&
+  bearishBreakout &&
+  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+) {
+  return 'SELLING ZONE';
+}
+
   return '';
 };
 
@@ -362,8 +380,10 @@ const signalCounts = useMemo(() => {
     strongTrend: 0,
     reverseConfirmed: 0,
     consolidation: 0,
-    bullishPullback: 0, // ✅ New entry
-    bearishPullback: 0, // ✅ New entry
+    bullishPullback: 0,
+    bearishPullback: 0,
+    buyingZone: 0,       // ✅ New
+    sellingZone: 0,      // ✅ New
   };
 
   signals.forEach((s: any) => {
@@ -392,11 +412,17 @@ const signalCounts = useMemo(() => {
       case 'CONSOLIDATION':
         counts.consolidation++;
         break;
-      case 'BULLISH PULLBACK': // ✅ Handle bullish pullback
+      case 'BULLISH PULLBACK':
         counts.bullishPullback++;
         break;
-      case 'BEARISH PULLBACK': // ✅ Handle bearish pullback
+      case 'BEARISH PULLBACK':
         counts.bearishPullback++;
+        break;
+      case 'BUYING ZONE':           // ✅ Handle new BUYING ZONE
+        counts.buyingZone++;
+        break;
+      case 'SELLING ZONE':          // ✅ Handle new SELLING ZONE
+        counts.sellingZone++;
         break;
     }
   });
@@ -1184,28 +1210,30 @@ if (loading) {
     ))}
 
     {[
-      'WAITING ZONE',
-      'IMPULSE SIGNAL / BUY',
-      'IMPULSE SIGNAL / SELL',
-      'BALANCE ZONE',
-      'BULLISH PULLBACK',
-      'BEARISH PULLBACK',
-      'STRONG TREND',
-      'REVERSE CONFIRMED',
-      'CONSOLIDATION',
-    ].map((type) => (
-      <button
-        key={type}
-        onClick={() => setSignalFilter(signalFilter === type ? null : type)}
-        className={`px-3 py-1 rounded-full ${
-          signalFilter === type
-            ? 'bg-green-500 text-black'
-            : 'bg-gray-700 text-white'
-        }`}
-      >
-        {type}
-      </button>
-    ))}
+  'WAITING ZONE',
+  'IMPULSE SIGNAL / BUY',
+  'IMPULSE SIGNAL / SELL',
+  'BALANCE ZONE',
+  'BULLISH PULLBACK',
+  'BEARISH PULLBACK',
+  'BUYING ZONE',           // ✅ New
+  'SELLING ZONE',          // ✅ New
+  'STRONG TREND',
+  'REVERSE CONFIRMED',
+  'CONSOLIDATION',
+].map((type) => (
+  <button
+    key={type}
+    onClick={() => setSignalFilter(signalFilter === type ? null : type)}
+    className={`px-3 py-1 rounded-full ${
+      signalFilter === type
+        ? 'bg-green-500 text-black'
+        : 'bg-gray-700 text-white'
+    }`}
+  >
+    {type}
+  </button>
+))}
 
     {/* 🔴 Clear Button */}
     <button
@@ -1286,6 +1314,11 @@ if (loading) {
           <span className="text-green-400 font-semibold">🟢 BULLISH PULLBACK:</span>
           <span>{signalCounts.bullishPullback}</span>
         </div>
+        {/* ✅ BUYING ZONE */}
+<div className="flex items-center gap-2">
+  <span className="text-lime-400 font-semibold">📈 BUYING ZONE:</span>
+  <span>{signalCounts.buyingZone}</span>
+</div>
       </div>
     </div>
   </div>
@@ -1425,7 +1458,19 @@ let signal = '';
           ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
         ) {
           signal = 'BEARISH PULLBACK';
-        }
+        }  else if (
+  s.breakout &&
+  s.bullishBreakout &&
+  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+) {
+  signal = 'BUYING ZONE';
+} else if (
+  s.breakout &&
+  s.bearishBreakout &&
+  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+) {
+  signal = 'SELLING ZONE';
+}
 
         return (
           <tr
@@ -1542,6 +1587,10 @@ let signal = '';
       ? 'text-green-400 font-bold'
       : signal.trim() === 'BEARISH PULLBACK'
       ? 'text-red-400 font-bold'
+      : signal.trim() === 'BUYING ZONE'
+      ? 'text-lime-400 font-bold'
+      : signal.trim() === 'SELLING ZONE'
+      ? 'text-pink-400 font-bold'
       : 'text-gray-500'
   }`}
 >
