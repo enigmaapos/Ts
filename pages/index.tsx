@@ -1522,7 +1522,6 @@ let signal = '';
             >
               Pump: {pump?.toFixed(2) ?? 'N/A'} | Dump: {dump?.toFixed(2) ?? 'N/A'}
             </td>
-            </td>
             <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
               {s.bearishCollapse ? 'Yes' : 'No'}
             </td>
