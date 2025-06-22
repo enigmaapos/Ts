@@ -212,8 +212,8 @@ if (
   breakout &&
   (bullishReversal || bearishReversal) &&
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-  (isDoubleTop || isDescendingTop || isDoubleTopFailure) &&
-  (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
+  (isDoubleTop || isDescendingTop || isDoubleTopFailure
+  || isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) &&
   (
             inRange(pump, 29, 32) ||
             inRange(dump, 29, 32) ||
@@ -1367,8 +1367,8 @@ if (loading) {
           s.breakout &&
           (s.bullishReversal || s.bearishReversal) &&
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
-          (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
-          (s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
+          (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
+          || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
             (
             inRange(pump, 29, 32) ||
             inRange(dump, 29, 32) ||
