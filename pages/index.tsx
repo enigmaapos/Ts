@@ -1274,6 +1274,30 @@ if (loading) {
           <span className="text-gray-300">📈 Breakout Failure:</span>
           <span className="text-green-400 font-bold">{breakoutFailureCount}</span>
         </div>
+         <div className="flex items-center gap-1">
+            <span>Bullish Main Trend:</span>
+            <span className="text-green-400 font-semibold">{bullishMainTrendCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bearish Main Trend:</span>
+            <span className="text-red-400 font-semibold">{bearishMainTrendCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bullish Reversal:</span>
+            <span className="text-green-300 font-semibold">{bullishReversalCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bearish Reversal:</span>
+            <span className="text-red-300 font-semibold">{bearishReversalCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bullish Spike:</span>
+            <span className="text-green-300 font-semibold">{bullishSpikeCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Bearish Collapse:</span>
+            <span className="text-red-300 font-semibold">{bearishCollapseCount}</span>
+          </div>
       </div>
 
       {/* ✅ Signal Summary */}
