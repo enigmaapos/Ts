@@ -1340,7 +1340,7 @@ if (loading) {
           pumpOrDumpAbove35 &&
           (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
         ) {
-          signal = 'POSSIBLE PULLBACK';
+          signal = 'PULLBACK';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
           (
