@@ -358,9 +358,9 @@ const signalCounts = useMemo(() => {
       case 'IMPULSE SIGNAL / SELL':
         counts.impulseSell++;
         break;
-      case 'TREND SLOWING':
-      case 'SIGNAL TREND SLOWING':
-        counts.trendSlowing++;
+      case 'STRONG TREND':
+      case 'SIGNAL STRONG TREND':
+        counts.strongTrend++;
         break;
       case 'REVERSE CONFIRMED':
         counts.reverseConfirmed++;
@@ -1240,7 +1240,7 @@ if (loading) {
   {/* 🟠 STRONG TREND */}
   <div className="flex items-center gap-2">
     <span className="text-orange-400 font-semibold">🕒 STRONG TREND:</span>
-    <span>{signalCounts.trendSlowing}</span>
+    <span>{signalCounts.strongTrend}</span>
   </div>
 
   {/* 🔵 REVERSE CONFIRMED */}
