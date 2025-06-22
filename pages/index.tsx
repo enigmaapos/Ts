@@ -223,6 +223,25 @@ if (
 ) {
   return 'CONSOLIDATION';
 }
+  // ✅ BULLISH PULLBACK
+  if (
+    breakout &&
+    bullishBreakout &&
+    bullishReversal &&
+    ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+  ) {
+    return 'BULLISH PULLBACK';
+  }
+
+  // ✅ BEARISH PULLBACK
+  if (
+    breakout &&
+    bearishBreakout &&
+    bearishReversal &&
+    ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+  ) {
+    return 'BEARISH PULLBACK';
+  }
 
   return '';
 };
@@ -342,7 +361,9 @@ const signalCounts = useMemo(() => {
     impulseSell: 0,
     strongTrend: 0,
     reverseConfirmed: 0,
-    consolidation: 0, // ✅ New entry
+    consolidation: 0,
+    bullishPullback: 0, // ✅ New entry
+    bearishPullback: 0, // ✅ New entry
   };
 
   signals.forEach((s: any) => {
@@ -368,8 +389,14 @@ const signalCounts = useMemo(() => {
       case 'REVERSE CONFIRMED':
         counts.reverseConfirmed++;
         break;
-      case 'CONSOLIDATION': // ✅ Handle new case
+      case 'CONSOLIDATION':
         counts.consolidation++;
+        break;
+      case 'BULLISH PULLBACK': // ✅ Handle bullish pullback
+        counts.bullishPullback++;
+        break;
+      case 'BEARISH PULLBACK': // ✅ Handle bearish pullback
+        counts.bearishPullback++;
         break;
     }
   });
@@ -1159,8 +1186,10 @@ if (loading) {
   'IMPULSE SIGNAL / BUY',
   'IMPULSE SIGNAL / SELL',
   'PULLBACK',
-  'STRONG TREND',           // ✅ New signal
-  'REVERSE CONFIRMED',       // ✅ New signal
+  'BULLISH PULLBACK',       // ✅ New
+  'BEARISH PULLBACK',       // ✅ New
+  'STRONG TREND',
+  'REVERSE CONFIRMED',
   'CONSOLIDATION',
 ].map((type) => (
   <button
@@ -1256,6 +1285,17 @@ if (loading) {
 <div className="flex items-center gap-2">
   <span className="text-teal-400 font-semibold">🟢 CONSOLIDATION:</span>
   <span>{signalCounts.consolidation}</span>
+</div>
+  {/* 🔴 BEARISH PULLBACK */}
+<div className="flex items-center gap-2">
+  <span className="text-red-400 font-semibold">🔴 BEARISH PULLBACK:</span>
+  <span>{signalCounts.bearishPullback}</span>
+</div>
+
+{/* 🟢 BULLISH PULLBACK */}
+<div className="flex items-center gap-2">
+  <span className="text-green-400 font-semibold">🟢 BULLISH PULLBACK:</span>
+  <span>{signalCounts.bullishPullback}</span>
 </div>
 </div>
     </div>
@@ -1377,6 +1417,20 @@ let signal = '';
           )
         ) {
           signal = 'CONSOLIDATION';
+        }	else if (
+          s.breakout &&
+          s.bullishBreakout &&
+          s.bullishReversal &&
+          ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+        ) {
+          signal = 'BULLISH PULLBACK';
+        } else if (
+          s.breakout &&
+          s.bearishBreakout &&
+          s.bearishReversal &&
+          ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+        ) {
+          signal = 'BEARISH PULLBACK';
         }
 
         return (
@@ -1471,26 +1525,30 @@ let signal = '';
             <td className="px-1 py-0.5 text-center">{s.bearishCollapse ? 'Yes' : '-'}</td>
             <td className="px-1 py-0.5 text-center">{s.bullishSpike ? 'Yes' : '-'}</td>
             <td
-              className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-                signal.trim() === 'POSSIBLE PULLBACK'
-                  ? 'text-yellow-300'
-                  : signal.trim() === 'IMPULSE SIGNAL / BUY'
-                  ? 'text-green-500 font-bold'
-                  : signal.trim() === 'IMPULSE SIGNAL / SELL'
-                  ? 'text-red-500 font-bold'
-                  : signal.trim() === 'IMPULSE SIGNAL'
-                  ? 'text-purple-400 font-bold'
-                  : signal.trim() === 'STRONG TREND'
-                  ? 'text-orange-400 font-bold'
-                  : signal.trim() === 'REVERSE CONFIRMED'
-                  ? 'text-blue-400 font-bold'
-                  : signal.trim() === 'CONSOLIDATION'
-                  ? 'text-teal-400 font-bold'
-                  : 'text-gray-500'
-              }`}
-            >
-              {signal.trim()}
-            </td>
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'POSSIBLE PULLBACK'
+      ? 'text-yellow-300'
+      : signal.trim() === 'IMPULSE SIGNAL / BUY'
+      ? 'text-green-500 font-bold'
+      : signal.trim() === 'IMPULSE SIGNAL / SELL'
+      ? 'text-red-500 font-bold'
+      : signal.trim() === 'IMPULSE SIGNAL'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'STRONG TREND'
+      ? 'text-orange-400 font-bold'
+      : signal.trim() === 'REVERSE CONFIRMED'
+      ? 'text-blue-400 font-bold'
+      : signal.trim() === 'CONSOLIDATION'
+      ? 'text-teal-400 font-bold'
+      : signal.trim() === 'BULLISH PULLBACK'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'BEARISH PULLBACK'
+      ? 'text-red-400 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>
           </tr>
         );
       })}
