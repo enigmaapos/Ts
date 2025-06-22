@@ -1459,8 +1459,6 @@ if (
       ? 'text-red-400'
       : (inRange(pump, 22, 25) || inRange(dump, 22, 25))
       ? 'text-blue-400'
-      : (inRange(pump, 29, 32) || inRange(pump, 9, 12) || inRange(dump, 29, 32) || inRange(dump, 9, 12))
-      ? 'text-teal-400'
       : (pump === undefined && dump === undefined)
       ? 'text-gray-500'
       : 'text-white'
@@ -1470,24 +1468,24 @@ if (
 </td> 
         <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal === 'POSSIBLE PULLBACK'
+    signal.trim() === 'POSSIBLE PULLBACK'
       ? 'text-yellow-300'
-      : signal === 'IMPULSE SIGNAL / BUY'
+      : signal.trim() === 'IMPULSE SIGNAL / BUY'
       ? 'text-green-500 font-bold'
-      : signal === 'IMPULSE SIGNAL / SELL'
+      : signal.trim() === 'IMPULSE SIGNAL / SELL'
       ? 'text-red-500 font-bold'
-      : signal === 'IMPULSE SIGNAL'
+      : signal.trim() === 'IMPULSE SIGNAL'
       ? 'text-purple-400 font-bold'
-      : signal === 'STRONG TREND'
+      : signal.trim() === 'STRONG TREND'
       ? 'text-orange-400 font-bold'
-      : signal === 'REVERSE CONFIRMED'
+      : signal.trim() === 'REVERSE CONFIRMED'
       ? 'text-blue-400 font-bold'
-      : signal === 'CONSOLIDATION'
+      : signal.trim() === 'CONSOLIDATION'
       ? 'text-teal-400 font-bold'
       : 'text-gray-500'
   }`}
 >
-  {signal}
+  {signal.trim()}
 </td>
       </tr>
     );
