@@ -173,12 +173,12 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL';
   }
 
-  // ✅ PULLBACK (overextended)
+  // ✅ RISK ZONE (overextended)
   if (
     pumpOrDumpAbove35 &&
     (bullishSpike || bearishCollapse || bullishReversal || bearishReversal)
   ) {
-    return 'PULLBACK';
+    return 'RISK ZONE';
   }
 
   // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
@@ -355,7 +355,7 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 
 const signalCounts = useMemo(() => {
   const counts = {
-    pullBack: 0,
+    riskZone: 0,
     impulseSignal: 0,
     impulseBuy: 0,
     impulseSell: 0,
@@ -370,8 +370,8 @@ const signalCounts = useMemo(() => {
     const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
-      case 'PULLBACK':
-        counts.pullBack++;
+      case 'RISK ZONE':
+        counts.riskZone++;
         break;
       case 'IMPULSE SIGNAL':
         counts.impulseSignal++;
@@ -1249,8 +1249,8 @@ if (loading) {
 <div className="flex flex-col gap-2 text-sm">
 
   <div className="flex items-center gap-2">
-    <span className="text-yellow-300 font-semibold">⚠️ POSSIBLE PULLBACK:</span>
-    <span>{signalCounts.pullBack}</span>
+    <span className="text-yellow-300 font-semibold">⚠️ RISK ZONE:</span>
+    <span>{signalCounts.riskZone}</span>
   </div>
 
   {/* 🔥 IMPULSE SIGNAL blocks */}
@@ -1380,7 +1380,7 @@ let signal = '';
           pumpOrDumpAbove35 &&
           (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
         ) {
-          signal = 'PULLBACK';
+          signal = 'RISK ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
           (
@@ -1522,11 +1522,16 @@ let signal = '';
             >
               Pump: {pump?.toFixed(2) ?? 'N/A'} | Dump: {dump?.toFixed(2) ?? 'N/A'}
             </td>
-            <td className="px-1 py-0.5 text-center">{s.bearishCollapse ? 'Yes' : '-'}</td>
-            <td className="px-1 py-0.5 text-center">{s.bullishSpike ? 'Yes' : '-'}</td>
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+              {s.bearishCollapse ? 'Yes' : 'No'}
+            </td>
+            <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+              {s.bullishSpike ? 'Yes' : 'No'}
+            </td>
             <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'POSSIBLE PULLBACK'
+    signal.trim() === 'RISK ZONE'
       ? 'text-yellow-300'
       : signal.trim() === 'IMPULSE SIGNAL / BUY'
       ? 'text-green-500 font-bold'
