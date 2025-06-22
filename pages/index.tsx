@@ -168,17 +168,17 @@ const getSignal = (s: any): string => {
     return 'IMPULSE SIGNAL / SELL';
   }
 
-  // ✅ IMPULSE ZONE
+  // ✅ BALANCE ZONE
   if (pumpOrDumpInRange_21_26) {
-    return 'WAITING ZONE';
+    return 'BALANCE ZONE';
   }
 
-  // ✅ RISK ZONE (overextended)
+  // ✅ WAITING ZONE (overextended)
   if (
     pumpOrDumpAbove35 &&
     (bullishSpike || bearishCollapse || bullishReversal || bearishReversal)
   ) {
-    return 'RISK ZONE';
+    return 'WAITING ZONE';
   }
 
   // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
@@ -355,8 +355,8 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 
 const signalCounts = useMemo(() => {
   const counts = {
-    riskZone: 0,
     waitingZone: 0,
+    balanceZone: 0,
     impulseBuy: 0,
     impulseSell: 0,
     strongTrend: 0,
@@ -370,11 +370,11 @@ const signalCounts = useMemo(() => {
     const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
-      case 'RISK ZONE':
-        counts.riskZone++;
-        break;
       case 'WAITING ZONE':
         counts.waitingZone++;
+        break;
+      case 'BALANCE ZONE':
+        counts.balanceZone++;
         break;
       case 'IMPULSE SIGNAL / BUY':
         counts.impulseBuy++;
@@ -1187,7 +1187,7 @@ if (loading) {
       'WAITING ZONE',
       'IMPULSE SIGNAL / BUY',
       'IMPULSE SIGNAL / SELL',
-      'RISK ZONE',
+      'BALANCE ZONE',
       'BULLISH PULLBACK',
       'BEARISH PULLBACK',
       'STRONG TREND',
@@ -1251,12 +1251,12 @@ if (loading) {
       {/* ✅ Signal Summary */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-yellow-300 font-semibold">⚠️ RISK ZONE:</span>
-          <span>{signalCounts.riskZone}</span>
+          <span className="text-yellow-300 font-semibold">⚠️ WAITING ZONE:</span>
+          <span>{signalCounts.waitingZone}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-purple-400 font-semibold">⚡ WAITING ZONE:</span>
-          <span>{signalCounts.waitingZone}</span>
+          <span className="text-purple-400 font-semibold">⚡ BALANCE ZONE:</span>
+          <span>{signalCounts.balanceZone}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-green-500 font-semibold">⚡ IMPULSE BUY:</span>
@@ -1345,7 +1345,7 @@ if (loading) {
         const isAbove35 = (val: number | undefined) => val !== undefined && val >= 35;
         const validPump = pump !== undefined && pump !== 0;
         const validDump = dump !== undefined && dump !== 0;
-        const pumpOrDumpImpulse = inRange(pump, 21, 26) || inRange(dump, 21, 26);
+        const pumpOrDumpBalance = inRange(pump, 21, 26) || inRange(dump, 21, 26);
         const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
 let signal = '';
@@ -1368,13 +1368,13 @@ let signal = '';
           validDump
         ) {
           signal = 'IMPULSE SIGNAL / SELL';
-        } else if (pumpOrDumpImpulse) {
-          signal = 'WAITING ZONE';
+        } else if (pumpOrDumpBalance) {
+          signal = 'BALANCE ZONE';
         } else if (
           pumpOrDumpAbove35 &&
           (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
         ) {
-          signal = 'RISK ZONE';
+          signal = 'WAITING ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
           (
@@ -1524,13 +1524,13 @@ let signal = '';
             </td>
             <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'RISK ZONE'
+    signal.trim() === 'WAITING ZONE'
       ? 'text-yellow-300'
       : signal.trim() === 'IMPULSE SIGNAL / BUY'
       ? 'text-green-500 font-bold'
       : signal.trim() === 'IMPULSE SIGNAL / SELL'
       ? 'text-red-500 font-bold'
-      : signal.trim() === 'WAITING ZONE'
+      : signal.trim() === 'BALANCE ZONE'
       ? 'text-purple-400 font-bold'
       : signal.trim() === 'STRONG TREND'
       ? 'text-orange-400 font-bold'
