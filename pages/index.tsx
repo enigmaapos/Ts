@@ -689,22 +689,17 @@ const isAscendingRSI = (rsi: number[], window = 3): boolean => {
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
-  ema200: number[],
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
+  closes: number[]
 ): boolean => {
   const len = closes.length;
   if (len < 5) return false;
 
-  if (!bullishBreakout && !bearishBreakout) return false;
 
-  // ✅ Use new trend detection logic
-  const mainTrend = getMainTrend(ema70, ema200, closes);
-  if (mainTrend !== 'bullish') return false;
+  // Confirm bullish trend
+  if (ema14[len - 1] <= ema70[len - 1]) return false;
 
   // 🛑 New: End early if RSI is ascending
   if (isAscendingRSI(rsi14, 3)) return false;
@@ -740,10 +735,13 @@ const detectBullishToBearish = (
         lastHigh = currentHigh;
       }
 
+      // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
+
       const descendingCloseBelowEMA = lastClose < lastEMA14;
 
+      // ✅ New: Check descending RSI over last 3 candles
       const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
 
       if (
@@ -759,33 +757,30 @@ const detectBullishToBearish = (
   }
 
   return false;
-};	      
+};
         
+
 
 const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
-  ema200: number[],
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[],
-  bullishBreakout: boolean,
-  bearishBreakout: boolean
+  closes: number[]
 ): boolean => {
   const len = closes.length;
   if (len < 5) return false;
 
-  if (!bullishBreakout && !bearishBreakout) return false;
+  
 
-  // ✅ Use getMainTrend instead of EMA14/EMA70 check
-  const mainTrend = getMainTrend(ema70, ema200, closes);
-  if (mainTrend !== 'bearish') return false;
+  // Confirm bearish trend
+  if (ema14[len - 1] >= ema70[len - 1]) return false;
 
-  // 🛑 Exit early if RSI is descending (no strength)
+  // 🛑 New: End early if RSI is descending (trend shift to bullish is weakening)
   if (isDescendingRSI(rsi14, 3)) return false;
 
-  // 🔄 Find crossover: EMA14 crossing below EMA70
+  // Find crossover: EMA14 crossing below EMA70
   let crossoverIndex = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
@@ -816,10 +811,13 @@ const detectBearishToBullish = (
         lastLow = currentLow;
       }
 
+      // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
+
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
 
+      // ✅ Check RSI is currently ascending
       const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
 
       if (
@@ -836,19 +834,15 @@ const detectBearishToBullish = (
 
   return false;
 };
-
     
 // Usage
   const bullishReversal = detectBullishToBearish(
   ema14,
   ema70,
-ema200,	  
   rsi14,
   lows,
   highs,
   closes,
-  bullishBreakout, 
-  bearishBreakout
 );
 
 if (bullishReversal) {
@@ -861,13 +855,10 @@ if (bullishReversal) {
 const bearishReversal = detectBearishToBullish(
   ema14,
   ema70,
-ema200,	
   rsi14,
   highs,
   lows,
   closes,
-  bullishBreakout, 
-  bearishBreakout
 );
 
 if (bearishReversal) {
@@ -876,6 +867,7 @@ if (bearishReversal) {
   console.log(`→ RSI14: ${rsi14.at(-1)}`);
   console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
 }      
+        
 
 // ✅ Utility: Checks if high touched EMA14 within margin
 const touchedEMA14 = (high: number, ema14: number, margin = 0.002): boolean => {
