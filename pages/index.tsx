@@ -1114,7 +1114,7 @@ const bullishSpike = detectBullishSpike(
   bullishBreakout,
   bearishBreakout
 ); 
-const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
+
 
 // ✅ Usage
 const bearishCollapse = detectBearishCollapse(
