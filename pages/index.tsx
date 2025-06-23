@@ -663,30 +663,34 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
-// Find indexes of candles near EMA70
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
     const ema = ema70[i];
-    return ema !== undefined && c.low <= ema && c.high >= ema ? i : -1;
+    const buffer = 0.5;
+    return ema !== undefined && c.low - buffer <= ema && c.high + buffer >= ema ? i : -1;
   })
   .filter(i => i !== -1);
 
-// Extract lows/highs only for those indexes
-const nearLows = nearEmaIndexes.map(i => lows[i]);
-const nearHighs = nearEmaIndexes.map(i => highs[i]);
+const sortedNearLows = nearEmaIndexes
+  .map(i => ({ i, value: lows[i] }))
+  .sort((a, b) => a.i - b.i)
+  .map(obj => obj.value);
 
-// Helpers
+const sortedNearHighs = nearEmaIndexes
+  .map(i => ({ i, value: highs[i] }))
+  .sort((a, b) => a.i - b.i)
+  .map(obj => obj.value);
+
 const isOverallAscending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val >= a[i - 1]);
 
 const isOverallDescending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val <= a[i - 1]);
 
-// Final checks
-const hasAscendingLow = nearLows.length > 1 && isOverallAscending(nearLows);
-const hasDescendingHigh = nearHighs.length > 1 && isOverallDescending(nearHighs);
-	  
+const hasAscendingLow = sortedNearLows.length > 1 && isOverallAscending(sortedNearLows);
+const hasDescendingHigh = sortedNearHighs.length > 1 && isOverallDescending(sortedNearHighs);
 
+	      
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
   if (len < window) return false;
