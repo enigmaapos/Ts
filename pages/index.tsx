@@ -1403,9 +1403,13 @@ if (loading) {
         const inRange = (val: number | undefined, min: number, max: number) =>
           val !== undefined && val >= min && val <= max;
 
+	
+
         const isAbove35 = (val: number | undefined) => val !== undefined && val >= 35;
         const validPump = pump !== undefined && pump !== 0;
         const validDump = dump !== undefined && dump !== 0;
+	  // ✅ Early return: skip rendering if both are invalid or 0
+  if (!validPump && !validDump) return null;
         const pumpOrDumpBalance = inRange(pump, 21, 26) || inRange(dump, 21, 26);
         const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
 
@@ -1516,21 +1520,21 @@ let signal = '';
             }`}
           >
             <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
-              <div className="flex items-center justify-between">
-                <span className="truncate">{s.symbol}</span>
-                <button
-                  className="ml-1 text-yellow-400 hover:text-yellow-300"
-                  onClick={() => {
-                    setFavorites((prev: Set<string>) => {
-                      const newSet = new Set(prev);
-                      newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-                      return newSet;
-                    });
-                  }}
-                >
-                  {favorites.has(s.symbol) ? '★' : '☆'}
-                </button>
-              </div>
+                 <div key={s.symbol} className="flex items-center justify-between">
+      <span className="truncate">{s.symbol}</span>
+      <button
+        className="ml-1 text-yellow-400 hover:text-yellow-300"
+        onClick={() => {
+          setFavorites((prev: Set<string>) => {
+            const newSet = new Set(prev);
+            newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+            return newSet;
+          });
+        }}
+      >
+        {favorites.has(s.symbol) ? '★' : '☆'}
+      </button>
+    </div>
             </td>
             <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
               {s.bullishBreakout ? 'Yes' : 'No'}
