@@ -148,24 +148,24 @@ const getSignal = (s: any): string => {
     isDoubleBottomFailure,
   } = s;
 
-  // ✅ IMPULSE BUY
+  // ✅ IF SUPPORT HOLDS/ BUY
   if (
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
     failedBearishBreak
   ) {
-    return 'IMPULSE SIGNAL / BUY';
+    return 'IF SUPPORT HOLDS/ BUY';
   }
 
-  // ✅ IMPULSE SELL
+  // ✅ IF RESISTANCE HOLDS/ SELL
   if (
     !breakout &&
     mainTrend === 'bullish' &&
     testedPrevHigh &&
     failedBullishBreak
   ) {
-    return 'IMPULSE SIGNAL / SELL';
+    return 'IF RESISTANCE HOLDS/ SELL';
   }
 
   // ✅ BALANCE ZONE
@@ -377,8 +377,8 @@ const signalCounts = useMemo(() => {
   const counts = {
     waitingZone: 0,
     balanceZone: 0,
-    impulseBuy: 0,
-    impulseSell: 0,
+    ifSupportHoldsBuy: 0,
+    ifResistanceHoldsSell: 0,
     strongTrend: 0,
     reverseConfirmed: 0,
     consolidation: 0,
@@ -400,11 +400,11 @@ const signalCounts = useMemo(() => {
       case 'BALANCE ZONE':
         counts.balanceZone++;
         break;
-      case 'IMPULSE SIGNAL / BUY':
-        counts.impulseBuy++;
+      case 'IF SUPPORT HOLDS/ BUY':
+        counts.ifSupportHoldsBuy++;
         break;
-      case 'IMPULSE SIGNAL / SELL':
-        counts.impulseSell++;
+      case 'IF RESISTANCE HOLDS/ SELL':
+        counts.ifResistanceHoldsSell++;
         break;
       case 'STRONG TREND':
       case 'SIGNAL STRONG TREND':
@@ -1237,8 +1237,8 @@ if (loading) {
       <div className="flex flex-wrap gap-2">
         {[
           { label: 'WAITING ZONE', key: 'WAITING ZONE', count: signalCounts.waitingZone, color: 'text-yellow-300' },
-          { label: 'IMPULSE BUY', key: 'IMPULSE SIGNAL / BUY', count: signalCounts.impulseBuy, color: 'text-green-400' },
-          { label: 'IMPULSE SELL', key: 'IMPULSE SIGNAL / SELL', count: signalCounts.impulseSell, color: 'text-red-400' },
+          { label: 'IF SUPPORT HOLDS/ BUY', key: 'IF SUPPORT HOLDS/ BUY', count: signalCounts.ifSupportHoldsBuy, color: 'text-green-400' },
+          { label: 'IF RESISTANCE HOLDS/ SELL', key: 'IF RESISTANCE HOLDS/ SELL', count: signalCounts.ifResistanceHoldsSell, color: 'text-red-400' },
           { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
           { label: 'BULLISH PULLBACK', key: 'BULLISH PULLBACK', count: signalCounts.bullishPullback, color: 'text-green-300' },
           { label: 'BEARISH PULLBACK', key: 'BEARISH PULLBACK', count: signalCounts.bearishPullback, color: 'text-red-300' },
@@ -1360,7 +1360,7 @@ let signal = '';
           validPump &&
           validDump
         ) {
-          signal = 'IMPULSE SIGNAL / BUY';
+          signal = 'IF SUPPORT HOLDS/ BUY';
         } else if (
           !s.breakout &&
           s.mainTrend === 'bullish' &&
@@ -1369,7 +1369,7 @@ let signal = '';
           validPump &&
           validDump
         ) {
-          signal = 'IMPULSE SIGNAL / SELL';
+          signal = 'IF RESISTANCE HOLDS/ SELL';
         } else if (pumpOrDumpBalance) {
           signal = 'BALANCE ZONE';
         } else if (
@@ -1546,9 +1546,9 @@ let signal = '';
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
     signal.trim() === 'WAITING ZONE'
       ? 'text-yellow-300'
-      : signal.trim() === 'IMPULSE SIGNAL / BUY'
+      : signal.trim() === 'IF SUPPORT HOLDS/ BUY'
       ? 'text-green-500 font-bold'
-      : signal.trim() === 'IMPULSE SIGNAL / SELL'
+      : signal.trim() === 'IF RESISTANCE HOLDS/ SELL'
       ? 'text-red-500 font-bold'
       : signal.trim() === 'BALANCE ZONE'
       ? 'text-purple-400 font-bold'
