@@ -670,6 +670,9 @@ const nearEmaIndexes: number[] = candlesToday
     return ema !== undefined && c.low - buffer <= ema && c.high + buffer >= ema ? i : -1;
   })
   .filter(i => i !== -1);
+	      
+// Sort by timestamp (optional if your data is already sorted)
+nearEma70Candles.sort((a, b) => a.timestamp - b.timestamp);
 
 const sortedNearLows = nearEmaIndexes
   .map(i => ({ i, value: lows[i] }))
@@ -689,7 +692,11 @@ const isOverallDescending = (arr: number[]) =>
 
 const hasAscendingLow = sortedNearLows.length > 1 && isOverallAscending(sortedNearLows);
 const hasDescendingHigh = sortedNearHighs.length > 1 && isOverallDescending(sortedNearHighs);
-
+console.log('📊 Near EMA70 Indexes:', nearEmaIndexes);
+console.log('🔻 Sorted Near Lows:', sortedNearLows);
+console.log('🔺 Sorted Near Highs:', sortedNearHighs);
+console.log('✅ Has Ascending Lows:', hasAscendingLow);
+console.log('✅ Has Descending Highs:', hasDescendingHigh);
 	      
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
