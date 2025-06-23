@@ -153,6 +153,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bearish' &&
     testedPrevLow &&
+	  !testedPrevHigh &&
     failedBearishBreak
   ) {
     return 'IF SUPPORT HOLDS/ BUY';
@@ -163,6 +164,7 @@ const getSignal = (s: any): string => {
     !breakout &&
     mainTrend === 'bullish' &&
     testedPrevHigh &&
+	  !testedPrevLow &&
     failedBullishBreak
   ) {
     return 'IF RESISTANCE HOLDS/ SELL';
@@ -1413,6 +1415,7 @@ let signal = '';
           !s.breakout &&
           s.mainTrend === 'bearish' &&
           s.testedPrevLow &&
+		!s.testedPrevHigh &&
           s.failedBearishBreak &&
           validPump &&
           validDump
@@ -1422,6 +1425,7 @@ let signal = '';
           !s.breakout &&
           s.mainTrend === 'bullish' &&
           s.testedPrevHigh &&
+		!s.testedPrevLow &&
           s.failedBullishBreak &&
           validPump &&
           validDump
