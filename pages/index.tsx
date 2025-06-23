@@ -662,13 +662,14 @@ const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(s
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
 // Step 1: Define a buffer zone around EMA70 (optional for flexibility)
-const buffer = 0.5;
+const buffer = 3;
 
 // Step 2: Find indexes of today's candles where price is near EMA70
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
     const ema = ema70[i];
-    return ema !== undefined && c.low - buffer <= ema && c.high + buffer >= ema ? i : -1;
+    const threshold = c.close * 0.01; // 1% buffer
+    return ema !== undefined && Math.abs(c.close - ema) <= threshold ? i : -1;
   })
   .filter(i => i !== -1);
 
