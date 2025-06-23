@@ -1536,17 +1536,15 @@ let signal = '';
         ) {
           signal = 'BEARISH PULLBACK';
         }  else if (
-  s.breakout &&
   s.bullishBreakout &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  signal = 'BUYING ZONE';
+  signal = 'SELLING ZONE';
 } else if (
-  s.breakout &&
   s.bearishBreakout &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  signal = 'SELLING ZONE';
+  signal = 'BUYING ZONE';
 }
 
         return (
