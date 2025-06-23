@@ -1675,10 +1675,10 @@ let signal = '';
   {signal.trim()}
 </td>
 		     <td className="px-1 py-0.5 text-center">
-            {hasDescendingHigh ? 'Descending Highs' : '-'}
+            {s.hasDescendingHigh ? 'Descending Highs' : '-'}
           </td>
           <td className="px-1 py-0.5 text-center">
-            {hasAscendingLow ? 'Ascending Lows' : '-'}
+            {s.hasAscendingLow ? 'Ascending Lows' : '-'}
           </td>
           </tr>
         );
