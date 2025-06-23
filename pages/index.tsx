@@ -662,11 +662,14 @@ const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBotto
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
     const ema = ema70[i];
-    const buffer = 0.5;
-    return ema !== undefined && c.low - buffer <= ema && c.high + buffer >= ema ? i : -1;
+    if (ema === undefined) return -1;
+
+    const midPrice = (c.high + c.low) / 2;
+    const threshold = getTestThreshold(midPrice);
+    return Math.abs(midPrice - ema) <= threshold ? i : -1;
   })
   .filter(i => i !== -1);
-
+	      
 const sortedNearLows = nearEmaIndexes
   .map(i => ({ i, value: lows[i] }))
   .sort((a, b) => a.i - b.i)
