@@ -247,22 +247,20 @@ if (
     return 'BEARISH PULLBACK';
   }
 
-  // ✅ BUYING ZONE (bullish breakout + weak pump/dump 6–8)
+  // ✅ SELLING ZONE (bullish breakout + weak pump/dump 6–8)
 if (
-  breakout &&
   bullishBreakout &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  return 'BUYING ZONE';
+  return 'SELLING ZONE';
 }
 
-// ✅ SELLING ZONE (bearish breakout + weak pump/dump 6–8)
+// ✅ BUYING ZONE (bearish breakout + weak pump/dump 6–8)
 if (
-  breakout &&
   bearishBreakout &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  return 'SELLING ZONE';
+  return 'BUYING ZONE';
 }
 
   return '';
@@ -671,9 +669,6 @@ const nearEmaIndexes: number[] = candlesToday
   })
   .filter(i => i !== -1);
 	      
-// Sort by timestamp (optional if your data is already sorted)
-nearEma70Candles.sort((a, b) => a.timestamp - b.timestamp);
-
 const sortedNearLows = nearEmaIndexes
   .map(i => ({ i, value: lows[i] }))
   .sort((a, b) => a.i - b.i)
