@@ -878,7 +878,40 @@ if (bearishReversal) {
 }      
 
 
-      const detectBullishSpike = (
+     // ✅ Utility: Checks if a low touches EMA14 within margin (default 0.2%)
+const touchedEMA14 = (price: number, ema14: number, margin = 0.002): boolean => {
+  return Math.abs(price - ema14) / ema14 <= margin;
+};
+
+// ✅ Utility: Check if RSI is ascending
+const isAscendingRSI = (rsiArray: number[], lookback: number): boolean => {
+  if (rsiArray.length < lookback) return false;
+  for (let i = rsiArray.length - lookback; i < rsiArray.length - 1; i++) {
+    if (rsiArray[i] >= rsiArray[i + 1]) return false;
+  }
+  return true;
+};
+
+// ✅ NEW: Check if latest EMA14-touching low is higher than the previous one
+const isAscendingLowOnEMA14Touch = (
+  lows: number[],
+  ema14: number[]
+): boolean => {
+  const len = lows.length;
+  const latestIndex = len - 1;
+
+  if (!touchedEMA14(lows[latestIndex], ema14[latestIndex])) return false;
+
+  for (let i = latestIndex - 1; i >= 0; i--) {
+    if (touchedEMA14(lows[i], ema14[i])) {
+      return lows[latestIndex] > lows[i];
+    }
+  }
+
+  return false; // No previous touch found
+};
+
+const detectBullishSpike = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
@@ -923,7 +956,6 @@ if (bearishReversal) {
   const crossoverRSI = rsi14[crossoverIndex];
   let lowestLowAfterCrossover = crossoverLow;
 
-  // 🔍 Track lowest low after crossover
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentLow = lows[i];
     if (currentLow < lowestLowAfterCrossover) {
@@ -952,9 +984,8 @@ if (bearishReversal) {
   const ascendingLow = currentLow > lowestLowAfterCrossover;
   const risingRSI = rsi > crossoverRSI;
   const higherThanCrossover = close > crossoverLow;
-
-  // ✅ Check ascending current RSI
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
+  const ema14TouchAscendingLow = isAscendingLowOnEMA14Touch(lows, ema14); // ✅ NEW
 
   return (
     aboveEMA70 &&
@@ -963,14 +994,49 @@ if (bearishReversal) {
     ascendingLow &&
     risingRSI &&
     higherThanCrossover &&
-    ascendingCurrentRSI
+    ascendingCurrentRSI &&
+    ema14TouchAscendingLow // ✅ Added new condition
   );
-};  
-        
+};
 
 
+       // ✅ Utility: Checks if high touched EMA14 within margin
+const touchedEMA14 = (high: number, ema14: number, margin = 0.002): boolean => {
+  return Math.abs(high - ema14) / ema14 <= margin;
+};
 
-        const detectBearishCollapse = (
+// ✅ Utility: Checks if RSI is descending
+const isDescendingRSI = (rsiArray: number[], lookback: number): boolean => {
+  if (rsiArray.length < lookback) return false;
+  for (let i = rsiArray.length - lookback; i < rsiArray.length - 1; i++) {
+    if (rsiArray[i] <= rsiArray[i + 1]) return false;
+  }
+  return true;
+};
+
+// ✅ NEW: Check if latest EMA14-touching high is lower than the previous touch
+const isDescendingHighOnEMA14Touch = (
+  highs: number[],
+  ema14: number[]
+): boolean => {
+  const len = highs.length;
+  const latestIndex = len - 1;
+
+  // Check if latest candle touched EMA14
+  if (!touchedEMA14(highs[latestIndex], ema14[latestIndex])) return false;
+
+  // Find the last previous EMA14-touching high
+  for (let i = latestIndex - 1; i >= 0; i--) {
+    if (touchedEMA14(highs[i], ema14[i])) {
+      return highs[latestIndex] < highs[i];
+    }
+  }
+
+  // No previous touch found
+  return false;
+};
+
+const detectBearishCollapse = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
@@ -1044,9 +1110,8 @@ if (bearishReversal) {
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
   const lowerThanCrossover = close < crossoverHigh;
-
-  // ✅ Add descending RSI14 check
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
+  const ema14TouchDescendingHigh = isDescendingHighOnEMA14Touch(highs, ema14);
 
   return (
     belowEMA70 &&
@@ -1055,14 +1120,40 @@ if (bearishReversal) {
     descendingHigh &&
     fallingRSI &&
     lowerThanCrossover &&
-    descendingCurrentRSI
+    descendingCurrentRSI &&
+    ema14TouchDescendingHigh // ✅ Newly added condition
   );
 };
 
         
-      const bullishSpike = detectBullishSpike(ema14, ema70, ema200, rsi14, lows, highs, closes, bullishBreakout, bearishBreakout);
+      // ✅ Usage
+const bullishSpike = detectBullishSpike(
+  ema14,
+  ema70,
+  ema200,
+  rsi14,
+  lows,
+  highs,
+  closes,
+  bullishBreakout,
+  bearishBreakout
+); 
 const bearishCollapse = detectBearishCollapse(ema14, ema70, ema200, rsi14, highs, lows, closes, bullishBreakout, bearishBreakout);  
-        
+
+// ✅ Usage
+const bearishCollapse = detectBearishCollapse(
+  ema14,
+  ema70,
+  ema200,
+  rsi14,
+  lows,
+  highs,
+  closes,
+  bullishBreakout,
+  bearishBreakout
+); 
+
+	      
         
         return {
   symbol,
