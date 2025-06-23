@@ -661,14 +661,18 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
+// Step 1: Define a buffer zone around EMA70 (optional for flexibility)
+const buffer = 0.5;
+
+// Step 2: Find indexes of today's candles where price is near EMA70
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
     const ema = ema70[i];
-    const buffer = 0.5;
     return ema !== undefined && c.low - buffer <= ema && c.high + buffer >= ema ? i : -1;
   })
   .filter(i => i !== -1);
-	      
+
+// Step 3: Extract sorted low and high values based on those indexes
 const sortedNearLows = nearEmaIndexes
   .map(i => ({ i, value: lows[i] }))
   .sort((a, b) => a.i - b.i)
@@ -679,12 +683,14 @@ const sortedNearHighs = nearEmaIndexes
   .sort((a, b) => a.i - b.i)
   .map(obj => obj.value);
 
+// Step 4: Helper functions for detecting pattern directions
 const isOverallAscending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val >= a[i - 1]);
 
 const isOverallDescending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val <= a[i - 1]);
 
+// Step 5: Final pattern detection
 const hasAscendingLow = sortedNearLows.length > 1 && isOverallAscending(sortedNearLows);
 const hasDescendingHigh = sortedNearHighs.length > 1 && isOverallDescending(sortedNearHighs);
 console.log('📊 Near EMA70 Indexes:', nearEmaIndexes);
