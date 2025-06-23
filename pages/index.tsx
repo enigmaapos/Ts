@@ -660,7 +660,7 @@ const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(s
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
 // Step 1: Define a buffer zone around EMA70 (optional for flexibility)
-const buffer = 3;
+const buffer = 0.5;
 
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
