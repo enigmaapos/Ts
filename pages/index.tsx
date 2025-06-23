@@ -229,7 +229,6 @@ if (
 }
   // ✅ BULLISH PULLBACK
   if (
-    breakout &&
     bullishBreakout &&
     bullishReversal &&
     ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
@@ -239,7 +238,6 @@ if (
 
   // ✅ BEARISH PULLBACK
   if (
-    breakout &&
     bearishBreakout &&
     bearishReversal &&
     ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
@@ -1536,14 +1534,12 @@ let signal = '';
     signal = 'CONSOLIDATION';
    }
         }	else if (
-          s.breakout &&
           s.bullishBreakout &&
           s.bullishReversal &&
           ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
         ) {
           signal = 'BULLISH PULLBACK';
         } else if (
-          s.breakout &&
           s.bearishBreakout &&
           s.bearishReversal &&
           ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
