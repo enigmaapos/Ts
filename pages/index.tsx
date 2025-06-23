@@ -1583,20 +1583,23 @@ let signal = '';
               }
             </td>
             <td
-              className={`text-center font-bold ${
-                pump !== undefined && pump > 35
-                  ? 'text-green-400'
-                  : dump !== undefined && dump > 35
-                  ? 'text-red-400'
-                  : inRange(pump, 21, 26) || inRange(dump, 21, 26)
-                  ? 'text-blue-400'
-                  : pump === undefined && dump === undefined
-                  ? 'text-gray-500'
-                  : 'text-white'
-              }`}
-            >
-              Pump: {pump?.toFixed(2) ?? 'N/A'} | Dump: {dump?.toFixed(2) ?? 'N/A'}
-            </td>
+  className={`text-center font-bold ${
+    pump !== undefined && pump > 35
+      ? 'text-green-400'
+      : dump !== undefined && dump > 35
+      ? 'text-red-400'
+      : inRange(pump, 21, 26) || inRange(dump, 21, 26)
+      ? 'text-blue-400'
+      : pump === undefined && dump === undefined
+      ? 'text-gray-500'
+      : 'text-white'
+  }`}
+>
+  {pump && pump !== 0 ? `Pump: ${pump.toFixed(2)}` : ''}
+  {pump && pump !== 0 && dump && dump !== 0 ? ' | ' : ''}
+  {dump && dump !== 0 ? `Dump: ${dump.toFixed(2)}` : ''}
+  {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
+</td>
             <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
               {s.bearishCollapse ? 'Yes' : 'No'}
             </td>
