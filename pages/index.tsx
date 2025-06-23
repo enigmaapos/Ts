@@ -659,13 +659,6 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
-const getTestThreshold = (price: number): number => {
-  if (price > 10000) return price * 0.00005;
-  if (price > 1000) return price * 0.0001;
-  if (price > 1) return price * 0.001;
-  return price * 0.01;
-};
-
 // Find start index of today's session in the full candles array
 const todayStartIndex = candles.findIndex(c => c.timestamp === candlesToday[0]?.timestamp);
 if (todayStartIndex === -1) {
