@@ -659,16 +659,20 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
-// Step 1: Locate today's candle start index in the full candles array
-const todayStartTime = candlesToday[0]?.timestamp;
-const todayStartIndex = candles.findIndex(c => c.timestamp === todayStartTime);
+const getTestThreshold = (price: number): number => {
+  if (price > 10000) return price * 0.00005;
+  if (price > 1000) return price * 0.0001;
+  if (price > 1) return price * 0.001;
+  return price * 0.01;
+};
 
-// Step 2: Check for edge case
+// Find start index of today's session in the full candles array
+const todayStartIndex = candles.findIndex(c => c.timestamp === candlesToday[0]?.timestamp);
 if (todayStartIndex === -1) {
-  console.warn('🚨 todayStartIndex not found!');
+  console.error("❌ Could not find todayStartIndex");
 }
 
-// Step 3: Use full `candles`, but check today's range using global indexes
+// Find EMA70-proximity candles within today using GLOBAL index
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
     const globalIndex = todayStartIndex + i;
@@ -681,7 +685,7 @@ const nearEmaIndexes: number[] = candlesToday
   })
   .filter(i => i !== -1);
 
-// Step 4: Extract low/high using global indexes
+// Get global lows/highs based on global indexes
 const sortedNearLows = nearEmaIndexes
   .map(i => ({ i, value: lows[i] }))
   .sort((a, b) => a.i - b.i)
@@ -692,19 +696,19 @@ const sortedNearHighs = nearEmaIndexes
   .sort((a, b) => a.i - b.i)
   .map(obj => obj.value);
 
-// Step 5: Pattern helpers
+// Helper to check smooth ascending/descending
 const isOverallAscending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val >= a[i - 1]);
 
 const isOverallDescending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val <= a[i - 1]);
 
-// Step 6: Final results
-const hasAscendingLow = sortedNearLows.length > 1 && isOverallAscending(sortedNearLows);
-const hasDescendingHigh = sortedNearHighs.length > 1 && isOverallDescending(sortedNearHighs);
+// Final signals
+const hasAscendingLow = sortedNearLows.length > 2 && isOverallAscending(sortedNearLows);
+const hasDescendingHigh = sortedNearHighs.length > 2 && isOverallDescending(sortedNearHighs);
 
-// Step 7: Debug console
-console.log('📊 Near EMA70 Indexes (global):', nearEmaIndexes);
+// Debug
+console.log('✅ Global Near EMA Indexes:', nearEmaIndexes);
 console.log('🔻 Sorted Near Lows:', sortedNearLows);
 console.log('🔺 Sorted Near Highs:', sortedNearHighs);
 console.log('✅ Has Ascending Lows:', hasAscendingLow);
