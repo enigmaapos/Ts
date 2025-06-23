@@ -877,12 +877,10 @@ if (bearishReversal) {
   console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
 }      
 
-
-     // ✅ Utility: Checks if a low touches EMA14 within margin (default 0.2%)
-const touchedEMA14 = (price: number, ema14: number, margin = 0.002): boolean => {
-  return Math.abs(price - ema14) / ema14 <= margin;
+// ✅ Utility: Checks if high touched EMA14 within margin
+const touchedEMA14 = (high: number, ema14: number, margin = 0.002): boolean => {
+  return Math.abs(high - ema14) / ema14 <= margin;
 };
-
 
 // ✅ NEW: Check if latest EMA14-touching low is higher than the previous one
 const isAscendingLowOnEMA14Touch = (
@@ -989,12 +987,6 @@ const detectBullishSpike = (
     ascendingCurrentRSI &&
     ema14TouchAscendingLow // ✅ Added new condition
   );
-};
-
-
-       // ✅ Utility: Checks if high touched EMA14 within margin
-const touchedEMA14 = (high: number, ema14: number, margin = 0.002): boolean => {
-  return Math.abs(high - ema14) / ema14 <= margin;
 };
 
 
