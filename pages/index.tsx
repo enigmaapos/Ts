@@ -980,12 +980,11 @@ const detectBullishSpike = (
   return (
     aboveEMA70 &&
     aboveEMA200 &&
-    aboveEMA14 &&
+    (aboveEMA14 || ema14TouchAscendingLow) &&
     ascendingLow &&
     risingRSI &&
     higherThanCrossover &&
-    ascendingCurrentRSI &&
-    ema14TouchAscendingLow // ✅ Added new condition
+    ascendingCurrentRSI 
   );
 };
 
@@ -1092,12 +1091,11 @@ const detectBearishCollapse = (
   return (
     belowEMA70 &&
     belowEMA200 &&
-    belowEMA14 &&
+    (belowEMA14 || ema14TouchDescendingHigh) &&
     descendingHigh &&
     fallingRSI &&
     lowerThanCrossover &&
-    descendingCurrentRSI &&
-    ema14TouchDescendingHigh // ✅ Newly added condition
+    descendingCurrentRSI 
   );
 };
 
