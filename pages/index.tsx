@@ -1520,8 +1520,8 @@ let signal = '';
             }`}
           >
             <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
-                 <div key={s.symbol} className="flex items-center justify-between">
-      <span className="truncate">{s.symbol}</span>
+          <div className="flex items-center justify-between"> 
+      <span className="truncate">{s.symbol}</span>		
       <button
         className="ml-1 text-yellow-400 hover:text-yellow-300"
         onClick={() => {
