@@ -662,7 +662,30 @@ const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
 const sessionLows = getRecentSessionLows(candles, sessionStartTimes);        
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
-        
+
+// Find indexes of candles near EMA70
+const nearEmaIndexes: number[] = candlesToday
+  .map((c, i) => {
+    const ema = ema70[i];
+    return ema !== undefined && c.low <= ema && c.high >= ema ? i : -1;
+  })
+  .filter(i => i !== -1);
+
+// Extract lows/highs only for those indexes
+const nearLows = nearEmaIndexes.map(i => lows[i]);
+const nearHighs = nearEmaIndexes.map(i => highs[i]);
+
+// Helpers
+const isOverallAscending = (arr: number[]) =>
+  arr.every((val, i, a) => i === 0 || val >= a[i - 1]);
+
+const isOverallDescending = (arr: number[]) =>
+  arr.every((val, i, a) => i === 0 || val <= a[i - 1]);
+
+// Final checks
+const hasAscendingLow = nearLows.length > 1 && isOverallAscending(nearLows);
+const hasDescendingHigh = nearHighs.length > 1 && isOverallDescending(nearHighs);
+	  
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1154,6 +1177,8 @@ const bearishCollapse = detectBearishCollapse(
   breakoutFailure,
   failedBearishBreak,
   failedBullishBreak,
+		hasDescendingHigh,
+		hasAscendingLow,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1391,6 +1416,12 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Collapse</th>
         <th className="px-1 py-0.5 text-center">Spike</th>
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
+	      <th className="px-1 py-0.5 text-center text-red-400">
+  Descending Highs<br/>(Desc. Highs)
+</th>
+<th className="px-1 py-0.5 text-center text-green-400">
+  Ascending Lows<br/>(Asc. Lows)
+</th>
       </tr>
     </thead>
     <tbody>
@@ -1643,6 +1674,12 @@ let signal = '';
 >
   {signal.trim()}
 </td>
+		     <td className="px-1 py-0.5 text-center">
+            {hasDescendingHigh ? 'Descending Highs' : '-'}
+          </td>
+          <td className="px-1 py-0.5 text-center">
+            {hasAscendingLow ? 'Ascending Lows' : '-'}
+          </td>
           </tr>
         );
       })}
