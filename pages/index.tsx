@@ -883,14 +883,6 @@ const touchedEMA14 = (price: number, ema14: number, margin = 0.002): boolean => 
   return Math.abs(price - ema14) / ema14 <= margin;
 };
 
-// ✅ Utility: Check if RSI is ascending
-const isAscendingRSI = (rsiArray: number[], lookback: number): boolean => {
-  if (rsiArray.length < lookback) return false;
-  for (let i = rsiArray.length - lookback; i < rsiArray.length - 1; i++) {
-    if (rsiArray[i] >= rsiArray[i + 1]) return false;
-  }
-  return true;
-};
 
 // ✅ NEW: Check if latest EMA14-touching low is higher than the previous one
 const isAscendingLowOnEMA14Touch = (
@@ -1005,14 +997,6 @@ const touchedEMA14 = (high: number, ema14: number, margin = 0.002): boolean => {
   return Math.abs(high - ema14) / ema14 <= margin;
 };
 
-// ✅ Utility: Checks if RSI is descending
-const isDescendingRSI = (rsiArray: number[], lookback: number): boolean => {
-  if (rsiArray.length < lookback) return false;
-  for (let i = rsiArray.length - lookback; i < rsiArray.length - 1; i++) {
-    if (rsiArray[i] <= rsiArray[i + 1]) return false;
-  }
-  return true;
-};
 
 // ✅ NEW: Check if latest EMA14-touching high is lower than the previous touch
 const isDescendingHighOnEMA14Touch = (
