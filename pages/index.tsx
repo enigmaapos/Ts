@@ -659,17 +659,29 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
+// Step 1: Locate today's candle start index in the full candles array
+const todayStartTime = candlesToday[0]?.timestamp;
+const todayStartIndex = candles.findIndex(c => c.timestamp === todayStartTime);
+
+// Step 2: Check for edge case
+if (todayStartIndex === -1) {
+  console.warn('🚨 todayStartIndex not found!');
+}
+
+// Step 3: Use full `candles`, but check today's range using global indexes
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
-    const ema = ema70[i];
+    const globalIndex = todayStartIndex + i;
+    const ema = ema70[globalIndex];
     if (ema === undefined) return -1;
 
     const midPrice = (c.high + c.low) / 2;
     const threshold = getTestThreshold(midPrice);
-    return Math.abs(midPrice - ema) <= threshold ? i : -1;
+    return Math.abs(midPrice - ema) <= threshold ? globalIndex : -1;
   })
   .filter(i => i !== -1);
-	      
+
+// Step 4: Extract low/high using global indexes
 const sortedNearLows = nearEmaIndexes
   .map(i => ({ i, value: lows[i] }))
   .sort((a, b) => a.i - b.i)
@@ -680,15 +692,19 @@ const sortedNearHighs = nearEmaIndexes
   .sort((a, b) => a.i - b.i)
   .map(obj => obj.value);
 
+// Step 5: Pattern helpers
 const isOverallAscending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val >= a[i - 1]);
 
 const isOverallDescending = (arr: number[]) =>
   arr.every((val, i, a) => i === 0 || val <= a[i - 1]);
 
+// Step 6: Final results
 const hasAscendingLow = sortedNearLows.length > 1 && isOverallAscending(sortedNearLows);
 const hasDescendingHigh = sortedNearHighs.length > 1 && isOverallDescending(sortedNearHighs);
-console.log('📊 Near EMA70 Indexes:', nearEmaIndexes);
+
+// Step 7: Debug console
+console.log('📊 Near EMA70 Indexes (global):', nearEmaIndexes);
 console.log('🔻 Sorted Near Lows:', sortedNearLows);
 console.log('🔺 Sorted Near Highs:', sortedNearHighs);
 console.log('✅ Has Ascending Lows:', hasAscendingLow);
