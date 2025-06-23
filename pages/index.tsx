@@ -665,11 +665,18 @@ const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBotto
 const buffer = 3;
 
 // Step 2: Find indexes of today's candles where price is near EMA70
+const priceNearEMA = (price: number, ema: number, thresholdPercent = 1) => {
+  const range = price * (thresholdPercent / 100);
+  return Math.abs(price - ema) <= range;
+};
+
 const nearEmaIndexes: number[] = candlesToday
   .map((c, i) => {
     const ema = ema70[i];
-    const threshold = c.close * 0.01; // 1% buffer
-    return ema !== undefined && Math.abs(c.close - ema) <= threshold ? i : -1;
+    if (ema === undefined) return -1;
+
+    const midPrice = (c.high + c.low) / 2; // use average price of candle
+    return priceNearEMA(midPrice, ema, 1) ? i : -1; // within 1%
   })
   .filter(i => i !== -1);
 
