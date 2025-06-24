@@ -767,6 +767,25 @@ const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 
   const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
   const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
+console.log('📊 Divergence Check Results:');
+
+if (bearishDivergence.divergence) {
+  console.log(
+    `%c🚨 Bearish RSI Divergence Detected at index ${bearishDivergence.index}`,
+    'color: red; font-weight: bold;'
+  );
+} else {
+  console.log('%cNo Bearish RSI Divergence Detected.', 'color: gray;');
+}
+
+if (bullishDivergence.divergence) {
+  console.log(
+    `%c✅ Bullish RSI Divergence Detected at index ${bullishDivergence.index}`,
+    'color: green; font-weight: bold;'
+  );
+} else {
+  console.log('%cNo Bullish RSI Divergence Detected.', 'color: gray;');
+}	      
 	      
         
 	      
