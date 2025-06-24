@@ -178,9 +178,8 @@ const getSignal = (s: any): string => {
   // ✅ WAITING ZONE (overextended)
   if (
     pumpOrDumpAbove35 &&
-    (bullishSpike || bearishCollapse || bullishReversal || bearishReversal)
   ) {
-    return 'WAITING ZONE';
+    return 'MAX ZONE';
   }
 
   // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
@@ -199,17 +198,17 @@ const getSignal = (s: any): string => {
     return 'REVERSE CONFIRMED';
   }
 
-  // ✅ TREND SLOWING (spike/collapse + breakout + weak pump/dump)
+  // ✅ STRONG TREND (spike/collapse + breakout + weak pump/dump)
   if (
     breakout &&
     (bullishSpike || bearishCollapse) &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-    ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
+    ((pump !== undefined && pump < 21) || (dump !== undefined && dump < 21))
   ) {
     return 'STRONG TREND';
   }
 
-  // ✅ CONSOLIDATION / BUY / SELL based on breakout direction
+  // ✅ "CONSOLIDATION: A BUY or SELL signal inside this zone means the market is gathering strength to break out in that direction." 
 if (
   breakout &&
   (bullishReversal || bearishReversal) &&
@@ -383,7 +382,7 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 
 const signalCounts = useMemo(() => {
   const counts = {
-    waitingZone: 0,
+    maxZone: 0,
     balanceZone: 0,
     ifSupportHoldsBuy: 0,
     ifResistanceHoldsSell: 0,
@@ -402,8 +401,8 @@ const signalCounts = useMemo(() => {
     const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
-      case 'WAITING ZONE':
-        counts.waitingZone++;
+      case 'MAX ZONE':
+        counts.maxZone++;
         break;
       case 'BALANCE ZONE':
         counts.balanceZone++;
@@ -1350,7 +1349,7 @@ if (loading) {
       <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
       <div className="flex flex-wrap gap-2">
         {[
-          { label: 'WAITING ZONE', key: 'WAITING ZONE', count: signalCounts.waitingZone, color: 'text-yellow-300' },
+          { label: 'MAX ZONE', key: 'MAX ZONE', count: signalCounts.maxZone, color: 'text-yellow-300' },
           { label: 'IF SUPPORT HOLDS/ BUY', key: 'IF SUPPORT HOLDS/ BUY', count: signalCounts.ifSupportHoldsBuy, color: 'text-green-400' },
           { label: 'IF RESISTANCE HOLDS/ SELL', key: 'IF RESISTANCE HOLDS/ SELL', count: signalCounts.ifResistanceHoldsSell, color: 'text-red-400' },
           { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
@@ -1500,9 +1499,8 @@ let signal = '';
           signal = 'BALANCE ZONE';
         } else if (
           pumpOrDumpAbove35 &&
-          (s.bullishSpike || s.bearishCollapse || s.bearishReversal || s.bullishReversal)
         ) {
-          signal = 'WAITING ZONE';
+          signal = 'MAX ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
           (
@@ -1671,7 +1669,7 @@ let signal = '';
             </td>
             <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'WAITING ZONE'
+    signal.trim() === 'MAX ZONE'
       ? 'text-yellow-300'
       : signal.trim() === 'IF SUPPORT HOLDS/ BUY'
       ? 'text-green-500 font-bold'
