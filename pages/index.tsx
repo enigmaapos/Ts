@@ -246,7 +246,7 @@ if (
       isDoubleBottomFailure) && 
 	  (isAbove35(pump) || isAbove35(dump))
   ) {
-    return 'BULLISH PULLBACK/ BUY';
+    return 'BULLISH PULLBACK/ TEST HIGH';
   }
 
   // ✅ BEARISH TREND FROM (EMA14<EMA200) PULLBACK BUT MAIN TREND IS BULLISH (EMA200<EMA70/ABOVE EMA200)
@@ -261,7 +261,7 @@ if (
       isDoubleBottomFailure) &&
 	(isAbove35(pump) || isAbove35(dump))  
   ) {
-    return 'BEARISH PULLBACK/ SELL';
+    return 'BEARISH PULLBACK/ TEST LOW';
   }
 
   // ✅ BUYING ZONE (bullish breakout + weak pump/dump 6–8)
@@ -451,10 +451,10 @@ const signalCounts = useMemo(() => {
       case 'CONSOLIDATION / SELL':
         counts.consolidationSell++;
         break;
-      case 'BULLISH PULLBACK/ BUY':
+      case 'BULLISH PULLBACK/ TEST HIGH':
         counts.bullishPullback++;
         break;
-      case 'BEARISH PULLBACK/ SELL':
+      case 'BEARISH PULLBACK/ TEST LOW':
         counts.bearishPullback++;
         break;
       case 'BUYING ZONE':
@@ -1535,7 +1535,7 @@ let signal = '';
 		(inRange(pump, 28, 80) ||
     inRange(dump, 28, 80))
         ) {
-          signal = 'BULLISH PULLBACK/ BUY';
+          signal = 'BULLISH PULLBACK/ TEST HIGH';
         } else if (
           s.mainTrend === 'bearish' &&
     	s.bearishReversal &&
@@ -1544,7 +1544,7 @@ let signal = '';
 		(inRange(pump, 28, 80) ||
     inRange(dump, 28, 80))
         ) {
-          signal = 'BEARISH PULLBACK/ SELL';
+          signal = 'BEARISH PULLBACK/ TEST LOW';
         }  else if (
   s.bullishBreakout &&
 		(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
