@@ -243,7 +243,7 @@ if (
     return 'BEARISH PULLBACK/ SELL';
   }
 
-  // ✅ SELLING ZONE (bullish breakout + weak pump/dump 6–8)
+  // ✅ BUYING ZONE (bullish breakout + weak pump/dump 6–8)
 if (
   bullishBreakout &&
 	(isDoubleTop ||
@@ -254,10 +254,10 @@ if (
       isDoubleBottomFailure) &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  return 'SELLING ZONE';
+  return 'BUYING ZONE';
 }
 
-// ✅ BUYING ZONE (bearish breakout + weak pump/dump 6–8)
+// ✅ SELLING ZONE (bearish breakout + weak pump/dump 6–8)
 if (
   bearishBreakout &&
 	(isDoubleTop ||
@@ -268,7 +268,7 @@ if (
       isDoubleBottomFailure) &&	
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  return 'BUYING ZONE';
+  return 'SELLING ZONE';
 }
 
   return '';
@@ -1561,14 +1561,14 @@ let signal = '';
     || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  signal = 'SELLING ZONE';
+  signal = 'BUYING ZONE';
 } else if (
   s.bearishBreakout &&
 		(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
     || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
-  signal = 'BUYING ZONE';
+  signal = 'SELLING ZONE';
 }
 
         return (
