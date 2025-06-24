@@ -175,10 +175,9 @@ const getSignal = (s: any): string => {
     return 'BALANCE ZONE';
   }
 
-  // ✅ WAITING ZONE (overextended)
-  if (
-    pumpOrDumpAbove35 &&
-  ) {
+  // ✅ MAX ZONE (overextended)
+  if (inRange(pump, 33, 34) ||
+    inRange(dump, 33, 34)) {
     return 'MAX ZONE';
   }
 
@@ -1497,9 +1496,8 @@ let signal = '';
           signal = 'IF RESISTANCE HOLDS/ SELL';
         } else if (pumpOrDumpBalance) {
           signal = 'BALANCE ZONE';
-        } else if (
-          pumpOrDumpAbove35 &&
-        ) {
+        } else if (inRange(pump, 33, 34) ||
+    inRange(dump, 33, 34)) {
           signal = 'MAX ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
