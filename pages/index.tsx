@@ -760,13 +760,6 @@ const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 
 
-  // Extract highs/lows and RSIs from today’s candles
-const recentCandles = candles.slice(-100); // Get last 100 candles		      
-  const priceHighs = candlesToday.map(c => c.high);
-  const priceLows = candlesToday.map(c => c.low);
-  const rsiValues = candlesToday.map(c => c.rsi);
-      
-
   const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
   const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
 
