@@ -690,15 +690,12 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
-const touchedEMA70Today =
-            prevSessionHigh! >= lastEMA70 &&
-            prevSessionLow! <= lastEMA70 &&
-            candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
-
-        const touchedEMA200Today =
-  prevSessionHigh! >= lastEMA200 &&
-  prevSessionLow! <= lastEMA200 &&
-  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);
+const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
+const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
+          
+const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
+const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
+        
 	      
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1190,8 +1187,8 @@ const bearishCollapse = detectBearishCollapse(
   breakoutFailure,
   failedBearishBreak,
   failedBullishBreak,
-		touchedEMA70Today,
-  touchedEMA200Today,
+		ema70Bounce,
+  ema200Bounce,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1344,8 +1341,8 @@ if (loading) {
           { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
           { label: 'REVERSE CONFIRMED', key: 'REVERSE CONFIRMED', count: signalCounts.reverseConfirmed, color: 'text-blue-300' },
           { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
-  				{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
-					{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
+  	{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
+	{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1429,8 +1426,8 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Collapse</th>
         <th className="px-1 py-0.5 text-center">Spike</th>
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
-	<th className="p-2">Touched EMA70</th>
-        <th className="p-2">Touched EMA200</th>
+	<th className="p-2">EMA70 Bounce</th>
+        <th className="p-2">EMA200 Bounce</th>
       </tr>
     </thead>
     <tbody>
@@ -1692,14 +1689,20 @@ let signal = '';
 >
   {signal.trim()}
 </td>
-		      <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
+		      <td
+  className={`p-2 ${
+    s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'
+  }`}
+>
+  {s.ema70Bounce ? 'Yes' : 'No'}
+</td>
         
         <td
   className={`p-2 ${
-    s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
+    s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'
   }`}
 >
-  {s.touchedEMA200Today ? 'Yes' : 'No'}
+  {s.ema200Bounce ? 'Yes' : 'No'}
 </td>
           </tr>
         );
