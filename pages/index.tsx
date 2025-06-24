@@ -146,8 +146,8 @@ const getSignal = (s: any): string => {
     isDoubleBottom,
     isAscendingBottom,
     isDoubleBottomFailure,
-	  touchedEMA70Today,
-	  touchedEMA200Today,
+	  ema70Bounce,
+	  ema200Bounce,
   } = s;
 
   // ✅ IF SUPPORT HOLDS/ BUY
@@ -186,8 +186,8 @@ const getSignal = (s: any): string => {
   // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
   if (
 	breakout &&
-	  touchedEMA70Today &&
-	  touchedEMA200Today &&
+	  ema70Bounce &&
+	  ema200Bounce &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     (bullishReversal ||
       bearishReversal) &&
@@ -217,8 +217,8 @@ const getSignal = (s: any): string => {
   // ✅ "CONSOLIDATION: A BUY or SELL signal inside this zone means the market is gathering strength to break out in that direction." 
 if (
   breakout &&
-  !touchedEMA70Today &&
-	!touchedEMA200Today &&	
+  !ema70Bounce &&
+	!ema200Bounce &&	
   (bullishReversal || bearishReversal) &&
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
   (isDoubleTop || isDescendingTop || isDoubleTopFailure
@@ -1479,8 +1479,8 @@ let signal = '';
           signal = 'MAX ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
-		s.touchedEMA70Today &&
-	  s.touchedEMA200Today &&
+		s.ema70Bounce &&
+	  s.ema200Bounce &&
           (
             s.bullishReversal ||
             s.bearishReversal) &&
@@ -1504,8 +1504,8 @@ let signal = '';
           signal = 'STRONG TREND';
         } else if (
   s.breakout &&
-		!s.touchedEMA70Today &&
-		!s.touchedEMA200Today &&
+		!s.ema70Bounce &&
+		!s.ema200Bounce &&
   (s.bullishReversal || s.bearishReversal) &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
