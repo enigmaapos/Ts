@@ -183,11 +183,11 @@ const getSignal = (s: any): string => {
     return 'MAX ZONE';
   }
 
-  // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
+  // ✅ POSSIBLE REVERSE  
   if (
 	breakout &&
-	  ema70Bounce &&
-	  ema200Bounce &&
+	  (ema70Bounce ||
+	  ema200Bounce) &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     (bullishReversal ||
       bearishReversal) &&
@@ -201,7 +201,7 @@ const getSignal = (s: any): string => {
     inRange(dump, 28, 80))
 
   ) {
-    return 'REVERSE CONFIRMED';
+    return 'POSSIBLE REVERSE';
   }
 
   // ✅ STRONG TREND (spike/collapse + breakout + weak pump/dump)
@@ -409,7 +409,7 @@ const signalCounts = useMemo(() => {
     ifSupportHoldsBuy: 0,
     ifResistanceHoldsSell: 0,
     strongTrend: 0,
-    reverseConfirmed: 0,
+    possibleReverse: 0,
     consolidation: 0,
     consolidationBuy: 0,     // ✅ New
     consolidationSell: 0,    // ✅ New
@@ -439,8 +439,8 @@ const signalCounts = useMemo(() => {
       case 'SIGNAL STRONG TREND':
         counts.strongTrend++;
         break;
-      case 'REVERSE CONFIRMED':
-        counts.reverseConfirmed++;
+      case 'POSSIBLE REVERSE':
+        counts.possibleReverse++;
         break;
       case 'CONSOLIDATION':
         counts.consolidation++;
@@ -1339,7 +1339,7 @@ if (loading) {
           { label: 'BUYING ZONE', key: 'BUYING ZONE', count: signalCounts.buyingZone, color: 'text-lime-400' },
           { label: 'SELLING ZONE', key: 'SELLING ZONE', count: signalCounts.sellingZone, color: 'text-pink-400' },
           { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
-          { label: 'REVERSE CONFIRMED', key: 'REVERSE CONFIRMED', count: signalCounts.reverseConfirmed, color: 'text-blue-300' },
+          { label: 'POSSIBLE REVERSE', key: 'POSSIBLE REVERSE', count: signalCounts.possibleReverse, color: 'text-blue-300' },
           { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
   	{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
 	{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
@@ -1479,8 +1479,8 @@ let signal = '';
           signal = 'MAX ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
-		s.ema70Bounce &&
-	  s.ema200Bounce &&
+		(s.ema70Bounce ||
+	  s.ema200Bounce) &&
           (
             s.bullishReversal ||
             s.bearishReversal) &&
@@ -1494,7 +1494,7 @@ let signal = '';
           (inRange(pump, 28, 80) ||
     inRange(dump, 28, 80))
         ) {
-          signal = 'REVERSE CONFIRMED';
+          signal = 'POSSIBLE REVERSE';
         } else if (
           s.breakout &&
           (s.bullishSpike || s.bearishCollapse) &&
