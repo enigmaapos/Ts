@@ -667,53 +667,15 @@ const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
-// Find start index of today's session in the full candles array
-const todayStartIndex = candles.findIndex(c => c.timestamp === candlesToday[0]?.timestamp);
-if (todayStartIndex === -1) {
-  console.error("❌ Could not find todayStartIndex");
-}
+const touchedEMA70Today =
+            prevSessionHigh! >= lastEMA70 &&
+            prevSessionLow! <= lastEMA70 &&
+            candlesToday.some(c => Math.abs(c.close - lastEMA70) / c.close < 0.002);
 
-// Find EMA70-proximity candles within today using GLOBAL index
-const nearEmaIndexes: number[] = candlesToday
-  .map((c, i) => {
-    const globalIndex = todayStartIndex + i;
-    const ema = ema70[globalIndex];
-    if (ema === undefined) return -1;
-
-    const midPrice = (c.high + c.low) / 2;
-    const threshold = getTestThreshold(midPrice);
-    return Math.abs(midPrice - ema) <= threshold ? globalIndex : -1;
-  })
-  .filter(i => i !== -1);
-
-// Get global lows/highs based on global indexes
-const sortedNearLows = nearEmaIndexes
-  .map(i => ({ i, value: lows[i] }))
-  .sort((a, b) => a.i - b.i)
-  .map(obj => obj.value);
-
-const sortedNearHighs = nearEmaIndexes
-  .map(i => ({ i, value: highs[i] }))
-  .sort((a, b) => a.i - b.i)
-  .map(obj => obj.value);
-
-// Helper to check smooth ascending/descending
-const isOverallAscending = (arr: number[]) =>
-  arr.every((val, i, a) => i === 0 || val >= a[i - 1]);
-
-const isOverallDescending = (arr: number[]) =>
-  arr.every((val, i, a) => i === 0 || val <= a[i - 1]);
-
-// Final signals
-const hasAscendingLow = sortedNearLows.length > 2 && isOverallAscending(sortedNearLows);
-const hasDescendingHigh = sortedNearHighs.length > 2 && isOverallDescending(sortedNearHighs);
-
-// Debug
-console.log('✅ Global Near EMA Indexes:', nearEmaIndexes);
-console.log('🔻 Sorted Near Lows:', sortedNearLows);
-console.log('🔺 Sorted Near Highs:', sortedNearHighs);
-console.log('✅ Has Ascending Lows:', hasAscendingLow);
-console.log('✅ Has Descending Highs:', hasDescendingHigh);
+        const touchedEMA200Today =
+  prevSessionHigh! >= lastEMA200 &&
+  prevSessionLow! <= lastEMA200 &&
+  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);
 	      
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1205,8 +1167,8 @@ const bearishCollapse = detectBearishCollapse(
   breakoutFailure,
   failedBearishBreak,
   failedBullishBreak,
-		hasDescendingHigh,
-		hasAscendingLow,
+		touchedEMA70Today,
+  touchedEMA200Today,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1444,12 +1406,8 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Collapse</th>
         <th className="px-1 py-0.5 text-center">Spike</th>
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
-	      <th className="px-1 py-0.5 text-center text-red-400">
-  Descending Highs<br/>(Desc. Highs)
-</th>
-<th className="px-1 py-0.5 text-center text-green-400">
-  Ascending Lows<br/>(Asc. Lows)
-</th>
+	<th className="p-2">Touched EMA70</th>
+        <th className="p-2">Touched EMA200</th>
       </tr>
     </thead>
     <tbody>
@@ -1698,12 +1656,15 @@ let signal = '';
 >
   {signal.trim()}
 </td>
-		     <td className="px-1 py-0.5 text-center">
-            {s.hasDescendingHigh ? 'Descending Highs' : '-'}
-          </td>
-          <td className="px-1 py-0.5 text-center">
-            {s.hasAscendingLow ? 'Ascending Lows' : '-'}
-          </td>
+		      <td className="p-2">{s.touchedEMA70Today ? 'Yes' : 'No'}</td>
+        
+        <td
+  className={`p-2 ${
+    s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
+  }`}
+>
+  {s.touchedEMA200Today ? 'Yes' : 'No'}
+</td>
           </tr>
         );
       })}
