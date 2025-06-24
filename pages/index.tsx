@@ -315,7 +315,7 @@ function isHigherRSI(prev: number, curr: number): boolean {
 function detectBearishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 60
+  lookback: number = 200
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
@@ -338,7 +338,7 @@ function detectBearishRSIDivergence(
 function detectBullishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 60
+  lookback: number = 200
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
@@ -760,6 +760,11 @@ const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 
 
+	      // Extract highs/lows and RSIs from today’s candles
+const recentCandles = candles.slice(-200); // Get last 100 candles		      
+  const priceHighs = candlesToday.map(c => c.high);
+  const priceLows = candlesToday.map(c => c.low);
+  const rsiValues = candlesToday.map(c => c.rsi);
   const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
   const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
 
