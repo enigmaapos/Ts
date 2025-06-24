@@ -1557,11 +1557,15 @@ let signal = '';
           signal = 'BEARISH PULLBACK/ SELL';
         }  else if (
   s.bullishBreakout &&
+		(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
+    || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
   signal = 'SELLING ZONE';
 } else if (
   s.bearishBreakout &&
+		(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
+    || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
   signal = 'BUYING ZONE';
