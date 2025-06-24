@@ -230,7 +230,7 @@ if (
   // ✅ BULLISH TREND FROM (EMA14>EMA200) PULLBACK BUT MAIN TREND IS BEARISH (EMA200>EMA70/BELOW EMA200)
   if (
     mainTrend === 'bearish' &&
-    bullishReversal &&
+    bullishReversal 
   ) {
     return 'BULLISH PULLBACK/ BUY';
   }
@@ -238,7 +238,7 @@ if (
   // ✅ BEARISH TREND FROM (EMA14<EMA200) PULLBACK BUT MAIN TREND IS BULLISH (EMA200<EMA70/ABOVE EMA200)
   if (
     mainTrend === 'bullish' &&
-    bearishReversal &&
+    bearishReversal 
   ) {
     return 'BEARISH PULLBACK/ SELL';
   }
@@ -1535,12 +1535,12 @@ let signal = '';
    }
         }	else if (
 	s.mainTrend === 'bearish' &&
-    	s.bullishReversal &&       
+    	s.bullishReversal        
         ) {
           signal = 'BULLISH PULLBACK/ BUY';
         } else if (
           s.mainTrend === 'bullish' &&
-    	s.bearishReversal &&
+    	s.bearishReversal 
         ) {
           signal = 'BEARISH PULLBACK/ SELL';
         }  else if (
