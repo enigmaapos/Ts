@@ -146,6 +146,8 @@ const getSignal = (s: any): string => {
     isDoubleBottom,
     isAscendingBottom,
     isDoubleBottomFailure,
+	  touchedEMA70Today,
+	  touchedEMA200Today,
   } = s;
 
   // ✅ IF SUPPORT HOLDS/ BUY
@@ -183,6 +185,9 @@ const getSignal = (s: any): string => {
 
   // ✅ REVERSE CONFIRMED (pattern + trend + breakout + strength)
   if (
+	breakout &&
+	  touchedEMA70Today &&
+	  touchedEMA200Today &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
     (bullishReversal ||
       bearishReversal) &&
@@ -192,7 +197,9 @@ const getSignal = (s: any): string => {
       isDoubleBottom ||
       isAscendingBottom ||
       isDoubleBottomFailure) &&
-    pumpOrDumpAbove35
+	  (inRange(pump, 28, 80) ||
+    inRange(dump, 28, 80))
+
   ) {
     return 'REVERSE CONFIRMED';
   }
@@ -210,6 +217,8 @@ const getSignal = (s: any): string => {
   // ✅ "CONSOLIDATION: A BUY or SELL signal inside this zone means the market is gathering strength to break out in that direction." 
 if (
   breakout &&
+  !touchedEMA70Today &&
+	!touchedEMA200Today &&	
   (bullishReversal || bearishReversal) &&
   (mainTrend === 'bullish' || mainTrend === 'bearish') &&
   (isDoubleTop || isDescendingTop || isDoubleTopFailure
@@ -1459,6 +1468,8 @@ let signal = '';
           signal = 'MAX ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+		s.touchedEMA70Today &&
+	  s.touchedEMA200Today &&
           (
             s.bullishReversal ||
             s.bearishReversal) &&
@@ -1469,7 +1480,8 @@ let signal = '';
             s.isAscendingBottom ||
             s.isDoubleBottomFailure
           ) &&
-          (isAbove35(pump) || isAbove35(dump))
+          (inRange(pump, 28, 80) ||
+    inRange(dump, 28, 80))
         ) {
           signal = 'REVERSE CONFIRMED';
         } else if (
@@ -1481,6 +1493,8 @@ let signal = '';
           signal = 'STRONG TREND';
         } else if (
   s.breakout &&
+		!s.touchedEMA70Today &&
+		!s.touchedEMA200Today &&
   (s.bullishReversal || s.bearishReversal) &&
   (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
   (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
