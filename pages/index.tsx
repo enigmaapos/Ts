@@ -300,7 +300,7 @@ function isHigherHigh(prev: number, curr: number): boolean {
   return curr > prev;
 }
 
-function isLowerHigh(prev: number, curr: number): boolean {
+function isLowerLow(prev: number, curr: number): boolean {
   return curr < prev;
 }
 
@@ -315,7 +315,7 @@ function isHigherRSI(prev: number, curr: number): boolean {
 function detectBearishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 100
+  lookback: number = 60
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
@@ -338,7 +338,7 @@ function detectBearishRSIDivergence(
 function detectBullishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 30
+  lookback: number = 60
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
@@ -349,7 +349,7 @@ function detectBullishRSIDivergence(
       const rsi1 = rsi[i];
       const rsi2 = rsi[j];
 
-      if (isLowerHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
+      if (isLowerLow(price1, price2) && isHigherRSI(rsi1, rsi2)) {
         return { divergence: true, index: j };
       }
     }
@@ -602,7 +602,7 @@ const lastEMA200 = ema200.at(-1)!;
 
 // Main trend
 const mainTrend = getMainTrend(ema70, ema200, closes);
-console.log("Main Trend:", mainTrend);
+
      
         const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
 
@@ -769,28 +769,8 @@ const recentCandles = candles.slice(-100); // Get last 100 candles
 
   const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
   const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
-console.log('📊 Divergence Check Results:');
 
-if (bearishDivergence.divergence) {
-  console.log(
-    `%c🚨 Bearish RSI Divergence Detected at index ${bearishDivergence.index}`,
-    'color: red; font-weight: bold;'
-  );
-} else {
-  console.log('%cNo Bearish RSI Divergence Detected.', 'color: gray;');
-}
 
-if (bullishDivergence.divergence) {
-  console.log(
-    `%c✅ Bullish RSI Divergence Detected at index ${bullishDivergence.index}`,
-    'color: green; font-weight: bold;'
-  );
-} else {
-  console.log('%cNo Bullish RSI Divergence Detected.', 'color: gray;');
-}	      
-	      
-        
-	      
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
   if (len < window) return false;
@@ -974,12 +954,6 @@ const detectBearishToBullish = (
   closes,
 );
 
-if (bullishReversal) {
-  console.log(`[Bullish Reversal Detected]`);
-  console.log(`→ EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
-  console.log(`→ RSI14: ${rsi14.at(-1)}`);
-  console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
-}
 
 const bearishReversal = detectBearishToBullish(
   ema14,
@@ -990,12 +964,6 @@ const bearishReversal = detectBearishToBullish(
   closes,
 );
 
-if (bearishReversal) {
-  console.log(`[Bearish Reversal Detected]`);
-  console.log(`→ EMA14: ${ema14.at(-1)}, EMA70: ${ema70.at(-1)}`);
-  console.log(`→ RSI14: ${rsi14.at(-1)}`);
-  console.log(`→ Last Close: ${closes.at(-1)}, Last High: ${highs.at(-1)}, Last Low: ${lows.at(-1)}`);
-}      
         
 
 // ✅ Utility: Checks if high touched EMA14 within margin
