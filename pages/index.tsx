@@ -236,8 +236,8 @@ if (
 }
   // ✅ BULLISH TREND FROM (EMA14>EMA200) PULLBACK BUT MAIN TREND IS BEARISH (EMA200>EMA70/BELOW EMA200)
   if (
-    mainTrend === 'bearish' &&
-	bearishReversal &&
+    mainTrend === 'bullish' &&
+	bullishReversal &&
       (isDoubleTop ||
       isDescendingTop ||
       isDoubleTopFailure ||
@@ -251,8 +251,8 @@ if (
 
   // ✅ BEARISH TREND FROM (EMA14<EMA200) PULLBACK BUT MAIN TREND IS BULLISH (EMA200<EMA70/ABOVE EMA200)
   if (
-    mainTrend === 'bullish' &&
-    bullishReversal &&
+    mainTrend === 'bearish' &&
+    bearishReversal &&
       (isDoubleTop ||
       isDescendingTop ||
       isDoubleTopFailure ||
@@ -1528,8 +1528,8 @@ let signal = '';
     signal = 'CONSOLIDATION';
    }
         }	else if (
-	s.mainTrend === 'bearish' &&
-    	s.bearishReversal &&
+	s.mainTrend === 'bullish' &&
+    	s.bullishReversal &&
 		  (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
     || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
 		(inRange(pump, 28, 80) ||
@@ -1537,8 +1537,8 @@ let signal = '';
         ) {
           signal = 'BULLISH PULLBACK/ BUY';
         } else if (
-          s.mainTrend === 'bullish' &&
-    	s.bullishReversal &&
+          s.mainTrend === 'bearish' &&
+    	s.bearishReversal &&
 		  (s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
     || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
 		(inRange(pump, 28, 80) ||
