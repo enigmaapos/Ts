@@ -295,6 +295,69 @@ if (
   return '';
 };
 
+// === RSI DIVERGENCE DETECTORS === //
+function isHigherHigh(prev: number, curr: number): boolean {
+  return curr > prev;
+}
+
+function isLowerHigh(prev: number, curr: number): boolean {
+  return curr < prev;
+}
+
+function isLowerRSI(prev: number, curr: number): boolean {
+  return curr < prev;
+}
+
+function isHigherRSI(prev: number, curr: number): boolean {
+  return curr > prev;
+}
+
+function detectBearishRSIDivergence(
+  prices: number[],
+  rsi: number[],
+  lookback: number = 30
+): { divergence: boolean; index: number | null } {
+  const len = prices.length;
+
+  for (let i = len - lookback; i < len - 1; i++) {
+    for (let j = i + 1; j < len; j++) {
+      const price1 = prices[i];
+      const price2 = prices[j];
+      const rsi1 = rsi[i];
+      const rsi2 = rsi[j];
+
+      if (isHigherHigh(price1, price2) && isLowerRSI(rsi1, rsi2)) {
+        return { divergence: true, index: j };
+      }
+    }
+  }
+
+  return { divergence: false, index: null };
+}
+
+function detectBullishRSIDivergence(
+  prices: number[],
+  rsi: number[],
+  lookback: number = 30
+): { divergence: boolean; index: number | null } {
+  const len = prices.length;
+
+  for (let i = len - lookback; i < len - 1; i++) {
+    for (let j = i + 1; j < len; j++) {
+      const price1 = prices[i];
+      const price2 = prices[j];
+      const rsi1 = rsi[i];
+      const rsi2 = rsi[j];
+
+      if (isLowerHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
+        return { divergence: true, index: j };
+      }
+    }
+  }
+
+  return { divergence: false, index: null };
+}
+
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -696,68 +759,6 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 
-// === RSI DIVERGENCE DETECTORS === //
-function isHigherHigh(prev: number, curr: number): boolean {
-  return curr > prev;
-}
-
-function isLowerHigh(prev: number, curr: number): boolean {
-  return curr < prev;
-}
-
-function isLowerRSI(prev: number, curr: number): boolean {
-  return curr < prev;
-}
-
-function isHigherRSI(prev: number, curr: number): boolean {
-  return curr > prev;
-}
-
-function detectBearishRSIDivergence(
-  prices: number[],
-  rsi: number[],
-  lookback: number = 30
-): { divergence: boolean; index: number | null } {
-  const len = prices.length;
-
-  for (let i = len - lookback; i < len - 1; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const price1 = prices[i];
-      const price2 = prices[j];
-      const rsi1 = rsi[i];
-      const rsi2 = rsi[j];
-
-      if (isHigherHigh(price1, price2) && isLowerRSI(rsi1, rsi2)) {
-        return { divergence: true, index: j };
-      }
-    }
-  }
-
-  return { divergence: false, index: null };
-}
-
-function detectBullishRSIDivergence(
-  prices: number[],
-  rsi: number[],
-  lookback: number = 30
-): { divergence: boolean; index: number | null } {
-  const len = prices.length;
-
-  for (let i = len - lookback; i < len - 1; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const price1 = prices[i];
-      const price2 = prices[j];
-      const rsi1 = rsi[i];
-      const rsi2 = rsi[j];
-
-      if (isLowerHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
-        return { divergence: true, index: j };
-      }
-    }
-  }
-
-  return { divergence: false, index: null };
-}
 
   // Extract highs/lows and RSIs from today’s candles
   const priceHighs = candlesToday.map(c => c.high);
