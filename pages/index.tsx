@@ -695,6 +695,78 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
           
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
+
+// === RSI DIVERGENCE DETECTORS === //
+function isHigherHigh(prev: number, curr: number): boolean {
+  return curr > prev;
+}
+
+function isLowerHigh(prev: number, curr: number): boolean {
+  return curr < prev;
+}
+
+function isLowerRSI(prev: number, curr: number): boolean {
+  return curr < prev;
+}
+
+function isHigherRSI(prev: number, curr: number): boolean {
+  return curr > prev;
+}
+
+function detectBearishRSIDivergence(
+  prices: number[],
+  rsi: number[],
+  lookback: number = 30
+): { divergence: boolean; index: number | null } {
+  const len = prices.length;
+
+  for (let i = len - lookback; i < len - 1; i++) {
+    for (let j = i + 1; j < len; j++) {
+      const price1 = prices[i];
+      const price2 = prices[j];
+      const rsi1 = rsi[i];
+      const rsi2 = rsi[j];
+
+      if (isHigherHigh(price1, price2) && isLowerRSI(rsi1, rsi2)) {
+        return { divergence: true, index: j };
+      }
+    }
+  }
+
+  return { divergence: false, index: null };
+}
+
+function detectBullishRSIDivergence(
+  prices: number[],
+  rsi: number[],
+  lookback: number = 30
+): { divergence: boolean; index: number | null } {
+  const len = prices.length;
+
+  for (let i = len - lookback; i < len - 1; i++) {
+    for (let j = i + 1; j < len; j++) {
+      const price1 = prices[i];
+      const price2 = prices[j];
+      const rsi1 = rsi[i];
+      const rsi2 = rsi[j];
+
+      if (isLowerHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
+        return { divergence: true, index: j };
+      }
+    }
+  }
+
+  return { divergence: false, index: null };
+}
+
+  // Extract highs/lows and RSIs from today’s candles
+  const priceHighs = candlesToday.map(c => c.high);
+  const priceLows = candlesToday.map(c => c.low);
+  const rsiValues = candlesToday.map(c => c.rsi);
+
+  const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
+	      
         
 	      
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
@@ -1189,6 +1261,8 @@ const bearishCollapse = detectBearishCollapse(
   failedBullishBreak,
 		ema70Bounce,
   ema200Bounce,
+		bullishDivergence,
+		bullishDivergence,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1428,6 +1502,8 @@ if (loading) {
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
 	<th className="p-2">EMA70 Bounce</th>
         <th className="p-2">EMA200 Bounce</th>
+	    <th className="p-2 text-red-400">Bearish Divergence</th>
+      <th className="p-2 text-green-400">Bullish Divergence</th>     
       </tr>
     </thead>
     <tbody>
@@ -1704,6 +1780,12 @@ let signal = '';
 >
   {s.ema200Bounce ? 'Yes' : 'No'}
 </td>
+	  <td className="p-2 text-red-400">
+          {s.bearishRSIDivergence ? `🟥 @${s.divergenceIndexes?.bearish}` : '—'}
+        </td>
+        <td className="p-2 text-green-400">
+          {s.bullishRSIDivergence ? `🟩 @${s.divergenceIndexes?.bullish}` : '—'}
+        </td>	  
           </tr>
         );
       })}
