@@ -1668,7 +1668,7 @@ let signal = '';
       ? 'text-purple-400 font-bold'
       : signal.trim() === 'STRONG TREND'
       ? 'text-orange-400 font-bold'
-      : signal.trim() === 'REVERSE CONFIRMED'
+      : signal.trim() === 'POSSIBLE REVERSE'
       ? 'text-blue-400 font-bold'
       : signal.trim() === 'CONSOLIDATION'
       ? 'text-teal-400 font-bold'
