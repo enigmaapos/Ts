@@ -246,6 +246,12 @@ if (
   // ✅ SELLING ZONE (bullish breakout + weak pump/dump 6–8)
 if (
   bullishBreakout &&
+	(isDoubleTop ||
+      isDescendingTop ||
+      isDoubleTopFailure ||
+      isDoubleBottom ||
+      isAscendingBottom ||
+      isDoubleBottomFailure) &&
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
   return 'SELLING ZONE';
@@ -254,6 +260,12 @@ if (
 // ✅ BUYING ZONE (bearish breakout + weak pump/dump 6–8)
 if (
   bearishBreakout &&
+	(isDoubleTop ||
+      isDescendingTop ||
+      isDoubleTopFailure ||
+      isDoubleBottom ||
+      isAscendingBottom ||
+      isDoubleBottomFailure) &&	
   (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
   return 'BUYING ZONE';
