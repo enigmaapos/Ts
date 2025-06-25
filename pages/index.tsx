@@ -1647,14 +1647,14 @@ let signal = '';
   s.bullishBreakout &&
   s.mainTrend === 'bearish' 
 ) {
-  return 'TRAP ZONE CONFIRMED / BEARISH CLOSE';
+  signal = 'TRAP ZONE CONFIRMED / BEARISH CLOSE';
 }
 
 else if (
   s.bearishBreakout &&
   s.mainTrend === 'bullish'
 ) {
-  return 'TRAP ZONE CONFIRMED / BULLISH CLOSE';
+  signal = 'TRAP ZONE CONFIRMED / BULLISH CLOSE';
 }
 
 
