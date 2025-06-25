@@ -190,11 +190,12 @@ const getSignal = (s: any): string => {
   // ✅ POSSIBLE REVERSE  
   if (
 	breakout &&
+	 (bearishDivergence || bullishDivergence) &&
+    (bullishSpike || bearishCollapse || bullishReversal ||
+      bearishReversal) &&
 	  (ema70Bounce ||
 	  ema200Bounce) &&
     (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-    (bullishReversal ||
-      bearishReversal) &&
       (isDoubleTop ||
       isDescendingTop ||
       isDoubleTopFailure ||
@@ -208,7 +209,7 @@ const getSignal = (s: any): string => {
     return 'POSSIBLE REVERSE';
   }
 
-  // ✅ STRONG TREND (spike/collapse + breakout + weak pump/dump)
+  // ✅ STRONG TREND - area of highest and lowest (spike/collapse + breakout + weak pump/dump) && check divergence for confirming reversal
   if (
     (bullishSpike || bearishCollapse) &&
     ((mainTrend === 'bullish' && bullishBreakout) || 
@@ -299,13 +300,13 @@ if (
 if (
   bullishBreakout && mainTrend === 'bearish' 
 ) {
-  return 'TRAP ZONE CONFIRMED / BEARISH CLOSE';
+  return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 }
 
 if (
   bearishBreakout && mainTrend === 'bullish' 
 ) {
-  return 'TRAP ZONE CONFIRMED / BULLISH CLOSE';
+  return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }	
 
   return '';
@@ -484,8 +485,8 @@ const signalCounts = useMemo(() => {
     bearishPullback: 0,
     buyingZone: 0,
     sellingZone: 0,
-    trapBearishClose: 0,
-    trapBullishClose: 0,
+    resistanceBreakout: 0,
+    supportBreakout: 0,
   };
 
   signals.forEach((s: any) => {
@@ -532,11 +533,11 @@ const signalCounts = useMemo(() => {
       case 'SELLING ZONE':
         counts.sellingZone++;
         break;
-      case 'TRAP ZONE CONFIRMED / BEARISH CLOSE':
-        counts.trapBearishClose++;
+      case 'TREND WATCH ZONE/ RESISTANCE BREAKOUT':
+        counts.resistanceBreakout++;
         break;
-      case 'TRAP ZONE CONFIRMED / BULLISH CLOSE':
-        counts.trapBullishClose++;
+      case 'TREND WATCH ZONE/ SUPPORT BREAKOUT':
+        counts.supportBreakout++;
         break;
     }
   });
@@ -1453,8 +1454,8 @@ if (loading) {
           { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
   	{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
 	{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
-	{ label: 'TRAP ZONE CONFIRMED / BEARISH CLOSE', key: 'TRAP ZONE CONFIRMED / BEARISH CLOSE', count: signalCounts.trapBearishClose, color: 'text-red-500' },
-{ label: 'TRAP ZONE CONFIRMED / BULLISH CLOSE', key: 'TRAP ZONE CONFIRMED / BULLISH CLOSE', count: signalCounts.trapBullishClose, color: 'text-yellow-500' },
+	{ label: 'TREND WATCH ZONE/ RESISTANCE BREAKOUT', key: 'TREND WATCH ZONE/ RESISTANCE BREAKOUT', count: signalCounts.resistanceBreakout, color: 'text-red-500' },
+{ label: 'TREND WATCH ZONE/ SUPPORT BREAKOUT', key: 'TREND WATCH ZONE/ SUPPORT BREAKOUT', count: signalCounts.supportBreakout, color: 'text-yellow-500' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1618,11 +1619,11 @@ let signal = '';
           signal = 'MAX ZONE';
         } else if (
           (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+	 (s.bearishDivergence || s.bullishDivergence) &&
+    (s.bullishSpike || s.bearishCollapse || s.bullishReversal ||
+      s.bearishReversal) &&	
 		(s.ema70Bounce ||
 	  s.ema200Bounce) &&
-          (
-            s.bullishReversal ||
-            s.bearishReversal) &&
             (s.isDoubleTop ||
             s.isDescendingTop ||
             s.isDoubleTopFailure ||
@@ -1700,14 +1701,14 @@ let signal = '';
   s.bullishBreakout &&
   s.mainTrend === 'bearish' 
 ) {
-  signal = 'TRAP ZONE CONFIRMED / BEARISH CLOSE';
+  signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 }
 
 else if (
   s.bearishBreakout &&
   s.mainTrend === 'bullish'
 ) {
-  signal = 'TRAP ZONE CONFIRMED / BULLISH CLOSE';
+  signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }
 
 
@@ -1837,9 +1838,9 @@ else if (
       ? 'text-lime-400 font-bold'
       : signal.trim() === 'SELLING ZONE'
       ? 'text-pink-400 font-bold'
-      : signal.trim() === 'TRAP ZONE CONFIRMED / BEARISH CLOSE'
+      : signal.trim() === 'TREND WATCH ZONE/ RESISTANCE BREAKOUT'
       ? 'text-red-500 font-bold'
-      : signal.trim() === 'TRAP ZONE CONFIRMED / BULLISH CLOSE'
+      : signal.trim() === 'TREND WATCH ZONE/ SUPPORT BREAKOUT'
       ? 'text-green-500 font-bold'
       : 'text-gray-500'
   }`}
