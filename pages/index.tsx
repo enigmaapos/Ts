@@ -427,6 +427,13 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
   let valA: any = a[sortField];
   let valB: any = b[sortField];
 
+  if (sortField === 'touchedEMA200Today') {
+    valA = a.touchedEMA200Today ? 1 : 0;
+    valB = b.touchedEMA200Today ? 1 : 0;
+
+    return sortOrder === 'asc' ? valB - valA : valA - valB;
+  }	
+
   if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
     const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
     const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
@@ -1518,14 +1525,14 @@ if (loading) {
 	<th className="p-2">EMA70 Bounce</th>
         <th className="p-2">EMA200 Bounce</th>
 <th
-          onClick={() => {
-            setSortField('touchedEMA200Today');
-            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-          }}
-          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-        >
-          Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-        </th>
+  onClick={() => {
+    setSortField('touchedEMA200Today');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
 	    <th className="p-2 text-red-400">Bearish Divergence</th>
       <th className="p-2 text-green-400">Bullish Divergence</th>     
       </tr>
