@@ -580,7 +580,7 @@ const signalCounts = useMemo(() => {
           volume: +c[5],
         }));
 
-        const closes = candles.map((c) => c.close);
+const closes = candles.map((c) => c.close);
 const highs = candles.map(c => c.high);
 const lows = candles.map(c => c.low);
 
@@ -765,9 +765,13 @@ const touchedEMA200Today =
   todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
+
+const highsToday = candlesToday.map(c => c.high);
+const lowsToday = candlesToday.map(c => c.low);
+	      
 // === RUN DIVERGENCE DETECTION ===
-const bullishDivergence = detectBullishDivergence(todaysLowestLow, rsi14);
-const bearishDivergence = detectBearishDivergence(todaysHighestHigh, rsi14);
+const bullishDivergence = detectBullishDivergence(lowsToday, rsi14);
+const bearishDivergence = detectBearishDivergence(highsToday, rsi14);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
