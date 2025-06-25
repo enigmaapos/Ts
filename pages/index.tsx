@@ -807,14 +807,13 @@ const touchedEMA200Today =
   todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
-      
-  const recentCandles = symbol.candles.slice(-200); // <- unique to each symbol
-  const priceHighs = candlesToday.map(c => c.high);
-  const priceLows = candlesToday.map(c => c.low);
+    const recentCandles = candles.slice(-200); // Get last 100 candles		    
+  const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
+const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
   const rsiValues = calculateRSI(closes);
 
-  const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
-  const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
+  const bearishDivergence = detectBearishRSIDivergence(todaysHighestHigh, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(todaysLowestLow, rsiValues);
 
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
