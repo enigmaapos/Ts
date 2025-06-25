@@ -310,52 +310,34 @@ if (
 };
 
 // === RSI-BASED DIVERGENCE (over lookback window) === //
-function detectRSIBasedBearishDivergence(
-  prices: number[],
-  rsi: number[],
-  lookback: number = 200
-): { divergence: boolean; index: number | null } {
-  const len = prices.length;
+function detectBearishDivergence(prices: number[], rsi: number[]) {
+  for (let i = prices.length - 1; i >= 2; i--) {
+    const recentHigh = prices[i];
+    const prevHigh = prices[i - 2];
+    const rsiRecent = rsi[i];
+    const rsiPrev = rsi[i - 2];
 
-  for (let i = len - lookback; i < len - 1; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const price1 = prices[i];
-      const price2 = prices[j];
-      const rsi1 = rsi[i];
-      const rsi2 = rsi[j];
-
-      if (price2 > price1 && rsi2 < rsi1) {
-        return { divergence: true, index: j };
-      }
+    if (recentHigh > prevHigh && rsiRecent < rsiPrev) {
+      return { divergence: true, type: 'bearish', index: i };
     }
   }
-
-  return { divergence: false, index: null };
+  return { divergence: false };
 }
 
-function detectRSIBasedBullishDivergence(
-  prices: number[],
-  rsi: number[],
-  lookback: number = 200
-): { divergence: boolean; index: number | null } {
-  const len = prices.length;
 
-  for (let i = len - lookback; i < len - 1; i++) {
-    for (let j = i + 1; j < len; j++) {
-      const price1 = prices[i];
-      const price2 = prices[j];
-      const rsi1 = rsi[i];
-      const rsi2 = rsi[j];
+function detectBullishDivergence(prices: number[], rsi: number[]) {
+  for (let i = prices.length - 1; i >= 2; i--) {
+    const recentLow = prices[i];
+    const prevLow = prices[i - 2];
+    const rsiRecent = rsi[i];
+    const rsiPrev = rsi[i - 2];
 
-      if (price2 < price1 && rsi2 > rsi1) {
-        return { divergence: true, index: j };
-      }
+    if (recentLow < prevLow && rsiRecent > rsiPrev) {
+      return { divergence: true, type: 'bullish', index: i };
     }
   }
-
-  return { divergence: false, index: null };
+  return { divergence: false };
 }
-
 
 
 export default function Home() {
@@ -784,14 +766,16 @@ const touchedEMA200Today =
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
 
-// Extract highs/lows and RSIs from today’s candles
-  const priceHighs = candlesToday.map(c => c.high);
-const priceLows = candlesToday.map(c => c.low);
-const rsiValues = calculateRSI(closes);
 
-// RSI-BASED (lookback range)
-const bearishDivergence = detectRSIBasedBearishDivergence(priceHighs, rsiValues);
-const bullishDivergence = detectRSIBasedBullishDivergence(priceLows, rsiValues);
+// === GET PRICES FOR RSI DIVERGENCE ===
+const highsToday = candlesToday.map(c => c.high);
+const lowsToday = candlesToday.map(c => c.low);
+const closesToday = candlesToday.map(c => c.close);
+
+
+// === RUN DIVERGENCE DETECTION ===
+const bullishDivergence = detectBullishDivergence(lowsToday, rsiValues);
+const bearishDivergence = detectBearishDivergence(highsToday, rsiValues);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
