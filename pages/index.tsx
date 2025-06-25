@@ -757,33 +757,12 @@ const detectBottomPatterns = (lows: number[]) => {
 // === 5. MAIN RUNNER ===
 const runPatternDetection = (candles: Candle[]) => {
   const sessionStartTimes = getSessionStartTimesFromCandles(candles);
-  const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(sessionStartTimes);
-
-  const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp < sessionEnd);
-  const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp < prevSessionEnd);
-
+  
   const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
   const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 
   const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
   const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
-
-  // === 6. Extract key session levels ===
-  const todaysLowestLow = candlesToday.length > 0
-    ? Math.min(...candlesToday.map(c => c.low))
-    : null;
-
-  const todaysHighestHigh = candlesToday.length > 0
-    ? Math.max(...candlesToday.map(c => c.high))
-    : null;
-
-  const prevSessionLow = candlesPrev.length > 0
-    ? Math.min(...candlesPrev.map(c => c.low))
-    : null;
-
-  const prevSessionHigh = candlesPrev.length > 0
-    ? Math.max(...candlesPrev.map(c => c.high))
-    : null;
 
   
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
