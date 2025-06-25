@@ -31,6 +31,7 @@ function calculateRSI(closes: number[], period = 14): number[] {
   let gains = 0;
   let losses = 0;
 
+  // Calculate initial average gain/loss
   for (let i = 1; i <= period; i++) {
     const diff = closes[i] - closes[i - 1];
     if (diff > 0) gains += diff;
@@ -39,9 +40,10 @@ function calculateRSI(closes: number[], period = 14): number[] {
 
   let avgGain = gains / period;
   let avgLoss = losses / period;
-  let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  let rs = avgLoss === 0 ? Number.POSITIVE_INFINITY : avgGain / avgLoss;
   rsi[period] = 100 - 100 / (1 + rs);
 
+  // Continue calculating RSI
   for (let i = period + 1; i < closes.length; i++) {
     const diff = closes[i] - closes[i - 1];
     const gain = diff > 0 ? diff : 0;
@@ -50,11 +52,11 @@ function calculateRSI(closes: number[], period = 14): number[] {
     avgGain = (avgGain * (period - 1) + gain) / period;
     avgLoss = (avgLoss * (period - 1) + loss) / period;
 
-    rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rs = avgLoss === 0 ? Number.POSITIVE_INFINITY : avgGain / avgLoss;
     rsi[i] = 100 - 100 / (1 + rs);
   }
 
-  // Fill initial NaNs
+  // Fill leading entries with NaN
   for (let i = 0; i < period; i++) {
     rsi[i] = NaN;
   }
@@ -627,7 +629,13 @@ const lows = candles.map(c => c.low);
 const ema14 = calculateEMA(closes, 14);
 const ema70 = calculateEMA(closes, 70);
 const ema200 = calculateEMA(closes, 200);
-const rsi14 = calculateRSI(closes);
+const closePrices = candles.map(c => c.close);
+const rsi14 = calculateRSI(closePrices, 14);
+
+// Add to each candle
+candles.forEach((c, i) => {
+  c.rsi = rsi14[i];
+});
 
 const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
