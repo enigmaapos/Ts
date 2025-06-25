@@ -309,36 +309,33 @@ if (
   return '';
 };
 
+
 // === RSI DIVERGENCE DETECTORS === //
 function isHigherHigh(prev: number, curr: number): boolean {
   return curr > prev;
 }
 
-function isLowerLow(prev: number, curr: number): boolean {
+function isLowerHigh(prev: number, curr: number): boolean {
   return curr < prev;
 }
 
 function isLowerRSI(prev: number, curr: number): boolean {
-  return curr > prev; // Changed: RSI2 > RSI1 => RSI2 is higher, so prev < curr
+  return curr < prev;
 }
 
 function isHigherRSI(prev: number, curr: number): boolean {
-  return curr < prev; // Changed: RSI2 < RSI1 => RSI2 is lower, so prev > curr
+  return curr > prev;
 }
 
-// Detect Bearish RSI Divergence (Price makes higher high, RSI makes lower high)
 function detectBearishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 50,
-  minSeparation: number = 5
+  lookback: number = 30
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
-  if (len < minSeparation + 2) return { divergence: false, index: null };
-
-  for (let i = len - lookback; i < len - minSeparation; i++) {
-    for (let j = i + minSeparation; j < len; j++) {
+  for (let i = len - lookback; i < len - 1; i++) {
+    for (let j = i + 1; j < len; j++) {
       const price1 = prices[i];
       const price2 = prices[j];
       const rsi1 = rsi[i];
@@ -353,25 +350,21 @@ function detectBearishRSIDivergence(
   return { divergence: false, index: null };
 }
 
-// Detect Bullish RSI Divergence (Price makes lower low, RSI makes higher low)
 function detectBullishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 50,
-  minSeparation: number = 5
+  lookback: number = 30
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
-  if (len < minSeparation + 2) return { divergence: false, index: null };
-
-  for (let i = len - lookback; i < len - minSeparation; i++) {
-    for (let j = i + minSeparation; j < len; j++) {
+  for (let i = len - lookback; i < len - 1; i++) {
+    for (let j = i + 1; j < len; j++) {
       const price1 = prices[i];
       const price2 = prices[j];
       const rsi1 = rsi[i];
       const rsi2 = rsi[j];
 
-      if (isLowerLow(price1, price2) && isHigherRSI(rsi1, rsi2)) {
+      if (isLowerHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
         return { divergence: true, index: j };
       }
     }
@@ -379,7 +372,6 @@ function detectBullishRSIDivergence(
 
   return { divergence: false, index: null };
 }
-
 
 
 export default function Home() {
@@ -807,12 +799,14 @@ const touchedEMA200Today =
   todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
-const recentCandles = candles.slice(-200); // Get last 100 candles		    
-  const rsiValues = calculateRSI(closes);
 
-  const bearishDivergence = detectBearishRSIDivergence(highs, rsiValues);
-  const bullishDivergence = detectBullishRSIDivergence(lows, rsiValues);
+// Extract highs/lows and RSIs from today’s candles
+  const priceHighs = candlesToday.map(c => c.high);
+  const priceLows = candlesToday.map(c => c.low);
+  const rsiValues = candlesToday.map(c => c.rsi);
 
+  const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
