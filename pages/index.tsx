@@ -1869,10 +1869,10 @@ else if (
   {s.touchedEMA200Today ? 'Yes' : 'No'}
 </td>
 	  <td className="p-2 text-red-400">
-          {s.bearishRSIDivergence ? `🟥 @${s.divergenceIndexes?.bearish}` : '—'}
+          {s.bearishDivergence ? `🟥 @${s.divergenceIndexes?.bearish}` : '—'}
         </td>
         <td className="p-2 text-green-400">
-          {s.bullishRSIDivergence ? `🟩 @${s.divergenceIndexes?.bullish}` : '—'}
+          {s.bullishDivergence ? `🟩 @${s.divergenceIndexes?.bullish}` : '—'}
         </td>	  
           </tr>
         );
