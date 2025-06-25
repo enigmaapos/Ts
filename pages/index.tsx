@@ -1301,8 +1301,8 @@ const bearishCollapse = detectBearishCollapse(
 		ema70Bounce,
   ema200Bounce,
 		touchedEMA200Today,
-		bullishDivergence,
 		bearishDivergence,
+		bullishDivergence,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
