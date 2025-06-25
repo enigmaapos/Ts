@@ -1517,7 +1517,15 @@ if (loading) {
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
 	<th className="p-2">EMA70 Bounce</th>
         <th className="p-2">EMA200 Bounce</th>
-<th className="px-1 py-0.5 text-center">Touched EMA200 Today</th>
+<th
+          onClick={() => {
+            setSortField('touchedEMA200Today');
+            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+          }}
+          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+        >
+          Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+        </th>
 	    <th className="p-2 text-red-400">Bearish Divergence</th>
       <th className="p-2 text-green-400">Bullish Divergence</th>     
       </tr>
@@ -1814,18 +1822,13 @@ else if (
 >
   {s.ema200Bounce ? 'Yes' : 'No'}
 </td>
-		         <button
-        className="ml-1 text-yellow-400 hover:text-yellow-300"
-        onClick={() => {
-          setFavorites((prev: Set<string>) => {
-            const newSet = new Set(prev);
-            newSet.has(s.touchedEMA200Today) ? newSet.delete(s.touchedEMA200Today) : newSet.add(s.touchedEMA200Today);
-            return newSet;
-          });
-        }}
-      >
-        {favorites.has(s.touchedEMA200Today) ? '★' : '☆'}
-      </button> 
+		         <td
+  className={`p-2 ${
+    s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
+  }`}
+>
+  {s.touchedEMA200Today ? 'Yes' : 'No'}
+</td>
 	  <td className="p-2 text-red-400">
           {s.bearishRSIDivergence ? `🟥 @${s.divergenceIndexes?.bearish}` : '—'}
         </td>
