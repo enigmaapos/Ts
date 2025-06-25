@@ -803,7 +803,7 @@ const touchedEMA200Today =
 // Extract highs/lows and RSIs from today’s candles
   const priceHighs = candlesToday.map(c => c.high);
   const priceLows = candlesToday.map(c => c.low);
-  const rsiValues = candlesToday.map(c => c.rsi);
+    const rsiValues = calculateRSI(closes);
 
   const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
   const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
