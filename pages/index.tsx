@@ -786,8 +786,8 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 const touchedEMA200Today =
-  prevSessionHigh! >= lastEMA200 &&
-  prevSessionLow! <= lastEMA200 &&
+  todaysHighestHigh! >= lastEMA200 &&
+  todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
 
