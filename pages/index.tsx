@@ -810,8 +810,8 @@ const touchedEMA200Today =
 const recentCandles = candles.slice(-200); // Get last 100 candles		    
   const rsiValues = calculateRSI(closes);
 
-  const bearishDivergence = detectBearishRSIDivergence(Highs, rsiValues);
-  const bullishDivergence = detectBullishRSIDivergence(Lows, rsiValues);
+  const bearishDivergence = detectBearishRSIDivergence(highs, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(lows, rsiValues);
 
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
