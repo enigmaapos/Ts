@@ -793,8 +793,11 @@ const touchedEMA200Today =
 
 	      // Extract highs/lows and RSIs from today’s candles
 const recentCandles = candles.slice(-200); // Get last 100 candles		      
-  const bearishDivergence = detectBearishRSIDivergence(todaysHighestHigh, rsiValues);
-  const bullishDivergence = detectBullishRSIDivergence(todaysLowestLow, rsiValues);
+  const priceHighs = candlesToday.map(c => c.high);
+  const priceLows = candlesToday.map(c => c.low);
+  const rsiValues = candlesToday.map(c => c.rsi);
+  const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
 
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
@@ -1435,7 +1438,7 @@ if (loading) {
   	{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
 	{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
 	{ label: 'TRAP ZONE CONFIRMED / BEARISH CLOSE', key: 'TRAP ZONE CONFIRMED / BEARISH CLOSE', count: signalCounts.trapBearishClose, color: 'text-red-500' },
-{ label: 'TRAP ZONE CONFIRMED / BULLISH CLOSE', key: 'TRAP ZONE CONFIRMED / BULLISH CLOSE', count: signalCounts.trapBullishClose, color: 'text-green-500' },
+{ label: 'TRAP ZONE CONFIRMED / BULLISH CLOSE', key: 'TRAP ZONE CONFIRMED / BULLISH CLOSE', count: signalCounts.trapBullishClose, color: 'text-yellow-500' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
