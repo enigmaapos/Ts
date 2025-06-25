@@ -148,6 +148,7 @@ const getSignal = (s: any): string => {
     isDoubleBottom,
     isAscendingBottom,
     isDoubleBottomFailure,
+	  ema14Bounce,
 	  ema70Bounce,
 	  ema200Bounce,
 	  bullishDivergence,
@@ -271,28 +272,28 @@ if (
 
   // ✅ BUYING ZONE (bullish breakout + weak pump/dump 6–8)
 if (
-  bullishBreakout &&
-	(isDoubleTop ||
+bearishBreakout &&
+	bullishDivergence &&
+	ema14Bounce &&
+	(
+      isDoubleTop ||
       isDescendingTop ||
-      isDoubleTopFailure ||
-      isDoubleBottom ||
-      isAscendingBottom ||
-      isDoubleBottomFailure) &&
-  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+      isDoubleTopFailure) &&
+  
 ) {
   return 'BUYING ZONE';
 }
 
 // ✅ SELLING ZONE (bearish breakout + weak pump/dump 6–8)
 if (
-  bearishBreakout &&
-	(isDoubleTop ||
-      isDescendingTop ||
-      isDoubleTopFailure ||
+   bullishBreakout &&
+	bearishDivergence &&
+	ema14Bounce &&
+	( ||
       isDoubleBottom ||
       isAscendingBottom ||
       isDoubleBottomFailure) &&	
-  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+  
 ) {
   return 'SELLING ZONE';
 }
@@ -774,10 +775,12 @@ const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(s
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
 
-  
+const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
 const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
-          
+
+
+const ema14Bounce = nearEMA14 && lastClose > lastEMA14;         	      
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
 const touchedEMA200Today =
@@ -1295,6 +1298,7 @@ const bearishCollapse = detectBearishCollapse(
   breakoutFailure,
   failedBearishBreak,
   failedBullishBreak,
+		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
 		touchedEMA200Today,
@@ -1539,6 +1543,7 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Collapse</th>
         <th className="px-1 py-0.5 text-center">Spike</th>
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
+	  <th className="p-2">EMA14 Bounce</th>    
 	<th className="p-2">EMA70 Bounce</th>
         <th className="p-2">EMA200 Bounce</th>
 <th
@@ -1683,17 +1688,18 @@ let signal = '';
         ) {
           signal = 'BEARISH PULLBACK/ TEST LOW';
         }  else if (
-  s.bullishBreakout &&
-		(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
-    || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
+  s.bearishBreakout &&
+	s.bullishDivergence &&
+	s.ema14Bounce &&
+	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure)	
 ) {
   signal = 'BUYING ZONE';
 } else if (
-  s.bearishBreakout &&
-		(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
+  bullishBreakout &&
+	bearishDivergence &&
+	ema14Bounce &&
+		(
     || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-  (inRange(pump, 6, 8) || inRange(dump, 6, 8))
 ) {
   signal = 'SELLING ZONE';
 }
@@ -1847,6 +1853,7 @@ else if (
 >
   {signal.trim()}
 </td>
+	  <td className={`p-2 ${s.ema14Bounce ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>	  
 		      <td
   className={`p-2 ${
     s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'
