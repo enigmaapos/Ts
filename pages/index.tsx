@@ -315,22 +315,22 @@ function isHigherHigh(prev: number, curr: number): boolean {
   return curr > prev;
 }
 
-function isLowerHigh(prev: number, curr: number): boolean {
+function isLowerLow(prev: number, curr: number): boolean {
   return curr < prev;
 }
 
 function isLowerRSI(prev: number, curr: number): boolean {
-  return curr < prev;
+  return curr > prev;
 }
 
 function isHigherRSI(prev: number, curr: number): boolean {
-  return curr > prev;
+  return curr < prev;
 }
 
 function detectBearishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 30
+  lookback: number = 200
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
@@ -341,7 +341,7 @@ function detectBearishRSIDivergence(
       const rsi1 = rsi[i];
       const rsi2 = rsi[j];
 
-      if (isHigherHigh(price1, price2) && isLowerRSI(rsi1, rsi2)) {
+      if (isHigherHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
         return { divergence: true, index: j };
       }
     }
@@ -353,7 +353,7 @@ function detectBearishRSIDivergence(
 function detectBullishRSIDivergence(
   prices: number[],
   rsi: number[],
-  lookback: number = 30
+  lookback: number = 200
 ): { divergence: boolean; index: number | null } {
   const len = prices.length;
 
@@ -364,7 +364,7 @@ function detectBullishRSIDivergence(
       const rsi1 = rsi[i];
       const rsi2 = rsi[j];
 
-      if (isLowerHigh(price1, price2) && isHigherRSI(rsi1, rsi2)) {
+      if (isLowerLow(price1, price2) && isLowerRSI(rsi1, rsi2)) {
         return { divergence: true, index: j };
       }
     }
