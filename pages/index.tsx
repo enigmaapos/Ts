@@ -807,30 +807,14 @@ const touchedEMA200Today =
   todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
+      // Extract highs/lows and RSIs from today’s candles
+const recentCandles = candles.slice(-200); // Get last 100 candles		      
+  const priceHighs = candlesToday.map(c => c.high);
+  const priceLows = candlesToday.map(c => c.low);
+  const rsiValues = candlesToday.map(c => c.rsi);
+  const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
 
-// === Declare outside first ===
-let bullishDivergence = { divergence: false, index: null };
-let bearishDivergence = { divergence: false, index: null };
-
-// === USAGE ===
-const recentCandles = candles.slice(-200); // Last 200 candles for safety
-
-const priceHighs = recentCandles.map(c => c.high);
-const priceLows = recentCandles.map(c => c.low);
-const rsiValues = recentCandles.map(c => c.rsi);
-
-// Validate RSI values
-const hasValidRSI = rsiValues.every(r => typeof r === 'number' && !isNaN(r));
-
-if (hasValidRSI) {
-  bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
-  bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
-
-  console.log("Bearish RSI Divergence:", bearishDivergence);
-  console.log("Bullish RSI Divergence:", bullishDivergence);
-} else {
-  console.warn("Invalid RSI values detected.");
-}
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
