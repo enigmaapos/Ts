@@ -813,11 +813,8 @@ const touchedEMA200Today =
   const priceLows = candlesToday.map(c => c.low);
   const rsiValues = calculateRSI(closes);
 
-  const highs = recentCandles.map(c => c.high);
-  const lows = recentCandles.map(c => c.low);
-
-  const bearishDivergence = detectBearishRSIDivergence(highs, rsiValues);
-  const bullishDivergence = detectBullishRSIDivergence(lows, rsiValues);
+  const bearishDivergence = detectBearishRSIDivergence(priceHighs, rsiValues);
+  const bullishDivergence = detectBullishRSIDivergence(priceLows, rsiValues);
 
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
