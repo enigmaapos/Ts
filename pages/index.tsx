@@ -420,6 +420,13 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
     valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
   }
 
+  // Custom sort for divergences
+  if (sortField === 'bearishDivergence' || sortField === 'bullishDivergence') {
+    valA = a[sortField]?.divergence ? 1 : 0;
+    valB = b[sortField]?.divergence ? 1 : 0;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }	
+
   if (valA == null) return 1;
   if (valB == null) return -1;
 
@@ -1542,8 +1549,24 @@ if (loading) {
 >
   Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
-	    <th className="p-2 text-red-400">Bearish Divergence</th>
-      <th className="p-2 text-green-400">Bullish Divergence</th>     
+	      <th
+  onClick={() => {
+    setSortField('bearishDivergence');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+	      <th
+  onClick={() => {
+    setSortField('bullishDivergence');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>	         
       </tr>
     </thead>
     <tbody>
