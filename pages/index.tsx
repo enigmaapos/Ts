@@ -612,8 +612,9 @@ const lastEMA200 = ema200.at(-1)!;
 // Main trend
 const mainTrend = getMainTrend(ema70, ema200, closes);
 
-     
-        const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
+const sessionStartTimes = getSessionStartTimesFromCandles(candles); // ensure this line is above
+const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(sessionStartTimes);
+        
 
         const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
         const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
