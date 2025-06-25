@@ -809,7 +809,8 @@ const touchedEMA200Today =
 
       
   const recentCandles = symbol.candles.slice(-200); // <- unique to each symbol
-  const closes = recentCandles.map(c => c.close);
+  const priceHighs = candlesToday.map(c => c.high);
+  const priceLows = candlesToday.map(c => c.low);
   const rsiValues = calculateRSI(closes);
 
   const highs = recentCandles.map(c => c.high);
