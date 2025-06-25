@@ -771,7 +771,9 @@ const touchedEMA200Today =
 const highsToday = candlesToday.map(c => c.high);
 const lowsToday = candlesToday.map(c => c.low);
 const closesToday = candlesToday.map(c => c.close);
-
+	      
+// === COMPUTE RSI (replace with your function) ===
+const rsiValues = calculateRSI(closesToday);  // Must match length of closesToday
 
 // === RUN DIVERGENCE DETECTION ===
 const bullishDivergence = detectBullishDivergence(lowsToday, rsiValues);
