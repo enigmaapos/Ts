@@ -793,6 +793,22 @@ const lowsToday = candlesToday.map(c => c.low);
 // === RUN DIVERGENCE DETECTION ===
 const bullishDivergence = detectBullishDivergence(lowsToday, rsi14);
 const bearishDivergence = detectBearishDivergence(highsToday, rsi14);
+// === LOG RESULTS (Optional for Debugging or Display) ===
+if (bullishDivergence.divergence) {
+  console.log(`✅ Bullish Divergence detected at index ${bullishDivergence.index}`);
+  console.log(`Price: ${bullishDivergence.prevLow} → ${bullishDivergence.currLow}`);
+  console.log(`RSI:   ${bullishDivergence.prevRSI} → ${bullishDivergence.currRSI}`);
+} else {
+  console.log("❌ No Bullish Divergence");
+}
+
+if (bearishDivergence.divergence) {
+  console.log(`⚠️ Bearish Divergence detected at index ${bearishDivergence.index}`);
+  console.log(`Price: ${bearishDivergence.prevHigh} → ${bearishDivergence.currHigh}`);
+  console.log(`RSI:   ${bearishDivergence.prevRSI} → ${bearishDivergence.currRSI}`);
+} else {
+  console.log("❌ No Bearish Divergence");
+}	      
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
