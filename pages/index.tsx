@@ -208,9 +208,9 @@ const getSignal = (s: any): string => {
 
   // ✅ STRONG TREND (spike/collapse + breakout + weak pump/dump)
   if (
-    breakout &&
     (bullishSpike || bearishCollapse) &&
-    (mainTrend === 'bullish' || mainTrend === 'bearish') &&
+    ((mainTrend === 'bullish' && bullishBreakout) || 
+     (mainTrend === 'bearish' && bearishBreakout)) &&
     ((pump !== undefined && pump < 21) || (dump !== undefined && dump < 21))
   ) {
     return 'STRONG TREND';
@@ -1611,9 +1611,9 @@ let signal = '';
         ) {
           signal = 'POSSIBLE REVERSE';
         } else if (
-          s.breakout &&
           (s.bullishSpike || s.bearishCollapse) &&
-          (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
+          ((s.mainTrend === 'bullish' && s.bullishBreakout) || 
+     (s.mainTrend === 'bearish' && s.bearishBreakout)) &&
           ((pump !== undefined && pump < 26) || (dump !== undefined && dump < 26))
         ) {
           signal = 'STRONG TREND';
