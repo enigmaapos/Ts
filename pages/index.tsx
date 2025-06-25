@@ -478,72 +478,79 @@ const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
 const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
 
 const signalCounts = useMemo(() => {
-const counts = {
-  maxZone: 0,
-  balanceZone: 0,
-  ifSupportHoldsBuy: 0,
-  ifResistanceHoldsSell: 0,
-  strongTrend: 0,
-  possibleReverse: 0,
-  consolidation: 0,
-  consolidationBuy: 0,
-  consolidationSell: 0,
-  bullishPullback: 0,
-  bearishPullback: 0,
-  buyingZone: 0,
-  sellingZone: 0,
-  trapBearishClose: 0,   // ✅ New
-  trapBullishClose: 0,   // ✅ New
-};
+  const counts = {
+    maxZone: 0,
+    balanceZone: 0,
+    ifSupportHoldsBuy: 0,
+    ifResistanceHoldsSell: 0,
+    strongTrend: 0,
+    possibleReverse: 0,
+    consolidation: 0,
+    consolidationBuy: 0,
+    consolidationSell: 0,
+    bullishPullback: 0,
+    bearishPullback: 0,
+    buyingZone: 0,
+    sellingZone: 0,
+    trapBearishClose: 0,
+    trapBullishClose: 0,
+  };
 
-switch (signal) {
-  case 'MAX ZONE':
-    counts.maxZone++;
-    break;
-  case 'BALANCE ZONE':
-    counts.balanceZone++;
-    break;
-  case 'IF SUPPORT HOLDS/ BUY':
-    counts.ifSupportHoldsBuy++;
-    break;
-  case 'IF RESISTANCE HOLDS/ SELL':
-    counts.ifResistanceHoldsSell++;
-    break;
-  case 'STRONG TREND':
-  case 'SIGNAL STRONG TREND':
-    counts.strongTrend++;
-    break;
-  case 'POSSIBLE REVERSE':
-    counts.possibleReverse++;
-    break;
-  case 'CONSOLIDATION':
-    counts.consolidation++;
-    break;
-  case 'CONSOLIDATION / BUY':
-    counts.consolidationBuy++;
-    break;
-  case 'CONSOLIDATION / SELL':
-    counts.consolidationSell++;
-    break;
-  case 'BULLISH PULLBACK/ TEST HIGH':
-    counts.bullishPullback++;
-    break;
-  case 'BEARISH PULLBACK/ TEST LOW':
-    counts.bearishPullback++;
-    break;
-  case 'BUYING ZONE':
-    counts.buyingZone++;
-    break;
-  case 'SELLING ZONE':
-    counts.sellingZone++;
-    break;
-  case 'TRAP ZONE CONFIRMED / BEARISH CLOSE':
-    counts.trapBearishClose++;
-    break;
-  case 'TRAP ZONE CONFIRMED / BULLISH CLOSE':
-    counts.trapBullishClose++;
-    break;
-}	
+  signals.forEach((s: any) => {
+    const signal = getSignal(s)?.trim().toUpperCase();
+
+    switch (signal) {
+      case 'MAX ZONE':
+        counts.maxZone++;
+        break;
+      case 'BALANCE ZONE':
+        counts.balanceZone++;
+        break;
+      case 'IF SUPPORT HOLDS/ BUY':
+        counts.ifSupportHoldsBuy++;
+        break;
+      case 'IF RESISTANCE HOLDS/ SELL':
+        counts.ifResistanceHoldsSell++;
+        break;
+      case 'STRONG TREND':
+      case 'SIGNAL STRONG TREND':
+        counts.strongTrend++;
+        break;
+      case 'POSSIBLE REVERSE':
+        counts.possibleReverse++;
+        break;
+      case 'CONSOLIDATION':
+        counts.consolidation++;
+        break;
+      case 'CONSOLIDATION / BUY':
+        counts.consolidationBuy++;
+        break;
+      case 'CONSOLIDATION / SELL':
+        counts.consolidationSell++;
+        break;
+      case 'BULLISH PULLBACK/ TEST HIGH':
+        counts.bullishPullback++;
+        break;
+      case 'BEARISH PULLBACK/ TEST LOW':
+        counts.bearishPullback++;
+        break;
+      case 'BUYING ZONE':
+        counts.buyingZone++;
+        break;
+      case 'SELLING ZONE':
+        counts.sellingZone++;
+        break;
+      case 'TRAP ZONE CONFIRMED / BEARISH CLOSE':
+        counts.trapBearishClose++;
+        break;
+      case 'TRAP ZONE CONFIRMED / BULLISH CLOSE':
+        counts.trapBullishClose++;
+        break;
+    }
+  });
+
+  return counts;
+}, [signals]);
 	
   useEffect(() => {
     let isMounted = true;
