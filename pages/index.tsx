@@ -310,53 +310,39 @@ if (
 };
 
 // === RSI-BASED DIVERGENCE (over lookback window) === //
-function detectBearishDivergence(prices: number[], rsi: number[]) {
-  for (let i = prices.length - 1; i >= 2; i--) {
-    const currHigh = prices[i];
-    const prevHigh = prices[i - 2];
-    const currRSI = rsi[i];
-    const prevRSI = rsi[i - 2];
+function detectBearishDivergence(prevHigh: number, currHigh: number, prevRSI: number, currRSI: number) {
+  const priceIncreased = currHigh > prevHigh;
+  const rsiDropped = currRSI < prevRSI;
 
-    const priceIncreased = currHigh > prevHigh;
-    const rsiDropped = currRSI < prevRSI;
-
-    if (priceIncreased && rsiDropped) {
-      return {
-        divergence: true,
-        type: 'bearish',
-        index: i,
-        prevHigh,
-        currHigh,
-        prevRSI,
-        currRSI,
-      };
-    }
+  if (priceIncreased && rsiDropped) {
+    return {
+      divergence: true,
+      type: 'bearish',
+      prevHigh,
+      currHigh,
+      prevRSI,
+      currRSI,
+    };
   }
+
   return { divergence: false };
 }
 
-function detectBullishDivergence(prices: number[], rsi: number[]) {
-  for (let i = prices.length - 1; i >= 2; i--) {
-    const currLow = prices[i];
-    const prevLow = prices[i - 2];
-    const currRSI = rsi[i];
-    const prevRSI = rsi[i - 2];
+function detectBullishDivergence(prevLow: number, currLow: number, prevRSI: number, currRSI: number) {
+  const priceDropped = currLow < prevLow;
+  const rsiRose = currRSI > prevRSI;
 
-    const priceDropped = currLow < prevLow;
-    const rsiRose = currRSI > prevRSI;
-
-    if (priceDropped && rsiRose) {
-      return {
-        divergence: true,
-        type: 'bullish',
-        index: i,
-        prevLow,
-        currLow,
-        prevRSI,
-        currRSI,
-      };
-    }
+  if (priceDropped && rsiRose) {
+    return {
+      divergence: true,
+      type: 'bullish',
+      prevLow,
+      currLow,
+      prevRSI,
+      currRSI,
+    };
   }
+
   return { divergence: false };
 }
 
@@ -786,29 +772,37 @@ const touchedEMA200Today =
   todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
-
+// === Extract highs and lows from each session ===
+const highsPrev = candlesPrev.map(c => c.high);
 const highsToday = candlesToday.map(c => c.high);
+const lowsPrev = candlesPrev.map(c => c.low);
 const lowsToday = candlesToday.map(c => c.low);
-	      
-// === RUN DIVERGENCE DETECTION ===
-const bullishDivergence = detectBullishDivergence(lowsToday, rsi14);
-const bearishDivergence = detectBearishDivergence(highsToday, rsi14);
-// === LOG RESULTS (Optional for Debugging or Display) ===
-if (bullishDivergence.divergence) {
-  console.log(`✅ Bullish Divergence detected at index ${bullishDivergence.index}`);
-  console.log(`Price: ${bullishDivergence.prevLow} → ${bullishDivergence.currLow}`);
-  console.log(`RSI:   ${bullishDivergence.prevRSI} → ${bullishDivergence.currRSI}`);
-} else {
-  console.log("❌ No Bullish Divergence");
+
+// === Get last high/low of previous session and highest/lowest of today ===
+const prevHigh = Math.max(...highsPrev);
+const currHigh = Math.max(...highsToday);
+
+const prevLow = Math.min(...lowsPrev);
+const currLow = Math.min(...lowsToday);
+
+// === Align RSI data ===
+// Ensure rsi14 includes enough data to cover both sessions
+const rsiPrev = rsi14[rsi14.length - candlesToday.length - 1]; // Last RSI from prev session
+const rsiCurr = rsi14[rsi14.length - 1]; // Latest RSI from today
+
+// === Run divergence detection ===
+const bearishDivergence = detectBearishDivergence(prevHigh, currHigh, rsiPrev, rsiCurr);
+const bullishDivergence = detectBullishDivergence(prevLow, currLow, rsiPrev, rsiCurr);
+
+// === Log results ===
+if (bearishDivergence.divergence) {
+  console.log("🔻 Bearish Divergence Detected:", bearishDivergence);
 }
 
-if (bearishDivergence.divergence) {
-  console.log(`⚠️ Bearish Divergence detected at index ${bearishDivergence.index}`);
-  console.log(`Price: ${bearishDivergence.prevHigh} → ${bearishDivergence.currHigh}`);
-  console.log(`RSI:   ${bearishDivergence.prevRSI} → ${bearishDivergence.currRSI}`);
-} else {
-  console.log("❌ No Bearish Divergence");
-}	      
+if (bullishDivergence.divergence) {
+  console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
+}
+
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1846,11 +1840,20 @@ else if (
 >
   {s.touchedEMA200Today ? 'Yes' : 'No'}
 </td>
-	  <td className={`p-2 font-semibold ${s.bearishDivergence ? 'text-red-500' : 'text-gray-400'}`}>
-  {s.bearishDivergence ? 'Yes' : 'No'}
+	  <td
+  className={`p-2 font-semibold ${
+    s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'
+  }`}
+>
+  {s.bearishDivergence?.divergence ? 'Yes' : 'No'}
 </td>
-<td className={`p-2 font-semibold ${s.bullishDivergence ? 'text-green-500' : 'text-gray-400'}`}>
-  {s.bullishDivergence ? 'Yes' : 'No'}
+
+<td
+  className={`p-2 font-semibold ${
+    s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'
+  }`}
+>
+  {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>
           </tr>
         );
