@@ -232,8 +232,8 @@ if (
     inRange(dump, 9, 12)
   )
 ) {
-  if (bullishBreakout) return 'CONSOLIDATION / BUY';
-  if (bearishBreakout) return 'CONSOLIDATION / SELL';
+  if (bullishBreakout) return 'CONSOLIDATION / SELL';
+  if (bearishBreakout) return 'CONSOLIDATION / BUY';
   return 'CONSOLIDATION';
 }
   // ✅ BULLISH TREND FROM (EMA14>EMA200) PULLBACK BUT MAIN TREND IS BEARISH (EMA200>EMA70/BELOW EMA200)
@@ -1619,9 +1619,9 @@ let signal = '';
   )
 ) {
   if (s.bullishBreakout) {
-    signal = 'CONSOLIDATION / BUY';
-  } else if (s.bearishBreakout) {
     signal = 'CONSOLIDATION / SELL';
+  } else if (s.bearishBreakout) {
+    signal = 'CONSOLIDATION / BUY';
   } else {
     signal = 'CONSOLIDATION';
    }
