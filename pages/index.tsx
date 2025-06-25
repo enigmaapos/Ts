@@ -1868,12 +1868,12 @@ else if (
 >
   {s.touchedEMA200Today ? 'Yes' : 'No'}
 </td>
-	  <td className="p-2 text-red-400">
-          {s.bearishDivergence ? `🟥 @${s.divergenceIndexes?.bearish}` : '—'}
-        </td>
-        <td className="p-2 text-green-400">
-          {s.bullishDivergence ? `🟩 @${s.divergenceIndexes?.bullish}` : '—'}
-        </td>	  
+	  <td className={`p-2 font-semibold ${s.bearishDivergence ? 'text-red-500' : 'text-gray-400'}`}>
+  {s.bearishDivergence ? 'Yes' : 'No'}
+</td>
+<td className={`p-2 font-semibold ${s.bullishDivergence ? 'text-green-500' : 'text-gray-400'}`}>
+  {s.bullishDivergence ? 'Yes' : 'No'}
+</td>
           </tr>
         );
       })}
