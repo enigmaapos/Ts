@@ -289,7 +289,7 @@ if (
    bullishBreakout &&
 	bearishDivergence &&
 	ema14Bounce &&
-	( ||
+	( 
       isDoubleBottom ||
       isAscendingBottom ||
       isDoubleBottomFailure) 
@@ -1699,7 +1699,7 @@ let signal = '';
 	s.bearishDivergence &&
 	s.ema14Bounce &&
 		(
-    || s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) 
+    s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) 
 ) {
   signal = 'SELLING ZONE';
 }
