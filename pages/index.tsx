@@ -312,28 +312,49 @@ if (
 // === RSI-BASED DIVERGENCE (over lookback window) === //
 function detectBearishDivergence(prices: number[], rsi: number[]) {
   for (let i = prices.length - 1; i >= 2; i--) {
-    const recentHigh = prices[i];
+    const currHigh = prices[i];
     const prevHigh = prices[i - 2];
-    const rsiRecent = rsi[i];
-    const rsiPrev = rsi[i - 2];
+    const currRSI = rsi[i];
+    const prevRSI = rsi[i - 2];
 
-    if (recentHigh > prevHigh && rsiRecent < rsiPrev) {
-      return { divergence: true, type: 'bearish', index: i };
+    const priceIncreased = currHigh > prevHigh;
+    const rsiDropped = currRSI < prevRSI;
+
+    if (priceIncreased && rsiDropped) {
+      return {
+        divergence: true,
+        type: 'bearish',
+        index: i,
+        prevHigh,
+        currHigh,
+        prevRSI,
+        currRSI,
+      };
     }
   }
   return { divergence: false };
 }
 
-
 function detectBullishDivergence(prices: number[], rsi: number[]) {
   for (let i = prices.length - 1; i >= 2; i--) {
-    const recentLow = prices[i];
+    const currLow = prices[i];
     const prevLow = prices[i - 2];
-    const rsiRecent = rsi[i];
-    const rsiPrev = rsi[i - 2];
+    const currRSI = rsi[i];
+    const prevRSI = rsi[i - 2];
 
-    if (recentLow < prevLow && rsiRecent > rsiPrev) {
-      return { divergence: true, type: 'bullish', index: i };
+    const priceDropped = currLow < prevLow;
+    const rsiRose = currRSI > prevRSI;
+
+    if (priceDropped && rsiRose) {
+      return {
+        divergence: true,
+        type: 'bullish',
+        index: i,
+        prevLow,
+        currLow,
+        prevRSI,
+        currRSI,
+      };
     }
   }
   return { divergence: false };
