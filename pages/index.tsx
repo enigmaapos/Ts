@@ -150,6 +150,8 @@ const getSignal = (s: any): string => {
     isDoubleBottomFailure,
 	  ema70Bounce,
 	  ema200Bounce,
+	  bullishDivergence,
+	  bearishDivergence,
   } = s;
 
   // ✅ IF SUPPORT HOLDS/ BUY
@@ -208,6 +210,7 @@ const getSignal = (s: any): string => {
 
   // ✅ STRONG TREND (spike/collapse + breakout + weak pump/dump)
   if (
+	(!bullishDivergence && !bearishDivergence) &&
     (bullishSpike || bearishCollapse) &&
     ((mainTrend === 'bullish' && bullishBreakout) || 
      (mainTrend === 'bearish' && bearishBreakout)) &&
@@ -665,51 +668,40 @@ const testedPrevLow =
   else if (testedPrevLow) breakoutTestSignal = '🟡 Tested & Failed to Break Previous Low';
 
 
-// === 1. Extract session start times dynamically ===
-const getSessionStartTimesFromCandles = (
-  candles: Candle[],
-  sessionIntervalMs: number = 24 * 60 * 60 * 1000 // Default: 1-day sessions
+// Get the start times for the last N sessions at 8AM UTC
+const getLastNSessionStartTimes = (n: number): number[] => {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const date = now.getUTCDate();
+
+  const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
+  const isAfter8AM = now.getTime() >= today8AM_UTC;
+
+  const baseDate = isAfter8AM ? date : date - 1;
+
+  const sessionStarts: number[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const sessionDate = baseDate - i;
+    sessionStarts.push(getUTCMillis(year, month, sessionDate, 8, 0));
+  }
+
+  return sessionStarts;
+};
+
+// Extract session highs from your candle data
+const getRecentSessionHighs = (
+  ohlcvData: { timestamp: number; high: number }[],
+  sessionStartTimes: number[]
 ): number[] => {
-  const uniqueSessions = new Set<number>();
-  for (const c of candles) {
-    const sessionStart = Math.floor(c.timestamp / sessionIntervalMs) * sessionIntervalMs;
-    uniqueSessions.add(sessionStart);
-  }
-  return Array.from(uniqueSessions).sort((a, b) => a - b).slice(-10); // get last 10 sessions
-};
-
-// === 2. Get session windows (current + previous) ===
-const getSessions = (sessionStartTimes: number[]) => {
-  if (sessionStartTimes.length < 2) {
-    throw new Error("Need at least two session start times");
-  }
-
-  const sessionStart = sessionStartTimes.at(-1)!;
-  const prevSessionStart = sessionStartTimes.at(-2)!;
-  const sessionEnd = Infinity;
-  const prevSessionEnd = sessionStart;
-
-  return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
-};
-
-// === 3. Get highs/lows per session ===
-const getRecentSessionHighs = (candles: Candle[], sessionStartTimes: number[]): number[] => {
   return sessionStartTimes.map((start, i) => {
     const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
-    const sessionCandles = candles.filter(c => c.timestamp >= start && c.timestamp < end);
-    return sessionCandles.length ? Math.max(...sessionCandles.map(c => c.high)) : 0;
+    const candles = ohlcvData.filter(c => c.timestamp >= start && c.timestamp < end);
+    return candles.length ? Math.max(...candles.map(c => c.high)) : 0;
   });
 };
 
-const getRecentSessionLows = (candles: Candle[], sessionStartTimes: number[]): number[] => {
-  return sessionStartTimes.map((start, i) => {
-    const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
-    const sessionCandles = candles.filter(c => c.timestamp >= start && c.timestamp < end);
-    return sessionCandles.length ? Math.min(...sessionCandles.map(c => c.low)) : Infinity;
-  });
-};
-
-// === 4. Pattern detection logic ===
+// Detect pattern types based on highs
 const detectTopPatterns = (highs: number[]) => {
   const recentTop = highs.at(-1);
   const previousTops = highs.slice(0, -1).filter(h => h > 0);
@@ -718,9 +710,9 @@ const detectTopPatterns = (highs: number[]) => {
     return { isDoubleTop: false, isDescendingTop: false, isDoubleTopFailure: false };
   }
 
-  const lastTop = previousTops.at(-1)!;
+  const lastTop = previousTops.at(-1);
   const isDoubleTop =
-    Math.abs(recentTop - lastTop) / lastTop < 0.003 &&
+    Math.abs(recentTop - lastTop!) / lastTop! < 0.003 &&
     recentTop < Math.max(...previousTops);
 
   const isDescendingTop = previousTops
@@ -732,6 +724,18 @@ const detectTopPatterns = (highs: number[]) => {
   return { isDoubleTop, isDescendingTop, isDoubleTopFailure };
 };
 
+const getRecentSessionLows = (
+  ohlcvData: { timestamp: number; low: number }[],
+  sessionStartTimes: number[]
+): number[] => {
+  return sessionStartTimes.map((start, i) => {
+    const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
+    const candles = ohlcvData.filter(c => c.timestamp >= start && c.timestamp < end);
+    return candles.length ? Math.min(...candles.map(c => c.low)) : Infinity;
+  });
+};
+
+        // Detect bottom pattern types
 const detectBottomPatterns = (lows: number[]) => {
   const recentLow = lows.at(-1);
   const previousLows = lows.slice(0, -1).filter(l => l < Infinity);
@@ -740,9 +744,9 @@ const detectBottomPatterns = (lows: number[]) => {
     return { isDoubleBottom: false, isAscendingBottom: false, isDoubleBottomFailure: false };
   }
 
-  const lastLow = previousLows.at(-1)!;
+  const lastLow = previousLows.at(-1);
   const isDoubleBottom =
-    Math.abs(recentLow - lastLow) / lastLow < 0.003 &&
+    Math.abs(recentLow - lastLow!) / lastLow! < 0.003 &&
     recentLow > Math.min(...previousLows);
 
   const isAscendingBottom = previousLows
@@ -754,15 +758,14 @@ const detectBottomPatterns = (lows: number[]) => {
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
 };
 
-// === 5. MAIN RUNNER ===
-const runPatternDetection = (candles: Candle[]) => {
-  const sessionStartTimes = getSessionStartTimesFromCandles(candles);
-  
-  const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
-  const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 
-  const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
-  const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
+// Detect top patterns from last N sessions
+const sessionStartTimes = getLastNSessionStartTimes(10);
+const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
+const sessionLows = getRecentSessionLows(candles, sessionStartTimes);        
+const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
+const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
+
 
   
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
@@ -1610,6 +1613,7 @@ let signal = '';
         ) {
           signal = 'POSSIBLE REVERSE';
         } else if (
+		(!s.bullishDivergence && !s.bearishDivergence) &&
           (s.bullishSpike || s.bearishCollapse) &&
           ((s.mainTrend === 'bullish' && s.bullishBreakout) || 
      (s.mainTrend === 'bearish' && s.bearishBreakout)) &&
