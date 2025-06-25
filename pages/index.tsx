@@ -765,19 +765,9 @@ const touchedEMA200Today =
   todaysLowestLow! <= lastEMA200 &&
   candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
-
-
-// === GET PRICES FOR RSI DIVERGENCE ===
-const highsToday = candlesToday.map(c => c.high);
-const lowsToday = candlesToday.map(c => c.low);
-const closesToday = candlesToday.map(c => c.close);
-	      
-// === COMPUTE RSI (replace with your function) ===
-const rsiValues = calculateRSI(closesToday);  // Must match length of closesToday
-
 // === RUN DIVERGENCE DETECTION ===
-const bullishDivergence = detectBullishDivergence(lowsToday, rsiValues);
-const bearishDivergence = detectBearishDivergence(highsToday, rsiValues);
+const bullishDivergence = detectBullishDivergence(todaysLowestLow, rsi14);
+const bearishDivergence = detectBearishDivergence(todaysHighestHigh, rsi14);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
