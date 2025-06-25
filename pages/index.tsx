@@ -778,6 +778,10 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
           
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
+const touchedEMA200Today =
+  prevSessionHigh! >= lastEMA200 &&
+  prevSessionLow! <= lastEMA200 &&
+  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
 
 
 	      // Extract highs/lows and RSIs from today’s candles
@@ -1269,6 +1273,7 @@ const bearishCollapse = detectBearishCollapse(
   failedBullishBreak,
 		ema70Bounce,
   ema200Bounce,
+		touchedEMA200Today,
 		bullishDivergence,
 		bearishDivergence,
 };
@@ -1512,6 +1517,7 @@ if (loading) {
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
 	<th className="p-2">EMA70 Bounce</th>
         <th className="p-2">EMA200 Bounce</th>
+<th className="px-1 py-0.5 text-center">Touched EMA200 Today</th>
 	    <th className="p-2 text-red-400">Bearish Divergence</th>
       <th className="p-2 text-green-400">Bullish Divergence</th>     
       </tr>
@@ -1808,6 +1814,18 @@ else if (
 >
   {s.ema200Bounce ? 'Yes' : 'No'}
 </td>
+		         <button
+        className="ml-1 text-yellow-400 hover:text-yellow-300"
+        onClick={() => {
+          setFavorites((prev: Set<string>) => {
+            const newSet = new Set(prev);
+            newSet.has(s.touchedEMA200Today) ? newSet.delete(s.touchedEMA200Today) : newSet.add(s.touchedEMA200Today);
+            return newSet;
+          });
+        }}
+      >
+        {favorites.has(s.touchedEMA200Today) ? '★' : '☆'}
+      </button> 
 	  <td className="p-2 text-red-400">
           {s.bearishRSIDivergence ? `🟥 @${s.divergenceIndexes?.bearish}` : '—'}
         </td>
