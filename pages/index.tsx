@@ -1853,7 +1853,13 @@ else if (
 >
   {signal.trim()}
 </td>
-	  <td className={`p-2 ${s.ema14Bounce ? "bg-gray-700" : "bg-gray-800 text-gray-500"}`}>	  
+		  <td
+  className={`p-2 ${
+    s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'
+  }`}
+>
+  {s.ema14Bounce ? 'Yes' : 'No'}
+</td>
 		      <td
   className={`p-2 ${
     s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'
