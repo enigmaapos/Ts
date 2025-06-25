@@ -612,8 +612,8 @@ const lastEMA200 = ema200.at(-1)!;
 // Main trend
 const mainTrend = getMainTrend(ema70, ema200, closes);
 
-const sessionStartTimes = getSessionStartTimesFromCandles(candles); // ensure this line is above
-const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(sessionStartTimes);
+
+const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
         
 
         const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
@@ -666,54 +666,51 @@ const testedPrevLow =
 
 
 // === 1. Extract session start times dynamically ===
-function getSessionStartTimesFromCandles(
+const getSessionStartTimesFromCandles = (
   candles: Candle[],
   sessionIntervalMs: number = 24 * 60 * 60 * 1000 // Default: 1-day sessions
-): number[] {
+): number[] => {
   const uniqueSessions = new Set<number>();
-
   for (const c of candles) {
     const sessionStart = Math.floor(c.timestamp / sessionIntervalMs) * sessionIntervalMs;
     uniqueSessions.add(sessionStart);
   }
-
   return Array.from(uniqueSessions).sort((a, b) => a - b).slice(-10); // get last 10 sessions
-}
+};
 
 // === 2. Get session windows (current + previous) ===
-function getSessions(sessionStartTimes: number[]) {
+const getSessions = (sessionStartTimes: number[]) => {
   if (sessionStartTimes.length < 2) {
     throw new Error("Need at least two session start times");
   }
 
   const sessionStart = sessionStartTimes.at(-1)!;
   const prevSessionStart = sessionStartTimes.at(-2)!;
-
   const sessionEnd = Infinity;
   const prevSessionEnd = sessionStart;
 
   return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
-}
+};
 
-// === 3. Get highs/lows from sessions ===
-function getRecentSessionHighs(candles: Candle[], sessionStartTimes: number[]): number[] {
+// === 3. Get highs/lows per session ===
+const getRecentSessionHighs = (candles: Candle[], sessionStartTimes: number[]): number[] => {
   return sessionStartTimes.map((start, i) => {
     const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
     const sessionCandles = candles.filter(c => c.timestamp >= start && c.timestamp < end);
     return sessionCandles.length ? Math.max(...sessionCandles.map(c => c.high)) : 0;
   });
-}
+};
 
-function getRecentSessionLows(candles: Candle[], sessionStartTimes: number[]): number[] {
+const getRecentSessionLows = (candles: Candle[], sessionStartTimes: number[]): number[] => {
   return sessionStartTimes.map((start, i) => {
     const end = i < sessionStartTimes.length - 1 ? sessionStartTimes[i + 1] : Infinity;
     const sessionCandles = candles.filter(c => c.timestamp >= start && c.timestamp < end);
     return sessionCandles.length ? Math.min(...sessionCandles.map(c => c.low)) : Infinity;
   });
-}
+};
 
 // === 4. Pattern detection logic ===
-function detectTopPatterns(highs: number[]) {
+const detectTopPatterns = (highs: number[]) => {
   const recentTop = highs.at(-1);
   const previousTops = highs.slice(0, -1).filter(h => h > 0);
 
@@ -733,9 +730,9 @@ function detectTopPatterns(highs: number[]) {
   const isDoubleTopFailure = recentTop > Math.max(...previousTops);
 
   return { isDoubleTop, isDescendingTop, isDoubleTopFailure };
-}
+};
 
-function detectBottomPatterns(lows: number[]) {
+const detectBottomPatterns = (lows: number[]) => {
   const recentLow = lows.at(-1);
   const previousLows = lows.slice(0, -1).filter(l => l < Infinity);
 
@@ -755,10 +752,10 @@ function detectBottomPatterns(lows: number[]) {
   const isDoubleBottomFailure = recentLow < Math.min(...previousLows);
 
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
-}
+};
 
-// === 5. MAIN: Run it all ===
-function runPatternDetection(candles: Candle[]) {
+// === 5. MAIN RUNNER ===
+const runPatternDetection = (candles: Candle[]) => {
   const sessionStartTimes = getSessionStartTimesFromCandles(candles);
   const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(sessionStartTimes);
 
@@ -770,6 +767,23 @@ function runPatternDetection(candles: Candle[]) {
 
   const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
   const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
+
+  // === 6. Extract key session levels ===
+  const todaysLowestLow = candlesToday.length > 0
+    ? Math.min(...candlesToday.map(c => c.low))
+    : null;
+
+  const todaysHighestHigh = candlesToday.length > 0
+    ? Math.max(...candlesToday.map(c => c.high))
+    : null;
+
+  const prevSessionLow = candlesPrev.length > 0
+    ? Math.min(...candlesPrev.map(c => c.low))
+    : null;
+
+  const prevSessionHigh = candlesPrev.length > 0
+    ? Math.max(...candlesPrev.map(c => c.high))
+    : null;
 
   
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
