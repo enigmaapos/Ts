@@ -305,6 +305,7 @@ if (
 if (
   bullishBreakout && 
 	bearishDivergence &&
+	!bullishDivergence &&
 	ema14Bounce &&
 	highestVolumeColorPrev &&
 	mainTrend === 'bullish' 
@@ -315,6 +316,7 @@ if (
 if (
   bearishBreakout &&
 	bullishDivergence &&
+	!bearishDivergence &&
 	ema14Bounce &&
 	highestVolumeColorPrev &&
 	mainTrend === 'bearish' 
@@ -1760,7 +1762,7 @@ let signal = '';
           signal = 'BEARISH PULLBACK/ TEST LOW';
         }  else if (
   s.bearishBreakout &&
-	s.bullishDivergence &&	
+	s.bullishDivergence &&
 	s.ema14Bounce &&
 	!(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
 	(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
@@ -1781,6 +1783,7 @@ let signal = '';
 	else if (
   s.bullishBreakout &&
 	s.bearishDivergence &&	
+		s.bullishDivergence &&
 	s.ema14Bounce &&
 		s.highestVolumeColorPrev &&
   s.mainTrend === 'bullish' 
@@ -1790,7 +1793,8 @@ let signal = '';
 
 else if (
   s.bearishBreakout &&
-	s.bullishDivergence &&	
+	s.bullishDivergence &&
+	s.bearishDivergence &&
 	s.ema14Bounce &&
 	s.highestVolumeColorPrev &&
   s.mainTrend === 'bearish'
