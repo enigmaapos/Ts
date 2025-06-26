@@ -155,6 +155,7 @@ const getSignal = (s: any): string => {
   bullishDivergence,
   bearishDivergence,
   highestVolumeColorPrev,
+touchedEMA200Today,	 
 } = s;
 
 
@@ -242,30 +243,24 @@ if (
   return 'CONSOLIDATION';
 }
 
-// ✅ BULLISH PULLBACK/ TEST HIGH
+// ✅ BULLISH - NO EMA200 TOUCH TODAY 
 if (
   mainTrend === 'bullish' &&
-  bullishReversal &&
-  (
-    isDoubleTop || isDescendingTop || isDoubleTopFailure ||
-    isDoubleBottom || isAscendingBottom || isDoubleBottomFailure
-  ) &&
-  (isAbove35(pump) || isAbove35(dump))
+  bullishBreakout &&
+  isDoubleTopFailure &&
+!touchedEMA200Today 
 ) {
-  return 'BULLISH PULLBACK/ TEST HIGH';
+  return 'BULLISH/ NO EMA200 TOUCH';
 }
 
-// ✅ BEARISH PULLBACK/ TEST LOW
+// ✅ BEARISH - NO EMA200 TOUCH TODAY 
 if (
   mainTrend === 'bearish' &&
-  bearishReversal &&
-  (
-    isDoubleTop || isDescendingTop || isDoubleTopFailure ||
-    isDoubleBottom || isAscendingBottom || isDoubleBottomFailure
-  ) &&
-  (isAbove35(pump) || isAbove35(dump))
+  bearishBreakout &&
+  isDoubleBottomFailure &&
+  !touchedEMA200Today
 ) {
-  return 'BEARISH PULLBACK/ TEST LOW';
+  return 'BEARISH/ NO EMA200 TOUCH';
 }
 
 // ✅ BUYING ZONE
@@ -518,10 +513,10 @@ const signalCounts = useMemo(() => {
       case 'CONSOLIDATION / SELL':
         counts.consolidationSell++;
         break;
-      case 'BULLISH PULLBACK/ TEST HIGH':
+      case 'BULLISH/ NO EMA200 TOUCH':
         counts.bullishPullback++;
         break;
-      case 'BEARISH PULLBACK/ TEST LOW':
+      case 'BEARISH/ NO EMA200 TOUCH':
         counts.bearishPullback++;
         break;
       case 'BUYING ZONE':
@@ -1503,8 +1498,8 @@ if (loading) {
           { label: 'IF SUPPORT HOLDS/ BUY', key: 'IF SUPPORT HOLDS/ BUY', count: signalCounts.ifSupportHoldsBuy, color: 'text-green-400' },
           { label: 'IF RESISTANCE HOLDS/ SELL', key: 'IF RESISTANCE HOLDS/ SELL', count: signalCounts.ifResistanceHoldsSell, color: 'text-red-400' },
           { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
-          { label: 'BULLISH PULLBACK/ TEST HIGH', key: 'BULLISH PULLBACK/ TEST HIGH', count: signalCounts.bullishPullback, color: 'text-green-300' },
-          { label: 'BEARISH PULLBACK/ TEST LOW', key: 'BEARISH PULLBACK/ TEST LOW', count: signalCounts.bearishPullback, color: 'text-red-300' },
+          { label: 'BULLISH/ NO EMA200 TOUCH', key: 'BULLISH/ NO EMA200 TOUCH', count: signalCounts.bullishPullback, color: 'text-green-300' },
+          { label: 'BEARISH/ NO EMA200 TOUCH', key: 'BEARISH/ NO EMA200 TOUCH', count: signalCounts.bearishPullback, color: 'text-red-300' },
           { label: 'BUYING ZONE', key: 'BUYING ZONE', count: signalCounts.buyingZone, color: 'text-lime-400' },
           { label: 'SELLING ZONE', key: 'SELLING ZONE', count: signalCounts.sellingZone, color: 'text-pink-400' },
           { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
@@ -1732,30 +1727,18 @@ if (
   }
 } else if (
   s.mainTrend === 'bullish' &&
-  s.bullishReversal &&
-  (
-    s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure ||
-    s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure
-  ) &&
-  (
-    inRange(pump, 28, 80) ||
-    inRange(dump, 28, 80)
-  )
+  s.bullishBreakout &&
+   s.isDoubleBottomFailure &&
+  !s.touchedEMA200Today
 ) {
-  signal = 'BULLISH PULLBACK/ TEST HIGH';
+  signal = 'BULLISH/ NO EMA200 TOUCH';
 } else if (
   s.mainTrend === 'bearish' &&
-  s.bearishReversal &&
-  (
-    s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure ||
-    s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure
-  ) &&
-  (
-    inRange(pump, 28, 80) ||
-    inRange(dump, 28, 80)
-  )
+  s.bearishBreakout &&
+  s.isDoubleTopFailure  &&
+s.touchedEMA200Today
 ) {
-  signal = 'BEARISH PULLBACK/ TEST LOW';
+  signal = 'BEARISH/ NO EMA200 TOUCH';
 } else if (
   s.bearishBreakout &&
   s.bullishDivergence &&
@@ -1906,9 +1889,9 @@ s.ema14Bounce &&
       ? 'text-green-400 font-bold'
       : signal.trim() === 'CONSOLIDATION / SELL'
       ? 'text-red-400 font-bold'
-      : signal.trim() === 'BULLISH PULLBACK/ TEST HIGH'
+      : signal.trim() === 'BULLISH/ NO EMA200 TOUCH'
       ? 'text-green-400 font-bold'
-      : signal.trim() === 'BEARISH PULLBACK/ TEST LOW'
+      : signal.trim() === 'BEARISH/ NO EMA200 TOUCH'
       ? 'text-red-400 font-bold'
       : signal.trim() === 'BUYING ZONE'
       ? 'text-lime-400 font-bold'
