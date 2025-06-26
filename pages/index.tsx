@@ -155,9 +155,6 @@ const getSignal = (s: any): string => {
   bullishDivergence,
   bearishDivergence,
   highestVolumeColorPrev,
-  pump,
-  dump,
-  pumpOrDumpInRange_21_26,
 } = s || {};
 
 // ✅ IF SUPPORT HOLDS/ BUY
