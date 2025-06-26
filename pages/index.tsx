@@ -154,6 +154,7 @@ const getSignal = (s: any): string => {
 	  ema200Bounce,
 	  bullishDivergence,
 	  bearishDivergence,
+	  highestVolumeColorPrev,
   } = s;
 
   // ✅ IF SUPPORT HOLDS/ BUY
@@ -279,8 +280,8 @@ bearishBreakout &&
 	( 
       isDoubleBottom ||
       isAscendingBottom ||
-      isDoubleBottomFailure) 
-	
+      isDoubleBottomFailure) &&
+	(pumpOrDumpInRange_21_26)
   
 ) {
   return 'BUYING ZONE';
@@ -294,20 +295,29 @@ if (
 	(
       isDoubleTop ||
       isDescendingTop ||
-      isDoubleTopFailure) 
+      isDoubleTopFailure) &&
+	(pumpOrDumpInRange_21_26)
   
 ) {
   return 'SELLING ZONE';
 }
 
 if (
-  bullishBreakout && mainTrend === 'bearish' 
+  bullishBreakout && 
+	bearishDivergence &&
+	ema14Bounce &&
+	highestVolumeColorPrev &&
+	mainTrend === 'bullish' 
 ) {
   return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 }
 
 if (
-  bearishBreakout && mainTrend === 'bullish' 
+  bearishBreakout &&
+	bullishDivergence &&
+	ema14Bounce &&
+	highestVolumeColorPrev &&
+	mainTrend === 'bearish' 
 ) {
   return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }	
@@ -1752,28 +1762,38 @@ let signal = '';
   s.bearishBreakout &&
 	s.bullishDivergence &&	
 	s.ema14Bounce &&
-	(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure)
+	!(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
+	(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
+	(pumpOrDumpInRange_21_26)
 ) {
   signal = 'BUYING ZONE';
 } else if (
   s.bullishBreakout &&
 	s.bearishDivergence &&	
 	s.ema14Bounce &&
-	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure)
+	!(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
+	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
+	(pumpOrDumpInRange_21_26)
 		 
 ) {
   signal = 'SELLING ZONE';
 }
 	else if (
   s.bullishBreakout &&
-  s.mainTrend === 'bearish' 
+	s.bearishDivergence &&	
+	s.ema14Bounce &&
+		s.highestVolumeColorPrev &&
+  s.mainTrend === 'bullish' 
 ) {
   signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 }
 
 else if (
   s.bearishBreakout &&
-  s.mainTrend === 'bullish'
+	s.bullishDivergence &&	
+	s.ema14Bounce &&
+	s.highestVolumeColorPrev &&
+  s.mainTrend === 'bearish'
 ) {
   signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }
