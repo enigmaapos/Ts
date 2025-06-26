@@ -1956,20 +1956,20 @@ else if (
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>		  
-  <td
+  
+   <td
   className={`p-2 font-semibold ${
-    s.highestVolumeCandlePrev === 'green'
+    s.highestVolumeColorPrev === 'green'
       ? 'text-green-400'
-      : s.highestVolumeCandlePrev === 'red'
+      : s.highestVolumeColorPrev === 'red'
       ? 'text-red-400'
       : 'text-gray-400'
   }`}
 >
-  {typeof s.highestVolumeCandlePrev === 'string'
-    ? s.highestVolumeCandlePrev
+  {typeof s.highestVolumeColorPrev === 'string'
+    ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
     : '—'}
-</td>
-          </tr>
+</td>       </tr>
         );
       })}
     </tbody>
