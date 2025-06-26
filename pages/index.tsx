@@ -64,28 +64,6 @@ function calculateRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
-type Candle = {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
-
-type VolumeEnhancedCandle = Candle & {
-  volumeColor: 'green' | 'red' | 'neutral';
-};
-
-function detectVolumeColor(candles: Candle[]): VolumeEnhancedCandle[] {
-  return candles.map(c => ({
-    ...c,
-    volumeColor:
-      c.close > c.open ? 'green' :
-      c.close < c.open ? 'red' :
-      'neutral',
-  }));
-}
 
 function getMainTrend(
   ema70: number[],
