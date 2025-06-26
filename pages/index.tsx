@@ -281,10 +281,6 @@ bearishBreakout &&
       isDoubleBottom ||
       isAscendingBottom ||
       isDoubleBottomFailure) &&
-	!(
-      isDoubleTop ||
-      isDescendingTop ||
-      isDoubleTopFailure) &&
 	(pumpOrDumpInRange_21_26)
   
 ) {
@@ -300,10 +296,6 @@ if (
       isDoubleTop ||
       isDescendingTop ||
       isDoubleTopFailure) &&
-	!( 
-      isDoubleBottom ||
-      isAscendingBottom ||
-      isDoubleBottomFailure) &&
 	(pumpOrDumpInRange_21_26)
   
 ) {
@@ -1770,7 +1762,6 @@ let signal = '';
   s.bearishBreakout &&
 	s.bullishDivergence &&
 	s.ema14Bounce &&
-	!(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
 	(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
 	(pumpOrDumpBalance)
 ) {
@@ -1779,7 +1770,6 @@ let signal = '';
   s.bullishBreakout &&
 	s.bearishDivergence &&	
 	s.ema14Bounce &&
-	!(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
 	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
 	(pumpOrDumpBalance)
 		 
