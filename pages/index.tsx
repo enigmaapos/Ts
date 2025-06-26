@@ -297,7 +297,6 @@ if (
 if (
 bearishBreakout &&
 	bullishDivergence &&
-	
 	ema14Bounce &&
 	(
       isDoubleTop ||
@@ -311,7 +310,6 @@ bearishBreakout &&
 // ✅ SELLING ZONE (bearish breakout + weak pump/dump 6–8)
 if (
    bullishBreakout &&
-	
 	bearishDivergence &&
 	ema14Bounce &&
 	( 
@@ -1826,7 +1824,7 @@ else if (
             </td>
             <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
               {
-                s.mainTrend === 'bullish'
+                s.bullishBreakout === 'bullish'
                   ? s.isDoubleTopFailure
                     ? 'Top Fail'
                     : s.isDoubleTop
@@ -1839,7 +1837,7 @@ else if (
             </td>
             <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
               {
-                s.mainTrend === 'bearish'
+                s.bearishBreakout === 'bearish'
                   ? s.isDoubleBottomFailure
                     ? 'Bottom Fail'
                     : s.isDoubleBottom
