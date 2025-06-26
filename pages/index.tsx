@@ -1159,9 +1159,10 @@ const detectBullishSpike = (
   const aboveEMA14 = close > ema14Value;
   const ascendingLow = currentLow > lowestLowAfterCrossover;
   const risingRSI = rsi > crossoverRSI;
+  const rsiAbove50 = rsi > 50; // 👈 NEW CONDITION
   const higherThanCrossover = close > crossoverLow;
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
-  const ema14TouchAscendingLow = isAscendingLowOnEMA14Touch(lows, ema14); // ✅ NEW
+  const ema14TouchAscendingLow = isAscendingLowOnEMA14Touch(lows, ema14);
 
   return (
     aboveEMA70 &&
@@ -1169,8 +1170,9 @@ const detectBullishSpike = (
     (aboveEMA14 || ema14TouchAscendingLow) &&
     ascendingLow &&
     risingRSI &&
+    rsiAbove50 && // 👈 INCLUDED HERE
     higherThanCrossover &&
-    ascendingCurrentRSI 
+    ascendingCurrentRSI
   );
 };
 
@@ -1260,7 +1262,6 @@ const detectBearishCollapse = (
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
 
-  // ❌ Invalidate if the most recent candle touches EMA70
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return false;
 
@@ -1270,6 +1271,7 @@ const detectBearishCollapse = (
   const belowEMA14 = close < ema14Value;
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
+  const rsiBelow50 = rsi < 50; // 👈 NEW CONDITION
   const lowerThanCrossover = close < crossoverHigh;
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
   const ema14TouchDescendingHigh = isDescendingHighOnEMA14Touch(highs, ema14);
@@ -1281,7 +1283,8 @@ const detectBearishCollapse = (
     descendingHigh &&
     fallingRSI &&
     lowerThanCrossover &&
-    descendingCurrentRSI 
+    descendingCurrentRSI &&
+    rsiBelow50 // 👈 INCLUDED HERE
   );
 };
 
