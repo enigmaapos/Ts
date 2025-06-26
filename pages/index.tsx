@@ -156,7 +156,7 @@ const getSignal = (s: any): string => {
   bearishDivergence,
   highestVolumeColorPrev,
 } = s;
-}
+
 
 // ✅ IF SUPPORT HOLDS/ BUY
 if (
@@ -310,7 +310,8 @@ if (
   return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }
 
-return '';   
+return '';
+};	
 
 // === RSI-BASED DIVERGENCE (over lookback window) === //
 function detectBearishDivergence(prevHigh: number, currHigh: number, prevRSI: number, currRSI: number) {
