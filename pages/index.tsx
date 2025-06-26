@@ -281,7 +281,7 @@ bearishBreakout &&
       isDoubleBottom ||
       isAscendingBottom ||
       isDoubleBottomFailure) &&
-	(pumpOrDumpInRange_21_26)
+	
   
 ) {
   return 'BUYING ZONE';
@@ -296,7 +296,7 @@ if (
       isDoubleTop ||
       isDescendingTop ||
       isDoubleTopFailure) &&
-	(pumpOrDumpInRange_21_26)
+	
   
 ) {
   return 'SELLING ZONE';
@@ -1763,7 +1763,7 @@ let signal = '';
 	s.bullishDivergence &&
 	s.ema14Bounce &&
 	(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-	(pumpOrDumpBalance)
+	
 ) {
   signal = 'BUYING ZONE';
 } else if (
@@ -1771,7 +1771,7 @@ let signal = '';
 	s.bearishDivergence &&	
 	s.ema14Bounce &&
 	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
-	(pumpOrDumpBalance)
+	
 		 
 ) {
   signal = 'SELLING ZONE';
