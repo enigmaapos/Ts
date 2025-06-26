@@ -1823,27 +1823,23 @@ else if (
             </td>
             <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
   {
-    
-      ? s.isDoubleTopFailure
-        ? 'Top Fail'
-        : s.isDoubleTop
-        ? 'Double Top'
-        : s.isDescendingTop
-        ? 'Descending Top'
-        : '-'
+    s.isDoubleTopFailure
+      ? 'Top Fail'
+      : s.isDoubleTop
+      ? 'Double Top'
+      : s.isDescendingTop
+      ? 'Descending Top'
       : '-'
   }
 </td>
 <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
   {
-    
-      ? s.isDoubleBottomFailure
-        ? 'Bottom Fail'
-        : s.isDoubleBottom
-        ? 'Double Bottom'
-        : s.isAscendingBottom
-        ? 'Ascending Bottom'
-        : '-'
+    s.isDoubleBottomFailure
+      ? 'Bottom Fail'
+      : s.isDoubleBottom
+      ? 'Double Bottom'
+      : s.isAscendingBottom
+      ? 'Ascending Bottom'
       : '-'
   }
 </td>
