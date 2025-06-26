@@ -1956,22 +1956,18 @@ else if (
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>		  
-  
-     <td
+  <td
   className={`p-2 font-semibold ${
     s.highestVolumeCandlePrev === 'green'
       ? 'text-green-400'
-      : s.volumeColor === 'red'
+      : s.highestVolumeCandlePrev === 'red'
       ? 'text-red-400'
       : 'text-gray-400'
   }`}
 >
-  {s.highestVolumeCandlePrev === 'green'
-    ? 'green'
-    : s.highestVolumeCandlePrev === 'red'
-    ? 'red'
-    : 'neutral'}
-</td>     </tr>
+  {s.highestVolumeCandlePrev || '—'}
+</td>
+          </tr>
         );
       })}
     </tbody>
