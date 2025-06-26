@@ -850,29 +850,31 @@ if (bullishDivergence.divergence) {
   console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
 }
 
-type Candle = {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
+const prevVolumesWithColor = candlesPrev.map(candle => {
+  const color = candle.close > candle.open
+    ? 'green'
+    : candle.close < candle.open
+    ? 'red'
+    : 'neutral';
+  return {
+    ...candle,
+    volumeColor: color,
+  };
+});
 
-type VolumeEnhancedCandle = Candle & {
-  volumeColor: 'green' | 'red' | 'neutral';
-};
+// === Step 3: Find the highest volume candle ===
+const highestVolumeCandlePrev = prevVolumesWithColor.reduce((max, curr) =>
+  curr.volume > max.volume ? curr : max
+, prevVolumesWithColor[0]); // Provide initial value to avoid reduce crash
 
-function detectVolumeColor(candles: Candle[]): VolumeEnhancedCandle[] {
-  return candles.map(c => ({
-    ...c,
-    volumeColor:
-      c.close > c.open ? 'green' :
-      c.close < c.open ? 'red' :
-      'neutral',
-  }));
+// === Step 4: Log or use the color ===
+if (highestVolumeCandlePrev) {
+  const highestVolumeColorPrev = highestVolumeCandlePrev.volumeColor;
+  console.log('🔴 Highest Volume (Yesterday):', highestVolumeCandlePrev.volume);
+  console.log('🟢 Color:', highestVolumeColorPrev);
+} else {
+  console.log('No candles found in previous session.');
 }
-
 	      
 const candlesWithVolumeColor = detectVolumeColor(candles);
 
@@ -1360,7 +1362,7 @@ const bearishCollapse = detectBearishCollapse(
 		touchedEMA200Today,
 		bearishDivergence,
 		bullishDivergence,
-		candlesWithVolumeColor,
+		highestVolumeCandlePrev,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1958,16 +1960,16 @@ else if (
   
      <td
   className={`p-2 font-semibold ${
-    s.candlesWithVolumeColor === 'green'
+    s.highestVolumeCandlePrev === 'green'
       ? 'text-green-400'
       : s.volumeColor === 'red'
       ? 'text-red-400'
       : 'text-gray-400'
   }`}
 >
-  {s.candlesWithVolumeColor === 'green'
+  {s.highestVolumeCandlePrev === 'green'
     ? 'green'
-    : s.candlesWithVolumeColor === 'red'
+    : s.highestVolumeCandlePrev === 'red'
     ? 'red'
     : 'neutral'}
 </td>     </tr>
