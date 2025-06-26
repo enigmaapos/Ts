@@ -600,19 +600,27 @@ const signalCounts = useMemo(() => {
           volume: +c[5],
         }));
 
-const closes = candles.map((c) => c.close);
+const closes = candles.map(c => c.close);
 const highs = candles.map(c => c.high);
 const lows = candles.map(c => c.low);
 
 const ema14 = calculateEMA(closes, 14);
 const ema70 = calculateEMA(closes, 70);
 const ema200 = calculateEMA(closes, 200);
-const closePrices = candles.map(c => c.close);
-const rsi14 = calculateRSI(closePrices, 14);
+const rsi14 = calculateRSI(closes, 14);
 
-// Add to each candle
 candles.forEach((c, i) => {
   c.rsi = rsi14[i];
+  
+  // Add volume color based on candle body
+  c.volumeColor =
+    c.close > c.open
+      ? 'green'
+      : c.close < c.open
+      ? 'red'
+      : 'neutral';
+  
+  // Volume is already assumed to be present as c.volume
 });
 
 const lastOpen = candles.at(-1)?.open!;
@@ -1940,7 +1948,17 @@ else if (
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>
-		  <td className="p-2 text-right font-mono">{s.volume.toLocaleString()}</td>
+		  <td
+  className={`p-2 font-semibold ${
+    s.volumeColor === 'green'
+      ? 'text-green-400'
+      : s.volumeColor === 'red'
+      ? 'text-red-400'
+      : 'text-gray-400'
+  }`}
+>
+  {typeof s.volume === 'number' ? s.volume.toLocaleString() : '—'}
+</td>
           </tr>
         );
       })}
