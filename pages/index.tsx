@@ -1954,9 +1954,7 @@ else if (
   }`}
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
-</td>
-		  
-candlesWithVolumeColor.map(s => (
+</td>		  
   <td
     className={`p-2 font-semibold ${
       s.volumeColor === 'green'
@@ -1967,8 +1965,7 @@ candlesWithVolumeColor.map(s => (
     }`}
   >
     {typeof s.volume === 'number' ? s.volume.toLocaleString() : '—'}
-  </td>
-));		  
+  </td>		  
           </tr>
         );
       })}
