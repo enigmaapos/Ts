@@ -1764,7 +1764,7 @@ let signal = '';
 	s.ema14Bounce &&
 	!(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
 	(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
-	(pumpOrDumpInRange_21_26)
+	(pumpOrDumpBalance)
 ) {
   signal = 'BUYING ZONE';
 } else if (
@@ -1773,7 +1773,7 @@ let signal = '';
 	s.ema14Bounce &&
 	!(s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) &&
 	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure) &&
-	(pumpOrDumpInRange_21_26)
+	(pumpOrDumpBalance)
 		 
 ) {
   signal = 'SELLING ZONE';
