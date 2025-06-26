@@ -1955,16 +1955,16 @@ else if (
   
      <td
   className={`p-2 font-semibold ${
-    s.volumeColor === 'green'
+    s.candlesWithVolumeColor === 'green'
       ? 'text-green-400'
       : s.volumeColor === 'red'
       ? 'text-red-400'
       : 'text-gray-400'
   }`}
 >
-  {s.volumeColor === 'green'
+  {s.candlesWithVolumeColor === 'green'
     ? 'green'
-    : s.volumeColor === 'red'
+    : s.candlesWithVolumeColor === 'red'
     ? 'red'
     : 'neutral'}
 </td>     </tr>
