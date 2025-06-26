@@ -876,7 +876,6 @@ if (highestVolumeCandlePrev) {
   console.log('No candles found in previous session.');
 }
 	      
-const candlesWithVolumeColor = detectVolumeColor(candles);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1362,7 +1361,7 @@ const bearishCollapse = detectBearishCollapse(
 		touchedEMA200Today,
 		bearishDivergence,
 		bullishDivergence,
-		highestVolumeCandlePrev,
+		highestVolumeColorPrev,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1960,16 +1959,16 @@ else if (
   
      <td
   className={`p-2 font-semibold ${
-    s.highestVolumeCandlePrev === 'green'
+    s.highestVolumeColorPrev === 'green'
       ? 'text-green-400'
       : s.volumeColor === 'red'
       ? 'text-red-400'
       : 'text-gray-400'
   }`}
 >
-  {s.highestVolumeCandlePrev === 'green'
+  {s.highestVolumeColorPrev === 'green'
     ? 'green'
-    : s.highestVolumeCandlePrev === 'red'
+    : s.highestVolumeColorPrev === 'red'
     ? 'red'
     : 'neutral'}
 </td>     </tr>
