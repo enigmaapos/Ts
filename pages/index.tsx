@@ -1823,7 +1823,7 @@ else if (
             </td>
             <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
               {
-                s.bearihBreakout === 'bearish'
+                s.bearishBreakout === 'bearish'
                   ? s.isDoubleTopFailure
                     ? 'Top Fail'
                     : s.isDoubleTop
