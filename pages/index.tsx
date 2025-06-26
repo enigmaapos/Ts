@@ -291,9 +291,7 @@ if (
 // ✅ TREND WATCH ZONE/ RESISTANCE BREAKOUT
 if (
   bullishBreakout &&
-  bearishDivergence &&
   ema14Bounce &&
-  highestVolumeColorPrev &&
   mainTrend === 'bullish'
 ) {
   return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
@@ -302,9 +300,7 @@ if (
 // ✅ TREND WATCH ZONE/ SUPPORT BREAKOUT
 if (
   bearishBreakout &&
-  bullishDivergence &&
   ema14Bounce &&
-  highestVolumeColorPrev &&
   mainTrend === 'bearish'
 ) {
   return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
@@ -1780,17 +1776,13 @@ if (
   signal = 'SELLING ZONE';
 } else if (
   s.bullishBreakout &&
-  s.bearishDivergence &&
   s.ema14Bounce &&
-  s.highestVolumeColorPrev &&
   s.mainTrend === 'bullish'
 ) {
   signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 } else if (
   s.bearishBreakout &&
-  s.bullishDivergence &&
   s.ema14Bounce &&
-  s.highestVolumeColorPrev &&
   s.mainTrend === 'bearish'
 ) {
   signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
