@@ -841,6 +841,23 @@ if (bullishDivergence.divergence) {
   console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
 }
 
+const prevVolumesWithColor = candlesPrev.map(candle => {
+  const color = candle.close > candle.open
+    ? 'green'
+    : candle.close < candle.open
+    ? 'red'
+    : 'neutral';
+  return {
+    ...candle,
+    volumeColor: color,
+  };
+});
+
+// === Step 3: Find the highest volume candle ===
+const highestVolumeCandlePrev = prevVolumesWithColor.reduce((max, curr) =>
+  curr.volume > max.volume ? curr : max
+, prevVolumesWithColor[0]); // Provide initial value to avoid reduce crash	      
+
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1326,6 +1343,7 @@ const bearishCollapse = detectBearishCollapse(
 		touchedEMA200Today,
 		bearishDivergence,
 		bullishDivergence,
+		highestVolumeCandlePrev,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1594,7 +1612,8 @@ if (loading) {
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
   Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	         
+</th>
+	<th className="p-2 text-center">Volume</th> {/* <-- New Volume column */}      
       </tr>
     </thead>
     <tbody>
@@ -1921,6 +1940,7 @@ else if (
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>
+		  <td className="p-2 text-right font-mono">{s.volume.toLocaleString()}</td>
           </tr>
         );
       })}
