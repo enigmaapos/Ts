@@ -1823,7 +1823,7 @@ else if (
             </td>
             <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
   {
-    s.bullishBreakout
+    
       ? s.isDoubleTopFailure
         ? 'Top Fail'
         : s.isDoubleTop
@@ -1836,7 +1836,7 @@ else if (
 </td>
 <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
   {
-    s.bearishBreakout
+    
       ? s.isDoubleBottomFailure
         ? 'Bottom Fail'
         : s.isDoubleBottom
