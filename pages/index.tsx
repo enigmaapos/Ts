@@ -292,7 +292,6 @@ if (
 if (
   bullishBreakout &&
 bearishDivergence &&
-	!bullishDivergence &&
   mainTrend === 'bearish'
 ) {
   return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
@@ -302,7 +301,6 @@ bearishDivergence &&
 if (
   bearishBreakout &&
 bullishDivergence &&
-	!bearishDivergence &&
   mainTrend === 'bullish'
 ) {
   return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
@@ -1779,14 +1777,12 @@ s.ema14Bounce &&
 } else if (
   s.bullishBreakout &&
 	s.bearishDivergence &&
-	!s.bullishDivergence &&
   s.mainTrend === 'bearish'
 ) {
   signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 } else if (
   s.bearishBreakout &&
 	s.bullishDivergence &&
-	!s.bearishDivergence &&
   s.mainTrend === 'bullish'
 ) {
   signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
