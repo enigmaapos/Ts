@@ -288,20 +288,20 @@ if (
   return 'SELLING ZONE';
 }
 
-// ✅ TREND WATCH ZONE/ RESISTANCE BREAKOUT
+// ✅ TREND WATCH ZONE/ RESISTANCE BREAKOUT - why setup like this, because look for the trend that inside the EMA, probably continuation of the trend from previous daily candle 
 if (
   bullishBreakout &&
   ema14Bounce &&
-  mainTrend === 'bullish'
+  mainTrend === 'bearish'
 ) {
   return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 }
 
-// ✅ TREND WATCH ZONE/ SUPPORT BREAKOUT
+// ✅ TREND WATCH ZONE/ SUPPORT BREAKOUT - why setup like this, because look for the trend that inside the EMA, probably continuation of the trend from previous daily candle 
 if (
   bearishBreakout &&
   ema14Bounce &&
-  mainTrend === 'bearish'
+  mainTrend === 'bullish'
 ) {
   return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }
@@ -1777,13 +1777,13 @@ if (
 } else if (
   s.bullishBreakout &&
   s.ema14Bounce &&
-  s.mainTrend === 'bullish'
+  s.mainTrend === 'bearish'
 ) {
   signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 } else if (
   s.bearishBreakout &&
   s.ema14Bounce &&
-  s.mainTrend === 'bearish'
+  s.mainTrend === 'bullish'
 ) {
   signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
 }	
