@@ -64,6 +64,29 @@ function calculateRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
+type Candle = {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
+
+type VolumeEnhancedCandle = Candle & {
+  volumeColor: 'green' | 'red' | 'neutral';
+};
+
+function detectVolumeColor(candles: Candle[]): VolumeEnhancedCandle[] {
+  return candles.map(c => ({
+    ...c,
+    volumeColor:
+      c.close > c.open ? 'green' :
+      c.close < c.open ? 'red' :
+      'neutral',
+  }));
+}
+
 function getMainTrend(
   ema70: number[],
   ema200: number[],
@@ -849,23 +872,7 @@ if (bullishDivergence.divergence) {
   console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
 }
 
-const prevVolumesWithColor = candlesPrev.map(candle => {
-  const color = candle.close > candle.open
-    ? 'green'
-    : candle.close < candle.open
-    ? 'red'
-    : 'neutral';
-  return {
-    ...candle,
-    volumeColor: color,
-  };
-});
-
-// === Step 3: Find the highest volume candle ===
-const highestVolumeCandlePrev = prevVolumesWithColor.reduce((max, curr) =>
-  curr.volume > max.volume ? curr : max
-, prevVolumesWithColor[0]); // Provide initial value to avoid reduce crash	      
-
+const candlesWithVolumeColor = detectVolumeColor(candles);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1351,7 +1358,7 @@ const bearishCollapse = detectBearishCollapse(
 		touchedEMA200Today,
 		bearishDivergence,
 		bullishDivergence,
-		highestVolumeCandlePrev,
+		candlesWithVolumeColor,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1948,17 +1955,20 @@ else if (
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>
-		  <td
-  className={`p-2 font-semibold ${
-    s.volumeColor === 'green'
-      ? 'text-green-400'
-      : s.volumeColor === 'red'
-      ? 'text-red-400'
-      : 'text-gray-400'
-  }`}
->
-  {typeof s.volume === 'number' ? s.volume.toLocaleString() : '—'}
-</td>
+		  
+candlesWithVolumeColor.map(s => (
+  <td
+    className={`p-2 font-semibold ${
+      s.volumeColor === 'green'
+        ? 'text-green-400'
+        : s.volumeColor === 'red'
+        ? 'text-red-400'
+        : 'text-gray-400'
+    }`}
+  >
+    {typeof s.volume === 'number' ? s.volume.toLocaleString() : '—'}
+  </td>
+));		  
           </tr>
         );
       })}
