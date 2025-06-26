@@ -861,6 +861,7 @@ const prevVolumesWithColor = candlesPrev.map(candle => {
     volumeColor: color,
   };
 });
+	      
 
 // === Step 3: Find the highest volume candle ===
 const highestVolumeCandlePrev = prevVolumesWithColor.reduce((max, curr) =>
@@ -875,7 +876,8 @@ if (highestVolumeCandlePrev) {
 } else {
   console.log('No candles found in previous session.');
 }
-	      
+
+const highestVolumeColorPrev = highestVolumeCandlePrev?.volumeColor ?? 'neutral';	      
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
