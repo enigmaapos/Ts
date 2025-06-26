@@ -1361,7 +1361,7 @@ const bearishCollapse = detectBearishCollapse(
 		touchedEMA200Today,
 		bearishDivergence,
 		bullishDivergence,
-		highestVolumeCandlePrev,
+		highestVolumeColorPrev,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1965,7 +1965,7 @@ else if (
       ? 'text-red-400'
       : 'text-gray-400'
   }`}
->
+> 
   {typeof s.highestVolumeColorPrev === 'string'
     ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
     : '—'}
