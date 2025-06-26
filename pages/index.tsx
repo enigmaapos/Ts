@@ -155,8 +155,8 @@ const getSignal = (s: any): string => {
   bullishDivergence,
   bearishDivergence,
   highestVolumeColorPrev,
-} = s || {};
-	  }
+} = s;
+	  
 // ✅ IF SUPPORT HOLDS/ BUY
 if (
   !breakout &&
