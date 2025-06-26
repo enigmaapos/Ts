@@ -291,6 +291,8 @@ if (
 // ✅ TREND WATCH ZONE/ RESISTANCE BREAKOUT - why setup like this, because look for the trend that inside the EMA, probably continuation of the trend from previous daily candle 
 if (
   bullishBreakout &&
+bearishDivergence &&
+	!bullishDivergence &&
   mainTrend === 'bearish'
 ) {
   return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
@@ -299,6 +301,8 @@ if (
 // ✅ TREND WATCH ZONE/ SUPPORT BREAKOUT - why setup like this, because look for the trend that inside the EMA, probably continuation of the trend from previous daily candle 
 if (
   bearishBreakout &&
+bullishDivergence &&
+	!bearishDivergence &&
   mainTrend === 'bullish'
 ) {
   return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
@@ -1774,11 +1778,15 @@ s.ema14Bounce &&
   signal = 'SELLING ZONE';
 } else if (
   s.bullishBreakout &&
+	s.bearishDivergence &&
+	!s.bullishDivergence &&
   s.mainTrend === 'bearish'
 ) {
   signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
 } else if (
   s.bearishBreakout &&
+	s.bullishDivergence &&
+	!s.bearishDivergence &&
   s.mainTrend === 'bullish'
 ) {
   signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
