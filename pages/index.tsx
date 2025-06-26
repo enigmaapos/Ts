@@ -678,6 +678,11 @@ const testedPrevLow =
   else if (testedPrevLow) breakoutTestSignal = '🟡 Tested & Failed to Break Previous Low';
 
 
+// Utility to generate UTC timestamp at specific hour
+const getUTCMillis = (year: number, month: number, date: number, hour: number, minute: number) => {
+  return Date.UTC(year, month, date, hour, minute);
+};
+
 // Get the start times for the last N sessions at 8AM UTC
 const getLastNSessionStartTimes = (n: number): number[] => {
   const now = new Date();
@@ -687,7 +692,6 @@ const getLastNSessionStartTimes = (n: number): number[] => {
 
   const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
   const isAfter8AM = now.getTime() >= today8AM_UTC;
-
   const baseDate = isAfter8AM ? date : date - 1;
 
   const sessionStarts: number[] = [];
@@ -699,7 +703,7 @@ const getLastNSessionStartTimes = (n: number): number[] => {
   return sessionStarts;
 };
 
-// Extract session highs from your candle data
+// Extract highs per session
 const getRecentSessionHighs = (
   ohlcvData: { timestamp: number; high: number }[],
   sessionStartTimes: number[]
@@ -711,29 +715,7 @@ const getRecentSessionHighs = (
   });
 };
 
-// Detect pattern types based on highs
-const detectTopPatterns = (highs: number[]) => {
-  const recentTop = highs.at(-1);
-  const previousTops = highs.slice(0, -1).filter(h => h > 0);
-
-  if (!recentTop || previousTops.length === 0) {
-    return { isDoubleTop: false, isDescendingTop: false, isDoubleTopFailure: false };
-  }
-
-  const lastTop = previousTops.at(-1);
-  const isDoubleTop =
-    Math.abs(recentTop - lastTop!) / lastTop! < 0.003 &&
-    recentTop < Math.max(...previousTops);
-
-  const isDescendingTop = previousTops
-    .slice(-3)
-    .every((h, i, arr) => i === 0 || h < arr[i - 1]);
-
-  const isDoubleTopFailure = recentTop > Math.max(...previousTops);
-
-  return { isDoubleTop, isDescendingTop, isDoubleTopFailure };
-};
-
+// Extract lows per session
 const getRecentSessionLows = (
   ohlcvData: { timestamp: number; low: number }[],
   sessionStartTimes: number[]
@@ -745,18 +727,45 @@ const getRecentSessionLows = (
   });
 };
 
-        // Detect bottom pattern types
+// Detect top pattern types
+const detectTopPatterns = (highs: number[]) => {
+  const recentTop = highs.at(-1);
+  const previousTops = highs.slice(0, -1).filter(h => h > 0);
+
+  if (!recentTop || recentTop === 0 || previousTops.length === 0) {
+    return { isDoubleTop: false, isDescendingTop: false, isDoubleTopFailure: false };
+  }
+
+  const lastTop = previousTops.at(-1);
+  const tolerance = 0.01; // 1%
+
+  const isDoubleTop =
+    Math.abs(recentTop - lastTop!) / lastTop! < tolerance &&
+    recentTop < Math.max(...previousTops);
+
+  const isDescendingTop = previousTops
+    .slice(-3)
+    .every((h, i, arr) => i === 0 || h < arr[i - 1]);
+
+  const isDoubleTopFailure = recentTop > Math.max(...previousTops);
+
+  return { isDoubleTop, isDescendingTop, isDoubleTopFailure };
+};
+
+// Detect bottom pattern types
 const detectBottomPatterns = (lows: number[]) => {
   const recentLow = lows.at(-1);
   const previousLows = lows.slice(0, -1).filter(l => l < Infinity);
 
-  if (!recentLow || previousLows.length === 0) {
+  if (!recentLow || recentLow === Infinity || previousLows.length === 0) {
     return { isDoubleBottom: false, isAscendingBottom: false, isDoubleBottomFailure: false };
   }
 
   const lastLow = previousLows.at(-1);
+  const tolerance = 0.01; // 1%
+
   const isDoubleBottom =
-    Math.abs(recentLow - lastLow!) / lastLow! < 0.003 &&
+    Math.abs(recentLow - lastLow!) / lastLow! < tolerance &&
     recentLow > Math.min(...previousLows);
 
   const isAscendingBottom = previousLows
@@ -768,14 +777,25 @@ const detectBottomPatterns = (lows: number[]) => {
   return { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure };
 };
 
+// === Usage ===
+const sessionStartTimes = getLastNSessionStartTimes(2);
+const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
+const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 
-// Detect top patterns from last N sessions
-const sessionStartTimes = getLastNSessionStartTimes(10);
-const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);       
-const sessionLows = getRecentSessionLows(candles, sessionStartTimes);        
 const { isDoubleTop, isDescendingTop, isDoubleTopFailure } = detectTopPatterns(sessionHighs);
 const { isDoubleBottom, isAscendingBottom, isDoubleBottomFailure } = detectBottomPatterns(sessionLows);
 
+// Debug pattern detection
+console.log({
+  sessionHighs,
+  sessionLows,
+  isDoubleTop,
+  isDescendingTop,
+  isDoubleTopFailure,
+  isDoubleBottom,
+  isAscendingBottom,
+  isDoubleBottomFailure
+});
 
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
