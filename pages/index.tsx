@@ -274,7 +274,7 @@ if (
 if (
 bearishBreakout &&
 	bullishDivergence &&
-	!bearishDivergence &&
+	
 	ema14Bounce &&
 	(
       isDoubleTop ||
@@ -288,7 +288,7 @@ bearishBreakout &&
 // ✅ SELLING ZONE (bearish breakout + weak pump/dump 6–8)
 if (
    bullishBreakout &&
-	!bullishDivergence &&
+	
 	bearishDivergence &&
 	ema14Bounce &&
 	( 
@@ -1692,7 +1692,7 @@ let signal = '';
         }  else if (
   s.bearishBreakout &&
 	s.bullishDivergence &&
-		!s.bearishDivergence &&
+		
 	s.ema14Bounce &&
 	(s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure)	
 ) {
@@ -1700,7 +1700,7 @@ let signal = '';
 } else if (
   s.bullishBreakout &&
 	s.bearishDivergence &&
-		!s.bullishDivergence &&
+		
 	s.ema14Bounce &&
 		(
     s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure) 
