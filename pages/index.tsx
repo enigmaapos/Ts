@@ -785,7 +785,7 @@ const detectBottomPatterns = (lows: number[]) => {
 };
 
 // === Usage ===
-const sessionStartTimes = getLastNSessionStartTimes(1);
+const sessionStartTimes = getLastNSessionStartTimes(2);
 const sessionHighs = getRecentSessionHighs(candles, sessionStartTimes);
 const sessionLows = getRecentSessionLows(candles, sessionStartTimes);
 
