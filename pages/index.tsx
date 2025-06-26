@@ -277,10 +277,7 @@ if (
 bearishBreakout &&
 	bullishDivergence &&
 	ema14Bounce &&
-	( 
-      isDoubleBottom ||
-      isAscendingBottom ||
-      isDoubleBottomFailure) 
+	( isDoubleBottom || isAscendingBottom || isDoubleBottomFailure) 
 	
   
 ) {
@@ -292,10 +289,7 @@ if (
    bullishBreakout &&
 	bearishDivergence &&
 	ema14Bounce &&
-	(
-      isDoubleTop ||
-      isDescendingTop ||
-      isDoubleTopFailure) 
+	(isDoubleTop || isDescendingTop || isDoubleTopFailure) 
 	
   
 ) {
@@ -1847,7 +1841,7 @@ else if (
             <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
               {s.breakoutFailure ? 'Yes' : '-'}
             </td>
-               <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
+                 <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
               {
                 s.mainTrend === 'bullish'
                   ? s.isDoubleTopFailure
