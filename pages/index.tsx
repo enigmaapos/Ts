@@ -1965,7 +1965,9 @@ else if (
       : 'text-gray-400'
   }`}
 >
-  {s.highestVolumeCandlePrev || '—'}
+  {typeof s.highestVolumeCandlePrev === 'string'
+    ? s.highestVolumeCandlePrev
+    : '—'}
 </td>
           </tr>
         );
