@@ -281,6 +281,10 @@ bearishBreakout &&
       isDoubleBottom ||
       isAscendingBottom ||
       isDoubleBottomFailure) &&
+	!(
+      isDoubleTop ||
+      isDescendingTop ||
+      isDoubleTopFailure) &&
 	(pumpOrDumpInRange_21_26)
   
 ) {
@@ -296,6 +300,10 @@ if (
       isDoubleTop ||
       isDescendingTop ||
       isDoubleTopFailure) &&
+	!( 
+      isDoubleBottom ||
+      isAscendingBottom ||
+      isDoubleBottomFailure) &&
 	(pumpOrDumpInRange_21_26)
   
 ) {
@@ -305,7 +313,6 @@ if (
 if (
   bullishBreakout && 
 	bearishDivergence &&
-	!bullishDivergence &&
 	ema14Bounce &&
 	highestVolumeColorPrev &&
 	mainTrend === 'bullish' 
@@ -316,7 +323,6 @@ if (
 if (
   bearishBreakout &&
 	bullishDivergence &&
-	!bearishDivergence &&
 	ema14Bounce &&
 	highestVolumeColorPrev &&
 	mainTrend === 'bearish' 
