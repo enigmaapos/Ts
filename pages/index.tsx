@@ -850,6 +850,30 @@ if (bullishDivergence.divergence) {
   console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
 }
 
+type Candle = {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
+
+type VolumeEnhancedCandle = Candle & {
+  volumeColor: 'green' | 'red' | 'neutral';
+};
+
+function detectVolumeColor(candles: Candle[]): VolumeEnhancedCandle[] {
+  return candles.map(c => ({
+    ...c,
+    volumeColor:
+      c.close > c.open ? 'green' :
+      c.close < c.open ? 'red' :
+      'neutral',
+  }));
+}
+
+	      
 const candlesWithVolumeColor = detectVolumeColor(candles);
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
