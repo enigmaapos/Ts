@@ -1822,31 +1822,31 @@ else if (
               {s.breakoutFailure ? 'Yes' : '-'}
             </td>
             <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
-              {
-                s.bearishBreakout 
-                  ? s.isDoubleTopFailure
-                    ? 'Top Fail'
-                    : s.isDoubleTop
-                    ? 'Double Top'
-                    : s.isDescendingTop
-                    ? 'Descending Top'
-                    : '-'
-                  : '-'
-              }
-            </td>
-            <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
-              {
-                s.bullishBreakout 
-                  ? s.isDoubleBottomFailure
-                    ? 'Bottom Fail'
-                    : s.isDoubleBottom
-                    ? 'Double Bottom'
-                    : s.isAscendingBottom
-                    ? 'Ascending Bottom'
-                    : '-'
-                  : '-'
-              }
-            </td>
+  {
+    s.bullishBreakout
+      ? s.isDoubleTopFailure
+        ? 'Top Fail'
+        : s.isDoubleTop
+        ? 'Double Top'
+        : s.isDescendingTop
+        ? 'Descending Top'
+        : '-'
+      : '-'
+  }
+</td>
+<td className="px-1 py-0.5 text-center text-green-400 font-semibold">
+  {
+    s.bearishBreakout
+      ? s.isDoubleBottomFailure
+        ? 'Bottom Fail'
+        : s.isDoubleBottom
+        ? 'Double Bottom'
+        : s.isAscendingBottom
+        ? 'Ascending Bottom'
+        : '-'
+      : '-'
+  }
+</td>
             <td
   className={`text-center font-bold ${
     pump !== undefined && pump > 35
