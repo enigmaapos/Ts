@@ -268,6 +268,7 @@ if (
   bearishBreakout &&
   bullishDivergence &&
   ema14Bounce &&
+	(bearishReversal || bullishSpike) &&
   (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure)
 ) {
   return 'BUYING ZONE';
@@ -278,6 +279,7 @@ if (
   bullishBreakout &&
   bearishDivergence &&
   ema14Bounce &&
+	(bullishReversal || bearishCollapse) &&
   (isDoubleTop || isDescendingTop || isDoubleTopFailure)
 ) {
   return 'SELLING ZONE';
@@ -1750,6 +1752,7 @@ s.touchedEMA200Today
   s.bearishBreakout &&
   s.bullishDivergence &&
   s.ema14Bounce &&
+	(s.bearishReversal || s.bullishSpike) &&
   (
     s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure
   )
@@ -1758,7 +1761,8 @@ s.touchedEMA200Today
 } else if (
   s.bullishBreakout &&
   s.bearishDivergence &&
-s.ema14Bounce &&	
+s.ema14Bounce &&
+	(s.bullishReversal || s.bearishCollapse) &&
   (
     s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
   )
