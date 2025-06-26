@@ -1821,28 +1821,32 @@ else if (
             <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
               {s.breakoutFailure ? 'Yes' : '-'}
             </td>
-            <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
-  {
-    s.isDoubleTopFailure
-      ? 'Top Fail'
-      : s.isDoubleTop
-      ? 'Double Top'
-      : s.isDescendingTop
-      ? 'Descending Top'
-      : '-'
-  }
-</td>
-<td className="px-1 py-0.5 text-center text-green-400 font-semibold">
-  {
-    s.isDoubleBottomFailure
-      ? 'Bottom Fail'
-      : s.isDoubleBottom
-      ? 'Double Bottom'
-      : s.isAscendingBottom
-      ? 'Ascending Bottom'
-      : '-'
-  }
-</td>
+               <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
+              {
+                s.mainTrend === 'bullish'
+                  ? s.isDoubleTopFailure
+                    ? 'Top Fail'
+                    : s.isDoubleTop
+                    ? 'Double Top'
+                    : s.isDescendingTop
+                    ? 'Descending Top'
+                    : '-'
+                  : '-'
+              }
+            </td>
+            <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
+              {
+                s.mainTrend === 'bearish'
+                  ? s.isDoubleBottomFailure
+                    ? 'Bottom Fail'
+                    : s.isDoubleBottom
+                    ? 'Double Bottom'
+                    : s.isAscendingBottom
+                    ? 'Ascending Bottom'
+                    : '-'
+                  : '-'
+              }
+            </td>
             <td
   className={`text-center font-bold ${
     pump !== undefined && pump > 35
@@ -1948,18 +1952,22 @@ else if (
 >
   {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
 </td>		  
-  <td
-    className={`p-2 font-semibold ${
-      s.volumeColor === 'green'
-        ? 'text-green-400'
-        : s.volumeColor === 'red'
-        ? 'text-red-400'
-        : 'text-gray-400'
-    }`}
-  >
-    {typeof s.volume === 'number' ? s.volume.toLocaleString() : '—'}
-  </td>		  
-          </tr>
+  
+     <td
+  className={`p-2 font-semibold ${
+    s.volumeColor === 'green'
+      ? 'text-green-400'
+      : s.volumeColor === 'red'
+      ? 'text-red-400'
+      : 'text-gray-400'
+  }`}
+>
+  {s.volumeColor === 'green'
+    ? 'green'
+    : s.volumeColor === 'red'
+    ? 'red'
+    : 'neutral'}
+</td>     </tr>
         );
       })}
     </tbody>
