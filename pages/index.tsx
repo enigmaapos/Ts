@@ -124,11 +124,11 @@ const getSignal = (s: any): string => {
   const inRange = (val: number | undefined, min: number, max: number) =>
     val !== undefined && val >= min && val <= max;
 
-  const isAbove35 = (val: number | undefined) =>
-    val !== undefined && val >= 35;
+  const isAbove30 = (val: number | undefined) =>
+    val !== undefined && val >= 30;
 
   const pumpOrDumpInRange_21_26 = inRange(pump, 21, 26) || inRange(dump, 21, 26);
-  const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
+  const pumpOrDumpAbove30 = isAbove30(pump) || isAbove30(dump);
 
  const {
   mainTrend,
@@ -160,7 +160,7 @@ touchedEMA200Today,
 
 
 // ✅ MAX ZONE (overextended)
-if	(pumpOrDumpAbove35)
+if	(pumpOrDumpAbove30)
 	 {
   return 'MAX ZONE';
 }
@@ -1468,7 +1468,7 @@ if (loading) {
 	  // ✅ Early return: skip rendering if both are invalid or 0
   if (!validPump && !validDump) return null;
         const pumpOrDumpBalance = inRange(pump, 21, 26) || inRange(dump, 21, 26);
-        const pumpOrDumpAbove35 = isAbove35(pump) || isAbove35(dump);
+        const pumpOrDumpAbove30 = isAbove30(pump) || isAbove30(dump);
 
 	let signal = '';
 
