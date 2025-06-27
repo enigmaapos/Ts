@@ -1385,71 +1385,87 @@ if (loading) {
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-      <tr>
-        <th
-          onClick={() => {
-            setSortField('symbol');
-            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-          }}
-          className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
-        >
-          Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-        </th>
-	 <th className="px-1 py-0.5 text-center">Collapse</th>
-        <th className="px-1 py-0.5 text-center">Spike</th>     
-        <th className="px-1 py-0.5 text-center">Bull BO</th>
-        <th className="px-1 py-0.5 text-center">Bear BO</th>
-        <th className="px-1 py-0.5 text-center">Bear Rev</th>
-        <th className="px-1 py-0.5 text-center">Bull Rev</th>
-	 <th className="px-1 py-0.5 text-center">Trend (200)</th>  
-	<th
-          onClick={() => {
-            setSortField('pumpStrength');
-            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-          }}
-          className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-        >
-          RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-        </th>  
-        <th className="px-1 py-0.5 text-center">Tested High</th>
-        <th className="px-1 py-0.5 text-center">Tested Low</th>
-        <th className="px-1 py-0.5 text-center">Breakout Fail</th>
-        <th className="px-1 py-0.5 text-center">Top Pattern</th>
-        <th className="px-1 py-0.5 text-center">Bottom Pattern</th> 
-        <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
-	  <th className="p-2">EMA14 Bounce</th>    
-	<th className="p-2">EMA70 Bounce</th>
-        <th className="p-2">EMA200 Bounce</th>
-<th
-  onClick={() => {
-    setSortField('touchedEMA200Today');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-	      <th
-  onClick={() => {
-    setSortField('bearishDivergence');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-	      <th
-  onClick={() => {
-    setSortField('bullishDivergence');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-	<th className="p-2 text-center">Volume</th> {/* <-- New Volume column */}      
-      </tr>
-    </thead>
+  <tr>
+    {/* Symbol */}
+    <th
+      onClick={() => {
+        setSortField('symbol');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
+    >
+      Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* Static Columns */}
+    <th className="px-1 py-0.5 text-center">Collapse</th>
+    <th className="px-1 py-0.5 text-center">Spike</th>
+    <th className="px-1 py-0.5 text-center">Bull BO</th>
+    <th className="px-1 py-0.5 text-center">Bear BO</th>
+    <th className="px-1 py-0.5 text-center">Bear Rev</th>
+    <th className="px-1 py-0.5 text-center">Bull Rev</th>
+    <th className="px-1 py-0.5 text-center">Trend (200)</th>
+
+    {/* RSI Pump | Dump */}
+    <th
+      onClick={() => {
+        setSortField('pumpStrength');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* More Static Columns */}
+    <th className="px-1 py-0.5 text-center">Tested High</th>
+    <th className="px-1 py-0.5 text-center">Tested Low</th>
+    <th className="px-1 py-0.5 text-center">Breakout Fail</th>
+    <th className="px-1 py-0.5 text-center">Top Pattern</th>
+    <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
+    <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
+    <th className="p-2 text-center">EMA14 Bounce</th>
+    <th className="p-2 text-center">EMA70 Bounce</th>
+    <th className="p-2 text-center">EMA200 Bounce</th>
+
+    {/* Touched EMA200 Today */}
+    <th
+      onClick={() => {
+        setSortField('touchedEMA200Today');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* Bearish Divergence */}
+    <th
+      onClick={() => {
+        setSortField('bearishDivergence');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* Bullish Divergence */}
+    <th
+      onClick={() => {
+        setSortField('bullishDivergence');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* Volume */}
+    <th className="p-2 text-center">Volume</th>
+  </tr>
+</thead>
+    
     <tbody>
       {filteredAndSortedSignals.map((s: any) => {
         const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
