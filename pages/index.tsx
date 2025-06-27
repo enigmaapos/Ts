@@ -1500,15 +1500,16 @@ if (pumpOrDumpAbove30) {
 	
 
         return (
-          <tr
-            key={s.symbol}
-            className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
-              updatedRecently ? 'bg-yellow-900/30' : ''
-            }`}
-          >
-            <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
-          <div className="flex items-center justify-between"> 
-      <span className="truncate">{s.symbol}</span>		
+           <tr
+  key={s.symbol}
+  className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
+    updatedRecently ? 'bg-yellow-900/30' : ''
+  }`}
+>
+  {/* Symbol + Favorite */}
+  <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
+    <div className="flex items-center justify-between">
+      <span className="truncate">{s.symbol}</span>
       <button
         className="ml-1 text-yellow-400 hover:text-yellow-300"
         onClick={() => {
@@ -1522,154 +1523,152 @@ if (pumpOrDumpAbove30) {
         {favorites.has(s.symbol) ? '★' : '☆'}
       </button>
     </div>
-	<td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-              {s.bearishCollapse ? 'Yes' : 'No'}
-            </td>
-            <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-              {s.bullishSpike ? 'Yes' : 'No'}
-            </td>	    
-            </td>
-            <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
-              {s.bullishBreakout ? 'Yes' : 'No'}
-            </td>
-            <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
-              {s.bearishBreakout ? 'Yes' : 'No'}
-            </td>
-            <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-              {s.bearishReversal ? 'Yes' : 'No'}
-            </td>
-            <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-              {s.bullishReversal ? 'Yes' : 'No'}
-            </td>
-	<td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
-              {s.mainTrend}
-            </td> 
-		 <td
-  className={`text-center font-bold ${
-    pump !== undefined && pump > 30
-      ? 'text-green-400'
-      : dump !== undefined && dump > 30
-      ? 'text-red-400'
-      : inRange(pump, 21, 26) || inRange(dump, 21, 26)
-      ? 'text-blue-400'
-	 : inRange(pump, 1, 10) || inRange(dump, 1, 10)
-      ? 'text-yellow-400' 
-      : pump === undefined && dump === undefined
-      ? 'text-gray-500'  
-      : 'text-white'
-  }`}
->
-  {pump && pump !== 0 ? `Pump: ${pump.toFixed(2)}` : ''}
-  {pump && pump !== 0 && dump && dump !== 0 ? ' | ' : ''}
-  {dump && dump !== 0 ? `Dump: ${dump.toFixed(2)}` : ''}
-  {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
-</td>	    
-            <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
-              {s.testedPrevHigh ? 'Yes' : '-'}
-            </td>
-            <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
-              {s.testedPrevLow ? 'Yes' : '-'}
-            </td>
-            <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
-              {s.breakoutFailure ? 'Yes' : '-'}
-            </td>
-                 <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
-              {
-                s.mainTrend === 'bullish'
-                  ? s.isDoubleTopFailure
-                    ? 'Top Fail'
-                    : s.isDoubleTop
-                    ? 'Double Top'
-                    : s.isDescendingTop
-                    ? 'Descending Top'
-                    : '-'
-                  : '-'
-              }
-            </td>
-            <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
-              {
-                s.mainTrend === 'bearish'
-                  ? s.isDoubleBottomFailure
-                    ? 'Bottom Fail'
-                    : s.isDoubleBottom
-                    ? 'Double Bottom'
-                    : s.isAscendingBottom
-                    ? 'Ascending Bottom'
-                    : '-'
-                  : '-'
-              }
-            </td>
-            <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE'
-      ? 'text-yellow-300'
-	: signal.trim() === 'BALANCE ZONE'
-      ? 'text-purple-400 font-bold'  
-      : signal.trim() === 'LOWEST ZONE'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>
-		  <td
-  className={`p-2 ${
-    s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'
-  }`}
->
-  {s.ema14Bounce ? 'Yes' : 'No'}
-</td>
-		      <td
-  className={`p-2 ${
-    s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'
-  }`}
->
-  {s.ema70Bounce ? 'Yes' : 'No'}
-</td>
-        
-        <td
-  className={`p-2 ${
-    s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'
-  }`}
->
-  {s.ema200Bounce ? 'Yes' : 'No'}
-</td>
-		         <td
-  className={`p-2 ${
-    s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'
-  }`}
->
-  {s.touchedEMA200Today ? 'Yes' : 'No'}
-</td>
-	  <td
-  className={`p-2 font-semibold ${
-    s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'
-  }`}
->
-  {s.bearishDivergence?.divergence ? 'Yes' : 'No'}
-</td>
+  </td>
 
-<td
-  className={`p-2 font-semibold ${
-    s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'
-  }`}
->
-  {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
-</td>		  
-  
-   <td
-  className={`p-2 font-semibold ${
-    s.highestVolumeColorPrev === 'green'
-      ? 'text-green-400'
-      : s.highestVolumeColorPrev === 'red'
-      ? 'text-red-400'
-      : 'text-gray-400'
-  }`}
-> 
-  {typeof s.highestVolumeColorPrev === 'string'
-    ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
-    : '—'}
-</td>       </tr>
+  {/* Pattern/Signal Columns */}
+  <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+    {s.bearishCollapse ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+    {s.bullishSpike ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
+    {s.bullishBreakout ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
+    {s.bearishBreakout ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+    {s.bearishReversal ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+    {s.bullishReversal ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+    {s.mainTrend}
+  </td>
+
+  {/* Pump / Dump */}
+  <td
+    className={`text-center font-bold ${
+      pump !== undefined && pump > 30
+        ? 'text-green-400'
+        : dump !== undefined && dump > 30
+        ? 'text-red-400'
+        : inRange(pump, 21, 26) || inRange(dump, 21, 26)
+        ? 'text-blue-400'
+        : inRange(pump, 1, 10) || inRange(dump, 1, 10)
+        ? 'text-yellow-400'
+        : pump === undefined && dump === undefined
+        ? 'text-gray-500'
+        : 'text-white'
+    }`}
+  >
+    {pump && pump !== 0 ? `Pump: ${pump.toFixed(2)}` : ''}
+    {pump && dump ? ' | ' : ''}
+    {dump && dump !== 0 ? `Dump: ${dump.toFixed(2)}` : ''}
+    {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
+  </td>
+
+  {/* Support/Breakout Detection */}
+  <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
+    {s.testedPrevHigh ? 'Yes' : '-'}
+  </td>
+
+  <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
+    {s.testedPrevLow ? 'Yes' : '-'}
+  </td>
+
+  <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+    {s.breakoutFailure ? 'Yes' : '-'}
+  </td>
+
+  <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
+    {s.mainTrend === 'bullish'
+      ? s.isDoubleTopFailure
+        ? 'Top Fail'
+        : s.isDoubleTop
+        ? 'Double Top'
+        : s.isDescendingTop
+        ? 'Descending Top'
+        : '-'
+      : '-'}
+  </td>
+
+  <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
+    {s.mainTrend === 'bearish'
+      ? s.isDoubleBottomFailure
+        ? 'Bottom Fail'
+        : s.isDoubleBottom
+        ? 'Double Bottom'
+        : s.isAscendingBottom
+        ? 'Ascending Bottom'
+        : '-'
+      : '-'}
+  </td>
+
+  <td
+    className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+      signal.trim() === 'MAX ZONE'
+        ? 'text-yellow-300'
+        : signal.trim() === 'BALANCE ZONE'
+        ? 'text-purple-400 font-bold'
+        : signal.trim() === 'LOWEST ZONE'
+        ? 'text-green-500 font-bold'
+        : 'text-gray-500'
+    }`}
+  >
+    {signal.trim()}
+  </td>
+
+  {/* EMA Bounces */}
+  <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema14Bounce ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema70Bounce ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema200Bounce ? 'Yes' : 'No'}
+  </td>
+
+  {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>
+
+  {/* Divergences */}
+  <td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+    {s.bearishDivergence?.divergence ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+    {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
+  </td>
+
+  {/* Volume */}
+  <td
+    className={`p-2 font-semibold ${
+      s.highestVolumeColorPrev === 'green'
+        ? 'text-green-400'
+        : s.highestVolumeColorPrev === 'red'
+        ? 'text-red-400'
+        : 'text-gray-400'
+    }`}
+  >
+    {typeof s.highestVolumeColorPrev === 'string'
+      ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
+      : '—'}
+  </td>
+</tr>
         );
       })}
     </tbody>
