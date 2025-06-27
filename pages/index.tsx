@@ -1418,12 +1418,12 @@ if (loading) {
     </th>
 
     {/* More Static Columns */}
+	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>  
     <th className="px-1 py-0.5 text-center">Tested High</th>
     <th className="px-1 py-0.5 text-center">Tested Low</th>
     <th className="px-1 py-0.5 text-center">Breakout Fail</th>
     <th className="px-1 py-0.5 text-center">Top Pattern</th>
     <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
-    <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
     <th className="p-2 text-center">EMA14 Bounce</th>
     <th className="p-2 text-center">EMA70 Bounce</th>
     <th className="p-2 text-center">EMA200 Bounce</th>
@@ -1576,6 +1576,20 @@ if (pumpOrDumpAbove30) {
     {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
   </td>
 
+	<td
+    className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+      signal.trim() === 'MAX ZONE'
+        ? 'text-yellow-300'
+        : signal.trim() === 'BALANCE ZONE'
+        ? 'text-purple-400 font-bold'
+        : signal.trim() === 'LOWEST ZONE'
+        ? 'text-green-500 font-bold'
+        : 'text-gray-500'
+    }`}
+  >
+    {signal.trim()}
+  </td>	   
+
   {/* Support/Breakout Detection */}
   <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
     {s.testedPrevHigh ? 'Yes' : '-'}
@@ -1611,20 +1625,6 @@ if (pumpOrDumpAbove30) {
         ? 'Ascending Bottom'
         : '-'
       : '-'}
-  </td>
-
-  <td
-    className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-      signal.trim() === 'MAX ZONE'
-        ? 'text-yellow-300'
-        : signal.trim() === 'BALANCE ZONE'
-        ? 'text-purple-400 font-bold'
-        : signal.trim() === 'LOWEST ZONE'
-        ? 'text-green-500 font-bold'
-        : 'text-gray-500'
-    }`}
-  >
-    {signal.trim()}
   </td>
 
   {/* EMA Bounces */}
