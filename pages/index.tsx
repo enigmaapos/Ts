@@ -159,148 +159,23 @@ touchedEMA200Today,
 } = s;
 
 
-// ✅ IF SUPPORT HOLDS/ BUY
-if (
-  !breakout &&
-  mainTrend === 'bearish' &&
-  testedPrevLow &&
-  !testedPrevHigh &&
-  failedBearishBreak
-) {
-  return 'IF SUPPORT HOLDS/ BUY';
+// ✅ MAX ZONE (overextended)
+if	(pumpOrDumpAbove35)
+	 {
+  return 'MAX ZONE';
 }
 
-// ✅ IF RESISTANCE HOLDS/ SELL
-if (
-  !breakout &&
-  mainTrend === 'bullish' &&
-  testedPrevHigh &&
-  !testedPrevLow &&
-  failedBullishBreak
-) {
-  return 'IF RESISTANCE HOLDS/ SELL';
-}
-
-// ✅ BALANCE ZONE
+	// ✅ BALANCE ZONE
 if (pumpOrDumpInRange_21_26) {
   return 'BALANCE ZONE';
 }
 
-// ✅ MAX ZONE (overextended)
-if (inRange(pump, 33, 34) || inRange(dump, 33, 34)) {
-  return 'MAX ZONE';
-}
 
-// ✅ POSSIBLE REVERSE
+// ✅ LOWEST ZONE 
 if (
-  breakout &&
-  (bullishDivergence || bearishDivergence) &&
-  (bullishSpike || bearishCollapse || bullishReversal || bearishReversal) &&
-  (ema70Bounce || ema200Bounce) &&
-  (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-  (
-    isDoubleTop || isDescendingTop || isDoubleTopFailure ||
-    isDoubleBottom || isAscendingBottom || isDoubleBottomFailure
-  ) &&
-  (inRange(pump, 28, 80) || inRange(dump, 28, 80))
+  (inRange(pump, 1, 10) || inRange(dump, 1, 10))
 ) {
-  return 'POSSIBLE REVERSE';
-}
-
-// ✅ STRONG TREND
-if (
-  (bullishSpike || bearishCollapse) &&
-  (
-    (mainTrend === 'bullish' && bullishBreakout) ||
-    (mainTrend === 'bearish' && bearishBreakout)
-  ) &&
-  (
-    (pump !== undefined && pump < 21) ||
-    (dump !== undefined && dump < 21)
-  )
-) {
-  return 'STRONG TREND';
-}
-
-// ✅ CONSOLIDATION ZONE
-if (
-  breakout &&
-  !ema70Bounce &&
-  !ema200Bounce &&
-  (bullishReversal || bearishReversal) &&
-  (mainTrend === 'bullish' || mainTrend === 'bearish') &&
-  (
-    isDoubleTop || isDescendingTop || isDoubleTopFailure ||
-    isDoubleBottom || isAscendingBottom || isDoubleBottomFailure
-  ) &&
-  (
-    inRange(pump, 29, 32) || inRange(dump, 29, 32) ||
-    inRange(pump, 9, 12) || inRange(dump, 9, 12)
-  )
-) {
-  if (bullishBreakout) return 'CONSOLIDATION / SELL';
-  if (bearishBreakout) return 'CONSOLIDATION / BUY';
-  return 'CONSOLIDATION';
-}
-
-// ✅ BULLISH - NO EMA200 TOUCH TODAY 
-if (
-  mainTrend === 'bullish' &&
-  bullishBreakout &&
-  isDoubleTopFailure &&
-!touchedEMA200Today 
-) {
-  return 'BULLISH/ NO EMA200 TOUCH';
-}
-
-// ✅ BEARISH - NO EMA200 TOUCH TODAY 
-if (
-  mainTrend === 'bearish' &&
-  bearishBreakout &&
-  isDoubleBottomFailure &&
-  !touchedEMA200Today
-) {
-  return 'BEARISH/ NO EMA200 TOUCH';
-}
-
-// ✅ BUYING ZONE
-if (
-  bearishBreakout &&
-  bullishDivergence &&
-  ema14Bounce &&
-	(bearishReversal || bullishSpike) &&
-  (isDoubleBottom || isAscendingBottom || isDoubleBottomFailure)
-) {
-  return 'BUYING ZONE';
-}
-
-// ✅ SELLING ZONE
-if (
-  bullishBreakout &&
-  bearishDivergence &&
-  ema14Bounce &&
-	(bullishReversal || bearishCollapse) &&
-  (isDoubleTop || isDescendingTop || isDoubleTopFailure)
-) {
-  return 'SELLING ZONE';
-}
-
-// ✅ TREND WATCH ZONE/ RESISTANCE BREAKOUT - why setup like this, because look for the trend that inside the EMA, probably continuation of the trend from previous daily candle 
-if (
-  bullishBreakout &&
-bearishDivergence &&
-  mainTrend === 'bearish'
-) {
-  return 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
-}
-
-// ✅ TREND WATCH ZONE/ SUPPORT BREAKOUT - why setup like this, because look for the trend that inside the EMA, probably continuation of the trend from previous daily candle 
-if (
-  bearishBreakout &&
-bullishDivergence &&
-  mainTrend === 'bullish'
-) {
-  return 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
+  return 'LOWEST ZONE';
 }
 
 return '';
@@ -468,19 +343,8 @@ const signalCounts = useMemo(() => {
   const counts = {
     maxZone: 0,
     balanceZone: 0,
-    ifSupportHoldsBuy: 0,
-    ifResistanceHoldsSell: 0,
-    strongTrend: 0,
-    possibleReverse: 0,
-    consolidation: 0,
-    consolidationBuy: 0,
-    consolidationSell: 0,
-    bullishPullback: 0,
-    bearishPullback: 0,
-    buyingZone: 0,
-    sellingZone: 0,
-    resistanceBreakout: 0,
-    supportBreakout: 0,
+    lowestZone: 0,
+    
   };
 
   signals.forEach((s: any) => {
@@ -493,46 +357,10 @@ const signalCounts = useMemo(() => {
       case 'BALANCE ZONE':
         counts.balanceZone++;
         break;
-      case 'IF SUPPORT HOLDS/ BUY':
-        counts.ifSupportHoldsBuy++;
+      case 'LOWEST ZONE':
+        counts.lowestZone++;
         break;
-      case 'IF RESISTANCE HOLDS/ SELL':
-        counts.ifResistanceHoldsSell++;
-        break;
-      case 'STRONG TREND':
-      case 'SIGNAL STRONG TREND':
-        counts.strongTrend++;
-        break;
-      case 'POSSIBLE REVERSE':
-        counts.possibleReverse++;
-        break;
-      case 'CONSOLIDATION':
-        counts.consolidation++;
-        break;
-      case 'CONSOLIDATION / BUY':
-        counts.consolidationBuy++;
-        break;
-      case 'CONSOLIDATION / SELL':
-        counts.consolidationSell++;
-        break;
-      case 'BULLISH/ NO EMA200 TOUCH':
-        counts.bullishPullback++;
-        break;
-      case 'BEARISH/ NO EMA200 TOUCH':
-        counts.bearishPullback++;
-        break;
-      case 'BUYING ZONE':
-        counts.buyingZone++;
-        break;
-      case 'SELLING ZONE':
-        counts.sellingZone++;
-        break;
-      case 'TREND WATCH ZONE/ RESISTANCE BREAKOUT':
-        counts.resistanceBreakout++;
-        break;
-      case 'TREND WATCH ZONE/ SUPPORT BREAKOUT':
-        counts.supportBreakout++;
-        break;
+      
     }
   });
 
@@ -1504,20 +1332,8 @@ if (loading) {
       <div className="flex flex-wrap gap-2">
         {[
           { label: 'MAX ZONE', key: 'MAX ZONE', count: signalCounts.maxZone, color: 'text-yellow-300' },
-          { label: 'IF SUPPORT HOLDS/ BUY', key: 'IF SUPPORT HOLDS/ BUY', count: signalCounts.ifSupportHoldsBuy, color: 'text-green-400' },
-          { label: 'IF RESISTANCE HOLDS/ SELL', key: 'IF RESISTANCE HOLDS/ SELL', count: signalCounts.ifResistanceHoldsSell, color: 'text-red-400' },
           { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
-          { label: 'BULLISH/ NO EMA200 TOUCH', key: 'BULLISH/ NO EMA200 TOUCH', count: signalCounts.bullishPullback, color: 'text-green-300' },
-          { label: 'BEARISH/ NO EMA200 TOUCH', key: 'BEARISH/ NO EMA200 TOUCH', count: signalCounts.bearishPullback, color: 'text-red-300' },
-          { label: 'BUYING ZONE', key: 'BUYING ZONE', count: signalCounts.buyingZone, color: 'text-lime-400' },
-          { label: 'SELLING ZONE', key: 'SELLING ZONE', count: signalCounts.sellingZone, color: 'text-pink-400' },
-          { label: 'STRONG TREND', key: 'STRONG TREND', count: signalCounts.strongTrend, color: 'text-orange-300' },
-          { label: 'POSSIBLE REVERSE', key: 'POSSIBLE REVERSE', count: signalCounts.possibleReverse, color: 'text-blue-300' },
-          { label: 'CONSOLIDATION', key: 'CONSOLIDATION', count: signalCounts.consolidation, color: 'text-teal-300' },
-  	{ label: 'CONSOLIDATION / BUY', key: 'CONSOLIDATION / BUY', count: signalCounts.consolidationBuy, color: 'text-green-300' },
-	{ label: 'CONSOLIDATION / SELL', key: 'CONSOLIDATION / SELL', count: signalCounts.consolidationSell, color: 'text-red-300' },
-	{ label: 'TREND WATCH ZONE/ RESISTANCE BREAKOUT', key: 'TREND WATCH ZONE/ RESISTANCE BREAKOUT', count: signalCounts.resistanceBreakout, color: 'text-red-500' },
-{ label: 'TREND WATCH ZONE/ SUPPORT BREAKOUT', key: 'TREND WATCH ZONE/ SUPPORT BREAKOUT', count: signalCounts.supportBreakout, color: 'text-yellow-500' },
+{ label: 'LOWEST ZONE', key: 'LOWEST ZONE', count: signalCounts.lowestZone, color: 'text-yellow-500' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1657,130 +1473,21 @@ if (loading) {
 	let signal = '';
 
 if (
-  !s.breakout &&
-  s.mainTrend === 'bearish' &&
-  s.testedPrevLow &&
-  !s.testedPrevHigh &&
-  s.failedBearishBreak &&
-  validPump &&
-  validDump
-) {
-  signal = 'IF SUPPORT HOLDS/ BUY';
-} else if (
-  !s.breakout &&
-  s.mainTrend === 'bullish' &&
-  s.testedPrevHigh &&
-  !s.testedPrevLow &&
-  s.failedBullishBreak &&
-  validPump &&
-  validDump
-) {
-  signal = 'IF RESISTANCE HOLDS/ SELL';
-} else if (pumpOrDumpBalance) {
-  signal = 'BALANCE ZONE';
-} else if (
-  inRange(pump, 33, 34) ||
-  inRange(dump, 33, 34)
+  (pumpOrDumpAbove30)
 ) {
   signal = 'MAX ZONE';
-} else if (
-  (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
-  (s.bullishDivergence || s.bearishDivergence) &&
-  (s.bullishSpike || s.bearishCollapse || s.bullishReversal || s.bearishReversal) &&
-  (s.ema70Bounce || s.ema200Bounce) &&
+} else if (pumpOrDumpBalance) {
+  signal = 'BALANCE ZONE';
+} else 
+if (
   (
-    s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure ||
-    s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure
-  ) &&
-  (
-    inRange(pump, 28, 80) ||
-    inRange(dump, 28, 80)
+    inRange(pump, 1, 10) ||
+    inRange(dump, 1, 10)
   )
 ) {
-  signal = 'POSSIBLE REVERSE';
-} else if (
-  (s.bullishSpike || s.bearishCollapse) &&
-  (
-    (s.mainTrend === 'bullish' && s.bullishBreakout) ||
-    (s.mainTrend === 'bearish' && s.bearishBreakout)
-  ) &&
-  (
-    (pump !== undefined && pump < 21) ||
-    (dump !== undefined && dump < 21)
-  )
-) {
-  signal = 'STRONG TREND';
-} else if (
-  s.breakout &&
-  !s.ema70Bounce &&
-  !s.ema200Bounce &&
-  (s.bullishReversal || s.bearishReversal) &&
-  (s.mainTrend === 'bullish' || s.mainTrend === 'bearish') &&
-  (
-    s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure ||
-    s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure
-  ) &&
-  (
-    inRange(pump, 29, 32) ||
-    inRange(dump, 29, 32) ||
-    inRange(pump, 9, 12) ||
-    inRange(dump, 9, 12)
-  )
-) {
-  if (s.bullishBreakout) {
-    signal = 'CONSOLIDATION / SELL';
-  } else if (s.bearishBreakout) {
-    signal = 'CONSOLIDATION / BUY';
-  } else {
-    signal = 'CONSOLIDATION';
-  }
-} else if (
-  s.mainTrend === 'bullish' &&
-  s.bullishBreakout &&
-   s.isDoubleBottomFailure &&
-  !s.touchedEMA200Today
-) {
-  signal = 'BULLISH/ NO EMA200 TOUCH';
-} else if (
-  s.mainTrend === 'bearish' &&
-  s.bearishBreakout &&
-  s.isDoubleTopFailure  &&
-s.touchedEMA200Today
-) {
-  signal = 'BEARISH/ NO EMA200 TOUCH';
-} else if (
-  s.bearishBreakout &&
-  s.bullishDivergence &&
-  s.ema14Bounce &&
-	(s.bearishReversal || s.bullishSpike) &&
-  (
-    s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure
-  )
-) {
-  signal = 'BUYING ZONE';
-} else if (
-  s.bullishBreakout &&
-  s.bearishDivergence &&
-s.ema14Bounce &&
-	(s.bullishReversal || s.bearishCollapse) &&
-  (
-    s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure
-  )
-) {
-  signal = 'SELLING ZONE';
-} else if (
-  s.bullishBreakout &&
-	s.bearishDivergence &&
-  s.mainTrend === 'bearish'
-) {
-  signal = 'TREND WATCH ZONE/ RESISTANCE BREAKOUT';
-} else if (
-  s.bearishBreakout &&
-	s.bullishDivergence &&
-  s.mainTrend === 'bullish'
-) {
-  signal = 'TREND WATCH ZONE/ SUPPORT BREAKOUT';
-}	
+  signal = 'LOWEST ZONE';
+} 
+	
 
         return (
           <tr
@@ -1858,14 +1565,16 @@ s.ema14Bounce &&
             </td>
             <td
   className={`text-center font-bold ${
-    pump !== undefined && pump > 35
+    pump !== undefined && pump > 30
       ? 'text-green-400'
-      : dump !== undefined && dump > 35
+      : dump !== undefined && dump > 30
       ? 'text-red-400'
       : inRange(pump, 21, 26) || inRange(dump, 21, 26)
       ? 'text-blue-400'
+	 : inRange(pump, 1, 10) || inRange(dump, 1, 10)
+      ? 'text-yellow-400' 
       : pump === undefined && dump === undefined
-      ? 'text-gray-500'
+      ? 'text-gray-500'  
       : 'text-white'
   }`}
 >
@@ -1884,33 +1593,9 @@ s.ema14Bounce &&
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
     signal.trim() === 'MAX ZONE'
       ? 'text-yellow-300'
-      : signal.trim() === 'IF SUPPORT HOLDS/ BUY'
-      ? 'text-green-500 font-bold'
-      : signal.trim() === 'IF RESISTANCE HOLDS/ SELL'
-      ? 'text-red-500 font-bold'
-      : signal.trim() === 'BALANCE ZONE'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'STRONG TREND'
-      ? 'text-orange-400 font-bold'
-      : signal.trim() === 'POSSIBLE REVERSE'
-      ? 'text-blue-400 font-bold'
-      : signal.trim() === 'CONSOLIDATION'
-      ? 'text-teal-400 font-bold'
-      : signal.trim() === 'CONSOLIDATION / BUY'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'CONSOLIDATION / SELL'
-      ? 'text-red-400 font-bold'
-      : signal.trim() === 'BULLISH/ NO EMA200 TOUCH'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'BEARISH/ NO EMA200 TOUCH'
-      ? 'text-red-400 font-bold'
-      : signal.trim() === 'BUYING ZONE'
-      ? 'text-lime-400 font-bold'
-      : signal.trim() === 'SELLING ZONE'
-      ? 'text-pink-400 font-bold'
-      : signal.trim() === 'TREND WATCH ZONE/ RESISTANCE BREAKOUT'
-      ? 'text-red-500 font-bold'
-      : signal.trim() === 'TREND WATCH ZONE/ SUPPORT BREAKOUT'
+	: signal.trim() === 'BALANCE ZONE'
+      ? 'text-purple-400 font-bold'  
+      : signal.trim() === 'LOWEST ZONE'
       ? 'text-green-500 font-bold'
       : 'text-gray-500'
   }`}
