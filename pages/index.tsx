@@ -1462,7 +1462,7 @@ if (loading) {
 
 	
 
-        const isAbove35 = (val: number | undefined) => val !== undefined && val >= 35;
+        const isAbove30 = (val: number | undefined) => val !== undefined && val >= 35;
         const validPump = pump !== undefined && pump !== 0;
         const validDump = dump !== undefined && dump !== 0;
 	  // ✅ Early return: skip rendering if both are invalid or 0
