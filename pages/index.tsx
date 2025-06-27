@@ -1402,7 +1402,7 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Bear Rev</th>
         <th className="px-1 py-0.5 text-center">Bull Rev</th>
 	 <th className="px-1 py-0.5 text-center">Trend (200)</th>  
-	    <th
+	<th
           onClick={() => {
             setSortField('pumpStrength');
             setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -1415,8 +1415,7 @@ if (loading) {
         <th className="px-1 py-0.5 text-center">Tested Low</th>
         <th className="px-1 py-0.5 text-center">Breakout Fail</th>
         <th className="px-1 py-0.5 text-center">Top Pattern</th>
-        <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
-        
+        <th className="px-1 py-0.5 text-center">Bottom Pattern</th> 
         <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
 	  <th className="p-2">EMA14 Bounce</th>    
 	<th className="p-2">EMA70 Bounce</th>
@@ -1526,7 +1525,7 @@ if (pumpOrDumpAbove30) {
             <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
               {s.bullishReversal ? 'Yes' : 'No'}
             </td>
-		<td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+	<td className={`px-1 py-0.5 text-center ${s.mainTrend === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
               {s.mainTrend}
             </td> 
 		 <td
