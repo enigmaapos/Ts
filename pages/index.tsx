@@ -1472,21 +1472,15 @@ if (loading) {
 
 	let signal = '';
 
-if (
-  (pumpOrDumpAbove30)
-) {
+if (pumpOrDumpAbove30) {
   signal = 'MAX ZONE';
 } else if (pumpOrDumpBalance) {
   signal = 'BALANCE ZONE';
-} else 
-if (
-  (
-    inRange(pump, 1, 10) ||
-    inRange(dump, 1, 10)
-  )
+} else if (
+  inRange(pump, 1, 10) || inRange(dump, 1, 10)
 ) {
   signal = 'LOWEST ZONE';
-} 
+		}
 	
 
         return (
