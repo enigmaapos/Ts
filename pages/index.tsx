@@ -178,6 +178,12 @@ if (
   return 'LOWEST ZONE';
 }
 
+if (
+  (inRange(pump, 17, 19) || inRange(dump, 17, 19))
+) {
+  return 'SPIKE/COLLAPSE ZONE';
+}	
+
 return '';
 };	
 
@@ -350,7 +356,7 @@ const signalCounts = useMemo(() => {
     maxZone: 0,
     balanceZone: 0,
     lowestZone: 0,
-    
+    spikeCollapseZone: 0,
   };
 
   signals.forEach((s: any) => {
@@ -366,7 +372,9 @@ const signalCounts = useMemo(() => {
       case 'LOWEST ZONE':
         counts.lowestZone++;
         break;
-      
+	    case 'SPIKE/COLLAPSE ZONE'	    
+      counts.spikeCollapseZone++;
+		    break;
     }
   });
 
@@ -1394,6 +1402,7 @@ if (loading) {
           { label: 'MAX ZONE', key: 'MAX ZONE', count: signalCounts.maxZone, color: 'text-yellow-300' },
           { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
 { label: 'LOWEST ZONE', key: 'LOWEST ZONE', count: signalCounts.lowestZone, color: 'text-yellow-500' },
+	{ label: 'SPIKE/COLLAPSE ZONE', key: 'SPIKE/COLLAPSE ZONE', count: signalCounts.spikecollapseZone, color: 'text-orange-500' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1572,6 +1581,11 @@ if (pumpOrDumpAbove30) {
 ) {
   signal = 'LOWEST ZONE';
 		}
+else if (
+  inRange(pump, 17, 19) || inRange(dump, 1, 19)
+) {
+  signal = 'SPIKE/COLLAPSE ZONE';
+		}	
 	
 
         return (
@@ -1674,6 +1688,8 @@ if (pumpOrDumpAbove30) {
         ? 'text-purple-400 font-bold'
         : signal.trim() === 'LOWEST ZONE'
         ? 'text-green-500 font-bold'
+	    : signal.trim() === 'SPIKE/COLLAPSE ZONE'
+        ? 'text-orange-500 font-bold'
         : 'text-gray-500'
     }`}
   >
