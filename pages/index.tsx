@@ -372,9 +372,9 @@ const signalCounts = useMemo(() => {
       case 'LOWEST ZONE':
         counts.lowestZone++;
         break;
-	    case 'SPIKE/COLLAPSE ZONE'	    
-      counts.spikeCollapseZone++;
-		    break;
+      case 'SPIKE/COLLAPSE ZONE':
+        counts.spikeCollapseZone++;
+        break;
     }
   });
 
