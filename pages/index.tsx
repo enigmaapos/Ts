@@ -725,6 +725,41 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   return true;
 };
 
+// ✅ Engulfing Candle Pattern Detection in Today’s Session
+const engulfingPatterns = [];
+for (let i = 1; i < candlesToday.length; i++) {
+  const prev = candlesToday[i - 1];
+  const curr = candlesToday[i];
+
+  const isPrevBearish = prev.close < prev.open;
+  const isCurrBullish = curr.close > curr.open;
+
+  const isPrevBullish = prev.close > prev.open;
+  const isCurrBearish = curr.close < curr.open;
+
+  const bullishEngulfing =
+    isPrevBearish &&
+    isCurrBullish &&
+    curr.open < prev.close &&
+    curr.close > prev.open;
+
+  const bearishEngulfing =
+    isPrevBullish &&
+    isCurrBearish &&
+    curr.open > prev.close &&
+    curr.close < prev.open;
+
+  if (bullishEngulfing) {
+    engulfingPatterns.push({ index: i, type: 'bullish', candle: curr });
+  } else if (bearishEngulfing) {
+    engulfingPatterns.push({ index: i, type: 'bearish', candle: curr });
+  }
+}
+
+const hasBullishEngulfing = engulfingPatterns.some(p => p.type === 'bullish');
+const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearish');
+	      
+
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
   if (len < window) return false;
@@ -1206,6 +1241,8 @@ const bearishCollapse = detectBearishCollapse(
 		bullishDivergence,
 		highestVolumeColorPrev,
 		isVolumeSpike,
+		hasBullishEngulfing,
+		hasBearishEngulfing,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1442,6 +1479,8 @@ if (loading) {
 >
   Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
+<th className="p-2 text-green-400">Bullish Engulfing</th>
+<th className="p-2 text-red-400">Bearish Engulfing</th>	  
 
     {/* More Static Columns */}
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>  
@@ -1612,6 +1651,13 @@ if (pumpOrDumpAbove30) {
 >
   {s.isVolumeSpike ? 'Spike' : '—'}
 </td>	   
+
+<td className="p-2 text-center text-green-400 font-semibold">
+  {hasBullishEngulfing ? 'Yes' : '-'}
+</td>
+<td className="p-2 text-center text-red-400 font-semibold">
+  {hasBearishEngulfing ? 'Yes' : '-'}
+</td>		   
 
 	<td
     className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
