@@ -727,15 +727,19 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
 
 // ✅ Engulfing Candle Pattern Detection in Today’s Session
 const engulfingPatterns = [];
-for (let i = 1; i < candlesToday.length; i++) {
+
+for (let i = 1; i < candlesToday.length - 1; i++) {
   const prev = candlesToday[i - 1];
   const curr = candlesToday[i];
+  const next = candlesToday[i + 1];
 
   const isPrevBearish = prev.close < prev.open;
   const isCurrBullish = curr.close > curr.open;
+  const isNextBullish = next.close > next.open;
 
   const isPrevBullish = prev.close > prev.open;
   const isCurrBearish = curr.close < curr.open;
+  const isNextBearish = next.close < next.open;
 
   const bullishEngulfing =
     isPrevBearish &&
@@ -749,15 +753,18 @@ for (let i = 1; i < candlesToday.length; i++) {
     curr.open > prev.close &&
     curr.close < prev.open;
 
-  if (bullishEngulfing) {
-    engulfingPatterns.push({ index: i, type: 'bullish', candle: curr });
-  } else if (bearishEngulfing) {
-    engulfingPatterns.push({ index: i, type: 'bearish', candle: curr });
+  const bullishConfirmed = bullishEngulfing && isNextBullish && next.close > curr.close;
+  const bearishConfirmed = bearishEngulfing && isNextBearish && next.close < curr.close;
+
+  if (bullishConfirmed) {
+    engulfingPatterns.push({ index: i, type: 'bullishConfirmed', candle: curr, confirm: next });
+  } else if (bearishConfirmed) {
+    engulfingPatterns.push({ index: i, type: 'bearishConfirmed', candle: curr, confirm: next });
   }
 }
 
-const hasBullishEngulfing = engulfingPatterns.some(p => p.type === 'bullish');
-const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearish');
+const hasBullishEngulfing = engulfingPatterns.some(p => p.type === 'bullishConfirmed');
+const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfirmed');
 	      
 
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
