@@ -736,6 +736,11 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
 // ✅ Engulfing Candle Pattern Detection in Today’s Session
 const engulfingPatterns = [];
 
+// Step 1: Get today's session-wide high and low from all candles
+const sessionHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
+const sessionLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
+
+// Step 2: Check engulfing patterns AND only accept those that are highest or lowest
 for (let i = 1; i < candlesToday.length - 1; i++) {
   const prev = candlesToday[i - 1];
   const curr = candlesToday[i];
@@ -761,8 +766,17 @@ for (let i = 1; i < candlesToday.length - 1; i++) {
     curr.open > prev.close &&
     curr.close < prev.open;
 
-  const bullishConfirmed = bullishEngulfing && isNextBullish && next.close > curr.close;
-  const bearishConfirmed = bearishEngulfing && isNextBearish && next.close < curr.close;
+  const bullishConfirmed =
+    bullishEngulfing &&
+    isNextBullish &&
+    next.close > curr.close &&
+    curr.high === sessionHigh; // ✅ Must be today's highest high
+
+  const bearishConfirmed =
+    bearishEngulfing &&
+    isNextBearish &&
+    next.close < curr.close &&
+    curr.low === sessionLow;   // ✅ Must be today's lowest low
 
   if (bullishConfirmed) {
     engulfingPatterns.push({ index: i, type: 'bullishConfirmed', candle: curr, confirm: next });
