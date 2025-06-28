@@ -1445,11 +1445,7 @@ if (loading) {
 
     {/* More Static Columns */}
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>  
-    <th className="px-1 py-0.5 text-center">Tested High</th>
-    <th className="px-1 py-0.5 text-center">Tested Low</th>
-    <th className="px-1 py-0.5 text-center">Breakout Fail</th>
-    <th className="px-1 py-0.5 text-center">Top Pattern</th>
-    <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
+
     <th className="p-2 text-center">EMA14 Bounce</th>
     <th className="p-2 text-center">EMA70 Bounce</th>
     <th className="p-2 text-center">EMA200 Bounce</th>
@@ -1465,6 +1461,13 @@ if (loading) {
       Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
+	  
+    <th className="px-1 py-0.5 text-center">Tested High</th>
+    <th className="px-1 py-0.5 text-center">Tested Low</th>
+    <th className="px-1 py-0.5 text-center">Breakout Fail</th>
+    <th className="px-1 py-0.5 text-center">Top Pattern</th>
+    <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
+	  
     {/* Bearish Divergence */}
     <th
       onClick={() => {
@@ -1622,7 +1625,26 @@ if (pumpOrDumpAbove30) {
     }`}
   >
     {signal.trim()}
+  </td>	 
+
+	  {/* EMA Bounces */}
+  <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema14Bounce ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema70Bounce ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema200Bounce ? 'Yes' : 'No'}
+  </td>
+
+  {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
   </td>	   
+		   
 
   {/* Support/Breakout Detection */}
   <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
@@ -1661,23 +1683,6 @@ if (pumpOrDumpAbove30) {
       : '-'}
   </td>
 
-  {/* EMA Bounces */}
-  <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
-    {s.ema14Bounce ? 'Yes' : 'No'}
-  </td>
-
-  <td className={`p-2 ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
-    {s.ema70Bounce ? 'Yes' : 'No'}
-  </td>
-
-  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.ema200Bounce ? 'Yes' : 'No'}
-  </td>
-
-  {/* Touched EMA200 */}
-  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>
 
   {/* Divergences */}
   <td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
