@@ -1480,11 +1480,14 @@ if (loading) {
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
 	<th
-  className="cursor-pointer"
-  onClick={() => handleSort('volumeSpike')}
+  onClick={() => {
+    setSortField('volumeSpike');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
-  Volume Spike
-</th>  
+  Volume Spike {sortField === 'volumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
   </tr>
 </thead>
     
