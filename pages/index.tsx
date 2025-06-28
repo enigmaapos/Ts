@@ -1653,10 +1653,10 @@ if (pumpOrDumpAbove30) {
 </td>	   
 
 <td className="p-2 text-center text-green-400 font-semibold">
-  {s.mainTrend === 'bullish' && s.hasBullishEngulfing ? 'Yes' : '-'}
+  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
 </td>
 <td className="p-2 text-center text-red-400 font-semibold">
-  {s.mainTrend === 'bearish' && s.hasBearishEngulfing ? 'Yes' : '-'}
+  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
 </td>
 
 	<td
