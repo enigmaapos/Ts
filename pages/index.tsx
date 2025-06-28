@@ -766,18 +766,22 @@ for (let i = 1; i < candlesToday.length - 1; i++) {
     curr.open > prev.close &&
     curr.close < prev.open;
 
-  const bullishConfirmed =
-    bullishEngulfing &&
-    isNextBullish &&
-    next.close > curr.close &&
-    curr.high === sessionHigh; // ✅ Must be today's highest high
+  const tolerance = 0.00001;
+const isAtHigh = Math.abs(curr.high - sessionHigh) < tolerance;
+const isAtLow = Math.abs(curr.low - sessionLow) < tolerance;
 
-  const bearishConfirmed =
-    bearishEngulfing &&
-    isNextBearish &&
-    next.close < curr.close &&
-    curr.low === sessionLow;   // ✅ Must be today's lowest low
+const bullishConfirmed =
+  bullishEngulfing &&
+  isNextBullish &&
+  next.close > curr.close &&
+  isAtHigh;
 
+const bearishConfirmed =
+  bearishEngulfing &&
+  isNextBearish &&
+  next.close < curr.close &&
+  isAtLow;
+	
   if (bullishConfirmed) {
     engulfingPatterns.push({ index: i, type: 'bullishConfirmed', candle: curr, confirm: next });
   } else if (bearishConfirmed) {
