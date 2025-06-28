@@ -1481,12 +1481,12 @@ if (loading) {
     <th className="p-2 text-center">Volume</th>
 	<th
   onClick={() => {
-    setSortField('volumeSpike');
+    setSortField('isVolumeSpike');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
-  Volume Spike {sortField === 'volumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
   </tr>
 </thead>
