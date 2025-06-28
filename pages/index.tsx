@@ -736,11 +736,24 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
 // ✅ Engulfing Candle Pattern Detection in Today’s Session
 const engulfingPatterns = [];
 
-// Step 1: Get today's session-wide high and low from all candles
-const sessionHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
-const sessionLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
+// Step 1: Get session-wide high/low and their indices
+let sessionHigh = -Infinity;
+let sessionLow = Infinity;
+let sessionHighIndex = -1;
+let sessionLowIndex = -1;
 
-// Step 2: Check engulfing patterns AND only accept those that are highest or lowest
+candlesToday.forEach((candle, idx) => {
+  if (candle.high > sessionHigh) {
+    sessionHigh = candle.high;
+    sessionHighIndex = idx;
+  }
+  if (candle.low < sessionLow) {
+    sessionLow = candle.low;
+    sessionLowIndex = idx;
+  }
+});
+
+// Step 2: Scan for engulfing patterns *only after* the high/low occurred
 for (let i = 1; i < candlesToday.length - 1; i++) {
   const prev = candlesToday[i - 1];
   const curr = candlesToday[i];
@@ -766,22 +779,19 @@ for (let i = 1; i < candlesToday.length - 1; i++) {
     curr.open > prev.close &&
     curr.close < prev.open;
 
-  const tolerance = 0.00001;
-const isAtHigh = Math.abs(curr.high - sessionHigh) < tolerance;
-const isAtLow = Math.abs(curr.low - sessionLow) < tolerance;
+  // ✅ Apply condition: pattern must come after the high or low
+  const bullishConfirmed =
+    bullishEngulfing &&
+    isNextBullish &&
+    next.close > curr.close &&
+    i > sessionHighIndex;
 
-const bullishConfirmed =
-  bullishEngulfing &&
-  isNextBullish &&
-  next.close > curr.close &&
-  isAtHigh;
+  const bearishConfirmed =
+    bearishEngulfing &&
+    isNextBearish &&
+    next.close < curr.close &&
+    i > sessionLowIndex;
 
-const bearishConfirmed =
-  bearishEngulfing &&
-  isNextBearish &&
-  next.close < curr.close &&
-  isAtLow;
-	
   if (bullishConfirmed) {
     engulfingPatterns.push({ index: i, type: 'bullishConfirmed', candle: curr, confirm: next });
   } else if (bearishConfirmed) {
@@ -791,7 +801,6 @@ const bearishConfirmed =
 
 const hasBullishEngulfing = engulfingPatterns.some(p => p.type === 'bullishConfirmed');
 const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfirmed');
-	      
 
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
