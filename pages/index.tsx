@@ -298,8 +298,8 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
   }	
 
 if (sortField === 'isVolumeSpike') {
-  valA = typeof a.volumeSpike === 'number' ? a.volumeSpike : -Infinity;
-  valB = typeof b.volumeSpike === 'number' ? b.volumeSpike : -Infinity;
+  valA = typeof a.isVolumeSpike === 'number' ? a.isVolumeSpike : -Infinity;
+  valB = typeof b.isVolumeSpike === 'number' ? b.isVolumeSpike : -Infinity;
   return sortOrder === 'asc' ? valA - valB : valB - valA;
 }
 
@@ -1695,10 +1695,10 @@ if (pumpOrDumpAbove30) {
   </td>
 <td
   className={`p-2 font-semibold ${
-    s.isVolumeSpike?.volumeSpike ? 'text-yellow-400' : 'text-gray-400'
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
   }`}
 >
-  {s.isVolumeSpike?.volumeSpike ? 'Spike' : '—'}
+  {s.isVolumeSpike ? 'Spike' : '—'}
 </td>
 </tr>
         );
