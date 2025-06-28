@@ -1402,7 +1402,7 @@ if (loading) {
           { label: 'MAX ZONE', key: 'MAX ZONE', count: signalCounts.maxZone, color: 'text-yellow-300' },
           { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
 { label: 'LOWEST ZONE', key: 'LOWEST ZONE', count: signalCounts.lowestZone, color: 'text-yellow-500' },
-	{ label: 'SPIKE/COLLAPSE ZONE', key: 'SPIKE/COLLAPSE ZONE', count: signalCounts.spikecollapseZone, color: 'text-orange-500' },
+	{ label: 'SPIKE/COLLAPSE ZONE', key: 'SPIKE/COLLAPSE ZONE', count: signalCounts.spikeCollapseZone, color: 'text-orange-500' },
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
