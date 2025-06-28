@@ -1653,10 +1653,10 @@ if (pumpOrDumpAbove30) {
 </td>	   
 
 <td className="p-2 text-center text-green-400 font-semibold">
-  {hasBullishEngulfing ? 'Yes' : '-'}
+  {s.hasBullishEngulfing ? 'Yes' : '-'}
 </td>
 <td className="p-2 text-center text-red-400 font-semibold">
-  {hasBearishEngulfing ? 'Yes' : '-'}
+  {s.hasBearishEngulfing ? 'Yes' : '-'}
 </td>		   
 
 	<td
