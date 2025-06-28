@@ -298,8 +298,8 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
   }	
 
 if (sortField === 'volumeSpike') {
-  valA = a.volumeSpike;
-  valB = b.volumeSpike;
+  valA = typeof a.volumeSpike === 'number' ? a.volumeSpike : -Infinity;
+  valB = typeof b.volumeSpike === 'number' ? b.volumeSpike : -Infinity;
 }
 
   if (valA == null) return 1;
