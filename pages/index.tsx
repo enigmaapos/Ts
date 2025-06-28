@@ -1692,13 +1692,11 @@ if (pumpOrDumpAbove30) {
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
       : '—'}
   </td>
-	<td
-  className={`p-2 font-semibold ${
-    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
-  }`}
->
-  {s.isVolumeSpike ? 'Spike' : '—'}
-</td>	   
+	<td className="px-1 py-0.5 text-center font-semibold">
+  {s.isVolumeSpike
+    ? `Spike (${s.volumeSpike?.toFixed(2)})`
+    : '—'}
+</td>
 </tr>
         );
       })}
