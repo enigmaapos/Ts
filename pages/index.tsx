@@ -300,6 +300,7 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
 if (sortField === 'volumeSpike') {
   valA = typeof a.volumeSpike === 'number' ? a.volumeSpike : -Infinity;
   valB = typeof b.volumeSpike === 'number' ? b.volumeSpike : -Infinity;
+  return sortOrder === 'asc' ? valA - valB : valB - valA;
 }
 
   if (valA == null) return 1;
@@ -1478,15 +1479,7 @@ if (loading) {
 
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
-	<th
-  onClick={() => {
-    setSortField('volumeSpike');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Volume Spike {sortField === 'volumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
+	
   </tr>
 </thead>
     
@@ -1692,10 +1685,12 @@ if (pumpOrDumpAbove30) {
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
       : '—'}
   </td>
-	<td className="px-1 py-0.5 text-center font-semibold">
-  {s.isVolumeSpike
-    ? `Spike (${s.volumeSpike?.toFixed(2)})`
-    : '—'}
+<td  
+  className={`p-2 font-semibold ${  
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'  
+  }`}  
+>  
+  {s.isVolumeSpike ? 'Spike' : '—'}  
 </td>
 </tr>
         );
