@@ -298,10 +298,9 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
   }	
 
 if (sortField === 'volumeSpike') {
-  valA = a.volumeSpike ? 1 : 0;
-  valB = b.volumeSpike ? 1 : 0;
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}	
+  valA = a.volumeSpike;
+  valB = b.volumeSpike;
+}
 
   if (valA == null) return 1;
   if (valB == null) return -1;
