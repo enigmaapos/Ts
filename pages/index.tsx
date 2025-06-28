@@ -696,7 +696,16 @@ if (highestVolumeCandlePrev) {
   console.log('No candles found in previous session.');
 }
 
-const highestVolumeColorPrev = highestVolumeCandlePrev?.volumeColor ?? 'neutral';	      
+const highestVolumeColorPrev = highestVolumeCandlePrev?.volumeColor ?? 'neutral';	  
+
+// === Step 5: Detect volume spike in current session ===
+const avgPrevVolume =
+  candlesPrev.reduce((sum, c) => sum + c.volume, 0) / candlesPrev.length;
+
+const latestCandle = candles[candles.length - 1];
+const recentVolume = latestCandle?.volume ?? 0;
+
+const isVolumeSpike = recentVolume > avgPrevVolume * 1.5; // You can tweak 1.5 threshold	      
 
 const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1190,6 +1199,7 @@ const bearishCollapse = detectBearishCollapse(
 		bearishDivergence,
 		bullishDivergence,
 		highestVolumeColorPrev,
+		isVolumeSpike,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1463,6 +1473,7 @@ if (loading) {
 
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
+	<th className="p-2 text-yellow-300">Volume Spike</th>  
   </tr>
 </thead>
     
@@ -1668,6 +1679,13 @@ if (pumpOrDumpAbove30) {
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
       : '—'}
   </td>
+	<td
+  className={`p-2 font-semibold ${
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+  }`}
+>
+  {s.isVolumeSpike ? 'Spike' : '—'}
+</td>	   
 </tr>
         );
       })}
