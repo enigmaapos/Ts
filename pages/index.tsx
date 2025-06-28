@@ -1695,10 +1695,10 @@ if (pumpOrDumpAbove30) {
   </td>
 <td
   className={`p-2 font-semibold ${
-    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+    s.isVolumeSpike?.volumeSpike ? 'text-yellow-400' : 'text-gray-400'
   }`}
 >
-  {s.isVolumeSpike ? 'Spike' : '—'}
+  {s.isVolumeSpike?.volumeSpike ? 'Spike' : '—'}
 </td>
 </tr>
         );
