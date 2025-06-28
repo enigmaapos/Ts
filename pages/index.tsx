@@ -1433,6 +1433,16 @@ if (loading) {
       RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
+	  <th
+  onClick={() => {
+    setSortField('isVolumeSpike');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+
     {/* More Static Columns */}
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>  
     <th className="px-1 py-0.5 text-center">Tested High</th>
@@ -1479,15 +1489,6 @@ if (loading) {
 
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
-	<th
-  onClick={() => {
-    setSortField('isVolumeSpike');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
   </tr>
 </thead>
     
@@ -1602,6 +1603,14 @@ if (pumpOrDumpAbove30) {
   </td>
 
 	<td
+  className={`p-2 font-semibold ${
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+  }`}
+>
+  {s.isVolumeSpike ? 'Spike' : '—'}
+</td>	   
+
+	<td
     className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
       signal.trim() === 'MAX ZONE'
         ? 'text-yellow-300'
@@ -1693,13 +1702,6 @@ if (pumpOrDumpAbove30) {
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
       : '—'}
   </td>
-<td
-  className={`p-2 font-semibold ${
-    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
-  }`}
->
-  {s.isVolumeSpike ? 'Spike' : '—'}
-</td>
 </tr>
         );
       })}
