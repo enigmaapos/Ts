@@ -297,6 +297,12 @@ const sortedSignals = [...filteredSignals].sort((a, b) => {
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }	
 
+if (sortField === 'volumeSpike') {
+  valA = a.volumeSpike ? 1 : 0;
+  valB = b.volumeSpike ? 1 : 0;
+  return sortOrder === 'asc' ? valA - valB : valB - valA;
+}	
+
   if (valA == null) return 1;
   if (valB == null) return -1;
 
@@ -1473,7 +1479,12 @@ if (loading) {
 
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
-	<th className="p-2 text-yellow-300">Volume Spike</th>  
+	<th
+  className="cursor-pointer"
+  onClick={() => handleSort('volumeSpike')}
+>
+  Volume Spike
+</th>  
   </tr>
 </thead>
     
