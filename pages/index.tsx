@@ -1263,6 +1263,7 @@ const bearishCollapse = detectBearishCollapse(
   bullishSpike,
   bearishCollapse,
   rsi14,
+rsi,		
   testedPrevHigh,
   testedPrevLow,
      isDoubleTop,
@@ -1693,9 +1694,21 @@ else if (
     {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
   </td>
 
-	       <td className="px-2 py-1 text-center">
-  {typeof s.rsi === 'number' ? s.rsi.toFixed(2) : '-'}
-</td> 
+	       <td
+  className={`px-2 py-1 text-center font-semibold ${
+    typeof s.rsi !== 'number'
+      ? 'text-gray-400'
+      : s.rsi > 50
+      ? 'text-green-400'
+      : 'text-red-400'
+  }`}
+>
+  {typeof s.rsi !== 'number'
+    ? 'N/A'
+    : s.rsi > 50
+    ? 'Above 50 (Bullish)'
+    : 'Below 50 (Bearish)'}
+</td>
 
 	<td
   className={`p-2 font-semibold ${
