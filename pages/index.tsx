@@ -1694,7 +1694,7 @@ else if (
   </td>
 
 	       <td className="px-2 py-1 text-center">
-  {typeof s.rsi14 === 'number' ? s.rsi14.toFixed(2) : '-'}
+  {typeof s.rsi === 'number' ? s.rsi.toFixed(2) : '-'}
 </td> 
 
 	<td
