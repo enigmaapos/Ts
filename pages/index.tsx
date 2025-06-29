@@ -1512,6 +1512,7 @@ if (loading) {
     >
       RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
+	    <th className="px-2 py-1 border border-gray-700 text-center">RSI14</th>
 
 	  <th
   onClick={() => {
@@ -1691,6 +1692,22 @@ else if (
     {dump && dump !== 0 ? `Dump: ${dump.toFixed(2)}` : ''}
     {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
   </td>
+
+	  <td
+          className={`px-2 py-1 text-center font-semibold ${
+            s.rsi14 > 50
+              ? 'text-green-400'
+              : s.rsi14 < 50
+              ? 'text-red-400'
+              : 'text-gray-400'
+          }`}
+        >
+          {s.rsi14 > 50
+            ? 'Above 50 (Bullish)'
+            : s.rsi14 < 50
+            ? 'Below 50 (Bearish)'
+            : 'Exactly 50'}
+        </td>	   
 
 	<td
   className={`p-2 font-semibold ${
