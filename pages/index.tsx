@@ -1879,15 +1879,15 @@ else if (
   </td>
 	  <td
   className={`px-1 py-0.5 text-center font-semibold ${
-    s.volumeDivergence?.divergence
-      ? s.volumeDivergence.type === 'bullish-volume'
+    s.bullishVolumeDivergence?.divergence
+      ? s.bullishVolumeDivergence.type === 'bullish-volume'
         ? 'text-green-400'
         : 'text-red-400'
       : 'text-gray-400'
   }`}
 >
-  {s.volumeDivergence?.divergence
-    ? s.volumeDivergence.type === 'bullish-volume'
+  {s.bullishVolumeDivergence?.divergence
+    ? s.bullishVolumeDivergence.type === 'bullish-volume'
       ? 'Bullish'
       : 'Bearish'
     : '—'}
