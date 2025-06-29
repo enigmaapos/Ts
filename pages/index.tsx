@@ -882,7 +882,15 @@ const PriceChange: React.FC<{
     ? 'text-red-500'
     : 'text-gray-400';
   const icon = isUp ? '📈' : isDown ? '📉' : '➖';
-}
+
+  return (
+    <span className={`font-semibold ${color}`}>
+      {showIcon && `${icon} `}
+      {isUp ? '+' : ''}
+      {changePercent}%
+    </span>
+  );
+};	
 		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
