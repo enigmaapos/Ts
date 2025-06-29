@@ -260,6 +260,11 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
+export function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
+  if (currentPrice === 0) return 0;
+  const change = ((currentPrice - price24hAgo) / currentPrice) * 100;
+  return parseFloat(change.toFixed(2));
+}
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -493,16 +498,14 @@ candles.forEach((c, i) => {
   // Volume is already assumed to be present as c.volume
 });
 
-	      function getFutures24hChange(symbol: string) {
-  try {
-    const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`);
-    const data = await res.json();
+    const ticker24h = await fetch(
+      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
+    ).then(res => res.json());
 
-    const currentPrice = parseFloat(data.lastPrice);
-    const price24hAgo = parseFloat(data.openPrice);
-    const priceChangePercent = parseFloat(data.priceChangePercent); // already provided
-
-    const priceChange = currentPrice - price24hAgo;
+    const currentPrice = parseFloat(ticker24h.lastPrice);
+    const price24hAgo = parseFloat(ticker24h.openPrice);
+    const priceChangePercent = parseFloat(ticker24h.priceChangePercent);
+	  const isUp = priceChangePercent > 0;    	      
 
 const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
@@ -863,7 +866,9 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
-		    
+	      
+const changePercent = get24hChangePercent(currentPrice, price24hAgo);
+	      		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
   if (len < window) return false;
@@ -1350,10 +1355,10 @@ latestRSI,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
-		currentPrice,
+		   currentPrice,
       price24hAgo,
-      priceChange,
       priceChangePercent,
+      isUp,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1562,6 +1567,7 @@ if (loading) {
       Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
+	    <th className="px-2 py-1 border border-gray-700 text-right">Current Price</th>
 	   <th className="px-1 py-0.5 text-center text-gray-300 font-medium">
   24h Change (%)
 </th>
@@ -1718,18 +1724,6 @@ else if (
     </div>
   </td>
 
-<td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.priceChangePercent > 0
-      ? 'text-green-500'
-      : s.priceChangePercent < 0
-      ? 'text-red-500'
-      : 'text-gray-400'
-  }`}
->
-  {s.priceChangePercent > 0 ? '+' : ''}
-  {s.priceChangePercent.toFixed(2)}%
-</td>		   
 		   
   {/* Pattern/Signal Columns */}
   <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
