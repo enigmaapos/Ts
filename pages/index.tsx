@@ -1380,7 +1380,7 @@ latestRSI,
 		hasBearishEngulfing,
 		currentPrice,
 		price24hAgo,
-		priceChangePercent,
+		PriceChange,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
