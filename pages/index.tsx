@@ -260,6 +260,13 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
+// helpers/priceUtils.ts
+function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
+  if (currentPrice === 0) return 0;
+  const change = ((currentPrice - price24hAgo) / currentPrice) * 100;
+  return parseFloat(change.toFixed(2));
+}
+
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -851,6 +858,17 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
+
+const PriceChange = ({ symbol, currentPrice, price24hAgo }: {
+  symbol: string;
+  currentPrice: number;
+  price24hAgo: number;
+}) => {
+  const changePercent = get24hChangePercent(currentPrice, price24hAgo);
+  const changeColor =
+    changePercent > 0 ? 'text-green-500' :
+    changePercent < 0 ? 'text-red-500' :
+    'text-gray-400';	      
 		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1338,6 +1356,8 @@ latestRSI,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
+		changePercent,
+		PriceChange,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1546,6 +1566,9 @@ if (loading) {
       Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
+	   <th className="p-2 border-b border-gray-700">Current Price</th>
+          <th className="p-2 border-b border-gray-700">24h Change</th> 
+
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Collapse</th>
     <th className="px-1 py-0.5 text-center">Spike</th>
@@ -1697,6 +1720,14 @@ else if (
       </button>
     </div>
   </td>
+
+	   <td className="p-2 border-b border-gray-700">${s.currentPrice.toLocaleString()}</td>
+            <td className="p-2 border-b border-gray-700">
+              <PriceChange
+                currentPrice={s.currentPrice}
+                price24hAgo={s.price24hAgo}
+              />
+            </td>	   
 
   {/* Pattern/Signal Columns */}
   <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
