@@ -709,6 +709,15 @@ const rsiCurr = rsi14[rsi14.length - 1]; // Latest RSI from today
 const bearishDivergence = detectBearishDivergence(prevHigh, currHigh, rsiPrev, rsiCurr);
 const bullishDivergence = detectBullishDivergence(prevLow, currLow, rsiPrev, rsiCurr);
 
+// === Extract volumes from each session ===
+const volumesPrev = candlesPrev.map(c => c.volume);
+const volumesToday = candlesToday.map(c => c.volume);
+
+// === Get highest volume candle value from each session ===
+const volumePrev = Math.max(...volumesPrev);
+const volumeCurr = Math.max(...volumesToday);
+
+	      
 const bearishVolumeDivergence = detectBearishVolumeDivergence(prevHigh, currHigh, volumePrev, volumeCurr);
 const bullishVolumeDivergence = detectBullishVolumeDivergence(prevLow, currLow, volumePrev, volumeCurr);
 	      
