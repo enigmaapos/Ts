@@ -1781,14 +1781,15 @@ else if (
 
 
   {/* Divergences */}
-  <td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
-    {s.bearishDivergence?.divergence ? 'Yes' : 'No'}
-  </td>
+{/* Bearish Divergence */}
+<td className={`p-2 font-semibold ${s.mainTrend === 'bullish' && s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+  {s.mainTrend === 'bullish' && s.bearishDivergence?.divergence ? 'Yes' : '-'}
+</td>
 
-  <td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-    {s.bullishDivergence?.divergence ? 'Yes' : 'No'}
-  </td>
-
+{/* Bullish Divergence */}
+<td className={`p-2 font-semibold ${s.mainTrend === 'bearish' && s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+  {s.mainTrend === 'bearish' && s.bullishDivergence?.divergence ? 'Yes' : '-'}
+</td>
   {/* Volume */}
   <td
     className={`p-2 font-semibold ${
