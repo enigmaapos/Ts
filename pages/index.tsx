@@ -260,6 +260,12 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
+// ✅ Helper function to calculate 24h change
+function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
+  if (price24hAgo === 0) return 0;
+  const change = ((currentPrice - price24hAgo) / price24hAgo) * 100;
+  return parseFloat(change.toFixed(2));
+	    }
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -860,6 +866,23 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
+
+// ✅ Inline PriceChange component
+const PriceChange: React.FC<{
+  currentPrice: number;
+  price24hAgo: number;
+  showIcon?: boolean;
+}> = ({ currentPrice, price24hAgo, showIcon = true }) => {
+  const changePercent = get24hChangePercent(currentPrice, price24hAgo);
+  const isUp = changePercent > 0;
+  const isDown = changePercent < 0;
+  const color = isUp
+    ? 'text-green-500'
+    : isDown
+    ? 'text-red-500'
+    : 'text-gray-400';
+  const icon = isUp ? '📈' : isDown ? '📉' : '➖';
+}
 		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1713,13 +1736,15 @@ else if (
     </div>
   </td>
 
-	   <td className="p-2 border-b border-gray-700">${s.currentPrice.toLocaleString()}</td>
-            <td className="p-2 border-b border-gray-700">
+   <td className="p-2 text-right text-yellow-300">
+              ${s.currentPrice.toLocaleString()}
+            </td>
+            <td className="p-2 text-right">
               <PriceChange
                 currentPrice={s.currentPrice}
                 price24hAgo={s.price24hAgo}
               />
-            </td>	   
+            </td>
 
   {/* Pattern/Signal Columns */}
   <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
