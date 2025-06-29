@@ -491,7 +491,18 @@ candles.forEach((c, i) => {
       : 'neutral';
   
   // Volume is already assumed to be present as c.volume
-});	      
+});
+
+	      function getFutures24hChange(symbol: string) {
+  try {
+    const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`);
+    const data = await res.json();
+
+    const currentPrice = parseFloat(data.lastPrice);
+    const price24hAgo = parseFloat(data.openPrice);
+    const priceChangePercent = parseFloat(data.priceChangePercent); // already provided
+
+    const priceChange = currentPrice - price24hAgo;
 
 const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
@@ -1339,6 +1350,10 @@ latestRSI,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
+		currentPrice,
+      price24hAgo,
+      priceChange,
+      priceChangePercent,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1547,8 +1562,9 @@ if (loading) {
       Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
-	   <th className="p-2 border-b border-gray-700">Current Price</th>
-          <th className="p-2 border-b border-gray-700">24h Change</th> 
+	   <th className="px-1 py-0.5 text-center text-gray-300 font-medium">
+  24h Change (%)
+</th>
 
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Collapse</th>
@@ -1702,6 +1718,19 @@ else if (
     </div>
   </td>
 
+<td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.priceChangePercent > 0
+      ? 'text-green-500'
+      : s.priceChangePercent < 0
+      ? 'text-red-500'
+      : 'text-gray-400'
+  }`}
+>
+  {s.priceChangePercent > 0 ? '+' : ''}
+  {s.priceChangePercent.toFixed(2)}%
+</td>		   
+		   
   {/* Pattern/Signal Columns */}
   <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
     {s.bearishCollapse ? 'Yes' : 'No'}
