@@ -260,12 +260,6 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
-// ✅ Helper function to calculate 24h change
-function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
-  if (price24hAgo === 0) return 0;
-  const change = ((currentPrice - price24hAgo) / price24hAgo) * 100;
-  return parseFloat(change.toFixed(2));
-	    }
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -497,15 +491,7 @@ candles.forEach((c, i) => {
       : 'neutral';
   
   // Volume is already assumed to be present as c.volume
-});
-
-   const ticker24h = await fetch(
-      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
-    ).then(res => res.json());
-
-    const currentPrice = parseFloat(ticker24h.lastPrice);
-    const price24hAgo = parseFloat(ticker24h.openPrice);
-    const priceChangePercent = parseFloat(ticker24h.priceChangePercent);	      
+});	      
 
 const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
@@ -866,31 +852,6 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
-
-// ✅ Inline PriceChange component
-const PriceChange: React.FC<{
-  currentPrice: number;
-  price24hAgo: number;
-  showIcon?: boolean;
-}> = ({ currentPrice, price24hAgo, showIcon = true }) => {
-  const changePercent = get24hChangePercent(currentPrice, price24hAgo);
-  const isUp = changePercent > 0;
-  const isDown = changePercent < 0;
-  const color = isUp
-    ? 'text-green-500'
-    : isDown
-    ? 'text-red-500'
-    : 'text-gray-400';
-  const icon = isUp ? '📈' : isDown ? '📉' : '➖';
-
-  return (
-    <span className={`font-semibold ${color}`}>
-      {showIcon && `${icon} `}
-      {isUp ? '+' : ''}
-      {changePercent}%
-    </span>
-  );
-};	
 		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1378,9 +1339,6 @@ latestRSI,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
-		currentPrice,
-		price24hAgo,
-		PriceChange,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1743,16 +1701,6 @@ else if (
       </button>
     </div>
   </td>
-
-   <td className="p-2 text-right text-yellow-300">
-              ${s.currentPrice.toLocaleString()}
-            </td>
-            <td className="p-2 text-right">
-              <PriceChange
-                currentPrice={s.currentPrice}
-                price24hAgo={s.price24hAgo}
-              />
-            </td>
 
   {/* Pattern/Signal Columns */}
   <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
