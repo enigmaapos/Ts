@@ -1693,21 +1693,8 @@ else if (
     {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
   </td>
 
-	  <td
-          className={`px-2 py-1 text-center font-semibold ${
-            s.rsi14 > 50
-              ? 'text-green-400'
-              : s.rsi14 < 50
-              ? 'text-red-400'
-              : 'text-gray-400'
-          }`}
-        >
-          {s.rsi14 > 50
-            ? 'Above 50 (Bullish)'
-            : s.rsi14 < 50
-            ? 'Below 50 (Bearish)'
-            : 'Exactly 50'}
-        </td>	   
+	     <td className="px-2 py-1 text-center">
+          {s.rsi14 ? s.rsi14.toFixed(2) : '-'}
 
 	<td
   className={`p-2 font-semibold ${
