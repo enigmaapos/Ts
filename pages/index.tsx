@@ -260,6 +260,12 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
+// helpers/priceUtils.ts
+function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
+  if (currentPrice === 0) return 0;
+  const change = ((currentPrice - price24hAgo) / currentPrice) * 100;
+  return parseFloat(change.toFixed(2));
+}	      
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -853,13 +859,6 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
 
-// helpers/priceUtils.ts
-function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
-  if (currentPrice === 0) return 0;
-  const change = ((currentPrice - price24hAgo) / currentPrice) * 100;
-  return parseFloat(change.toFixed(2));
-}	      
-
 const PriceChange = ({ currentPrice, price24hAgo }: {
   currentPrice: number;
   price24hAgo: number;
@@ -1356,7 +1355,6 @@ latestRSI,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
-		changePercent,
 		PriceChange,
 };
       } catch (err) {
