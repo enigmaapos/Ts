@@ -1354,8 +1354,7 @@ latestRSI,
 		highestVolumeColorPrev,
 		isVolumeSpike,
 		hasBullishEngulfing,
-		hasBearishEngulfing,
-		PriceChange,
+		hasBearishEngulfing,		
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
