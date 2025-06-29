@@ -1695,16 +1695,16 @@ else if (
 
 	       <td
   className={`px-2 py-1 text-center font-semibold ${
-    typeof s.rsi14 !== 'number'
+    typeof s.rsi !== 'number'
       ? 'text-gray-400'
-      : s.rsi14 > 50
+      : s.rsi > 50
       ? 'text-green-400'
       : 'text-red-400'
   }`}
 >
-  {typeof s.rsi14 !== 'number'
+  {typeof s.rsi !== 'number'
     ? 'N/A'
-    : s.rsi14 > 50
+    : s.rsi > 50
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
