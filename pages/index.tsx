@@ -859,8 +859,7 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
 
-const PriceChange = ({ symbol, currentPrice, price24hAgo }: {
-  symbol: string;
+const PriceChange = ({ currentPrice, price24hAgo }: {
   currentPrice: number;
   price24hAgo: number;
 }) => {
