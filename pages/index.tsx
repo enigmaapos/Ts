@@ -859,15 +859,19 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
 
-const PriceChange = ({ currentPrice, price24hAgo }: {
+const PriceChangeDisplay = ({ currentPrice, price24hAgo }: {
   currentPrice: number;
   price24hAgo: number;
 }) => {
   const changePercent = get24hChangePercent(currentPrice, price24hAgo);
-  const changeColor =
-    changePercent > 0 ? 'text-green-500' :
-    changePercent < 0 ? 'text-red-500' :
-    'text-gray-400';	      
+
+  const isUp = changePercent > 0;
+  const isDown = changePercent < 0;
+
+  const color = isUp ? 'text-green-500' : isDown ? 'text-red-500' : 'text-gray-400';
+  const icon = isUp ? '📈' : isDown ? '📉' : '➖';
+}
+  
 		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1354,7 +1358,9 @@ latestRSI,
 		highestVolumeColorPrev,
 		isVolumeSpike,
 		hasBullishEngulfing,
-		hasBearishEngulfing,		
+		hasBearishEngulfing,
+		currentPrice,
+		price24hAgo,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
