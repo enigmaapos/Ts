@@ -64,19 +64,6 @@ function calculateRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
-// Extract latest RSI14 per symbol
-function getSymbolsRSI14(data: SymbolCandles[]): RSIResult[] {
-  return data.map(({ symbol, candles }) => {
-    const closes = candles.map(c => c.close);
-    const rsi = calculateRSI(closes, 14);
-    const latestRSI = rsi.at(-1);
-    return {
-      symbol,
-      rsi14: typeof latestRSI === 'number' ? parseFloat(latestRSI.toFixed(2)) : '-',
-    };
-  });
-}
-
 
 function getMainTrend(
   ema70: number[],
@@ -816,8 +803,7 @@ const hasBullishEngulfing = engulfingPatterns.some(p => p.type === 'bullishConfi
 const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfirmed');
 
 // Sample component using the above
-const rsiData = getSymbolsRSI14(symbols);
-
+   const latestRSI = rsi14.at(-1);
 		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1280,7 +1266,7 @@ const bearishCollapse = detectBearishCollapse(
   bullishSpike,
   bearishCollapse,
   rsi14,
-rsiData,		
+latestRSI,		
   testedPrevHigh,
   testedPrevLow,
      isDoubleTop,
@@ -1713,16 +1699,16 @@ else if (
 
 	       <td
   className={`px-2 py-1 text-center font-semibold ${
-    typeof s.rsiData !== 'number'
+    typeof s.latestRSI !== 'number'
       ? 'text-gray-400'
-      : s.rsiData > 50
+      : s.latestRSI > 50
       ? 'text-green-400'
       : 'text-red-400'
   }`}
 >
-  {typeof s.rsiData !== 'number'
+  {typeof s.latestRSI !== 'number'
     ? 'N/A'
-    : s.rsiData > 50
+    : s.latestRSI > 50
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
