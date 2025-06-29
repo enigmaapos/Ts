@@ -224,6 +224,41 @@ function detectBullishDivergence(prevLow: number, currLow: number, prevRSI: numb
   return { divergence: false };
 }
 
+function detectBearishVolumeDivergence(prevHigh: number, currHigh: number, volumePrev: number, volumeCurr: number) {
+  const priceIncreased = currHigh > prevHigh;
+  const volumeDecreased = volumeCurr < volumePrev;
+
+  if (priceIncreased && volumeDecreased) {
+    return {
+      divergence: true,
+      type: 'bearish-volume',
+      prevHigh,
+      currHigh,
+      volumePrev,
+      volumeCurr,
+    };
+  }
+
+  return { divergence: false };
+}
+
+function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumePrev: number, volumeCurr: number) {
+  const priceDecreased = currLow < prevLow;
+  const volumeIncreased = volumeCurr > volumePrev;
+
+  if (priceDecreased && volumeIncreased) {
+    return {
+      divergence: true,
+      type: 'bullish-volume',
+      prevLow,
+      currLow,
+      volumePrev,
+      volumeCurr,
+    };
+  }
+
+  return { divergence: false };
+}
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -674,6 +709,9 @@ const rsiCurr = rsi14[rsi14.length - 1]; // Latest RSI from today
 const bearishDivergence = detectBearishDivergence(prevHigh, currHigh, rsiPrev, rsiCurr);
 const bullishDivergence = detectBullishDivergence(prevLow, currLow, rsiPrev, rsiCurr);
 
+const bearishVolumeDivergence = detectBearishVolumeDivergence(prevHigh, currHigh, volumePrev, volumeCurr);
+const bullishVolumeDivergence = detectBullishVolumeDivergence(prevLow, currLow, volumePrev, volumeCurr);
+	      
 // === Log results ===
 if (bearishDivergence.divergence) {
   console.log("🔻 Bearish Divergence Detected:", bearishDivergence);
@@ -1285,6 +1323,8 @@ latestRSI,
 		touchedEMA200Today,
 		bearishDivergence,
 		bullishDivergence,
+		bearishVolumeDivergence,
+		bullishVolumeDivergence,
 		highestVolumeColorPrev,
 		isVolumeSpike,
 		hasBullishEngulfing,
@@ -1579,6 +1619,9 @@ if (loading) {
 
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
+	<th className="px-1 py-0.5 bg-gray-800 text-center">
+  Volume Divergence
+</th>  
   </tr>
 </thead>
     
@@ -1825,6 +1868,21 @@ else if (
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
       : '—'}
   </td>
+	  <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.volumeDivergence?.divergence
+      ? s.volumeDivergence.type === 'bullish-volume'
+        ? 'text-green-400'
+        : 'text-red-400'
+      : 'text-gray-400'
+  }`}
+>
+  {s.volumeDivergence?.divergence
+    ? s.volumeDivergence.type === 'bullish-volume'
+      ? 'Bullish'
+      : 'Bearish'
+    : '—'}
+</td>
 </tr>
         );
       })}
