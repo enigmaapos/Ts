@@ -90,7 +90,6 @@ function getMainTrend(
   return lastClose >= lastEMA200 ? 'bullish' : 'bearish';
 }
 
-
 function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
 
@@ -106,86 +105,80 @@ function getRecentRSIDiff(rsi: number[], lookback = 14) {
   }
 
   const pumpStrength = recentHigh - recentLow;
-  const dumpStrength = recentLow - recentHigh;
+  const dumpStrength = Math.abs(recentLow - recentHigh);
+
+  const startRSI = recentRSI[0];
+  const endRSI = recentRSI[recentRSI.length - 1];
+  const direction = endRSI > startRSI ? 'pump' : endRSI < startRSI ? 'dump' : 'neutral';
+  const strength = Math.abs(endRSI - startRSI);
 
   return {
     recentHigh,
     recentLow,
     pumpStrength,
-    dumpStrength: Math.abs(dumpStrength)
+    dumpStrength,
+    direction,
+    strength
   };
 }
 
-const getSignal = (s: any): string => {
-  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-  const pump = pumpDump?.pumpStrength;
-  const dump = pumpDump?.dumpStrength;
+const getSignal = (s: any): string => {  
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;  
+  if (!pumpDump) return 'NO DATA';
 
-  const inRange = (val: number | undefined, min: number, max: number) =>
-    val !== undefined && val >= min && val <= max;
+  const direction = pumpDump.direction; // 'pump', 'dump', or 'neutral'  
+  const strength = pumpDump.strength;  
+  const pump = pumpDump.pumpStrength;  
+  const dump = pumpDump.dumpStrength;  
+  
+  const inRange = (val: number | undefined, min: number, max: number) =>  
+    val !== undefined && val >= min && val <= max;  
+  
+  const isAbove30 = (val: number | undefined) =>  
+    val !== undefined && val >= 30;  
+  
+  const pumpAbove30 = isAbove30(pump);
+  const dumpAbove30 = isAbove30(dump);
 
-  const isAbove30 = (val: number | undefined) =>
-    val !== undefined && val >= 30;
+  const pumpInRange_21_26 = inRange(pump, 21, 26);
+  const dumpInRange_21_26 = inRange(dump, 21, 26);
 
-  const pumpOrDumpInRange_21_26 = inRange(pump, 21, 26) || inRange(dump, 21, 26);
-  const pumpOrDumpAbove30 = isAbove30(pump) || isAbove30(dump);
+  const pumpInRange_1_10 = inRange(pump, 1, 10);
+  const dumpInRange_1_10 = inRange(dump, 1, 10);
 
- const {
-  mainTrend,
-  breakout,
-  testedPrevHigh,
-  testedPrevLow,
-  failedBullishBreak,
-  failedBearishBreak,
-  bullishReversal,
-  bearishReversal,
-  bullishBreakout,
-  bearishBreakout,
-  bullishSpike,
-  bearishCollapse,
-  isDoubleTop,
-  isDescendingTop,
-  isDoubleTopFailure,
-  isDoubleBottom,
-  isAscendingBottom,
-  isDoubleBottomFailure,
-  ema14Bounce,
-  ema70Bounce,
-  ema200Bounce,
-  bullishDivergence,
-  bearishDivergence,
-  highestVolumeColorPrev,
-touchedEMA200Today,	 
-} = s;
+  const pumpOrDumpInRange_17_19 = inRange(pump, 17, 19) || inRange(dump, 17, 19);
 
-
-// ✅ MAX ZONE (overextended)
-if	(pumpOrDumpAbove30)
-	 {
-  return 'MAX ZONE';
-}
-
-	// ✅ BALANCE ZONE
-if (pumpOrDumpInRange_21_26) {
-  return 'BALANCE ZONE';
-}
+  const {  
+    mainTrend, breakout, testedPrevHigh, testedPrevLow,  
+    failedBullishBreak, failedBearishBreak, bullishReversal,  
+    bearishReversal, bullishBreakout, bearishBreakout,  
+    bullishSpike, bearishCollapse, isDoubleTop, isDescendingTop,  
+    isDoubleTopFailure, isDoubleBottom, isAscendingBottom,  
+    isDoubleBottomFailure, ema14Bounce, ema70Bounce, ema200Bounce,  
+    bullishDivergence, bearishDivergence, highestVolumeColorPrev,  
+    touchedEMA200Today,	   
+  } = s;  
+  
+  // ✅ MAX ZONE - Separate pump/dump  
+  if (direction === 'pump' && pumpAbove30) return 'MAX ZONE PUMP';  
+  if (direction === 'dump' && dumpAbove30) return 'MAX ZONE DUMP';  
+  
+  // ✅ BALANCE ZONE - Separate pump/dump  
+  if (pumpInRange_21_26 && direction === 'pump') return 'BALANCE ZONE PUMP';  
+  if (dumpInRange_21_26 && direction === 'dump') return 'BALANCE ZONE DUMP';  
+  
+  // ✅ LOWEST ZONE - Separate pump/dump
+  if (pumpInRange_1_10 && direction === 'pump') return 'LOWEST ZONE PUMP';
+  if (dumpInRange_1_10 && direction === 'dump') return 'LOWEST ZONE DUMP';
+  
+  // ✅ SPIKE or COLLAPSE  
+  if (pumpOrDumpInRange_17_19 && direction === 'pump') return 'SPIKE/COLLAPSE ZONE PUMP';
+if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
+    
+  return 'NO STRONG SIGNAL';  
+};
 
 
-// ✅ LOWEST ZONE 
-if (
-  (inRange(pump, 1, 10) || inRange(dump, 1, 10))
-) {
-  return 'LOWEST ZONE';
-}
-
-if (
-  (inRange(pump, 17, 19) || inRange(dump, 17, 19))
-) {
-  return 'SPIKE/COLLAPSE ZONE';
-}	
-
-return '';
-};	
 
 // === RSI-BASED DIVERGENCE (over lookback window) === //
 function detectBearishDivergence(prevHigh: number, currHigh: number, prevRSI: number, currRSI: number) {
@@ -423,27 +416,43 @@ const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).leng
 
 const signalCounts = useMemo(() => {
   const counts = {
-    maxZone: 0,
-    balanceZone: 0,
-    lowestZone: 0,
-    spikeCollapseZone: 0,
+    maxZonePump: 0,
+    maxZoneDump: 0,
+    balanceZonePump: 0,
+    balanceZoneDump: 0,
+    lowestZonePump: 0,
+    lowestZoneDump: 0,
+    spikeCollapsePump: 0,
+    spikeCollapseDump: 0,
   };
 
   signals.forEach((s: any) => {
     const signal = getSignal(s)?.trim().toUpperCase();
 
     switch (signal) {
-      case 'MAX ZONE':
-        counts.maxZone++;
+      case 'MAX ZONE PUMP':
+        counts.maxZonePump++;
         break;
-      case 'BALANCE ZONE':
-        counts.balanceZone++;
+      case 'MAX ZONE DUMP':
+        counts.maxZoneDump++;
         break;
-      case 'LOWEST ZONE':
-        counts.lowestZone++;
+      case 'BALANCE ZONE PUMP':
+        counts.balanceZonePump++;
         break;
-      case 'SPIKE/COLLAPSE ZONE':
-        counts.spikeCollapseZone++;
+      case 'BALANCE ZONE DUMP':
+        counts.balanceZoneDump++;
+        break;
+      case 'LOWEST ZONE PUMP':
+        counts.lowestZonePump++;
+        break;
+      case 'LOWEST ZONE DUMP':
+        counts.lowestZoneDump++;
+        break;
+      case 'SPIKE/COLLAPSE ZONE PUMP':
+        counts.spikeCollapsePump++;
+        break;
+      case 'SPIKE/COLLAPSE ZONE DUMP':
+        counts.spikeCollapseDump++;
         break;
     }
   });
@@ -1528,10 +1537,55 @@ if (loading) {
       <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
       <div className="flex flex-wrap gap-2">
         {[
-          { label: 'MAX ZONE', key: 'MAX ZONE', count: signalCounts.maxZone, color: 'text-yellow-300' },
-          { label: 'BALANCE ZONE', key: 'BALANCE ZONE', count: signalCounts.balanceZone, color: 'text-purple-300' },
-{ label: 'LOWEST ZONE', key: 'LOWEST ZONE', count: signalCounts.lowestZone, color: 'text-yellow-500' },
-	{ label: 'SPIKE/COLLAPSE ZONE', key: 'SPIKE/COLLAPSE ZONE', count: signalCounts.spikeCollapseZone, color: 'text-orange-500' },
+  {
+    label: 'MAX ZONE PUMP',
+    key: 'MAX ZONE PUMP',
+    count: signalCounts.maxZonePump,
+    color: 'text-yellow-300',
+  },
+  {
+    label: 'MAX ZONE DUMP',
+    key: 'MAX ZONE DUMP',
+    count: signalCounts.maxZoneDump,
+    color: 'text-yellow-400',
+  },
+  {
+    label: 'BALANCE ZONE PUMP',
+    key: 'BALANCE ZONE PUMP',
+    count: signalCounts.balanceZonePump,
+    color: 'text-purple-300',
+  },
+  {
+    label: 'BALANCE ZONE DUMP',
+    key: 'BALANCE ZONE DUMP',
+    count: signalCounts.balanceZoneDump,
+    color: 'text-purple-400',
+  },
+  {
+    label: 'LOWEST ZONE PUMP',
+    key: 'LOWEST ZONE PUMP',
+    count: signalCounts.lowestZonePump,
+    color: 'text-yellow-500',
+  },
+  {
+    label: 'LOWEST ZONE DUMP',
+    key: 'LOWEST ZONE DUMP',
+    count: signalCounts.lowestZoneDump,
+    color: 'text-yellow-600',
+  },
+  {
+    label: 'SPIKE/COLLAPSE ZONE PUMP',
+    key: 'SPIKE/COLLAPSE ZONE PUMP',
+    count: signalCounts.spikeCollapsePump,
+    color: 'text-orange-400',
+  },
+  {
+    label: 'SPIKE/COLLAPSE ZONE DUMP',
+    key: 'SPIKE/COLLAPSE ZONE DUMP',
+    count: signalCounts.spikeCollapseDump,
+    color: 'text-orange-500',
+  },
+	      
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1698,38 +1752,61 @@ if (loading) {
       {filteredAndSortedSignals.map((s: any) => {
         const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
         const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-        const pump = pumpDump?.pumpStrength;
-        const dump = pumpDump?.dumpStrength;
+const pump = pumpDump?.pumpStrength;
+const dump = pumpDump?.dumpStrength;
+const direction = pumpDump?.direction;
 
-        const inRange = (val: number | undefined, min: number, max: number) =>
-          val !== undefined && val >= min && val <= max;
+const inRange = (val: number | undefined, min: number, max: number) =>
+  val !== undefined && val >= min && val <= max;
 
-	
+const isAbove30 = (val: number | undefined) => val !== undefined && val >= 35;
+const validPump = pump !== undefined && pump !== 0;
+const validDump = dump !== undefined && dump !== 0;
 
-        const isAbove30 = (val: number | undefined) => val !== undefined && val >= 35;
-        const validPump = pump !== undefined && pump !== 0;
-        const validDump = dump !== undefined && dump !== 0;
-	  // ✅ Early return: skip rendering if both are invalid or 0
-  if (!validPump && !validDump) return null;
-        const pumpOrDumpBalance = inRange(pump, 21, 26) || inRange(dump, 21, 26);
-        const pumpOrDumpAbove30 = isAbove30(pump) || isAbove30(dump);
+// ✅ Early return: skip rendering if both are invalid or 0
+if (!validPump && !validDump) return null;
 
-	let signal = '';
+const pumpInRange_21_26 = inRange(pump, 21, 26);
+const dumpInRange_21_26 = inRange(dump, 21, 26);
+const pumpAbove30 = isAbove30(pump);
+const dumpAbove30 = isAbove30(dump);
 
-if (pumpOrDumpAbove30) {
-  signal = 'MAX ZONE';
-} else if (pumpOrDumpBalance) {
-  signal = 'BALANCE ZONE';
-} else if (
-  inRange(pump, 1, 10) || inRange(dump, 1, 10)
-) {
-  signal = 'LOWEST ZONE';
-		}
-else if (
-  inRange(pump, 17, 19) || inRange(dump, 1, 19)
-) {
-  signal = 'SPIKE/COLLAPSE ZONE';
-		}	
+const pumpInRange_1_10 = inRange(pump, 1, 10);
+const dumpInRange_1_10 = inRange(dump, 1, 10);
+
+const pumpInRange_17_19 = inRange(pump, 17, 19);
+const dumpInRange_17_19 = inRange(dump, 17, 19);
+
+let signal = '';
+
+// ✅ MAX ZONE
+if (direction === 'pump' && pumpAbove30) {
+  signal = 'MAX ZONE PUMP';
+} else if (direction === 'dump' && dumpAbove30) {
+  signal = 'MAX ZONE DUMP';
+}
+
+// ✅ BALANCE ZONE
+else if (direction === 'pump' && pumpInRange_21_26) {
+  signal = 'BALANCE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_21_26) {
+  signal = 'BALANCE ZONE DUMP';
+}
+
+// ✅ LOWEST ZONE
+else if (direction === 'pump' && pumpInRange_1_10) {
+  signal = 'LOWEST ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_1_10) {
+  signal = 'LOWEST ZONE DUMP';
+}
+
+// ✅ SPIKE / COLLAPSE
+else if (direction === 'pump' && pumpInRange_17_19) {
+  signal = 'SPIKE/COLLAPSE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_17_19) {
+  signal = 'SPIKE/COLLAPSE ZONE DUMP';
+}
+
 	
 
         return (
@@ -1846,20 +1923,28 @@ else if (
 </td>
 
 	<td
-    className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-      signal.trim() === 'MAX ZONE'
-        ? 'text-yellow-300'
-        : signal.trim() === 'BALANCE ZONE'
-        ? 'text-purple-400 font-bold'
-        : signal.trim() === 'LOWEST ZONE'
-        ? 'text-green-500 font-bold'
-	    : signal.trim() === 'SPIKE/COLLAPSE ZONE'
-        ? 'text-orange-500 font-bold'
-        : 'text-gray-500'
-    }`}
-  >
-    {signal.trim()}
-  </td>	 
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : signal.trim() === 'SPIKE/COLLAPSE ZONE PUMP'
+      ? 'text-orange-400 font-bold'
+      : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
+      ? 'text-orange-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>
 
 	  {/* EMA Bounces */}
   <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
