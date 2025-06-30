@@ -583,12 +583,21 @@ const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessio
         const prevSessionLow = candlesPrev.length > 0 ? Math.min(...candlesPrev.map(c => c.low)) : null;
         const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
 
-	  // ✅ Get the last candle from previous session
-const lastPrevCandle = candlesPrev.length > 0 ? candlesPrev[candlesPrev.length - 1] : null;
+	     // Filter all candles that fall within the previous session range
+const prevSessionCandles = allCandles.filter((candle) => {
+  return candle.timestamp >= prevSessionStart && candle.timestamp <= prevSessionEnd;
+});
 
-// ✅ Detect if it closed green (bullish) or red (bearish)
-const prevClosedGreen = lastPrevCandle ? lastPrevCandle.close > lastPrevCandle.open : null;
-const prevClosedRed = lastPrevCandle ? lastPrevCandle.close < lastPrevCandle.open : null;    
+let prevClosedGreen: boolean | null = null;
+let prevClosedRed: boolean | null = null;
+
+if (prevSessionCandles.length >= 2) {
+  const firstCandle = prevSessionCandles[0];
+  const lastCandle = prevSessionCandles[prevSessionCandles.length - 1];
+
+  prevClosedGreen = lastCandle.close > firstCandle.open;
+  prevClosedRed = lastCandle.close < firstCandle.open;
+} 
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
