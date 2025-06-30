@@ -281,7 +281,7 @@ function getUTCMillis(dt: Date): number {
   return Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate(), dt.getUTCHours(), dt.getUTCMinutes());
 }
 
-function getSessions() {
+function getSessionss() {
   const now = new Date();
   const today8am = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8));
   const tomorrow745am = new Date(today8am.getTime() + 24 * 60 * 60 * 1000 - 15 * 60 * 1000);
