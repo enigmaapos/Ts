@@ -584,7 +584,7 @@ const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessio
         const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
 
 	     // Filter all candles that fall within the previous session range
-const prevSessionCandles = allCandles.filter((candle) => {
+const prevSessionCandles = candles.filter((candle) => {
   return candle.timestamp >= prevSessionStart && candle.timestamp <= prevSessionEnd;
 });
 
@@ -597,7 +597,7 @@ if (prevSessionCandles.length >= 2) {
 
   prevClosedGreen = lastCandle.close > firstCandle.open;
   prevClosedRed = lastCandle.close < firstCandle.open;
-} 
+}
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
