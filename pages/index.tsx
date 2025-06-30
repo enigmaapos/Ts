@@ -306,18 +306,6 @@ function getSessions() {
   };
 }
 
-// Binance fetch
-const res = await fetch(
-  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStart}&endTime=${prevSessionEnd}`
-);
-const binanceCandles = (await res.json()).map((c: any) => ({
-  timestamp: c[0],
-  open: +c[1],
-  high: +c[2],
-  low: +c[3],
-  close: +c[4],
-}));
-
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -593,6 +581,18 @@ candles.forEach((c, i) => {
     const ticker24h = await fetch(
       `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
     ).then(res => res.json());
+
+// Binance fetch
+const res = await fetch(
+  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStart}&endTime=${prevSessionEnd}`
+);
+const binanceCandles = (await res.json()).map((c: any) => ({
+  timestamp: c[0],
+  open: +c[1],
+  high: +c[2],
+  low: +c[3],
+  close: +c[4],
+}));	      
 
     const currentPrice = parseFloat(ticker24h.lastPrice);
     const price24hAgo = parseFloat(ticker24h.openPrice);
