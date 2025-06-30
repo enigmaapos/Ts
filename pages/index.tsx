@@ -645,7 +645,7 @@ const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
 };
 
 // Your candle data: replace with your internal logic
-const yourCandles = getYourCandleDataForPrevSession();
+const yourCandles = lastPrevCandle;
 
 // Compare
 const resultMismatched = compareLastCandle(yourCandles, binanceCandles);
