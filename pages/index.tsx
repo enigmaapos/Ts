@@ -370,8 +370,8 @@ if (sortField === 'isVolumeSpike') {
 
  // ✅ Sort by 24h change percent
   if (sortField === 'priceChangePercent') {
-    valA = a.priceChangePercent ? 1 : 0;
-    valB = b.priceChangePercent ? 1 : 0;
+   const valA = a.priceChangePercent ? 1 : 0;
+   const valB = b.priceChangePercent ? 1 : 0;
 	return sortOrder === 'asc' ? valA - valB : valB - valA;  
   }	
 
