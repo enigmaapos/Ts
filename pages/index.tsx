@@ -386,11 +386,24 @@ if (sortField === 'isVolumeSpike') {
   return 0;
 });
 
+const trendKeyToMainTrendValue: Record<string, string> = {
+  bullishMainTrend: 'bullish',
+  bearishMainTrend: 'bearish',
+};
+
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
-    if (trendFilter && !s[trendFilter]) return false;
-    if (signalFilter && getSignal(s) !== signalFilter) return false;
-    return true;
-  });
+  // 🔹 Trend filter: match mapped value (like 'bullish') with s.mainTrend
+  if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
+    if (s.mainTrend !== trendKeyToMainTrendValue[trendFilter]) return false;
+  }
+
+  // 🔹 Signal filter: must match getSignal(s)
+  if (signalFilter && getSignal(s) !== signalFilter) {
+    return false;
+  }
+
+  return true;
+});
   
   
   
