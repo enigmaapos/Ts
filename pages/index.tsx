@@ -580,7 +580,14 @@ const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessio
         const prevSessionLow = candlesPrev.length > 0 ? Math.min(...candlesPrev.map(c => c.low)) : null;
         const prevSessionHigh = candlesPrev.length > 0 ? Math.max(...candlesPrev.map(c => c.high)) : null;
 
-        const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
+	  // ✅ Get the last candle from previous session
+const lastPrevCandle = candlesPrev.length > 0 ? candlesPrev[candlesPrev.length - 1] : null;
+
+// ✅ Detect if it closed green (bullish) or red (bearish)
+const prevClosedGreen = lastPrevCandle ? lastPrevCandle.close > lastPrevCandle.open : null;
+const prevClosedRed = lastPrevCandle ? lastPrevCandle.close < lastPrevCandle.open : null;    
+       
+	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
 
@@ -1373,6 +1380,8 @@ const bearishCollapse = detectBearishCollapse(
   breakout,
   bullishBreakout,
   bearishBreakout,
+prevClosedGreen,
+prevClosedRed,		
   bullishReversalCount,
   bearishReversalCount,
   bullishReversal,
@@ -1677,6 +1686,7 @@ if (loading) {
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Bull BO</th>
     <th className="px-1 py-0.5 text-center">Bear BO</th>
+	 <th className="px-1 py-0.5 text-center">Prev Close</th> 
     <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
 {/* Bearish Divergence */}
@@ -1862,7 +1872,15 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
     {s.bearishBreakout ? 'Yes' : 'No'}
   </td>
-
+		   
+<td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
+		   
   <td className={`px-1 py-0.5 text-center ${
   s.mainTrend === 'bullish' ? 'text-green-500' : s.mainTrend === 'bearish' ? 'text-red-500' : 'text-gray-400'
 }`}>
