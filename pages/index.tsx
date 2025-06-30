@@ -306,6 +306,18 @@ function getSessions() {
   };
 }
 
+// Binance fetch
+const res = await fetch(
+  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStart}&endTime=${prevSessionEnd}`
+);
+const binanceCandles = (await res.json()).map((c: any) => ({
+  timestamp: c[0],
+  open: +c[1],
+  high: +c[2],
+  low: +c[3],
+  close: +c[4],
+}));
+
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -648,7 +660,7 @@ const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
 const yourCandles = lastPrevCandle;
 
 // Compare
-const resultMismatched = compareLastCandle(yourCandles, candles);
+const resultMismatched = compareLastCandle(yourCandles, binanceCandles);
 console.log('Mismatch result:', resultMismatched);
 
 	      
