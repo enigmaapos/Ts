@@ -372,6 +372,7 @@ if (sortField === 'isVolumeSpike') {
   if (sortField === 'priceChangePercent') {
     valA = a.priceChangePercent;
     valB = b.priceChangePercent;
+	return sortOrder === 'asc' ? valA - valB : valB - valA;  
   }	
 
   if (valA == null) return 1;
