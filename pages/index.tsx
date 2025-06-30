@@ -1520,8 +1520,8 @@ if (loading) {
     <div>
       <p className="text-gray-400 mb-2 font-semibold">📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):</p>
       <div className="flex flex-wrap gap-2">
-        {[  { label: 'Bullish Trend', key: 'trendFilter', count: bullishMainTrendCount ?? 0, color: 'text-green-300' },
-  { label: 'Bearish Trend', key: 'trendFilter', count: bearishMainTrendCount ?? 0, color: 'text-red-300' },
+        {[  { label: 'Bullish Trend', key: 'bullishMainTrend', count: bullishMainTrendCount ?? 0, color: 'text-green-300' },
+  { label: 'Bearish Trend', key: 'bearishMainTrend', count: bearishMainTrendCount ?? 0, color: 'text-red-300' },
           { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
           { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
           { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
