@@ -277,6 +277,35 @@ const PriceChangePercent = ({ percent }: { percent: number }) => {
   );
 };
 
+function getUTCMillis(dt: Date): number {
+  return Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate(), dt.getUTCHours(), dt.getUTCMinutes());
+}
+
+function getSessions() {
+  const now = new Date();
+  const today8am = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8));
+  const tomorrow745am = new Date(today8am.getTime() + 24 * 60 * 60 * 1000 - 15 * 60 * 1000);
+
+  let sessionStart, sessionEnd;
+  if (now >= today8am) {
+    sessionStart = today8am;
+    sessionEnd = tomorrow745am;
+  } else {
+    sessionStart = new Date(today8am.getTime() - 24 * 60 * 60 * 1000);
+    sessionEnd = new Date(today8am.getTime() - 15 * 60 * 1000);
+  }
+
+  const prevSessionStart = new Date(sessionStart.getTime() - 24 * 60 * 60 * 1000);
+  const prevSessionEnd = new Date(sessionEnd.getTime() - 24 * 60 * 60 * 1000);
+
+  return {
+    sessionStart: getUTCMillis(sessionStart),
+    sessionEnd: getUTCMillis(sessionEnd),
+    prevSessionStart: getUTCMillis(prevSessionStart),
+    prevSessionEnd: getUTCMillis(prevSessionEnd),
+  };
+}
+
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -591,6 +620,30 @@ const prevClosedRed = lastPrevCandle ? lastPrevCandle.close < lastPrevCandle.ope
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
 
+
+function compareLastCandle(yourCandles: any[], binanceCandles: any[]) {
+  if (!yourCandles.length || !binanceCandles.length) return null;
+
+  const yourLast = yourCandles[yourCandles.length - 1];
+  const binanceLast = binanceCandles[binanceCandles.length - 1];
+
+  return {
+    timestampMatch: yourLast.timestamp === binanceLast.timestamp,
+    openMatch: yourLast.open === binanceLast.open,
+    closeMatch: yourLast.close === binanceLast.close,
+    your: yourLast,
+    binance: binanceLast,
+  };
+}	      
+
+// Your candle data: replace with your internal logic
+const yourCandles = getYourCandleDataForPrevSession();
+
+// Compare
+const resultMismatched = compareLastCandle(yourCandles, binanceCandles);
+console.log('Mismatch result:', resultMismatched);
+
+	      
           const failedBullishBreak =
     todaysHighestHigh !== null &&
     prevSessionHigh !== null &&
@@ -1418,6 +1471,7 @@ latestRSI,
       price24hAgo,
       priceChangePercent,
       isUp,
+		resultMismatched,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1686,6 +1740,7 @@ if (loading) {
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Bull BO</th>
     <th className="px-1 py-0.5 text-center">Bear BO</th>
+	   <th className="px-2 py-1 text-center">Mismatch</th> 
 	 <th className="px-1 py-0.5 text-center">Prev Close</th> 
     <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
@@ -1871,6 +1926,14 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 
   <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
     {s.bearishBreakout ? 'Yes' : 'No'}
+  </td>
+		   
+  <td className="px-2 py-1 text-center font-semibold">
+    {!s.resultMismatched
+      ? 'N/A'
+      : !s.resultMismatched.timestampMatch || !s.resultMismatched.openMatch || !s.resultMismatched.closeMatch
+      ? '⚠️ MISMATCH'
+      : '✅ Match'}
   </td>
 		   
 <td
