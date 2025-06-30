@@ -368,6 +368,12 @@ if (sortField === 'isVolumeSpike') {
   return sortOrder === 'asc' ? valA - valB : valB - valA;
 }
 
+ // ✅ Sort by 24h change percent
+  if (sortField === 'priceChangePercent') {
+    valA = a.priceChangePercent;
+    valB = b.priceChangePercent;
+  }	
+
   if (valA == null) return 1;
   if (valB == null) return -1;
 
@@ -1585,8 +1591,14 @@ if (loading) {
     </th>
 
 	    <th className="px-2 py-1 border border-gray-700 text-right">Current Price</th>
-	   <th className="px-1 py-0.5 text-center text-gray-300 font-medium">
-  24h Change (%)
+	   <th
+  onClick={() => {
+    setSortField('priceChangePercent');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 
     {/* Static Columns */}
