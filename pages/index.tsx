@@ -621,7 +621,7 @@ const prevClosedRed = lastPrevCandle ? lastPrevCandle.close < lastPrevCandle.ope
         const breakout = bullishBreakout || bearishBreakout;
 
 
-function compareLastCandle(yourCandles: any[], binanceCandles: any[]) {
+const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
   if (!yourCandles.length || !binanceCandles.length) return null;
 
   const yourLast = yourCandles[yourCandles.length - 1];
@@ -631,10 +631,18 @@ function compareLastCandle(yourCandles: any[], binanceCandles: any[]) {
     timestampMatch: yourLast.timestamp === binanceLast.timestamp,
     openMatch: yourLast.open === binanceLast.open,
     closeMatch: yourLast.close === binanceLast.close,
-    your: yourLast,
-    binance: binanceLast,
+    your: {
+      timestamp: yourLast.timestamp,
+      open: yourLast.open,
+      close: yourLast.close,
+    },
+    binance: {
+      timestamp: binanceLast.timestamp,
+      open: binanceLast.open,
+      close: binanceLast.close,
+    },
   };
-}	      
+};
 
 // Your candle data: replace with your internal logic
 const yourCandles = getYourCandleDataForPrevSession();
