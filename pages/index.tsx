@@ -174,11 +174,6 @@ const getSignal = (s: any): string => {
   // ✅ SPIKE or COLLAPSE  
   if (pumpOrDumpInRange_17_19 && direction === 'pump') return 'SPIKE/COLLAPSE ZONE PUMP';
 if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
-
-  // ✅ PRICE PUMP SIGNAL BASED ON 4% PRICE CHANGE
-  if (priceChangePercent !== undefined && Number(priceChangePercent) >= 4) {
-    return 'PRICE UP 4%';
-  }	
   
 return 'NO STRONG SIGNAL';  
 };
@@ -442,7 +437,6 @@ const signalCounts = useMemo(() => {
     lowestZoneDump: 0,
     spikeCollapsePump: 0,
     spikeCollapseDump: 0,
-    priceUp4Percent: 0, // ✅ NEW
   };
 
   signals.forEach((s: any) => {
@@ -472,9 +466,6 @@ const signalCounts = useMemo(() => {
         break;
       case 'SPIKE/COLLAPSE ZONE DUMP':
         counts.spikeCollapseDump++;
-        break;
-      case 'PRICE UP 4%': // ✅ NEW
-        counts.priceUp4Percent++;
         break;
     }
   });
@@ -1608,7 +1599,6 @@ if (loading) {
     count: signalCounts.spikeCollapseDump,
     color: 'text-orange-500',
   },
-	{ label: 'Price Up 4%', key: 'PRICE UP 4%', count: signalCounts.priceUp4Percent, color: 'text-green-400' }
 	      
         ].map(({ label, key, count, color }) => (
           <button
@@ -1830,10 +1820,7 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 } else if (direction === 'dump' && dumpInRange_17_19) {
   signal = 'SPIKE/COLLAPSE ZONE DUMP';
 }
-// ✅ PRICE UP 4%
-else if (priceChangePercent !== undefined && priceChangePercent >= 4) {
-  signal = 'PRICE UP 4%';
-}
+
 	
 
         return (
@@ -1965,8 +1952,6 @@ else if (priceChangePercent !== undefined && priceChangePercent >= 4) {
       ? 'text-orange-400 font-bold'
       : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
       ? 'text-orange-500 font-bold'
-      : signal.trim() === 'PRICE UP 4%'
-      ? 'text-lime-400 font-bold'
       : 'text-gray-500'
   }`}
 >
