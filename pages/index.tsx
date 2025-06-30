@@ -301,8 +301,8 @@ function getSessions() {
   return {
     sessionStart: getUTCMillis(sessionStart),
     sessionEnd: getUTCMillis(sessionEnd),
-    prevSessionStart: getUTCMillis(prevSessionStart),
-    prevSessionEnd: getUTCMillis(prevSessionEnd),
+    prevSessionStarts: getUTCMillis(prevSessionStarts),
+    prevSessionEnds: getUTCMillis(prevSessionEnds),
   };
 }
 
