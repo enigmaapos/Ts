@@ -368,13 +368,16 @@ if (sortField === 'isVolumeSpike') {
   return sortOrder === 'asc' ? valA - valB : valB - valA;
 }
 
- // ✅ Sort by 24h change percent
-  if (sortField === 'priceChangePercent') {
-  valA = typeof a.priceChangePercent === 'number' ? a.priceChangePercent : parseFloat(a.priceChangePercent);
-  valB = typeof b.priceChangePercent === 'number' ? b.priceChangePercent : parseFloat(b.priceChangePercent);
+ if (sortField === 'priceChangePercent') {
+  valA = Number(a.priceChangePercent);
+  valB = Number(b.priceChangePercent);
+
+  // Handle NaN or undefined values
+  if (isNaN(valA)) return 1;
+  if (isNaN(valB)) return -1;
 
   return sortOrder === 'asc' ? valA - valB : valB - valA;
-	}
+}
 
   if (valA == null) return 1;
   if (valB == null) return -1;
