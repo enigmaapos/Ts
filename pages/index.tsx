@@ -1956,13 +1956,25 @@ else if (direction === 'pump' && pumpInRange_17_19) {
     {s.bearishBreakout ? 'Yes' : 'No'}
   </td>
 		   
-  <td className="px-2 py-1 text-center font-semibold">
-    {!s.resultMismatched
-      ? 'N/A'
-      : !s.resultMismatched.timestampMatch || !s.resultMismatched.openMatch || !s.resultMismatched.closeMatch
-      ? '⚠️ MISMATCH'
-      : '✅ Match'}
-  </td>
+<td
+  className={`px-2 py-1 text-center font-semibold ${
+    !s.resultMismatched
+      ? 'text-gray-400'
+      : !s.resultMismatched.timestampMatch ||
+        !s.resultMismatched.openMatch ||
+        !s.resultMismatched.closeMatch
+      ? 'text-red-500'
+      : 'text-green-500'
+  }`}
+>
+  {!s.resultMismatched
+    ? 'N/A'
+    : !s.resultMismatched.timestampMatch ||
+      !s.resultMismatched.openMatch ||
+      !s.resultMismatched.closeMatch
+    ? '⚠️ MISMATCH'
+    : '✅ Match'}
+</td>
 		   
 <td
   className={`px-1 py-0.5 text-center font-semibold ${
