@@ -1755,7 +1755,7 @@ if (loading) {
 const pump = pumpDump?.pumpStrength;
 const dump = pumpDump?.dumpStrength;
 const direction = pumpDump?.direction;
-
+	
 const inRange = (val: number | undefined, min: number, max: number) =>
   val !== undefined && val >= min && val <= max;
 
@@ -1871,25 +1871,26 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 
   {/* Pump / Dump */}
   <td
-    className={`text-center font-bold ${
-      pump !== undefined && pump > 30
-        ? 'text-green-400'
-        : dump !== undefined && dump > 30
-        ? 'text-red-400'
-        : inRange(pump, 21, 26) || inRange(dump, 21, 26)
-        ? 'text-blue-400'
-        : inRange(pump, 1, 10) || inRange(dump, 1, 10)
-        ? 'text-yellow-400'
-        : pump === undefined && dump === undefined
-        ? 'text-gray-500'
-        : 'text-white'
-    }`}
-  >
-    {pump && pump !== 0 ? `Pump: ${pump.toFixed(2)}` : ''}
-    {pump && dump ? ' | ' : ''}
-    {dump && dump !== 0 ? `Dump: ${dump.toFixed(2)}` : ''}
-    {(pump === undefined || pump === 0) && (dump === undefined || dump === 0) ? 'N/A' : ''}
-  </td>
+  className={`text-center font-bold ${
+    direction === 'pump' && pump !== undefined && pump > 30
+      ? 'text-green-400'
+      : direction === 'dump' && dump !== undefined && dump > 30
+      ? 'text-red-400'
+      : direction === 'pump' && inRange(pump, 21, 26)
+      ? 'text-blue-400'
+      : direction === 'dump' && inRange(dump, 21, 26)
+      ? 'text-blue-400'
+      : direction === 'pump' && inRange(pump, 1, 10)
+      ? 'text-yellow-400'
+      : direction === 'dump' && inRange(dump, 1, 10)
+      ? 'text-yellow-400'
+      : 'text-gray-500'
+  }`}
+>
+  {direction === 'pump' && pump !== undefined ? `Pump: ${pump.toFixed(2)}` : ''}
+  {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
+  {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
+</td>
 
 	       <td
   className={`px-2 py-1 text-center font-semibold ${
