@@ -652,7 +652,7 @@ const { prevSessionStarts, prevSessionEnds } = getSessionss();
 
 // 🔄 Use inside async function
 const res = await fetch(
-  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStart}&endTime=${prevSessionEnd}`
+  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStarts}&endTime=${prevSessionEnds}`
 );
 
 const binanceCandles = (await res.json()).map((c: any) => ({
