@@ -373,6 +373,20 @@ if (sortField === 'isVolumeSpike') {
   return sortOrder === 'asc' ? valA - valB : valB - valA;
 }
 
+if (sortField === 'latestRSI') {
+  valA = typeof a.latestRSI === 'number' ? a.latestRSI : -Infinity;
+  valB = typeof b.latestRSI === 'number' ? b.latestRSI : -Infinity;
+  return sortOrder === 'asc' ? valA - valB : valB - valA;
+}
+
+if (sortField === 'prevClose') {
+  const getCloseValue = (item: any) =>
+    item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0;
+  valA = getCloseValue(a);
+  valB = getCloseValue(b);
+  return sortOrder === 'asc' ? valA - valB : valB - valA;
+}	
+
   if (valA == null) return 1;
   if (valB == null) return -1;
 
@@ -1684,7 +1698,12 @@ if (loading) {
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Bull BO</th>
     <th className="px-1 py-0.5 text-center">Bear BO</th>
-	 <th className="px-1 py-0.5 text-center">Prev Close</th> 
+	<th
+  className="px-1 py-0.5 text-center cursor-pointer"
+  onClick={() => handleSort('prevClose')}
+>
+  Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
     <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
 {/* Bearish Divergence */}
@@ -1719,8 +1738,12 @@ if (loading) {
     >
       RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
-	    <th className="px-2 py-1 border border-gray-700 text-center">RSI14</th>
-
+	    <th
+  className="px-2 py-1 border border-gray-700 text-center cursor-pointer"
+  onClick={() => handleSort('latestRSI')}
+>
+  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
 	  <th
   onClick={() => {
     setSortField('isVolumeSpike');
