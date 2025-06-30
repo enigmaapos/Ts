@@ -1699,8 +1699,11 @@ if (loading) {
     <th className="px-1 py-0.5 text-center">Bull BO</th>
     <th className="px-1 py-0.5 text-center">Bear BO</th>
 	<th
-  className="px-1 py-0.5 text-center cursor-pointer"
-  onClick={() => handleSort('prevClose')}
+  onClick={() => {
+    setSortField('prevClose');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
   Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
@@ -1739,8 +1742,11 @@ if (loading) {
       RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 	    <th
-  className="px-2 py-1 border border-gray-700 text-center cursor-pointer"
-  onClick={() => handleSort('latestRSI')}
+  onClick={() => {
+    setSortField('latestRSI');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
