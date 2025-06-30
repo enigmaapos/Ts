@@ -260,11 +260,29 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
-export function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
+function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
   if (currentPrice === 0) return 0;
   const change = ((currentPrice - price24hAgo) / currentPrice) * 100;
   return parseFloat(change.toFixed(2));
 }
+
+const PriceChangePercent = ({ percent }: { percent: number }) => {
+  const color =
+    percent > 0 ? 'text-green-500' :
+    percent < 0 ? 'text-red-500' :
+    'text-gray-400';
+
+  const icon =
+    percent > 0 ? '📈' :
+    percent < 0 ? '📉' :
+    '➖';
+
+  return (
+    <span className={`font-semibold ${color}`}>
+      {icon} {percent.toFixed(2)}%
+    </span>
+  );
+};
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -867,7 +885,6 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
 	      
-const changePercent = get24hChangePercent(currentPrice, price24hAgo);
 	      		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1724,6 +1741,10 @@ else if (
     </div>
   </td>
 
+  <td className="px-2 py-1 border-b border-gray-700 text-right">${s.currentPrice.toLocaleString()}</td>
+              <td className="px-2 py-1 border-b border-gray-700 text-center">
+                <PriceChangePercent percent={s.priceChangePercent} />
+              </td>		   
 		   
   {/* Pattern/Signal Columns */}
   <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
