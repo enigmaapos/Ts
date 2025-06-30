@@ -1675,14 +1675,32 @@ if (loading) {
 </th>
 
     {/* Static Columns */}
-    <th className="px-1 py-0.5 text-center">Collapse</th>
-    <th className="px-1 py-0.5 text-center">Spike</th>
     <th className="px-1 py-0.5 text-center">Bull BO</th>
     <th className="px-1 py-0.5 text-center">Bear BO</th>
-    <th className="px-1 py-0.5 text-center">Bear Rev</th>
-    <th className="px-1 py-0.5 text-center">Bull Rev</th>
     <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
+{/* Bearish Divergence */}
+    <th
+      onClick={() => {
+        setSortField('bearishDivergence');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* Bullish Divergence */}
+    <th
+      onClick={() => {
+        setSortField('bullishDivergence');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+	  
     {/* RSI Pump | Dump */}
     <th
       onClick={() => {
@@ -1731,29 +1749,11 @@ if (loading) {
     <th className="px-1 py-0.5 text-center">Breakout Fail</th>
     <th className="px-1 py-0.5 text-center">Top Pattern</th>
     <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
+	      <th className="px-1 py-0.5 text-center">Collapse</th>
+    <th className="px-1 py-0.5 text-center">Spike</th>
+<th className="px-1 py-0.5 text-center">Bear Rev</th>
+    <th className="px-1 py-0.5 text-center">Bull Rev</th>
 	  
-    {/* Bearish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bearishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-    {/* Bullish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bullishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
 	<th className="px-1 py-0.5 bg-gray-800 text-center">
@@ -1853,30 +1853,14 @@ else if (direction === 'pump' && pumpInRange_17_19) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>		   
-		   
-  {/* Pattern/Signal Columns */}
-  <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-    {s.bearishCollapse ? 'Yes' : 'No'}
-  </td>
 
-  <td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-    {s.bullishSpike ? 'Yes' : 'No'}
-  </td>
 
   <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
     {s.bullishBreakout ? 'Yes' : 'No'}
-  </td>
+  </td>	   
 
   <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
     {s.bearishBreakout ? 'Yes' : 'No'}
-  </td>
-
-  <td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-    {s.bearishReversal ? 'Yes' : 'No'}
-  </td>
-
-  <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-    {s.bullishReversal ? 'Yes' : 'No'}
   </td>
 
   <td className={`px-1 py-0.5 text-center ${
@@ -1884,6 +1868,17 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 }`}>
   {s.mainTrend ?? 'N/A'}
 </td>
+
+{/* Divergences */}
+{/* Bearish Divergence */}
+<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+ {s.bearishDivergence?.divergence ? 'Yes' : '-'}
+</td>
+
+{/* Bullish Divergence */}
+<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+{s.bullishDivergence?.divergence ? 'Yes' : '-'}
+</td>		   
 
   {/* Pump / Dump */}
   <td
@@ -2019,17 +2014,23 @@ else if (direction === 'pump' && pumpInRange_17_19) {
       : '-'}
   </td>
 
+	  {/* Pattern/Signal Columns */}
+  <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+    {s.bearishCollapse ? 'Yes' : 'No'}
+  </td>
 
-  {/* Divergences */}
-{/* Bearish Divergence */}
-<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
- {s.bearishDivergence?.divergence ? 'Yes' : '-'}
-</td>
+	<td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+    {s.bullishSpike ? 'Yes' : 'No'}
+  </td>
 
-{/* Bullish Divergence */}
-<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-{s.bullishDivergence?.divergence ? 'Yes' : '-'}
-</td>
+<td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+    {s.bearishReversal ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+    {s.bullishReversal ? 'Yes' : 'No'}
+  </td>
+  
   {/* Volume */}
   <td
     className={`p-2 font-semibold ${
