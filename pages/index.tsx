@@ -277,34 +277,6 @@ const PriceChangePercent = ({ percent }: { percent: number }) => {
   );
 };
 
-function getUTCMillis(dt: Date): number {
-  return Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate(), dt.getUTCHours(), dt.getUTCMinutes());
-}
-
-function getSessionss() {
-  const now = new Date();
-  const today8am = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8));
-  const tomorrow745am = new Date(today8am.getTime() + 24 * 60 * 60 * 1000 - 15 * 60 * 1000);
-
-  let sessionStart, sessionEnd;
-  if (now >= today8am) {
-    sessionStart = today8am;
-    sessionEnd = tomorrow745am;
-  } else {
-    sessionStart = new Date(today8am.getTime() - 24 * 60 * 60 * 1000);
-    sessionEnd = new Date(today8am.getTime() - 15 * 60 * 1000);
-  }
-
-  const prevSessionStarts = new Date(sessionStart.getTime() - 24 * 60 * 60 * 1000);
-  const prevSessionEnds = new Date(sessionEnd.getTime() - 24 * 60 * 60 * 1000);
-
-  return {
-    sessionStart: getUTCMillis(sessionStart),
-    sessionEnd: getUTCMillis(sessionEnd),
-    prevSessionStarts: getUTCMillis(prevSessionStarts),
-    prevSessionEnds: getUTCMillis(prevSessionEnds),
-  };
-}
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -621,56 +593,6 @@ const prevClosedRed = lastPrevCandle ? lastPrevCandle.close < lastPrevCandle.ope
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
         const breakout = bullishBreakout || bearishBreakout;
-
-
-// ✅ Candle Comparator
-const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
-  if (!yourCandles.length || !binanceCandles.length) return null;
-
-  const yourLast = yourCandles[yourCandles.length - 1];
-  const binanceLast = binanceCandles[binanceCandles.length - 1];
-
-  return {
-    timestampMatch: yourLast.timestamp === binanceLast.timestamp,
-    openMatch: yourLast.open === binanceLast.open,
-    closeMatch: yourLast.close === binanceLast.close,
-    your: {
-      timestamp: yourLast.timestamp,
-      open: yourLast.open,
-      close: yourLast.close,
-    },
-    binance: {
-      timestamp: binanceLast.timestamp,
-      open: binanceLast.open,
-      close: binanceLast.close,
-    },
-  };
-};
-
-// ✅ MAIN EXECUTION
-const { prevSessionStarts, prevSessionEnds } = getSessionss();
-
-// 🔄 Use inside async function
-const res = await fetch(
-  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStarts}&endTime=${prevSessionEnds}`
-);
-
-const binanceCandles = (await res.json()).map((c: any) => ({
-  timestamp: c[0],
-  open: +c[1],
-  high: +c[2],
-  low: +c[3],
-  close: +c[4],
-}));
-
-// 🔍 Replace with your actual candle data logic
-const yourCandles = lastPrevCandle; // e.g. from your internal system
-
-// 🧪 Compare last candle
-const resultMismatched = compareLastCandle(yourCandles, binanceCandles);
-console.log('Mismatch result:', resultMismatched);
-
-
 	      
           const failedBullishBreak =
     todaysHighestHigh !== null &&
@@ -1499,7 +1421,6 @@ latestRSI,
       price24hAgo,
       priceChangePercent,
       isUp,
-		resultMismatched,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1723,20 +1644,6 @@ if (loading) {
       </button>
     </div>
   </div>
-
-  {/* 📊 Summary Panel */}
-  <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span>📈 Bull Trend:</span>
-        <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span>📉 Bear Trend:</span>
-        <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
@@ -1768,7 +1675,6 @@ if (loading) {
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Bull BO</th>
     <th className="px-1 py-0.5 text-center">Bear BO</th>
-	   <th className="px-2 py-1 text-center">Mismatch</th> 
 	 <th className="px-1 py-0.5 text-center">Prev Close</th> 
     <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
@@ -1954,27 +1860,7 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 
   <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
     {s.bearishBreakout ? 'Yes' : 'No'}
-  </td>
-		   
-<td
-  className={`px-2 py-1 text-center font-semibold ${
-    !s.resultMismatched
-      ? 'text-gray-400'
-      : !s.resultMismatched.timestampMatch ||
-        !s.resultMismatched.openMatch ||
-        !s.resultMismatched.closeMatch
-      ? 'text-red-500'
-      : 'text-green-500'
-  }`}
->
-  {!s.resultMismatched
-    ? 'N/A'
-    : !s.resultMismatched.timestampMatch ||
-      !s.resultMismatched.openMatch ||
-      !s.resultMismatched.closeMatch
-    ? '⚠️ MISMATCH'
-    : '✅ Match'}
-</td>
+  </td>		   
 		   
 <td
   className={`px-1 py-0.5 text-center font-semibold ${
