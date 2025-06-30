@@ -1867,7 +1867,7 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   </td>
 
   <td className={`px-1 py-0.5 text-center ${
-  s.bullishMainTrend === 'bullish' ? 'text-green-500' : s.bearishMainTrend === 'bearish' ? 'text-red-500' : 'text-gray-400'
+  s.mainTrend === 'bullish' ? 'text-green-500' : s.mainTrend === 'bearish' ? 'text-red-500' : 'text-gray-400'
 }`}>
   {s.mainTrend ?? 'N/A'}
 </td>
