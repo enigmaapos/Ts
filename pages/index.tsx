@@ -648,7 +648,7 @@ const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
 const yourCandles = lastPrevCandle;
 
 // Compare
-const resultMismatched = compareLastCandle(yourCandles, binanceCandles);
+const resultMismatched = compareLastCandle(yourCandles, candles);
 console.log('Mismatch result:', resultMismatched);
 
 	      
