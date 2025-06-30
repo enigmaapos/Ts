@@ -295,8 +295,8 @@ function getSessions() {
     sessionEnd = new Date(today8am.getTime() - 15 * 60 * 1000);
   }
 
-  const prevSessionStart = new Date(sessionStart.getTime() - 24 * 60 * 60 * 1000);
-  const prevSessionEnd = new Date(sessionEnd.getTime() - 24 * 60 * 60 * 1000);
+  const prevSessionStarts = new Date(sessionStart.getTime() - 24 * 60 * 60 * 1000);
+  const prevSessionEnds = new Date(sessionEnd.getTime() - 24 * 60 * 60 * 1000);
 
   return {
     sessionStart: getUTCMillis(sessionStart),
@@ -582,17 +582,7 @@ candles.forEach((c, i) => {
       `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
     ).then(res => res.json());
 
-// Binance fetch
-const res = await fetch(
-  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStart}&endTime=${prevSessionEnd}`
-);
-const binanceCandles = (await res.json()).map((c: any) => ({
-  timestamp: c[0],
-  open: +c[1],
-  high: +c[2],
-  low: +c[3],
-  close: +c[4],
-}));	      
+
 
     const currentPrice = parseFloat(ticker24h.lastPrice);
     const price24hAgo = parseFloat(ticker24h.openPrice);
@@ -633,6 +623,7 @@ const prevClosedRed = lastPrevCandle ? lastPrevCandle.close < lastPrevCandle.ope
         const breakout = bullishBreakout || bearishBreakout;
 
 
+// ✅ Candle Comparator
 const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
   if (!yourCandles.length || !binanceCandles.length) return null;
 
@@ -656,12 +647,29 @@ const compareLastCandle = (yourCandles: any[], binanceCandles: any[]) => {
   };
 };
 
-// Your candle data: replace with your internal logic
-const yourCandles = lastPrevCandle;
+// ✅ MAIN EXECUTION
+const { prevSessionStarts, prevSessionEnds } = getSessionss();
 
-// Compare
+// 🔄 Use inside async function
+const res = await fetch(
+  `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${prevSessionStart}&endTime=${prevSessionEnd}`
+);
+
+const binanceCandles = (await res.json()).map((c: any) => ({
+  timestamp: c[0],
+  open: +c[1],
+  high: +c[2],
+  low: +c[3],
+  close: +c[4],
+}));
+
+// 🔍 Replace with your actual candle data logic
+const yourCandles = lastPrevCandle; // e.g. from your internal system
+
+// 🧪 Compare last candle
 const resultMismatched = compareLastCandle(yourCandles, binanceCandles);
 console.log('Mismatch result:', resultMismatched);
+
 
 	      
           const failedBullishBreak =
