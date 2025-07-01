@@ -65,7 +65,6 @@ function calculateRSI(closes: number[], period = 14): number[] {
 }
 
 function getMainTrend(
-  ema14: number[],
   ema70: number[],
   ema200: number[],
   closes: number[]
@@ -83,11 +82,11 @@ function getMainTrend(
     }
   }
 
-  // Fallback: compare latest EMA14 vs EMA200
-  const lastEMA14 = ema14[ema14.length - 1];
+  // Fallback: compare latest EMA70 vs EMA200
+  const lastEMA70 = ema70[ema70.length - 1];
   const lastEMA200 = ema200[ema200.length - 1];
 
-  return lastEMA14 >= lastEMA200 ? 'bullish' : 'bearish';
+  return lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish';
 }
 
 
@@ -597,7 +596,7 @@ const lastEMA200 = ema200.at(-1)!;
 
 
 // Main trend
-const mainTrend = getMainTrend(ema70, ema200);
+const mainTrend = getMainTrend(ema70, ema200, closes);
 
 
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
