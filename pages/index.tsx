@@ -64,31 +64,56 @@ function calculateRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
+type TrendResult = {
+  trend: 'bullish' | 'bearish';
+  type: 'support' | 'resistance';
+  crossoverPrice: number;
+};
+
 function getMainTrend(
   ema70: number[],
   ema200: number[],
   closes: number[]
-): 'bullish' | 'bearish' {
+): TrendResult {
   const len = ema70.length;
 
-  // Look for EMA70/EMA200 crossover
+  // Loop backward to detect the most recent EMA70/EMA200 crossover
   for (let i = len - 2; i >= 1; i--) {
-    if (ema70[i] <= ema200[i] && ema70[i + 1] > ema200[i + 1]) {
-      return 'bullish'; // Bullish crossover
+    const prevEMA70 = ema70[i];
+    const prevEMA200 = ema200[i];
+    const currEMA70 = ema70[i + 1];
+    const currEMA200 = ema200[i + 1];
+
+    // Bullish crossover: EMA70 crosses above EMA200
+    if (prevEMA70 <= prevEMA200 && currEMA70 > currEMA200) {
+      return {
+        trend: 'bullish',
+        type: 'support',
+        crossoverPrice: closes[i + 1],
+      };
     }
 
-    if (ema70[i] >= ema200[i] && ema70[i + 1] < ema200[i + 1]) {
-      return 'bearish'; // Bearish crossover
+    // Bearish crossover: EMA70 crosses below EMA200
+    if (prevEMA70 >= prevEMA200 && currEMA70 < currEMA200) {
+      return {
+        trend: 'bearish',
+        type: 'resistance',
+        crossoverPrice: closes[i + 1],
+      };
     }
   }
 
-  // Fallback: compare latest EMA70 vs EMA200
-  const lastEMA70 = ema70[ema70.length - 1];
-  const lastEMA200 = ema200[ema200.length - 1];
+  // Fallback: no crossover found, use latest EMA70 vs EMA200
+  const lastEMA70 = ema70[len - 1];
+  const lastEMA200 = ema200[len - 1];
+  const lastClose = closes[closes.length - 1];
 
-  return lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish';
+  return {
+    trend: lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish',
+    type: lastEMA70 >= lastEMA200 ? 'support' : 'resistance',
+    crossoverPrice: lastClose,
+  };
 }
-
 
 function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
