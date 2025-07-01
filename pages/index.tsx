@@ -67,7 +67,6 @@ function calculateRSI(closes: number[], period = 14): number[] {
 function getMainTrend(
   ema70: number[],
   ema200: number[],
-  closes: number[]
 ): 'bullish' | 'bearish' | undefined {
   const len = ema70.length;
 
