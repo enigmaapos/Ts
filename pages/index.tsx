@@ -1709,27 +1709,8 @@ if (loading) {
 </th>
     <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
-{/* Bearish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bearishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-    {/* Bullish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bullishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
+	<th className="p-2 text-green-400">Bullish Engulfing</th>
+<th className="p-2 text-red-400">Bearish Engulfing</th>	    
 	  
     {/* RSI Pump | Dump */}
     <th
@@ -1759,8 +1740,28 @@ if (loading) {
 >
   Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
-<th className="p-2 text-green-400">Bullish Engulfing</th>
-<th className="p-2 text-red-400">Bearish Engulfing</th>	  
+
+{/* Bearish Divergence */}
+    <th
+      onClick={() => {
+        setSortField('bearishDivergence');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+
+    {/* Bullish Divergence */}
+    <th
+      onClick={() => {
+        setSortField('bullishDivergence');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>	  
 
     {/* More Static Columns */}
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>  
@@ -1914,16 +1915,12 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   {s.mainTrend ?? 'N/A'}
 </td>
 
-{/* Divergences */}
-{/* Bearish Divergence */}
-<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
- {s.bearishDivergence?.divergence ? 'Yes' : '-'}
+<td className="p-2 text-center text-green-400 font-semibold">
+  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
 </td>
-
-{/* Bullish Divergence */}
-<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-{s.bullishDivergence?.divergence ? 'Yes' : '-'}
-</td>		   
+<td className="p-2 text-center text-red-400 font-semibold">
+  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
+</td>		   	   
 
   {/* Pump / Dump */}
   <td
@@ -1972,12 +1969,16 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   {s.isVolumeSpike ? 'Spike' : '—'}
 </td>	   
 
-<td className="p-2 text-center text-green-400 font-semibold">
-  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
+{/* Divergences */}
+{/* Bearish Divergence */}
+<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+ {s.bearishDivergence?.divergence ? 'Yes' : '-'}
 </td>
-<td className="p-2 text-center text-red-400 font-semibold">
-  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
-</td>
+
+{/* Bullish Divergence */}
+<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+{s.bullishDivergence?.divergence ? 'Yes' : '-'}
+</td>	
 
 	<td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
