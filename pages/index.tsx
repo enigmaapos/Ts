@@ -1757,7 +1757,8 @@ if (loading) {
 >
   Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
-    <th className="px-1 py-0.5 text-center">Trend (200)</th>
+	  
+      <th className="px-1 py-0.5 text-center">Trend (200)</th>
 
 	<th className="p-2 text-green-400">Bullish Engulfing</th>
 <th className="p-2 text-red-400">Bearish Engulfing</th>	    
@@ -1966,10 +1967,14 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
 </td>
 		   
-  <td className={`px-1 py-0.5 text-center ${
-  s.mainTrend === 'bullish' ? 'text-green-500' : s.mainTrend === 'bearish' ? 'text-red-500' : 'text-gray-400'
+<td className={`px-1 py-0.5 text-center ${
+  s.mainTrend?.trend === 'bullish' ? 'text-green-500' :
+  s.mainTrend?.trend === 'bearish' ? 'text-red-500' :
+  'text-gray-400'
 }`}>
-  {s.mainTrend ?? 'N/A'}
+  {s.mainTrend
+    ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(2)}`
+    : 'N/A'}
 </td>
 
 <td className="p-2 text-center text-green-400 font-semibold">
