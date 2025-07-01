@@ -453,9 +453,8 @@ const filteredAndSortedSignals = sortedSignals.filter((s) => {
   
   
     // ✅ Declare counts here (inside the component, after filteredSignals)
-const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bullish').length;
-const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend === 'bearish').length;
-
+const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend && s.mainTrend.trend === 'bullish').length;
+const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend && s.mainTrend.trend === 'bearish').length;
 
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
