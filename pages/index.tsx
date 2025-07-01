@@ -156,7 +156,8 @@ const getSignal = (s: any): string => {
     isDoubleTopFailure, isDoubleBottom, isAscendingBottom,  
     isDoubleBottomFailure, ema14Bounce, ema70Bounce, ema200Bounce,  
     bullishDivergence, bearishDivergence, highestVolumeColorPrev,  
-    touchedEMA200Today, priceChangePercent,
+    touchedEMA200Today, priceChangePercent, prevClosedGreen,
+    prevClosedRed,
   } = s;  
   
   // ✅ MAX ZONE - Separate pump/dump  
@@ -173,9 +174,13 @@ const getSignal = (s: any): string => {
   
   // ✅ SPIKE or COLLAPSE  
   if (pumpOrDumpInRange_17_19 && direction === 'pump') return 'SPIKE/COLLAPSE ZONE PUMP';
-if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
-  
-return 'NO STRONG SIGNAL';  
+  if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
+
+  // ✅ MAIN TREND + PREVIOUS CLOSE STRATEGY
+  if (mainTrend === 'bullish' && prevClosedGreen) return 'SELL SIGNAL';
+  if (mainTrend === 'bearish' && prevClosedRed) return 'BUY SIGNAL';
+
+  return 'NO STRONG SIGNAL';  
 };
 
 
@@ -452,6 +457,8 @@ const signalCounts = useMemo(() => {
     lowestZoneDump: 0,
     spikeCollapsePump: 0,
     spikeCollapseDump: 0,
+    sellSignal: 0,      // ✅ Added
+    buySignal: 0,       // ✅ Added
   };
 
   signals.forEach((s: any) => {
@@ -481,6 +488,12 @@ const signalCounts = useMemo(() => {
         break;
       case 'SPIKE/COLLAPSE ZONE DUMP':
         counts.spikeCollapseDump++;
+        break;
+      case 'SELL SIGNAL':          // ✅ New case
+        counts.sellSignal++;
+        break;
+      case 'BUY SIGNAL':           // ✅ New case
+        counts.buySignal++;
         break;
     }
   });
@@ -1634,7 +1647,19 @@ if (loading) {
     count: signalCounts.spikeCollapseDump,
     color: 'text-orange-500',
   },
-	      
+	
+{
+  label: 'SELL SIGNAL',
+  key: 'SELL SIGNAL',
+  count: signalCounts.sellSignal,
+  color: 'text-red-400', // 🔻 You can customize this
+},
+{
+  label: 'BUY SIGNAL',
+  key: 'BUY SIGNAL',
+  count: signalCounts.buySignal,
+  color: 'text-green-400', // 🔺 You can customize this
+},	      
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1859,6 +1884,13 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   signal = 'SPIKE/COLLAPSE ZONE DUMP';
 }
 
+// ✅ MAIN TREND + PREVIOUS CLOSE SIGNALS
+else if (mainTrend === 'bullish' && prevClosedGreen) {
+  signal = 'SELL SIGNAL';
+} else if (mainTrend === 'bearish' && prevClosedRed) {
+  signal = 'BUY SIGNAL';
+}
+
 	
 
         return (
@@ -1980,7 +2012,7 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 {s.bullishDivergence?.divergence ? 'Yes' : '-'}
 </td>	
 
-	<td
+<td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
     signal.trim() === 'MAX ZONE PUMP'
       ? 'text-yellow-300'
@@ -1998,11 +2030,16 @@ else if (direction === 'pump' && pumpInRange_17_19) {
       ? 'text-orange-400 font-bold'
       : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
       ? 'text-orange-500 font-bold'
+      : signal.trim() === 'SELL SIGNAL'
+      ? 'text-red-400 font-bold'
+      : signal.trim() === 'BUY SIGNAL'
+      ? 'text-blue-400 font-bold'
       : 'text-gray-500'
   }`}
 >
   {signal.trim()}
-</td>
+</td>	
+	
 	  {/* EMA Bounces */}
   <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
     {s.ema14Bounce ? 'Yes' : 'No'}
