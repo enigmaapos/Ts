@@ -1885,9 +1885,9 @@ else if (direction === 'pump' && pumpInRange_17_19) {
 }
 
 // ✅ MAIN TREND + PREVIOUS CLOSE SIGNALS
-else if (mainTrend === 'bullish' && prevClosedGreen) {
+else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   signal = 'SELL SIGNAL';
-} else if (mainTrend === 'bearish' && prevClosedRed) {
+} else if (s.mainTrend === 'bearish' && s.prevClosedRed) {
   signal = 'BUY SIGNAL';
 }
 
