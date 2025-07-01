@@ -1945,7 +1945,9 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
     </div>
   </td>
 
-  <td className="px-2 py-1 border-b border-gray-700 text-right">${s.currentPrice.toLocaleString()}</td>
+  <td className="px-2 py-1 border-b border-gray-700 text-right">
+  ${Number(s.currentPrice).toFixed(9)}
+</td>
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>		   
@@ -1973,7 +1975,7 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   'text-gray-400'
 }`}>
   {s.mainTrend
-    ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(2)}`
+    ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)}`
     : 'N/A'}
 </td>
 
