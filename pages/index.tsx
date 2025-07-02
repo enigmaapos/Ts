@@ -123,18 +123,6 @@ function getMainTrend(
   };
 }
 
-  // Fallback: no crossover found, use latest EMA70 vs EMA200
-  const lastEMA70 = ema70[len - 1];
-  const lastEMA200 = ema200[len - 1];
-  const lastClose = closes[closes.length - 1];
-
-  return {
-    trend: lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish',
-    type: lastEMA70 >= lastEMA200 ? 'support' : 'resistance',
-    crossoverPrice: lastClose,
-  };
-}
-
 function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
 
