@@ -2096,21 +2096,21 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
     : 'Below 50 (Bearish)'}
 </td>
 		   
-<td className="p-2 text-center text-green-400 font-semibold">
-  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
-</td>
-<td className="p-2 text-center text-red-400 font-semibold">
-  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
-</td>		   	   
-		   
-	<td
+<td
   className={`p-2 font-semibold ${
     s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
   }`}
 >
   {s.isVolumeSpike ? 'Spike' : '—'}
 </td>	   
-
+		   
+<td className="p-2 text-center text-green-400 font-semibold">
+  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
+</td>
+<td className="p-2 text-center text-red-400 font-semibold">
+  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
+</td>		   	   
+		   	
 {/* Divergences */}
 {/* Bearish Divergence */}
 <td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
