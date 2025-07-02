@@ -68,6 +68,7 @@ type TrendResult = {
   trend: 'bullish' | 'bearish';
   type: 'support' | 'resistance';
   crossoverPrice: number;
+  breakout: boolean | null; // true = breakout, false = breakdown, null = can't determine
 };
 
 function getMainTrend(
@@ -76,6 +77,7 @@ function getMainTrend(
   closes: number[]
 ): TrendResult {
   const len = ema70.length;
+  const lastClose = closes[closes.length - 1];
 
   // Loop backward to detect the most recent EMA70/EMA200 crossover
   for (let i = len - 2; i >= 1; i--) {
@@ -86,22 +88,40 @@ function getMainTrend(
 
     // Bullish crossover: EMA70 crosses above EMA200
     if (prevEMA70 <= prevEMA200 && currEMA70 > currEMA200) {
+      const crossoverPrice = closes[i + 1];
       return {
         trend: 'bullish',
         type: 'support',
-        crossoverPrice: closes[i + 1],
+        crossoverPrice,
+        breakout: lastClose > crossoverPrice,
       };
     }
 
     // Bearish crossover: EMA70 crosses below EMA200
     if (prevEMA70 >= prevEMA200 && currEMA70 < currEMA200) {
+      const crossoverPrice = closes[i + 1];
       return {
         trend: 'bearish',
         type: 'resistance',
-        crossoverPrice: closes[i + 1],
+        crossoverPrice,
+        breakout: lastClose < crossoverPrice,
       };
     }
   }
+
+  // Fallback: no crossover found, use latest EMA70 vs EMA200
+  const lastEMA70 = ema70[len - 1];
+  const lastEMA200 = ema200[len - 1];
+  const fallbackTrend = lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish';
+  const fallbackType = fallbackTrend === 'bullish' ? 'support' : 'resistance';
+
+  return {
+    trend: fallbackTrend,
+    type: fallbackType,
+    crossoverPrice: lastClose,
+    breakout: null, // Cannot detect breakout in fallback
+  };
+}
 
   // Fallback: no crossover found, use latest EMA70 vs EMA200
   const lastEMA70 = ema70[len - 1];
@@ -431,15 +451,15 @@ if (sortField === 'prevClose') {
   return 0;
 });
 
-const trendKeyToMainTrendValue: Record<string, string> = {
+const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
   bearishMainTrend: 'bearish',
 };
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  // 🔹 Trend filter: match mapped value (like 'bullish') with s.mainTrend
+  // 🔹 Trend filter: compare against s.mainTrend.trend
   if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
-    if (s.mainTrend !== trendKeyToMainTrendValue[trendFilter]) return false;
+    if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
   }
 
   // 🔹 Signal filter: must match getSignal(s)
@@ -447,14 +467,20 @@ const filteredAndSortedSignals = sortedSignals.filter((s) => {
     return false;
   }
 
-  return true;
+  return true; // ✅ Keep this signal
 });
+	
   
   
   
     // ✅ Declare counts here (inside the component, after filteredSignals)
-const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend && s.mainTrend.trend === 'bullish').length;
-const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend && s.mainTrend.trend === 'bearish').length;
+const bullishMainTrendCount = filteredSignals.filter(
+  s => s.mainTrend?.trend === 'bullish'
+).length;
+
+const bearishMainTrendCount = filteredSignals.filter(
+  s => s.mainTrend?.trend === 'bearish'
+).length;
 
 // ✅ Add these to count 'yes' (true) for breakouts
 const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
@@ -1593,18 +1619,7 @@ if (loading) {
       <p className="text-gray-400 mb-2 font-semibold">📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):</p>
       <div className="flex flex-wrap gap-2">
         {[  
-	  {
-    label: 'Bullish Trend',
-    key: 'bullishMainTrend',
-    count: filteredSignals.filter(s => s.mainTrend?.trend === 'bullish').length,
-    color: 'text-green-300',
-  },
-  {
-    label: 'Bearish Trend',
-    key: 'bearishMainTrend',
-    count: filteredSignals.filter(s => s.mainTrend?.trend === 'bearish').length,
-    color: 'text-red-300',
-  },
+	  
           { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
           { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
           { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
@@ -1985,7 +2000,12 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   'text-gray-400'
 }`}>
   {s.mainTrend
-    ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)}`
+    ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} ` +
+      (s.mainTrend.breakout === true
+        ? '🚀 Breakout'
+        : s.mainTrend.breakout === false
+        ? '🔻 Breakdown'
+        : '')
     : 'N/A'}
 </td>
 
