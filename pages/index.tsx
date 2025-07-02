@@ -1804,9 +1804,7 @@ if (loading) {
 </th>
 	  
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
-
-	<th className="p-2 text-green-400">Bullish Engulfing</th>
-<th className="p-2 text-red-400">Bearish Engulfing</th>	    
+	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
 	  
     {/* RSI Pump | Dump */}
     <th
@@ -1837,6 +1835,9 @@ if (loading) {
   Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 
+<th className="p-2 text-green-400">Bullish Engulfing</th>
+<th className="p-2 text-red-400">Bearish Engulfing</th>	  
+
 {/* Bearish Divergence */}
     <th
       onClick={() => {
@@ -1858,10 +1859,9 @@ if (loading) {
     >
       Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>	  
+	  
 
     {/* More Static Columns */}
-	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>  
-
     <th className="p-2 text-center">EMA14 Bounce</th>
     <th className="p-2 text-center">EMA70 Bounce</th>
     <th className="p-2 text-center">EMA200 Bounce</th>
@@ -2029,12 +2029,33 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
     : 'N/A'}
 </td>
 
-<td className="p-2 text-center text-green-400 font-semibold">
-  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
-</td>
-<td className="p-2 text-center text-red-400 font-semibold">
-  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
-</td>		   	   
+<td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : signal.trim() === 'SPIKE/COLLAPSE ZONE PUMP'
+      ? 'text-orange-400 font-bold'
+      : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
+      ? 'text-orange-500 font-bold'
+      : signal.trim() === 'SELL SIGNAL'
+      ? 'text-red-400 font-bold'
+      : signal.trim() === 'BUY SIGNAL'
+      ? 'text-blue-400 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
 
   {/* Pump / Dump */}
   <td
@@ -2074,7 +2095,14 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
-
+		   
+<td className="p-2 text-center text-green-400 font-semibold">
+  {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
+</td>
+<td className="p-2 text-center text-red-400 font-semibold">
+  {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
+</td>		   	   
+		   
 	<td
   className={`p-2 font-semibold ${
     s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
@@ -2092,34 +2120,6 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
 {/* Bullish Divergence */}
 <td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
 {s.bullishDivergence?.divergence ? 'Yes' : '-'}
-</td>	
-
-<td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : signal.trim() === 'SPIKE/COLLAPSE ZONE PUMP'
-      ? 'text-orange-400 font-bold'
-      : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
-      ? 'text-orange-500 font-bold'
-      : signal.trim() === 'SELL SIGNAL'
-      ? 'text-red-400 font-bold'
-      : signal.trim() === 'BUY SIGNAL'
-      ? 'text-blue-400 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
 </td>	
 	
 	  {/* EMA Bounces */}
