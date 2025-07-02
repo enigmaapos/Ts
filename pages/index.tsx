@@ -1742,33 +1742,26 @@ if (loading) {
     </div>
   </div>
 
-{/* 📊 Summary Panel */}
-<div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2">
-      <span>📈 Bull Trend:</span>
-      <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <span>📉 Bear Trend:</span>
-      <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
-    </div>
-
     {/* 📝 Breakdown/Breakup Note */}
+<div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">	
 <div className="text-gray-400 text-xs">
   <p className="leading-snug">
-    📝 <span className="text-yellow-300 font-semibold">Note:</span> In bearish/bullish trends,
-    <span className="text-red-300 font-medium"> breakdown price</span>
-    means the price is <span className="underline">above</span> the crossover level (resistance/support),
-    confirming the reversal trend. Conversely,
-    <span className="text-green-300 font-medium"> breakup price </span>
-    means the price is <span className="underline">below</span> the crossover level,
-    indicating a trend continuation.
+    📝 <span className="text-yellow-300 font-semibold">Note:</span> In 
+    <span className="text-red-300 font-medium"> bearish trends</span>, a 
+    <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
+    <span className="underline"> below</span> the crossover level (resistance), confirming the downtrend. 
+    A <span className="text-green-300 font-medium"> breakup price</span> means the price is 
+    <span className="underline"> above</span> the resistance, indicating a possible reversal.
   </p>
-</div>
+  <p className="leading-snug mt-1">
+    In <span className="text-green-300 font-medium"> bullish trends</span>, a 
+    <span className="text-green-300 font-medium"> breakup price</span> means the price is 
+    <span className="underline"> above</span> the crossover level (support), confirming the uptrend. 
+    A <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
+    <span className="underline"> below</span> the support, signaling a potential reversal.
+  </p>
   </div>
-</div>
-	
+</div>	
 </div>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
