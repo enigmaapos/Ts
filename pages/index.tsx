@@ -1755,9 +1755,9 @@ if (loading) {
   </p>
   <p className="leading-snug mt-1">
     In <span className="text-green-300 font-medium"> bullish trends</span>, a 
-    <span className="text-green-300 font-medium"> breakdown price</span> means the price is 
+    <span className="text-green-300 font-medium"> breakup price</span> means the price is 
     <span className="underline"> above</span> the crossover level (support), confirming the uptrend. 
-    A <span className="text-red-300 font-medium"> breakup price</span> means the price is 
+    A <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
     <span className="underline"> below</span> the support, signaling a potential reversal.
   </p>
   </div>
@@ -2022,9 +2022,9 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   {s.mainTrend
     ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} ` +
       (s.mainTrend.breakout === true
-        ? '🔻 Breakdown price'
+        ? (s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price')
         : s.mainTrend.breakout === false
-        ? '🚀 Breakup price'
+        ? (s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price')
         : '')
     : 'N/A'}
 </td>
