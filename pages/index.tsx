@@ -68,7 +68,7 @@ type TrendResult = {
   trend: 'bullish' | 'bearish';
   type: 'support' | 'resistance';
   crossoverPrice: number;
-  breakout: boolean | null; // true = breakout, false = breakdown, null = can't determine
+  breakout: boolean | null; // true = breakdown price, false = breakup price, null = can't determine
 };
 
 function getMainTrend(
@@ -1754,14 +1754,14 @@ if (loading) {
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
 
-    {/* 📝 Breakout/Breakdown Note */}
+    {/* 📝 Breakdown/Breakup Note */}
 <div className="text-gray-400 text-xs">
   <p className="leading-snug">
     📝 <span className="text-yellow-300 font-semibold">Note:</span> In bearish/bullish trends,
-    <span className="text-red-300 font-medium"> breakdown </span>
+    <span className="text-red-300 font-medium"> breakdown price</span>
     means the price is <span className="underline">above</span> the crossover level (resistance/support),
     confirming the reversal trend. Conversely,
-    <span className="text-green-300 font-medium"> breakout </span>
+    <span className="text-green-300 font-medium"> breakup price </span>
     means the price is <span className="underline">below</span> the crossover level,
     indicating a trend continuation.
   </p>
@@ -2029,9 +2029,9 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   {s.mainTrend
     ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} ` +
       (s.mainTrend.breakout === true
-        ? '🚀 Breakout'
+        ? '🔻 Breakdown price'
         : s.mainTrend.breakout === false
-        ? '🔻 Breakdown'
+        ? '🚀 Breakup price'
         : '')
     : 'N/A'}
 </td>
