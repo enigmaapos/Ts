@@ -68,13 +68,21 @@ type TrendResult = {
   trend: 'bullish' | 'bearish';
   type: 'support' | 'resistance';
   crossoverPrice: number;
-  breakout: boolean | null; // true = breakdown price, false = breakup price, null = can't determine
+  breakout: boolean | null;
+  isNear?: boolean; // optional proximity flag
 };
+
+// Helper to check if current price is near a key level
+function isNearLevel(currentPrice: number, levelPrice: number, tolerancePercent = 0.5): boolean {
+  const tolerance = (tolerancePercent / 100) * levelPrice;
+  return Math.abs(currentPrice - levelPrice) <= tolerance;
+}
 
 function getMainTrend(
   ema70: number[],
   ema200: number[],
-  closes: number[]
+  closes: number[],
+  tolerancePercent = 0.5 // allow configurable tolerance
 ): TrendResult {
   const len = ema70.length;
   const lastClose = closes[closes.length - 1];
@@ -94,6 +102,7 @@ function getMainTrend(
         type: 'support',
         crossoverPrice,
         breakout: lastClose > crossoverPrice,
+        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent)
       };
     }
 
@@ -105,6 +114,7 @@ function getMainTrend(
         type: 'resistance',
         crossoverPrice,
         breakout: lastClose < crossoverPrice,
+        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent)
       };
     }
   }
@@ -119,7 +129,8 @@ function getMainTrend(
     trend: fallbackTrend,
     type: fallbackType,
     crossoverPrice: lastClose,
-    breakout: null, // Cannot detect breakout in fallback
+    breakout: null,
+    isNear: true // Since fallback uses lastClose as crossoverPrice, it's always "at" the level
   };
 }
 
