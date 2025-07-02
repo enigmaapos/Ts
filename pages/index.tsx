@@ -2025,19 +2025,34 @@ else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
   {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
 </td>
 		   
-<td className={`px-1 py-0.5 text-center ${
-  s.mainTrend?.trend === 'bullish' ? 'text-green-500' :
-  s.mainTrend?.trend === 'bearish' ? 'text-red-500' :
-  'text-gray-400'
-}`}>
-  {s.mainTrend
-    ? `${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} ` +
-      (s.mainTrend.breakout === true
-        ? (s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price')
-        : s.mainTrend.breakout === false
-        ? (s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price')
-        : '')
-    : 'N/A'}
+<td
+  className={`px-1 py-0.5 text-center ${
+    s.mainTrend?.trend === 'bullish'
+      ? 'text-green-500'
+      : s.mainTrend?.trend === 'bearish'
+      ? 'text-red-500'
+      : 'text-gray-400'
+  }`}
+>
+  {s.mainTrend ? (
+    <>
+      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} `}
+      {s.mainTrend.breakout === true ? (
+        s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
+      ) : s.mainTrend.breakout === false ? (
+        s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price'
+      ) : (
+        ''
+      )}
+      {s.mainTrend.isNear && (
+        <span className="ml-1 text-yellow-400 font-semibold">
+          ⏳ Near {s.mainTrend.type}
+        </span>
+      )}
+    </>
+  ) : (
+    'N/A'
+  )}
 </td>
 
 <td
