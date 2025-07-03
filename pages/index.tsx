@@ -1636,30 +1636,38 @@ if (loading) {
       </h1>
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showOnlyFavorites}
-            onChange={() => setShowOnlyFavorites((prev: boolean) => !prev)}
-          />
-          Show only favorites
-        </label>
+  {/* 🔸 Favorites Toggle */}
+  <label className="flex items-center gap-2 text-sm text-white">
+    <input
+      type="checkbox"
+      checked={showOnlyFavorites}
+      onChange={() => setShowOnlyFavorites(prev => !prev)}
+      className="accent-yellow-400"
+    />
+    Show only favorites
+  </label>
 
-        <input
-          type="text"
-          placeholder="Search symbol..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-        />
-
-        <button
-          onClick={() => setSearch('')}
-          className="text-xs px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white"
-        >
-          Clear
-        </button>
-      </div>
+  {/* 🔸 Search Input */}
+  <div className="relative">
+    <input
+      type="text"
+      placeholder="Search symbol..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="p-2 pr-20 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+    />
+    
+    {/* 🔸 Clear Button (only shows if there's input) */}
+    {search && (
+      <button
+        onClick={() => setSearch('')}
+        className="absolute right-1 top-1/2 -translate-y-1/2 text-xs px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-white"
+      >
+        Clear
+      </button>
+    )}
+  </div>
+</div>
 
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
   {/* 🟢 Filter Controls Section */}
