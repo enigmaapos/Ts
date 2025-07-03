@@ -1624,45 +1624,92 @@ if (loading) {
   <div className="flex flex-col gap-4 text-sm">
 
     {/* 🔷 Trend Filters Section */}
-    <div>
-      <p className="text-gray-400 mb-2 font-semibold">📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):</p>
-      <div className="flex flex-wrap gap-2">
-        {[  
-	    {
-    label: 'Bullish Trend',
-    key: 'bullishMainTrend',
-    count: bullishMainTrendCount,
-    color: 'text-green-300',
-  },
-  {
-    label: 'Bearish Trend',
-    key: 'bearishMainTrend',
-    count: bearishMainTrendCount,
-    color: 'text-red-300',
-  },
-          { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
-          { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
-          { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
-          { label: 'Bearish Collapse', key: 'bearishCollapse', count: bearishCollapseCount, color: 'text-red-300' },
-          { label: 'Breakout Failure', key: 'breakoutFailure', count: breakoutFailureCount, color: 'text-yellow-300' },
-          { label: 'Bullish Breakout', key: 'bullishBreakout', count: bullishBreakoutCount, color: 'text-yellow-400' },
-          { label: 'Bearish Breakout', key: 'bearishBreakout', count: bearishBreakoutCount, color: 'text-yellow-400' },
-        ].map(({ label, key, count, color }) => (
-          <button
-            key={key}
-            onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-            className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-              trendFilter === key
-                ? 'bg-yellow-500 text-black'
-                : 'bg-gray-700 text-white'
-            }`}
-          >
-            <span>{label}</span>
-            <span className={`text-xs font-bold ${color}`}>{count}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+<div>
+  <p className="text-gray-400 mb-2 font-semibold">
+    📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
+  </p>
+  <div className="flex flex-wrap gap-2">
+    {[
+      {
+        label: 'Bullish Trend',
+        key: 'bullishMainTrend',
+        count: bullishMainTrendCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Trend',
+        key: 'bearishMainTrend',
+        count: bearishMainTrendCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish Reversal',
+        key: 'bullishReversal',
+        count: bullishReversalCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Reversal',
+        key: 'bearishReversal',
+        count: bearishReversalCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish Spike',
+        key: 'bullishSpike',
+        count: bullishSpikeCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Collapse',
+        key: 'bearishCollapse',
+        count: bearishCollapseCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Breakout Failure',
+        key: 'breakoutFailure',
+        count: breakoutFailureCount,
+        color: 'text-yellow-300',
+      },
+      {
+        label: 'Bullish Breakout',
+        key: 'bullishBreakout',
+        count: bullishBreakoutCount,
+        color: 'text-yellow-400',
+      },
+      {
+        label: 'Bearish Breakout',
+        key: 'bearishBreakout',
+        count: bearishBreakoutCount,
+        color: 'text-yellow-400',
+      },
+      {
+        label: 'Tested Prev High',
+        key: 'testedPrevHigh',
+        count: testedPrevHighCount,
+        color: 'text-blue-300',
+      },
+      {
+        label: 'Tested Prev Low',
+        key: 'testedPrevLow',
+        count: testedPrevLowCount,
+        color: 'text-blue-300',
+      },
+    ].map(({ label, key, count, color }) => (
+      <button
+        key={key}
+        onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+        className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+          trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+        }`}
+      >
+        <span>{label}</span>
+        <span className={`text-xs font-bold ${color}`}>{count}</span>
+      </button>
+    ))}
+  </div>
+</div>
 
     {/* ✅ Signal Filters Section */}
     <div>
