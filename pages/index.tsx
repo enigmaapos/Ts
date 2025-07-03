@@ -395,10 +395,15 @@ const toggleFavorite = (symbol: string) => {
   });
 };
 
-const filteredSignals = signals.filter((s) =>
-  s.symbol.toLowerCase().includes(search.toLowerCase()) &&
-  (!showOnlyFavorites || favorites.has(s.symbol))
-);
+const searchTerm = search.trim().toLowerCase();
+
+const filteredSignals = signals.filter((s) => {
+  const symbol = s.symbol?.toLowerCase() || '';
+  const matchesSearch = !searchTerm || symbol.includes(searchTerm);
+  const isFavorite = favorites.has(s.symbol);
+
+  return matchesSearch && (!showOnlyFavorites || isFavorite);
+});
 
 // 🔹 Sorting logic
 const sortedSignals = signals.sort((a, b) => {
