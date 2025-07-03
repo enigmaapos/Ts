@@ -392,6 +392,12 @@ const sortedSignals = signals.sort((a, b) => {
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }
 
+if (sortField === 'ema200Bounce') {
+    valA = a.ema200Bounce ? 1 : 0;
+    valB = b.ema200Bounce ? 1 : 0;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }	
+
   if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
     const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
     const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
@@ -1939,7 +1945,17 @@ if (loading) {
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
-<th className="p-2 text-center">EMA200 Bounce</th>	  
+<th
+  onClick={() => {
+    setSortField('ema200Bounce');
+    setSortOrder((prev) =>
+      sortField === 'ema200Bounce' && prev === 'asc' ? 'desc' : 'asc'
+    );
+  }}
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
+>
+  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>  
 	  
 <th className="p-2 text-green-400">Bullish Engulfing</th>
 <th className="p-2 text-red-400">Bearish Engulfing</th>	  
