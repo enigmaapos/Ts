@@ -1,79 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
 
-interface SignalType {
-  symbol: string;
-
-  // 🟢 Trend Info
-  mainTrend?: {
-    trend?: 'bullish' | 'bearish';
-  };
-
-  // 🟡 Breakouts & Reversals
-  bullishBreakout?: boolean;
-  bearishBreakout?: boolean;
-  breakoutFailure?: boolean;
-  breakoutTestSignal?: boolean;
-  failedBearishBreak?: boolean;
-  failedBullishBreak?: boolean;
-
-  bullishReversal?: boolean;
-  bearishReversal?: boolean;
-  bullishSpike?: boolean;
-  bearishCollapse?: boolean;
-
-  // 🔵 Double Tops / Bottoms & Variations
-  isDoubleTop?: boolean;
-  isDescendingTop?: boolean;
-  isDoubleTopFailure?: boolean;
-
-  isDoubleBottom?: boolean;
-  isAscendingBottom?: boolean;
-  isDoubleBottomFailure?: boolean;
-
-  // 🟣 EMA Bounces
-  ema14Bounce?: boolean;
-  ema70Bounce?: boolean;
-  ema200Bounce?: boolean;
-  touchedEMA200Today?: boolean;
-
-  // 🔶 Divergences
-  bearishDivergence?: {
-    divergence?: boolean;
-  };
-  bullishDivergence?: {
-    divergence?: boolean;
-  };
-  bearishVolumeDivergence?: {
-    divergence?: boolean;
-  };
-  bullishVolumeDivergence?: {
-    divergence?: boolean;
-  };
-
-  // 🔺 Volume & Candles
-  isVolumeSpike?: boolean;
-  highestVolumeColorPrev?: string;
-  hasBullishEngulfing?: boolean;
-  hasBearishEngulfing?: boolean;
-
-  // 🟤 Price & RSI Data
-  currentPrice?: number;
-  price24hAgo?: number;
-  priceChangePercent?: number;
-  isUp?: boolean;
-
-  rsi14?: number[];
-  latestRSI?: number;
-
-  // 🟩 Previous Close
-  prevClosedGreen?: boolean;
-  prevClosedRed?: boolean;
-
-  // 🟥 High/Low Tests
-  testedPrevHigh?: boolean;
-  testedPrevLow?: boolean;
-}
-
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
   const ema: number[] = [];
@@ -401,7 +327,7 @@ const PriceChangePercent = ({ percent }: { percent: number }) => {
 
 
 export default function Home() {
-  const [signals, setSignals] = useState<SignalType[]>([]);
+  const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
@@ -528,7 +454,7 @@ const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
 };
 
 // 🔹 Other trend filter keys that map to boolean fields in the signal object
-const trendKeyToBooleanField: Record<string, keyof SignalType> = {
+const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishBreakout: 'bullishBreakout',
   bearishBreakout: 'bearishBreakout',
   breakoutFailure: 'breakoutFailure',
