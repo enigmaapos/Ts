@@ -2,26 +2,76 @@ import { useEffect, useState, useMemo } from "react";
 
 interface SignalType {
   symbol: string;
+
+  // 🟢 Trend Info
   mainTrend?: {
     trend?: 'bullish' | 'bearish';
   };
+
+  // 🟡 Breakouts & Reversals
   bullishBreakout?: boolean;
   bearishBreakout?: boolean;
   breakoutFailure?: boolean;
-  testedPrevHigh?: boolean;
-  testedPrevLow?: boolean;
+  breakoutTestSignal?: boolean;
+  failedBearishBreak?: boolean;
+  failedBullishBreak?: boolean;
+
   bullishReversal?: boolean;
   bearishReversal?: boolean;
   bullishSpike?: boolean;
   bearishCollapse?: boolean;
+
+  // 🔵 Double Tops / Bottoms & Variations
+  isDoubleTop?: boolean;
+  isDescendingTop?: boolean;
+  isDoubleTopFailure?: boolean;
+
+  isDoubleBottom?: boolean;
+  isAscendingBottom?: boolean;
+  isDoubleBottomFailure?: boolean;
+
+  // 🟣 EMA Bounces
+  ema14Bounce?: boolean;
+  ema70Bounce?: boolean;
+  ema200Bounce?: boolean;
   touchedEMA200Today?: boolean;
-  priceChangePercent?: number;
+
+  // 🔶 Divergences
+  bearishDivergence?: {
+    divergence?: boolean;
+  };
+  bullishDivergence?: {
+    divergence?: boolean;
+  };
+  bearishVolumeDivergence?: {
+    divergence?: boolean;
+  };
+  bullishVolumeDivergence?: {
+    divergence?: boolean;
+  };
+
+  // 🔺 Volume & Candles
   isVolumeSpike?: boolean;
+  highestVolumeColorPrev?: string;
+  hasBullishEngulfing?: boolean;
+  hasBearishEngulfing?: boolean;
+
+  // 🟤 Price & RSI Data
+  currentPrice?: number;
+  price24hAgo?: number;
+  priceChangePercent?: number;
+  isUp?: boolean;
+
+  rsi14?: number[];
   latestRSI?: number;
+
+  // 🟩 Previous Close
   prevClosedGreen?: boolean;
   prevClosedRed?: boolean;
-  rsi14?: number[]; // if you're using this in getRecentRSIDiff
-  // add any other dynamic fields you use in sorting/filtering
+
+  // 🟥 High/Low Tests
+  testedPrevHigh?: boolean;
+  testedPrevLow?: boolean;
 }
 
 function calculateEMA(data: number[], period: number) {
