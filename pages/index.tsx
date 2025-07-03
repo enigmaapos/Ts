@@ -490,21 +490,22 @@ const trendKeyToBooleanField: Record<string, keyof SignalType> = {
   bearishCollapse: 'bearishCollapse',
 };	
 
-const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
-    if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
-  }
+// 🟡 Apply trend & signal filters on top of the search/favorites filtered list
+const filteredAndSortedSignals = filteredSignals
+  .filter((s) => {
+    if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
+      if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
+    }
 
-  // 🔹 Filter by boolean trend signal flags
-  if (trendFilter && trendKeyToBooleanField[trendFilter]) {
-    const field = trendKeyToBooleanField[trendFilter];
-    if (!s[field]) return false;
-  }	
+    if (trendFilter && trendKeyToBooleanField[trendFilter]) {
+      const field = trendKeyToBooleanField[trendFilter];
+      if (!s[field]) return false;
+    }
 
-  if (signalFilter && getSignal(s) !== signalFilter) return false;
+    if (signalFilter && getSignal(s) !== signalFilter) return false;
 
-  return true;
-});
+    return true;
+  })
 
 // 🔹 Count statistics
 const bullishMainTrendCount = filteredAndSortedSignals.filter(
@@ -2020,9 +2021,9 @@ if (loading) {
 </thead>
     
     <tbody>
-      {filteredAndSortedSignals.map((s: any) => {
-        const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-        const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+      {filteredAndSortedSignals.map((s) => {
+  const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const pump = pumpDump?.pumpStrength;
 const dump = pumpDump?.dumpStrength;
 const direction = pumpDump?.direction;
