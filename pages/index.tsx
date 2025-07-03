@@ -450,7 +450,7 @@ const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
 };
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
+  if (!trendFilter && trendKeyToMainTrendValue[trendFilter]) {
     if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
   }
 
@@ -468,39 +468,39 @@ const bearishMainTrendCount = filteredAndSortedSignals.filter(
   (s) => s.mainTrend?.trend === 'bearish'
 ).length;
 
-const bullishBreakoutCount = filteredSignals.filter(
+const bullishBreakoutCount = filteredAndSortedSignals.filter(
   (s) => s.bullishBreakout === true
 ).length;
 
-const bearishBreakoutCount = filteredSignals.filter(
+const bearishBreakoutCount = filteredAndSortedSignals.filter(
   (s) => s.bearishBreakout === true
 ).length;
 
-const breakoutFailureCount = filteredSignals.filter(
+const breakoutFailureCount = filteredAndSortedSignals.filter(
   (s) => s.breakoutFailure === true
 ).length;
 
-const testedPrevHighCount = filteredSignals.filter(
+const testedPrevHighCount = filteredAndSortedSignals.filter(
   (s) => s.testedPrevHigh === true
 ).length;
 
-const testedPrevLowCount = filteredSignals.filter(
+const testedPrevLowCount = filteredAndSortedSignals.filter(
   (s) => s.testedPrevLow === true
 ).length;
 
-const bullishReversalCount = filteredSignals.filter(
+const bullishReversalCount = filteredAndSortedSignals.filter(
   (s) => s.bullishReversal === true
 ).length;
 
-const bearishReversalCount = filteredSignals.filter(
+const bearishReversalCount = filteredAndSortedSignals.filter(
   (s) => s.bearishReversal === true
 ).length;
 
-const bullishSpikeCount = filteredSignals.filter(
+const bullishSpikeCount = filteredAndSortedSignals.filter(
   (s) => s.bullishSpike === true
 ).length;
 
-const bearishCollapseCount = filteredSignals.filter(
+const bearishCollapseCount = filteredAndSortedSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
