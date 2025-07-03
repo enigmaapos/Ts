@@ -468,39 +468,39 @@ const bearishMainTrendCount = filteredAndSortedSignals.filter(
   (s) => s.mainTrend?.trend === 'bearish'
 ).length;
 
-const bullishBreakoutCount = filteredAndSortedSignals.filter(
+const bullishBreakoutCount = filteredSignals.filter(
   (s) => s.bullishBreakout === true
 ).length;
 
-const bearishBreakoutCount = filteredAndSortedSignals.filter(
+const bearishBreakoutCount = filteredSignals.filter(
   (s) => s.bearishBreakout === true
 ).length;
 
-const breakoutFailureCount = filteredAndSortedSignals.filter(
+const breakoutFailureCount = filteredSignals.filter(
   (s) => s.breakoutFailure === true
 ).length;
 
-const testedPrevHighCount = filteredAndSortedSignals.filter(
+const testedPrevHighCount = filteredSignals.filter(
   (s) => s.testedPrevHigh === true
 ).length;
 
-const testedPrevLowCount = filteredAndSortedSignals.filter(
+const testedPrevLowCount = filteredSignals.filter(
   (s) => s.testedPrevLow === true
 ).length;
 
-const bullishReversalCount = filteredAndSortedSignals.filter(
+const bullishReversalCount = filteredSignals.filter(
   (s) => s.bullishReversal === true
 ).length;
 
-const bearishReversalCount = filteredAndSortedSignals.filter(
+const bearishReversalCount = filteredSignals.filter(
   (s) => s.bearishReversal === true
 ).length;
 
-const bullishSpikeCount = filteredAndSortedSignals.filter(
+const bullishSpikeCount = filteredSignals.filter(
   (s) => s.bullishSpike === true
 ).length;
 
-const bearishCollapseCount = filteredAndSortedSignals.filter(
+const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
