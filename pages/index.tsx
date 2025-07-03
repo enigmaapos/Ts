@@ -1,5 +1,28 @@
 import { useEffect, useState, useMemo } from "react";
 
+interface SignalType {
+  symbol: string;
+  mainTrend?: {
+    trend?: 'bullish' | 'bearish';
+  };
+  bullishBreakout?: boolean;
+  bearishBreakout?: boolean;
+  breakoutFailure?: boolean;
+  testedPrevHigh?: boolean;
+  testedPrevLow?: boolean;
+  bullishReversal?: boolean;
+  bearishReversal?: boolean;
+  bullishSpike?: boolean;
+  bearishCollapse?: boolean;
+  touchedEMA200Today?: boolean;
+  priceChangePercent?: number;
+  isVolumeSpike?: boolean;
+  latestRSI?: number;
+  prevClosedGreen?: boolean;
+  prevClosedRed?: boolean;
+  rsi14?: number[]; // if you're using this in getRecentRSIDiff
+  // add any other dynamic fields you use in sorting/filtering
+}
 
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
