@@ -386,9 +386,15 @@ const sortedSignals = signals.sort((a, b) => {
   let valA: any = a[sortField];
   let valB: any = b[sortField];
 
-  if (sortField === 'touchedEMA200Today') {
+if (sortField === 'ema70Bounce'') {
     valA = a.touchedEMA200Today ? 1 : 0;
     valB = b.touchedEMA200Today ? 1 : 0;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
+	
+  if (sortField === 'ema70Bounce'') {
+    valA = a.ema70Bounce ? 1 : 0;
+    valB = b.ema70Bounce ? 1 : 0;
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }
 
@@ -1985,8 +1991,15 @@ if (loading) {
 
     {/* More Static Columns */}
     <th className="p-2 text-center">EMA14 Bounce</th>
-    <th className="p-2 text-center">EMA70 Bounce</th>
-    
+    <th
+      onClick={() => {
+        setSortField('ema70Bounce');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
 
     {/* Touched EMA200 Today */}
     <th
