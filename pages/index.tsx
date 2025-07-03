@@ -377,64 +377,57 @@ const filteredSignals = signals.filter((s) =>
   (!showOnlyFavorites || favorites.has(s.symbol))
 );
 
-  
-
-const sortedSignals = [...filteredSignals].sort((a, b) => {
+// 🔹 Sorting logic
+const sortedSignals = signals.sort((a, b) => {
   let valA: any = a[sortField];
   let valB: any = b[sortField];
 
   if (sortField === 'touchedEMA200Today') {
     valA = a.touchedEMA200Today ? 1 : 0;
     valB = b.touchedEMA200Today ? 1 : 0;
-
-    return sortOrder === 'asc' ? valB - valA : valA - valB;
-  }	
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
 
   if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
     const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
     const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
-
     valA = sortField === 'pumpStrength' ? pumpDumpA?.pumpStrength : pumpDumpA?.dumpStrength;
     valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
   }
 
-  // Custom sort for divergences
   if (sortField === 'bearishDivergence' || sortField === 'bullishDivergence') {
     valA = a[sortField]?.divergence ? 1 : 0;
     valB = b[sortField]?.divergence ? 1 : 0;
     return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }	
+  }
 
-if (sortField === 'isVolumeSpike') {
-  const valA = a.isVolumeSpike ? 1 : 0;
-  const valB = b.isVolumeSpike ? 1 : 0;
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
+  if (sortField === 'isVolumeSpike') {
+    valA = a.isVolumeSpike ? 1 : 0;
+    valB = b.isVolumeSpike ? 1 : 0;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
 
- if (sortField === 'priceChangePercent') {
-  valA = Number(a.priceChangePercent);
-  valB = Number(b.priceChangePercent);
+  if (sortField === 'priceChangePercent') {
+    valA = Number(a.priceChangePercent);
+    valB = Number(b.priceChangePercent);
+    if (isNaN(valA)) return 1;
+    if (isNaN(valB)) return -1;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
 
-  // Handle NaN or undefined values
-  if (isNaN(valA)) return 1;
-  if (isNaN(valB)) return -1;
+  if (sortField === 'latestRSI') {
+    valA = typeof a.latestRSI === 'number' ? a.latestRSI : -Infinity;
+    valB = typeof b.latestRSI === 'number' ? b.latestRSI : -Infinity;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
 
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
-
-if (sortField === 'latestRSI') {
-  valA = typeof a.latestRSI === 'number' ? a.latestRSI : -Infinity;
-  valB = typeof b.latestRSI === 'number' ? b.latestRSI : -Infinity;
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
-
-if (sortField === 'prevClose') {
-  const getCloseValue = (item: any) =>
-    item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0;
-  valA = getCloseValue(a);
-  valB = getCloseValue(b);
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}	
+  if (sortField === 'prevClose') {
+    const getCloseValue = (item: any) =>
+      item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0;
+    valA = getCloseValue(a);
+    valB = getCloseValue(b);
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
 
   if (valA == null) return 1;
   if (valB == null) return -1;
@@ -450,51 +443,68 @@ if (sortField === 'prevClose') {
   return 0;
 });
 
+// 🔹 Filter logic
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
   bearishMainTrend: 'bearish',
 };
 
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  // 🔹 Trend filter: compare against s.mainTrend.trend
   if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
     if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
   }
 
-  // 🔹 Signal filter: must match getSignal(s)
-  if (signalFilter && getSignal(s) !== signalFilter) {
-    return false;
-  }
+  if (signalFilter && getSignal(s) !== signalFilter) return false;
 
-  return true; // ✅ Keep this signal
+  return true;
 });
-	
-  
-  
-  
-    // ✅ Declare counts here (inside the component, after filteredSignals)
-const bullishMainTrendCount = filteredSignals.filter(
-  s => s.mainTrend?.trend === 'bullish'
+
+// 🔹 Count statistics
+const bullishMainTrendCount = filteredAndSortedSignals.filter(
+  (s) => s.mainTrend?.trend === 'bullish'
 ).length;
 
-const bearishMainTrendCount = filteredSignals.filter(
-  s => s.mainTrend?.trend === 'bearish'
+const bearishMainTrendCount = filteredAndSortedSignals.filter(
+  (s) => s.mainTrend?.trend === 'bearish'
 ).length;
 
-// ✅ Add these to count 'yes' (true) for breakouts
-const bullishBreakoutCount = filteredSignals.filter(s => s.bullishBreakout === true).length;
-const bearishBreakoutCount = filteredSignals.filter(s => s.bearishBreakout === true).length;
+const bullishBreakoutCount = filteredAndSortedSignals.filter(
+  (s) => s.bullishBreakout === true
+).length;
 
-const breakoutFailureCount = filteredSignals.filter(s => s.breakoutFailure === true).length;
-  
-const testedPrevHighCount = filteredSignals.filter(s => s.testedPrevHigh === true).length;
-const testedPrevLowCount = filteredSignals.filter(s => s.testedPrevLow === true).length;
-  
-const bullishReversalCount = filteredSignals.filter(s => s.bullishReversal).length;
-const bearishReversalCount = filteredSignals.filter(s => s.bearishReversal).length;
+const bearishBreakoutCount = filteredAndSortedSignals.filter(
+  (s) => s.bearishBreakout === true
+).length;
 
-const bullishSpikeCount = filteredSignals.filter(s => s.bullishSpike).length;
-const bearishCollapseCount = filteredSignals.filter(s => s.bearishCollapse).length;
+const breakoutFailureCount = filteredAndSortedSignals.filter(
+  (s) => s.breakoutFailure === true
+).length;
+
+const testedPrevHighCount = filteredAndSortedSignals.filter(
+  (s) => s.testedPrevHigh === true
+).length;
+
+const testedPrevLowCount = filteredAndSortedSignals.filter(
+  (s) => s.testedPrevLow === true
+).length;
+
+const bullishReversalCount = filteredAndSortedSignals.filter(
+  (s) => s.bullishReversal === true
+).length;
+
+const bearishReversalCount = filteredAndSortedSignals.filter(
+  (s) => s.bearishReversal === true
+).length;
+
+const bullishSpikeCount = filteredAndSortedSignals.filter(
+  (s) => s.bullishSpike === true
+).length;
+
+const bearishCollapseCount = filteredAndSortedSignals.filter(
+  (s) => s.bearishCollapse === true
+).length;  
+
+
 
 const signalCounts = useMemo(() => {
   const counts = {
