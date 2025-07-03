@@ -2079,10 +2079,9 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   signal = 'SPIKE/COLLAPSE ZONE DUMP';
 }
 
-// ✅ MAIN TREND + PREVIOUS CLOSE SIGNALS
-else if (s.mainTrend === 'bullish' && s.prevClosedGreen) {
+else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
   signal = 'SELL SIGNAL';
-} else if (s.mainTrend === 'bearish' && s.prevClosedRed) {
+} else if (s.mainTrend?.trend === 'bearish' && s.prevClosedRed) {
   signal = 'BUY SIGNAL';
 }
 
