@@ -1842,6 +1842,20 @@ if (loading) {
     </div>
   </div>
 
+{/* 📊 Summary Panel */}
+  <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span>📈 Bull Trend:</span>
+        <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span>📉 Bear Trend:</span>
+        <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+      </div>
+    </div>
+  </div>
+	
     {/* 📝 Breakdown/Breakup Note */}
 <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">	
 <div className="text-gray-400 text-xs">
@@ -1925,16 +1939,8 @@ if (loading) {
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
-	  <th
-  onClick={() => {
-    setSortField('isVolumeSpike');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-
+<th className="p-2 text-center">EMA200 Bounce</th>	  
+	  
 <th className="p-2 text-green-400">Bullish Engulfing</th>
 <th className="p-2 text-red-400">Bearish Engulfing</th>	  
 
@@ -1964,7 +1970,7 @@ if (loading) {
     {/* More Static Columns */}
     <th className="p-2 text-center">EMA14 Bounce</th>
     <th className="p-2 text-center">EMA70 Bounce</th>
-    <th className="p-2 text-center">EMA200 Bounce</th>
+    
 
     {/* Touched EMA200 Today */}
     <th
@@ -1992,7 +1998,17 @@ if (loading) {
     <th className="p-2 text-center">Volume</th>
 	<th className="px-1 py-0.5 bg-gray-800 text-center">
   Volume Divergence
-</th>  
+</th> 
+	 <th
+  onClick={() => {
+    setSortField('isVolumeSpike');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+ 
   </tr>
 </thead>
     
@@ -2209,14 +2225,11 @@ else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
+
+		  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema200Bounce ? 'Yes' : 'No'}
+  </td> 
 		   
-<td
-  className={`p-2 font-semibold ${
-    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
-  }`}
->
-  {s.isVolumeSpike ? 'Spike' : '—'}
-</td>	   
 		   
 <td className="p-2 text-center text-green-400 font-semibold">
   {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
@@ -2245,9 +2258,6 @@ else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
     {s.ema70Bounce ? 'Yes' : 'No'}
   </td>
 
-  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.ema200Bounce ? 'Yes' : 'No'}
-  </td>
 
   {/* Touched EMA200 */}
   <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
@@ -2338,6 +2348,13 @@ else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
       : 'Bearish'
     : '—'}
 </td>
+	 <td
+  className={`p-2 font-semibold ${
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+  }`}
+>
+  {s.isVolumeSpike ? 'Spike' : '—'}
+</td>	    
 </tr>
         );
       })}
