@@ -386,13 +386,13 @@ const sortedSignals = signals.sort((a, b) => {
   let valA: any = a[sortField];
   let valB: any = b[sortField];
 
-if (sortField === 'ema70Bounce'') {
+if (sortField === 'touchedEMA200Today') {
     valA = a.touchedEMA200Today ? 1 : 0;
     valB = b.touchedEMA200Today ? 1 : 0;
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }
 	
-  if (sortField === 'ema70Bounce'') {
+  if (sortField === 'ema70Bounce') {
     valA = a.ema70Bounce ? 1 : 0;
     valB = b.ema70Bounce ? 1 : 0;
     return sortOrder === 'asc' ? valA - valB : valB - valA;
