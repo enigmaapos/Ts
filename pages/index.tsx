@@ -449,10 +449,29 @@ const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bearishMainTrend: 'bearish',
 };
 
+// 🔹 Other trend filter keys that map to boolean fields in the signal object
+const trendKeyToBooleanField: Record<string, keyof SignalType> = {
+  bullishBreakout: 'bullishBreakout',
+  bearishBreakout: 'bearishBreakout',
+  breakoutFailure: 'breakoutFailure',
+  testedPrevHigh: 'testedPrevHigh',
+  testedPrevLow: 'testedPrevLow',
+  bullishReversal: 'bullishReversal',
+  bearishReversal: 'bearishReversal',
+  bullishSpike: 'bullishSpike',
+  bearishCollapse: 'bearishCollapse',
+};	
+
 const filteredAndSortedSignals = sortedSignals.filter((s) => {
-  if (!trendFilter && trendKeyToMainTrendValue[trendFilter]) {
+  if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
     if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
   }
+
+  // 🔹 Filter by boolean trend signal flags
+  if (trendFilter && trendKeyToBooleanField[trendFilter]) {
+    const field = trendKeyToBooleanField[trendFilter];
+    if (!s[field]) return false;
+  }	
 
   if (signalFilter && getSignal(s) !== signalFilter) return false;
 
