@@ -417,6 +417,12 @@ if (sortField === 'touchedEMA200Today') {
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }
 	
+if (sortField === 'ema14InsideResults') {
+    valA = a.ema14InsideResults ? 1 : 0;
+    valB = b.ema14InsideResults ? 1 : 0;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+  }
+	
   if (sortField === 'ema70Bounce') {
     valA = a.ema70Bounce ? 1 : 0;
     valB = b.ema70Bounce ? 1 : 0;
@@ -1979,8 +1985,30 @@ if (loading) {
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
-
-<th className="px-1 py-0.5 text-xs text-center">EMA14 Inside<br />EMA70–200</th>	  
+	  
+<th
+  onClick={() => {
+    setSortField('ema14InsideResults');
+    setSortOrder((prev) =>
+      sortField === 'ema14InsideResults' && prev === 'asc' ? 'desc' : 'asc'
+    );
+  }}
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
+>
+  EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th> 
+	  
+<th
+  onClick={() => {
+    setSortField('ema200Bounce');
+    setSortOrder((prev) =>
+      sortField === 'ema200Bounce' && prev === 'asc' ? 'desc' : 'asc'
+    );
+  }}
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
+>
+  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th> 
 	  
 <th
   onClick={() => {
