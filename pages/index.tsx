@@ -1997,19 +1997,7 @@ if (loading) {
 >
   EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
-	  
-<th
-  onClick={() => {
-    setSortField('ema200Bounce');
-    setSortOrder((prev) =>
-      sortField === 'ema200Bounce' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-	  
+	  	  
 <th
   onClick={() => {
     setSortField('ema200Bounce');
