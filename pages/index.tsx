@@ -23,6 +23,31 @@ function calculateEMA(data: number[], period: number) {
   return ema;
 }
 
+function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: number[], lookback: number = 5) {
+  const results = [];
+
+  for (let i = ema14Arr.length - lookback; i < ema14Arr.length; i++) {
+    const ema14 = ema14Arr[i];
+    const ema70 = ema70Arr[i];
+    const ema200 = ema200Arr[i];
+
+    const lower = Math.min(ema70, ema200);
+    const upper = Math.max(ema70, ema200);
+
+    const inside = ema14 > lower && ema14 < upper;
+
+    results.push({
+      candleIndex: i,
+      inside,
+      ema14,
+      ema70,
+      ema200,
+    });
+  }
+
+  return results;
+}
+
 function calculateRSI(closes: number[], period = 14): number[] {
   if (!Array.isArray(closes) || closes.length <= period) return [];
 
@@ -881,6 +906,8 @@ console.log({
   isDoubleBottomFailure
 });
 
+const ema14InsideResults = isEMA14InsideRange(ema14Array, ema70Array, ema200Array, 5);
+	      
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
 const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
@@ -1536,6 +1563,7 @@ latestRSI,
   breakoutFailure,
   failedBearishBreak,
   failedBullishBreak,
+		ema14InsideResults,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -1951,6 +1979,9 @@ if (loading) {
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
+
+<th className="px-1 py-0.5 text-xs text-center">EMA14 Inside<br />EMA70–200</th>	  
+	  
 <th
   onClick={() => {
     setSortField('ema200Bounce');
@@ -2252,6 +2283,12 @@ else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
+
+<td className="px-1 py-0.5 text-center text-[10px]">
+  {s.ema14InsideResults.some(r => r.inside)
+    ? <span className="text-green-400 font-semibold">YES</span>
+    : <span className="text-red-400">NO</span>}
+</td>		   
 
 		  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.ema200Bounce ? 'Yes' : 'No'}
