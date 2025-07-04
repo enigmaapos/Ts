@@ -518,6 +518,7 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishReversal: 'bearishReversal',
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
+ema14InsideResults: 	'ema14InsideResults',
 };	
 
 // 🟡 Apply trend & signal filters on top of the search/favorites filtered list
