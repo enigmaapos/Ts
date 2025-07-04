@@ -1934,9 +1934,11 @@ if (loading) {
     </div>
 
 	<div className="flex items-center gap-2">
-      <span>📉 EMA14 Inside<br />EMA70–200:</span>
-      <span className="text-yellow-400 font-bold">{enrichedSignals}</span>
-    </div>  
+  <span>📉 EMA14 Inside<br />EMA70–200:</span>
+  <span className="text-yellow-400 font-bold">
+    {enrichedSignals.filter(s => s.ema14InsideResults).length}
+  </span>
+</div>
 
     {/* Trend Note */}
 <div className="text-yellow-300 mt-2 text-xs leading-snug">
