@@ -245,8 +245,8 @@ const getSignal = (s: any): string => {
   if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
 
   // ✅ MAIN TREND + PREVIOUS CLOSE STRATEGY
-  if (mainTrend === 'bullish' && prevClosedGreen) return 'SELL SIGNAL';
-  if (mainTrend === 'bearish' && prevClosedRed) return 'BUY SIGNAL';
+  if (mainTrend === 'bullish' && prevClosedGreen && dumpAbove30) return 'SELL SIGNAL';
+  if (mainTrend === 'bearish' && prevClosedRed && pumpAbove30) return 'BUY SIGNAL';
 
   return 'NO STRONG SIGNAL';  
 };
@@ -2157,9 +2157,9 @@ else if (direction === 'pump' && pumpInRange_17_19) {
   signal = 'SPIKE/COLLAPSE ZONE DUMP';
 }
 
-else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
+else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen && dumpAbove30) {
   signal = 'SELL SIGNAL';
-} else if (s.mainTrend?.trend === 'bearish' && s.prevClosedRed) {
+} else if (s.mainTrend?.trend === 'bearish' && s.prevClosedRed && pumpAbove30) {
   signal = 'BUY SIGNAL';
 }
 
