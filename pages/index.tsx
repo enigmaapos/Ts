@@ -418,10 +418,10 @@ if (sortField === 'touchedEMA200Today') {
   }
 	
 if (sortField === 'ema14InsideResults') {
-    valA = a.ema14InsideResults ? 1 : 0;
-    valB = b.ema14InsideResults ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
+  const valA = a.ema14InsideResults?.some(r => r.inside) ? 1 : 0;
+  const valB = b.ema14InsideResults?.some(r => r.inside) ? 1 : 0;
+  return sortOrder === 'asc' ? valA - valB : valB - valA;
+}
 	
   if (sortField === 'ema70Bounce') {
     valA = a.ema70Bounce ? 1 : 0;
