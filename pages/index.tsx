@@ -1933,7 +1933,7 @@ if (loading) {
 
 	<div className="flex items-center gap-2">
       <span>📉 EMA14 Inside<br />EMA70–200:</span>
-      <span className="text-yellow-400 font-bold">{ema14InsideResults}</span>
+      <span className="text-yellow-400 font-bold">{ema14InsideResultsCount}</span>
     </div>  
 
     {/* Trend Note */}
