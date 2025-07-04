@@ -582,10 +582,6 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-const ema14InsideResultsCount = enrichedSignals.filter(
-  (s) => s.ema14InsideResults === true
-).length;	
-
 
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1939,7 +1935,7 @@ if (loading) {
 
 	<div className="flex items-center gap-2">
       <span>📉 EMA14 Inside<br />EMA70–200:</span>
-      <span className="text-yellow-400 font-bold">{ema14InsideResultsCount}</span>
+      <span className="text-yellow-400 font-bold">{enrichedSignals}</span>
     </div>  
 
     {/* Trend Note */}
