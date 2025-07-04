@@ -537,6 +537,11 @@ const filteredAndSortedSignals = filteredSignals
     return true;
   })
 
+const enrichedSignals = filteredSignals.map((s, i) => ({
+  ...s,
+  ema14InsideResults: ema14InsideResults[i]?.inside || false,
+}));	
+
 // 🔹 Count statistics
 const bullishMainTrendCount = filteredSignals.filter(
   (s) => s.mainTrend?.trend === 'bullish'
@@ -582,9 +587,10 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-const ema14InsideResultsCount = ema14InsideResults.filter(
-  (r) => r.inside === true
-).length;
+const ema14InsideResultsCount = enrichedSignals.filter(
+  (s) => s.ema14InsideResults === true
+).length;	
+
 
 const signalCounts = useMemo(() => {
   const counts = {
