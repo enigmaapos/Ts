@@ -1889,18 +1889,32 @@ if (loading) {
   </div>
 
 {/* 📊 Summary Panel */}
-  <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span>📈 Bull Trend:</span>
-        <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span>📉 Bear Trend:</span>
-        <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
-      </div>
+<div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
+  <div className="flex flex-col gap-3">
+    
+    {/* Trend Counts */}
+    <div className="flex items-center gap-2">
+      <span>📈 Bull Trend:</span>
+      <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
     </div>
+    <div className="flex items-center gap-2">
+      <span>📉 Bear Trend:</span>
+      <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+    </div>
+
+    {/* Trend Note */}
+    <div className="text-yellow-300 mt-2 text-xs leading-snug">
+      <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
+      <ul className="list-disc list-inside space-y-1">
+        <li>If <span className="text-green-400 font-semibold">Bullish</span> count is below 100, overall market leans <span className="text-red-400 font-semibold">Bearish</span>.</li>
+        <li>If <span className="text-red-400 font-semibold">Bearish</span> count is below 100, overall market leans <span className="text-green-400 font-semibold">Bullish</span>.</li>
+        <li>When <span className="text-green-400 font-semibold">Bullish</span> count exceeds 100, trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.</li>
+        <li>When <span className="text-red-400 font-semibold">Bearish</span> count exceeds 100, trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.</li>
+      </ul>
+    </div>
+    
   </div>
+</div>
 	
     {/* 📝 Breakdown/Breakup Note */}
 <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">	
