@@ -582,7 +582,9 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-
+const ema14InsideResults = filteredSignals.filter(
+  (s) => s.ema14InsideResults === true
+).length;  
 
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1929,16 +1931,41 @@ if (loading) {
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
 
+	<div className="flex items-center gap-2">
+      <span>📉 EMA14 Inside<br />EMA70–200:</span>
+      <span className="text-yellow-400 font-bold">{ema14InsideResults}</span>
+    </div>  
+
     {/* Trend Note */}
-    <div className="text-yellow-300 mt-2 text-xs leading-snug">
-      <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
-      <ul className="list-disc list-inside space-y-1">
-        <li>If <span className="text-green-400 font-semibold">Bullish</span> count is below 100, overall market leans <span className="text-red-400 font-semibold">Bearish</span>.</li>
-        <li>If <span className="text-red-400 font-semibold">Bearish</span> count is below 100, overall market leans <span className="text-green-400 font-semibold">Bullish</span>.</li>
-        <li>When <span className="text-green-400 font-semibold">Bullish</span> count exceeds 100, trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.</li>
-        <li>When <span className="text-red-400 font-semibold">Bearish</span> count exceeds 100, trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.</li>
-      </ul>
-    </div>
+<div className="text-yellow-300 mt-2 text-xs leading-snug">
+  <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
+  <ul className="list-disc list-inside space-y-1">
+    <li>
+      If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>, the overall market leans 
+      <span className="text-red-400 font-semibold"> Bearish</span>.
+    </li>
+    <li>
+      If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>, the overall market leans 
+      <span className="text-green-400 font-semibold"> Bullish</span>.
+    </li>
+    <li>
+      When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>, trend is shifting toward 
+      <span className="text-green-400 font-semibold"> Bullish</span>.
+    </li>
+    <li>
+      When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>, trend is shifting toward 
+      <span className="text-red-400 font-semibold"> Bearish</span>.
+    </li>
+    <li>
+  <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
+  <span className="text-red-400 font-semibold"> Bearish continuation</span>
+</li>
+<li>
+  <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
+  <span className="text-green-400 font-semibold"> Bullish continuation</span>
+</li>
+  </ul>
+</div>
     
   </div>
 </div>
