@@ -694,7 +694,9 @@ const closes = candles.map(c => c.close);
 const highs = candles.map(c => c.high);
 const lows = candles.map(c => c.low);
 const volumes = candles.map(c => c.volume); // ✅ Add volume here	      
+const opens = candles.map(c => c.open);
 
+	      
 const ema14 = calculateEMA(closes, 14);
 const ema70 = calculateEMA(closes, 70);
 const ema200 = calculateEMA(closes, 200);
