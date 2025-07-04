@@ -732,8 +732,7 @@ const lastEMA70 = ema70.at(-1)!;
 const lastEMA200 = ema200.at(-1)!;
 
 
-// Main trend
-const mainTrend = getMainTrend(ema70, ema200, closes);
+const mainTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows);
 
 
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
