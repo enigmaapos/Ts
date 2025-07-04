@@ -683,6 +683,11 @@ const ema70 = calculateEMA(closes, 70);
 const ema200 = calculateEMA(closes, 200);
 const rsi14 = calculateRSI(closes, 14);
 
+const ema14Array = getEMA(closes, 14);
+const ema70Array = getEMA(closes, 70);
+const ema200Array = getEMA(closes, 200);	      
+	      
+
 candles.forEach((c, i) => {
   c.rsi = rsi14[i];
   
