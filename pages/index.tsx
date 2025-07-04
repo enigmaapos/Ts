@@ -23,16 +23,16 @@ function calculateEMA(data: number[], period: number) {
   return ema;
 }
 
-function isEMA14InsideRange(ema14: number[], ema70: number[], ema200: number[], lookback: number = 5) {
+function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: number[], lookback: number = 5) {
   const results = [];
 
-  for (let i = ema14.length - lookback; i < ema14.length; i++) {
-    const ema14 = ema14[i];
-    const ema70 = ema70[i];
-    const ema200 = ema200[i];
+  for (let i = ema14Arr.length - lookback; i < ema14Arr.length; i++) {
+    const val14 = ema14Arr[i];
+    const val70 = ema70Arr[i];
+    const val200 = ema200Arr[i];
 
-    const lower = Math.min(ema70, ema200);
-    const upper = Math.max(ema70, ema200);
+    const lower = Math.min(val70, val200);
+    const upper = Math.max(val70, val200);
 
     const inside = ema14 > lower && ema14 < upper;
 
