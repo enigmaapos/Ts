@@ -537,11 +537,6 @@ const filteredAndSortedSignals = filteredSignals
     return true;
   })
 
-const enrichedSignals = filteredSignals.map((s, i) => ({
-  ...s,
-  ema14InsideResults: ema14InsideResults[i]?.inside || false,
-}));	
-
 // 🔹 Count statistics
 const bullishMainTrendCount = filteredSignals.filter(
   (s) => s.mainTrend?.trend === 'bullish'
@@ -933,6 +928,11 @@ console.log({
 });
 
 const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);
+	      
+const enrichedSignals = filteredSignals.map((s, i) => ({
+  ...s,
+  ema14InsideResults: ema14InsideResults[i]?.inside || false,
+}));	
 	      
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
