@@ -1103,7 +1103,19 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
-	      
+
+
+let gapFromLowToEMA200 = null;
+let gapFromHighToEMA200 = null;
+
+if (todaysLowestLow !== null && ema200 > 0) {
+  gapFromLowToEMA200 = ((ema200 - todaysLowestLow) / ema200) * 100; // % below EMA200
+}
+
+if (todaysHighestHigh !== null && ema200 > 0) {
+  gapFromHighToEMA200 = ((todaysHighestHigh - ema200) / ema200) * 100; // % above EMA200
+}
+	  
 	      		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1598,6 +1610,8 @@ latestRSI,
       price24hAgo,
       priceChangePercent,
       isUp,
+		gapFromLowToEMA200,
+		gapFromHighToEMA200,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -2023,6 +2037,9 @@ if (loading) {
 >
   EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
+
+<th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
+<th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
 	  	  
 <th
   onClick={() => {
@@ -2210,9 +2227,8 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
 </td>
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
-              </td>		   
-
-
+              </td>
+		   
   <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
     {s.bullishBreakout ? 'Yes' : 'No'}
   </td>	   
@@ -2335,8 +2351,26 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
   {s.ema14InsideResults.some(r => r.inside)
     ? <span className="text-green-400 font-semibold">YES</span>
     : <span className="text-red-400">NO</span>}
-</td>		   
+</td>	
+		   
+{/* Low → EMA200: Only for bearish trend */}
+<td className="px-1 py-0.5 text-center">
+  {s.mainTrend?.trend === 'bearish' && s.gapFromLowToEMA200 !== null ? (
+    <span className={s.gapFromLowToEMA200 < 1 ? 'text-red-400' : 'text-yellow-400'}>
+      {s.gapFromLowToEMA200.toFixed(2)}%
+    </span>
+  ) : '—'}
+</td>
 
+{/* High → EMA200: Only for bullish trend */}
+<td className="px-1 py-0.5 text-center">
+  {s.mainTrend?.trend === 'bullish' && s.gapFromHighToEMA200 !== null ? (
+    <span className={s.gapFromHighToEMA200 > 5 ? 'text-green-400' : 'text-gray-300'}>
+      {s.gapFromHighToEMA200.toFixed(2)}%
+    </span>
+  ) : '—'}
+</td>
+		   
 		  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.ema200Bounce ? 'Yes' : 'No'}
   </td> 
