@@ -582,7 +582,7 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-const ema14InsideResults = filteredSignals.filter(
+const ema14InsideResultsCount = filteredSignals.filter(
   (s) => s.ema14InsideResults === true
 ).length;  
 
