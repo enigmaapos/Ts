@@ -106,44 +106,54 @@ function getMainTrend(
   ema70: number[],
   ema200: number[],
   closes: number[],
-  tolerancePercent = 0.5 // allow configurable tolerance
-): TrendResult {
+  opens: number[],
+  highs: number[],
+  lows: number[],
+  tolerancePercent = 0.5, // for near crossover level
+  dojiToleranceRatio = 0.1 // for body vs range
+): TrendResult & { isDojiAfterBreakout?: boolean } {
   const len = ema70.length;
-  const lastClose = closes[closes.length - 1];
+  const lastClose = closes[len - 1];
+  const lastOpen = opens[len - 1];
+  const lastHigh = highs[len - 1];
+  const lastLow = lows[len - 1];
 
-  // Loop backward to detect the most recent EMA70/EMA200 crossover
+  const isDoji = Math.abs(lastClose - lastOpen) <= (lastHigh - lastLow) * dojiToleranceRatio;
+
   for (let i = len - 2; i >= 1; i--) {
     const prevEMA70 = ema70[i];
     const prevEMA200 = ema200[i];
     const currEMA70 = ema70[i + 1];
     const currEMA200 = ema200[i + 1];
 
-    // Bullish crossover: EMA70 crosses above EMA200
+    // Bullish crossover
     if (prevEMA70 <= prevEMA200 && currEMA70 > currEMA200) {
       const crossoverPrice = closes[i + 1];
       return {
         trend: 'bullish',
         type: 'support',
         crossoverPrice,
-        breakout: lastClose > crossoverPrice,
-        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent)
+        breakout: lastClose > ema200[len - 1],
+        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent),
+        isDojiAfterBreakout: lastClose > ema200[len - 1] && isDoji
       };
     }
 
-    // Bearish crossover: EMA70 crosses below EMA200
+    // Bearish crossover
     if (prevEMA70 >= prevEMA200 && currEMA70 < currEMA200) {
       const crossoverPrice = closes[i + 1];
       return {
         trend: 'bearish',
         type: 'resistance',
         crossoverPrice,
-        breakout: lastClose < crossoverPrice,
-        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent)
+        breakout: lastClose < ema200[len - 1],
+        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent),
+        isDojiAfterBreakout: lastClose < ema200[len - 1] && isDoji
       };
     }
   }
 
-  // Fallback: no crossover found, use latest EMA70 vs EMA200
+  // Fallback trend (no crossover)
   const lastEMA70 = ema70[len - 1];
   const lastEMA200 = ema200[len - 1];
   const fallbackTrend = lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish';
@@ -154,7 +164,8 @@ function getMainTrend(
     type: fallbackType,
     crossoverPrice: lastClose,
     breakout: null,
-    isNear: true // Since fallback uses lastClose as crossoverPrice, it's always "at" the level
+    isNear: true,
+    isDojiAfterBreakout: false
   };
 }
 
@@ -2239,6 +2250,11 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
       {s.mainTrend.isNear && (
         <span className="ml-1 text-yellow-400 font-semibold">
           ⏳ Near {s.mainTrend.type}
+        </span>
+      )}
+      {s.mainTrend.isDojiAfterBreakout && (
+        <span className="ml-1 text-purple-400 font-bold">
+          🕯️ Doji After Breakout
         </span>
       )}
     </>
