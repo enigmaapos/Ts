@@ -34,14 +34,14 @@ function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: n
     const lower = Math.min(val70, val200);
     const upper = Math.max(val70, val200);
 
-    const inside = ema14 > lower && ema14 < upper;
+      const inside = val14 > lower && val14 < upper;
 
     results.push({
       candleIndex: i,
       inside,
-      ema14,
-      ema70,
-      ema200,
+      ema14: val14,
+      ema70: val70,
+      ema200: val200,
     });
   }
 
