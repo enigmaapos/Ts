@@ -1961,7 +1961,30 @@ if (loading) {
   className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>  
+</th> 
+	  
+{/* Touched EMA200 Today */}
+    <th
+      onClick={() => {
+        setSortField('touchedEMA200Today');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>	  
+	  
+   {/* More Static Columns */}
+    <th className="p-2 text-center">EMA14 Bounce</th>
+    <th
+      onClick={() => {
+        setSortField('ema70Bounce');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
 	  
 <th className="p-2 text-green-400">Bullish Engulfing</th>
 <th className="p-2 text-red-400">Bearish Engulfing</th>	  
@@ -1987,32 +2010,7 @@ if (loading) {
     >
       Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>	  
-	  
-
-    {/* More Static Columns */}
-    <th className="p-2 text-center">EMA14 Bounce</th>
-    <th
-      onClick={() => {
-        setSortField('ema70Bounce');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-    {/* Touched EMA200 Today */}
-    <th
-      onClick={() => {
-        setSortField('touchedEMA200Today');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-	  
+	  	  
     <th className="px-1 py-0.5 text-center">Tested High</th>
     <th className="px-1 py-0.5 text-center">Tested Low</th>
     <th className="px-1 py-0.5 text-center">Breakout Fail</th>
@@ -2259,7 +2257,20 @@ else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
     {s.ema200Bounce ? 'Yes' : 'No'}
   </td> 
 		   
-		   
+  {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>	   			   
+
+{/* EMA Bounces */}
+  <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema14Bounce ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema70Bounce ? 'Yes' : 'No'}
+  </td>	   
+		   		   
 <td className="p-2 text-center text-green-400 font-semibold">
   {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
 </td>
@@ -2277,23 +2288,7 @@ else if (s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) {
 <td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
 {s.bullishDivergence?.divergence ? 'Yes' : '-'}
 </td>	
-	
-	  {/* EMA Bounces */}
-  <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
-    {s.ema14Bounce ? 'Yes' : 'No'}
-  </td>
-
-  <td className={`p-2 ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
-    {s.ema70Bounce ? 'Yes' : 'No'}
-  </td>
-
-
-  {/* Touched EMA200 */}
-  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>	   
 		   
-
   {/* Support/Breakout Detection */}
   <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
     {s.testedPrevHigh ? 'Yes' : '-'}
