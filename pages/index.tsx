@@ -23,13 +23,13 @@ function calculateEMA(data: number[], period: number) {
   return ema;
 }
 
-function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: number[], lookback: number = 5) {
+function isEMA14InsideRange(ema14: number[], ema70: number[], ema200: number[], lookback: number = 5) {
   const results = [];
 
-  for (let i = ema14Arr.length - lookback; i < ema14Arr.length; i++) {
-    const ema14 = ema14Arr[i];
-    const ema70 = ema70Arr[i];
-    const ema200 = ema200Arr[i];
+  for (let i = ema14.length - lookback; i < ema14.length; i++) {
+    const ema14 = ema14[i];
+    const ema70 = ema70[i];
+    const ema200 = ema200[i];
 
     const lower = Math.min(ema70, ema200);
     const upper = Math.max(ema70, ema200);
@@ -682,12 +682,7 @@ const ema14 = calculateEMA(closes, 14);
 const ema70 = calculateEMA(closes, 70);
 const ema200 = calculateEMA(closes, 200);
 const rsi14 = calculateRSI(closes, 14);
-
-const ema14Array = getEMA(closes, 14);
-const ema70Array = getEMA(closes, 70);
-const ema200Array = getEMA(closes, 200);	      
-	      
-
+      	      
 candles.forEach((c, i) => {
   c.rsi = rsi14[i];
   
@@ -911,7 +906,7 @@ console.log({
   isDoubleBottomFailure
 });
 
-const ema14InsideResults = isEMA14InsideRange(ema14Array, ema70Array, ema200Array, 5);
+const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);
 	      
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
