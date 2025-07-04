@@ -1104,16 +1104,17 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
 
-
+const ema200Value = ema200[ema200.length - 1];
+	      
 let gapFromLowToEMA200 = null;
 let gapFromHighToEMA200 = null;
 
-if (todaysLowestLow !== null && ema200 > 0) {
-  gapFromLowToEMA200 = ((ema200 - todaysLowestLow) / ema200) * 100; // % below EMA200
+if (todaysLowestLow !== null && ema200Value > 0) {
+  gapFromLowToEMA200 = ((ema200Value - todaysLowestLow) / ema200Value) * 100;
 }
 
-if (todaysHighestHigh !== null && ema200 > 0) {
-  gapFromHighToEMA200 = ((todaysHighestHigh - ema200) / ema200) * 100; // % above EMA200
+if (todaysHighestHigh !== null && ema200Value > 0) {
+  gapFromHighToEMA200 = ((todaysHighestHigh - ema200Value) / ema200Value) * 100;
 }
 	  
 	      		    
