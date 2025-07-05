@@ -587,6 +587,14 @@ const ema14InsideResultsCount = filteredSignals.filter(
   (s) => s.ema14InsideResults?.some(r => r.inside)
 ).length;
 
+// 🔹 Price Change Statistics
+const greenPriceChangeCount = tickers.filter(
+  (t) => parseFloat(t.priceChangePercent) > 0
+).length;
+
+const redPriceChangeCount = tickers.filter(
+  (t) => parseFloat(t.priceChangePercent) < 0
+).length;	
 	
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1616,6 +1624,8 @@ latestRSI,
       price24hAgo,
       priceChangePercent,
       isUp,
+		greenPriceChangeCount, 
+		redPriceChangeCount,
 		gapFromLowToEMA200,
 		gapFromHighToEMA200,
 };
@@ -1941,6 +1951,11 @@ if (loading) {
   </span>
   <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
 </div>
+
+<div className="flex items-center gap-4 text-sm">
+  <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
+  <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+</div>	  
 	  
 
     {/* Trend Note */}
