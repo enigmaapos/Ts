@@ -1959,7 +1959,9 @@ if (loading) {
 
 	<div className="flex items-center gap-2">
   <span>📍 EMA14 Inside<br />EMA70–200:</span>
-  <span className="text-yellow-400 font-bold">{ema14InsideResultsCount}</span>
+  <span className="text-yellow-400 font-bold">
+    {ema14InsideResultsCount ?? 0}
+  </span>
 </div>
 
 
