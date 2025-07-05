@@ -1562,13 +1562,13 @@ const bearishCollapse = detectBearishCollapse(
     const longShortRatio = parseFloat(latestLongShort.longShortRatio);
 
     // 4. Sentiment Analysis Logic
-    const sentimentMap: Record<string, Sentiment> = {
+    const sentimentBreakdown: Record<string, Sentiment> = {
       funding: fundingRate > 0 ? 'Bullish' : 'Bearish',
       priceChange: priceChangePercent > 0 ? 'Bullish' : 'Bearish',
       longShort: longShortRatio > 1 ? 'Bullish' : 'Bearish',
     };
 
-    const score = Object.values(sentimentMap).filter(v => v === 'Bullish').length;
+    const score = Object.values(sentimentBreakdown).filter(v => v === 'Bullish').length;
 
     let overall: Sentiment | 'Strong Bullish' | 'Strong Bearish';
     if (score === 3) overall = 'Strong Bullish';
