@@ -1546,22 +1546,49 @@ const bearishCollapse = detectBearishCollapse(
   bearishBreakout
 ); 
 
+
+   const fundingRes = await axios.get(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`);
+    const fundingRate = parseFloat(fundingRes.data.lastFundingRate);
+
+   const longShortRes = await axios.get(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio`, {
+      params: {
+        symbol,
+        period: '5m',
+        limit: 5
+      }
+    });
+    const latestLongShort = longShortRes.data.at(-1);
+    const longShortRatio = parseFloat(latestLongShort.longShortRatio);
+
+    // 4. Sentiment Analysis Logic
+    const sentimentMap: Record<string, Sentiment> = {
+      funding: fundingRate > 0 ? 'Bullish' : 'Bearish',
+      priceChange: priceChangePercent > 0 ? 'Bullish' : 'Bearish',
+      longShort: longShortRatio > 1 ? 'Bullish' : 'Bearish',
+    };
+
+    const score = Object.values(sentimentMap).filter(v => v === 'Bullish').length;
+
+    let overall: Sentiment | 'Strong Bullish' | 'Strong Bearish';
+    if (score === 3) overall = 'Strong Bullish';
+    else if (score === 2) overall = 'Bullish';
+    else if (score === 1) overall = 'Bearish';
+    else overall = 'Strong Bearish';	      
 	      
-        
-        return {
+      return {
   symbol,
   bullishMainTrendCount,
   bearishMainTrendCount,
   bullishBreakoutCount,
-  bearishBreakoutCount,       
-  testedPrevHighCount,   // ✅ New
-  testedPrevLowCount,    // ✅ New
+  bearishBreakoutCount,
+  testedPrevHighCount,
+  testedPrevLowCount,
   mainTrend,
   breakout,
   bullishBreakout,
   bearishBreakout,
-prevClosedGreen,
-prevClosedRed,		
+  prevClosedGreen,
+  prevClosedRed,
   bullishReversalCount,
   bearishReversalCount,
   bullishReversal,
@@ -1569,42 +1596,64 @@ prevClosedRed,
   bullishSpike,
   bearishCollapse,
   rsi14,
-latestRSI,		
+  latestRSI,
   testedPrevHigh,
   testedPrevLow,
-     isDoubleTop,
+  isDoubleTop,
   isDescendingTop,
   isDoubleTopFailure,
   isDoubleBottom,
   isAscendingBottom,
-  isDoubleBottomFailure,       
+  isDoubleBottomFailure,
   breakoutTestSignal,
   breakoutFailure,
   failedBearishBreak,
   failedBullishBreak,
-		ema14InsideResults,
-		ema14InsideResultsCount,
-		ema14Bounce,
-		ema70Bounce,
+  ema14InsideResults,
+  ema14InsideResultsCount,
+  ema14Bounce,
+  ema70Bounce,
   ema200Bounce,
-		touchedEMA200Today,
-		bearishDivergence,
-		bullishDivergence,
-		bearishVolumeDivergence,
-		bullishVolumeDivergence,
-		highestVolumeColorPrev,
-		isVolumeSpike,
-		hasBullishEngulfing,
-		hasBearishEngulfing,
-		   currentPrice,
-      price24hAgo,
-      priceChangePercent,
-      isUp,
-		greenPriceChangeCount, 
-		redPriceChangeCount,
-		gapFromLowToEMA200,
-		gapFromHighToEMA200,
-};
+  touchedEMA200Today,
+  bearishDivergence,
+  bullishDivergence,
+  bearishVolumeDivergence,
+  bullishVolumeDivergence,
+  highestVolumeColorPrev,
+  isVolumeSpike,
+  hasBullishEngulfing,
+  hasBearishEngulfing,
+  currentPrice,
+  price24hAgo,
+  priceChangePercent,
+  isUp,
+  greenPriceChangeCount,
+  redPriceChangeCount,
+  gapFromLowToEMA200,
+  gapFromHighToEMA200,
+
+  // ✅ Added Market Sentiment Fields
+  fundingRate,
+  longShortRatio,
+  sentimentBreakdown: {
+    funding: fundingRate > 0 ? 'Bullish' : 'Bearish',
+    priceChange: priceChangePercent > 0 ? 'Bullish' : 'Bearish',
+    longShort: longShortRatio > 1 ? 'Bullish' : 'Bearish',
+  },
+  overallSentiment: (() => {
+    const score = [
+      fundingRate > 0,
+      priceChangePercent > 0,
+      longShortRatio > 1,
+    ].filter(Boolean).length;
+
+    if (score === 3) return 'Strong Bullish';
+    if (score === 2) return 'Bullish';
+    if (score === 1) return 'Bearish';
+    return 'Strong Bearish';
+  })(),
+};  
+        
       } catch (err) {
         console.error("Error processing", symbol, err);
         return null;
@@ -1881,6 +1930,43 @@ if (loading) {
       </button>
     </div>
   </div>
+
+
+  <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md text-white w-full max-w-md mx-auto">
+  <h2 className="text-xl font-bold mb-4">📊 Market Sentiment – {s.symbol}</h2>
+
+  <div className="space-y-2 text-sm">
+    <div className="flex justify-between">
+      <span className="text-gray-400">Funding Rate:</span>
+      <span className={`font-medium ${getColor(s.sentimentBreakdown?.funding)}`}>
+        {s.fundingRate?.toFixed(5)} ({s.sentimentBreakdown?.funding})
+      </span>
+    </div>
+
+    <div className="flex justify-between">
+      <span className="text-gray-400">24h Price Change:</span>
+      <span className={`font-medium ${getColor(s.sentimentBreakdown?.priceChange)}`}>
+        {s.priceChangePercent?.toFixed(2)}% ({s.sentimentBreakdown?.priceChange})
+      </span>
+    </div>
+
+    <div className="flex justify-between">
+      <span className="text-gray-400">Long/Short Ratio:</span>
+      <span className={`font-medium ${getColor(s.sentimentBreakdown?.longShort)}`}>
+        {s.longShortRatio?.toFixed(2)} ({s.sentimentBreakdown?.longShort})
+      </span>
+    </div>
+  </div>
+
+  <div className="border-t border-gray-700 my-4"></div>
+
+  <div className="mt-2 text-lg font-bold text-center">
+    <span className={getColor(s.overallSentiment)}>
+      🧠 Overall Sentiment: {s.overallSentiment}
+    </span>
+  </div>
+</div>
+	
 
 {/* 📊 Summary Panel */}
 <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
