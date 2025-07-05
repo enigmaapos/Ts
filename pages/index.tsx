@@ -1952,10 +1952,15 @@ if (loading) {
   <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
 </div>
 
-<div className="flex items-center gap-4 text-sm">
-  <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
-  <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
-</div>	  
+<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+  <div className="text-white text-sm mb-2 font-semibold">
+    🔹 24h Price Change Summary
+  </div>
+  <div className="flex items-center gap-4 text-sm">
+    <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
+    <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+  </div>
+</div>
 	  
 
     {/* Trend Note */}
