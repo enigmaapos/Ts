@@ -582,6 +582,10 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
+const ema14InsideResultsCount = filteredSignals.filter(
+  (s) => s.ema14InsideResults === true
+).length;  	
+
 	
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1594,6 +1598,7 @@ latestRSI,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
+		ema14InsideResultsCount,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -1927,7 +1932,12 @@ if (loading) {
       <span>📉 Bear Trend:</span>
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
-
+	  
+<div className="flex items-center gap-2">
+      <span>📍EMA14 Inside<br />EMA70–200:</span>
+      <span className="text-red-400 font-bold">{ema14InsideResultsCount}</span>
+    </div>
+	  
 
     {/* Trend Note */}
 <div className="text-yellow-300 mt-2 text-xs leading-snug">
