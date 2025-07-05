@@ -582,9 +582,11 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-const ema14InsideResultsCount = filteredSignals.filter(
-  (s) => s.ema14InsideResults === true
-).length;  
+const ema14InsideResultsCount = filteredSignals.filter((s) => {
+  const lower = Math.min(s.ema70, s.ema200);
+  const upper = Math.max(s.ema70, s.ema200);
+  return s.ema14 > lower && s.ema14 < upper;
+}).length;
 	
 
 const signalCounts = useMemo(() => {
@@ -1933,9 +1935,9 @@ if (loading) {
     </div>
 
 	<div className="flex items-center gap-2">
-      <span>📉 EMA14 Inside<br />EMA70–200:</span>
-      <span className="text-red-400 font-bold">{ema14InsideResultsCount}</span>
-    </div>
+  <span>📍 EMA14 Inside<br />EMA70–200:</span>
+  <span className="text-yellow-400 font-bold">{ema14InsideResultsCount}</span>
+</div>
 
 
     {/* Trend Note */}
