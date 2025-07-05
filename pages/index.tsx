@@ -924,34 +924,6 @@ console.log({
 });
 
 const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);
-
-const enrichedSignals = signals.map((s) => {
-  const val14 = s.ema14 ?? s.indicators?.ema14;
-  const val70 = s.ema70 ?? s.indicators?.ema70;
-  const val200 = s.ema200 ?? s.indicators?.ema200;
-
-  const lower = Math.min(val70, val200);
-  const upper = Math.max(val70, val200);
-
-  const ema14Inside =
-    typeof val14 === 'number' &&
-    typeof val70 === 'number' &&
-    typeof val200 === 'number' &&
-    val14 > lower &&
-    val14 < upper;
-
-  return {
-    ...s,
-    ema14: val14,
-    ema70: val70,
-    ema200: val200,
-    ema14InsideResults: ema14Inside,
-  };
-});
-	      
-const ema14InsideResultsCount = useMemo(() => {
-  return filteredSignals.filter((s) => s.ema14InsideResults === true).length;
-}, [filteredSignals]);
 	      
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
@@ -1622,7 +1594,6 @@ latestRSI,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
-		ema14InsideResultsCount,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -1956,13 +1927,6 @@ if (loading) {
       <span>📉 Bear Trend:</span>
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
-
-	<div className="flex items-center gap-2">
-  <span>📍 EMA14 Inside<br />EMA70–200:</span>
-  <span className="text-yellow-400 font-bold">
-    {ema14InsideResultsCount ?? 0}
-  </span>
-</div>
 
 
     {/* Trend Note */}
