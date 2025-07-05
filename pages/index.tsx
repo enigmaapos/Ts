@@ -251,14 +251,6 @@ const getSignal = (s: any): string => {
   if (pumpInRange_1_10 && direction === 'pump') return 'LOWEST ZONE PUMP';
   if (dumpInRange_1_10 && direction === 'dump') return 'LOWEST ZONE DUMP';
   
-  // ✅ SPIKE or COLLAPSE  
-  if (pumpOrDumpInRange_17_19 && direction === 'pump') return 'SPIKE/COLLAPSE ZONE PUMP';
-  if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
-
-  // ✅ MAIN TREND + PREVIOUS CLOSE STRATEGY
-  if ((mainTrend === 'bullish' && prevClosedGreen) && dumpAbove30) return 'SELL SIGNAL';
-  if ((mainTrend === 'bearish' && prevClosedRed) && pumpAbove30) return 'BUY SIGNAL';
-
   return 'NO STRONG SIGNAL';  
 };
 
@@ -604,10 +596,6 @@ const signalCounts = useMemo(() => {
     balanceZoneDump: 0,
     lowestZonePump: 0,
     lowestZoneDump: 0,
-    spikeCollapsePump: 0,
-    spikeCollapseDump: 0,
-    sellSignal: 0,      // ✅ Added
-    buySignal: 0,       // ✅ Added
   };
 
   signals.forEach((s: any) => {
@@ -631,18 +619,6 @@ const signalCounts = useMemo(() => {
         break;
       case 'LOWEST ZONE DUMP':
         counts.lowestZoneDump++;
-        break;
-      case 'SPIKE/COLLAPSE ZONE PUMP':
-        counts.spikeCollapsePump++;
-        break;
-      case 'SPIKE/COLLAPSE ZONE DUMP':
-        counts.spikeCollapseDump++;
-        break;
-      case 'SELL SIGNAL':          // ✅ New case
-        counts.sellSignal++;
-        break;
-      case 'BUY SIGNAL':           // ✅ New case
-        counts.buySignal++;
         break;
     }
   });
@@ -1872,31 +1848,7 @@ if (loading) {
     count: signalCounts.lowestZoneDump,
     color: 'text-yellow-600',
   },
-  {
-    label: 'SPIKE/COLLAPSE ZONE PUMP',
-    key: 'SPIKE/COLLAPSE ZONE PUMP',
-    count: signalCounts.spikeCollapsePump,
-    color: 'text-orange-400',
-  },
-  {
-    label: 'SPIKE/COLLAPSE ZONE DUMP',
-    key: 'SPIKE/COLLAPSE ZONE DUMP',
-    count: signalCounts.spikeCollapseDump,
-    color: 'text-orange-500',
-  },
 	
-{
-  label: 'SELL SIGNAL',
-  key: 'SELL SIGNAL',
-  count: signalCounts.sellSignal,
-  color: 'text-red-400', // 🔻 You can customize this
-},
-{
-  label: 'BUY SIGNAL',
-  key: 'BUY SIGNAL',
-  count: signalCounts.buySignal,
-  color: 'text-green-400', // 🔺 You can customize this
-},	      
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1933,8 +1885,8 @@ if (loading) {
 {/* 📊 Summary Panel */}
 <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
   <div className="flex flex-col gap-3">
-    
-    {/* Trend Counts */}
+
+    {/* 📈 Trend Counts */}
     <div className="flex items-center gap-2">
       <span>📈 Bull Trend:</span>
       <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
@@ -1943,81 +1895,105 @@ if (loading) {
       <span>📉 Bear Trend:</span>
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
+
+    {/* 📍 EMA14 Inside Range */}
+    <div className="flex items-center gap-1">
+      <span className="flex flex-col leading-tight">
+        <span className="text-sm">📍 EMA14 Inside</span>
+        <span className="text-sm">EMA70–200:</span>
+      </span>
+      <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+    </div>
+
+    {/* 🔹 24h Price Change Summary */}
+    <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+      <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
+      <div className="flex items-center gap-4 text-sm">
+        <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
+        <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+      </div>
+    </div>
+
+    {/* 📝 Market Sentiment Insights */}
+    <div className="text-yellow-300 mt-2 text-xs leading-snug">
+      <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
+      <ul className="list-disc list-inside space-y-1">
+        <li>
+          If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>,
+          the market leans <span className="text-red-400 font-semibold">Bearish</span>.
+        </li>
+        <li>
+          If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>,
+          the market leans <span className="text-green-400 font-semibold">Bullish</span>.
+        </li>
+        <li>
+          When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>,
+          trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.
+        </li>
+        <li>
+          When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>,
+          trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.
+        </li>
+        <li>
+          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
+          <span className="text-red-400 font-semibold"> Bearish continuation</span>
+        </li>
+        <li>
+          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
+          <span className="text-green-400 font-semibold"> Bullish continuation</span>
+        </li>
+      </ul>
+    </div>
+
+    {/* 🧠 Strategy Signals */}
+    <div className="text-blue-300 mt-2 text-xs leading-snug">
+      <p>🧠 <span className="font-semibold text-white">Strategy Signals:</span></p>
+      <ul className="list-disc list-inside space-y-1">
+        <li>
+          <span className="text-green-400 font-semibold">Bullish</span> trend + 
+          previous candle <span className="text-green-400 font-medium">closed green</span> + 
+          <span className="text-red-300"> dump &gt; 30%</span> = 
+          <span className="text-yellow-400 font-semibold"> SELL SIGNAL</span> if sentiment is bullish.
+        </li>
+        <li>
+          <span className="text-red-400 font-semibold">Bearish</span> trend + 
+          previous candle <span className="text-red-400 font-medium">closed red</span> + 
+          <span className="text-green-300"> pump &gt; 30%</span> = 
+          <span className="text-yellow-400 font-semibold"> BUY SIGNAL</span> if sentiment is bearish.
+        </li>
+        <li>
+          <span className="text-red-300">Bearish trend</span> + <span className="text-red-400">24h red price change</span> = 
+          <span className="text-red-400 font-semibold"> Bearish sentiment</span>
+        </li>
+        <li>
+          <span className="text-green-300">Bullish trend</span> + <span className="text-green-400">24h green price change</span> = 
+          <span className="text-green-400 font-semibold"> Bullish sentiment</span>
+        </li>
+      </ul>
+    </div>
+
+    {/* 🔍 Breakdown/Breakup Price Logic */}
+    <div className="text-gray-400 text-xs mt-2">
+      <p className="leading-snug">
+        📝 <span className="text-yellow-300 font-semibold">Breakdown vs Breakup:</span> 
+        In a <span className="text-red-300 font-medium">bearish trend</span>:
+        <br />
+        - <span className="text-red-300">Breakdown price</span> = price is <u>below</u> resistance → confirms downtrend.
+        <br />
+        - <span className="text-green-300">Breakup price</span> = price is <u>above</u> resistance → possible reversal.
+      </p>
+      <p className="leading-snug mt-1">
+        In a <span className="text-green-300 font-medium">bullish trend</span>:
+        <br />
+        - <span className="text-green-300">Breakup price</span> = price is <u>above</u> support → confirms uptrend.
+        <br />
+        - <span className="text-red-300">Breakdown price</span> = price is <u>below</u> support → possible reversal.
+      </p>
+    </div>
 	  
-<div className="flex items-center gap-1">
-  <span className="flex flex-col leading-tight">
-    <span className="text-sm">📍 EMA14 Inside</span>
-    <span className="text-sm">EMA70–200:</span>
-  </span>
-  <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+  </div>
 </div>
 
-<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
-  <div className="text-white text-sm mb-2 font-semibold">
-    🔹 24h Price Change Summary
-  </div>
-  <div className="flex items-center gap-4 text-sm">
-    <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
-    <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
-  </div>
-</div>
-	  
-
-    {/* Trend Note */}
-<div className="text-yellow-300 mt-2 text-xs leading-snug">
-  <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
-  <ul className="list-disc list-inside space-y-1">
-    <li>
-      If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>, the overall market leans 
-      <span className="text-red-400 font-semibold"> Bearish</span>.
-    </li>
-    <li>
-      If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>, the overall market leans 
-      <span className="text-green-400 font-semibold"> Bullish</span>.
-    </li>
-    <li>
-      When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>, trend is shifting toward 
-      <span className="text-green-400 font-semibold"> Bullish</span>.
-    </li>
-    <li>
-      When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>, trend is shifting toward 
-      <span className="text-red-400 font-semibold"> Bearish</span>.
-    </li>
-    <li>
-  <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
-  <span className="text-red-400 font-semibold"> Bearish continuation</span>
-</li>
-<li>
-  <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
-  <span className="text-green-400 font-semibold"> Bullish continuation</span>
-</li>
-  </ul>
-</div>
-    
-  </div>
-</div>
-	
-    {/* 📝 Breakdown/Breakup Note */}
-<div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">	
-<div className="text-gray-400 text-xs">
-  <p className="leading-snug">
-    📝 <span className="text-yellow-300 font-semibold">Note:</span> In 
-    <span className="text-red-300 font-medium"> bearish trends</span>, a 
-    <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
-    <span className="underline"> below</span> the crossover level (resistance), confirming the downtrend. 
-    A <span className="text-green-300 font-medium"> breakup price</span> means the price is 
-    <span className="underline"> above</span> the resistance, indicating a possible reversal.
-  </p>
-  <p className="leading-snug mt-1">
-    In <span className="text-green-300 font-medium"> bullish trends</span>, a 
-    <span className="text-green-300 font-medium"> breakup price</span> means the price is 
-    <span className="underline"> above</span> the crossover level (support), confirming the uptrend. 
-    A <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
-    <span className="underline"> below</span> the support, signaling a potential reversal.
-  </p>
-  </div>
-</div>	
-</div>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
@@ -2236,19 +2212,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   signal = 'LOWEST ZONE DUMP';
 }
 
-// ✅ SPIKE / COLLAPSE
-else if (direction === 'pump' && pumpInRange_17_19) {
-  signal = 'SPIKE/COLLAPSE ZONE PUMP';
-} else if (direction === 'dump' && dumpInRange_17_19) {
-  signal = 'SPIKE/COLLAPSE ZONE DUMP';
-}
-
-else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30) {
-  signal = 'SELL SIGNAL';
-} else if ((s.mainTrend?.trend === 'bearish' && s.prevClosedRed) && pumpAbove30) {
-  signal = 'BUY SIGNAL';
-}
-
 	
 
         return (
@@ -2349,14 +2312,6 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
       ? 'text-green-400 font-bold'
       : signal.trim() === 'LOWEST ZONE DUMP'
       ? 'text-green-500 font-bold'
-      : signal.trim() === 'SPIKE/COLLAPSE ZONE PUMP'
-      ? 'text-orange-400 font-bold'
-      : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
-      ? 'text-orange-500 font-bold'
-      : signal.trim() === 'SELL SIGNAL'
-      ? 'text-red-400 font-bold'
-      : signal.trim() === 'BUY SIGNAL'
-      ? 'text-blue-400 font-bold'
       : 'text-gray-500'
   }`}
 >
