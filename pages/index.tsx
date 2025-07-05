@@ -582,6 +582,10 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
+const ema14InsideResultsCount = filteredSignals.filter(
+  (s) => s.ema14InsideResults === true
+).length;  
+	
 
 const signalCounts = useMemo(() => {
   const counts = {
@@ -924,12 +928,7 @@ console.log({
 });
 
 const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);
-	      
-const enrichedSignals = filteredSignals.map((s, i) => ({
-  ...s,
-  ema14InsideResults: ema14InsideResults[i]?.inside || false,
-}));	
-	      
+	      	      
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
 const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
@@ -1599,7 +1598,6 @@ latestRSI,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
-		enrichedSignals,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -1935,11 +1933,10 @@ if (loading) {
     </div>
 
 	<div className="flex items-center gap-2">
-  <span>📉 EMA14 Inside<br />EMA70–200:</span>
-  <span className="text-yellow-400 font-bold">
-    {enrichedSignals.filter(s => s.ema14InsideResults).length}
-  </span>
-</div>
+      <span>📉 EMA14 Inside<br />EMA70–200:</span>
+      <span className="text-red-400 font-bold">{ema14InsideResultsCount}</span>
+    </div>
+
 
     {/* Trend Note */}
 <div className="text-yellow-300 mt-2 text-xs leading-snug">
