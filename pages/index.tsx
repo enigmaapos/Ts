@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import axios from 'axios';
 
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
