@@ -584,8 +584,8 @@ const bearishCollapseCount = filteredSignals.filter(
 ).length;  
 
 const ema14InsideResultsCount = filteredSignals.filter(
-  (s) => s.ema14InsideResults === true
-).length;  	
+  (s) => s.ema14InsideResults?.some(r => r.inside)
+).length;
 
 	
 const signalCounts = useMemo(() => {
