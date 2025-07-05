@@ -1934,10 +1934,13 @@ if (loading) {
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
 	  
-<div className="flex items-center gap-2">
-      <span>📍EMA14 Inside<br />EMA70–200:</span>
-      <span className="text-red-400 font-bold">{ema14InsideResultsCount}</span>
-    </div>
+<div className="flex items-center gap-1">
+  <span className="flex flex-col leading-tight">
+    <span className="text-sm">📍 EMA14 Inside</span>
+    <span className="text-sm">EMA70–200:</span>
+  </span>
+  <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+</div>
 	  
 
     {/* Trend Note */}
