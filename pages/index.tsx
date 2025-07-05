@@ -583,9 +583,16 @@ const bearishCollapseCount = filteredSignals.filter(
 ).length;  
 
 const ema14InsideResultsCount = filteredSignals.filter((s) => {
-  const lower = Math.min(s.ema70, s.ema200);
-  const upper = Math.max(s.ema70, s.ema200);
-  return s.ema14 > lower && s.ema14 < upper;
+  if (
+    typeof s.ema14 === 'number' &&
+    typeof s.ema70 === 'number' &&
+    typeof s.ema200 === 'number'
+  ) {
+    const lower = Math.min(s.ema70, s.ema200);
+    const upper = Math.max(s.ema70, s.ema200);
+    return s.ema14 > lower && s.ema14 < upper;
+  }
+  return false;
 }).length;
 	
 
