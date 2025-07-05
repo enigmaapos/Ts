@@ -588,11 +588,11 @@ const ema14InsideResultsCount = filteredSignals.filter(
 ).length;
 
 // 🔹 Price Change Statistics
-const greenPriceChangeCount = tickers.filter(
+const greenPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) > 0
 ).length;
 
-const redPriceChangeCount = tickers.filter(
+const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
 ).length;	
 	
