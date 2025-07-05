@@ -1937,27 +1937,27 @@ if (loading) {
 
 
   <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 shadow-md text-white w-full max-w-md mx-auto">
-  <h2 className="text-xl font-bold mb-4">📊 Market Sentiment – {s.symbol}</h2>
+  <h2 className="text-xl font-bold mb-4">📊 Market Sentiment – {symbol}</h2>
 
   <div className="space-y-2 text-sm">
     <div className="flex justify-between">
       <span className="text-gray-400">Funding Rate:</span>
-      <span className={`font-medium ${getColor(s.sentimentBreakdown?.funding)}`}>
-        {s.fundingRate?.toFixed(5)} ({s.sentimentBreakdown?.funding})
+      <span className={`font-medium ${getColor(sentimentBreakdown?.funding)}`}>
+        {fundingRate?.toFixed(5)} ({sentimentBreakdown?.funding})
       </span>
     </div>
 
     <div className="flex justify-between">
       <span className="text-gray-400">24h Price Change:</span>
       <span className={`font-medium ${getColor(s.sentimentBreakdown?.priceChange)}`}>
-        {s.priceChangePercent?.toFixed(2)}% ({s.sentimentBreakdown?.priceChange})
+        {priceChangePercent?.toFixed(2)}% ({sentimentBreakdown?.priceChange})
       </span>
     </div>
 
     <div className="flex justify-between">
       <span className="text-gray-400">Long/Short Ratio:</span>
       <span className={`font-medium ${getColor(s.sentimentBreakdown?.longShort)}`}>
-        {s.longShortRatio?.toFixed(2)} ({s.sentimentBreakdown?.longShort})
+        {longShortRatio?.toFixed(2)} ({sentimentBreakdown?.longShort})
       </span>
     </div>
   </div>
@@ -1965,8 +1965,8 @@ if (loading) {
   <div className="border-t border-gray-700 my-4"></div>
 
   <div className="mt-2 text-lg font-bold text-center">
-    <span className={getColor(s.overallSentiment)}>
-      🧠 Overall Sentiment: {s.overallSentiment}
+    <span className={getColor(overallSentiment)}>
+      🧠 Overall Sentiment: {overallSentiment}
     </span>
   </div>
 </div>
