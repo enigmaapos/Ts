@@ -582,18 +582,24 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-const ema14InsideResultsCount = filteredAndSortedSignals.filter((s) => {
-  if (
-    typeof s.ema14 === 'number' &&
-    typeof s.ema70 === 'number' &&
-    typeof s.ema200 === 'number'
-  ) {
-    const lower = Math.min(s.ema70, s.ema200);
-    const upper = Math.max(s.ema70, s.ema200);
-    return s.ema14 > lower && s.ema14 < upper;
-  }
-  return false;
-}).length;
+const ema14InsideResultsCount = useMemo(() => {
+  return filteredAndSortedSignals.filter((s) => {
+    const val14 = s.ema14 ?? s.indicators?.ema14;
+    const val70 = s.ema70 ?? s.indicators?.ema70;
+    const val200 = s.ema200 ?? s.indicators?.ema200;
+
+    if (
+      typeof val14 === 'number' &&
+      typeof val70 === 'number' &&
+      typeof val200 === 'number'
+    ) {
+      const lower = Math.min(val70, val200);
+      const upper = Math.max(val70, val200);
+      return val14 > lower && val14 < upper;
+    }
+    return false;
+  }).length;
+}, [filteredAndSortedSignals]);
 	
 
 const signalCounts = useMemo(() => {
