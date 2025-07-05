@@ -518,7 +518,6 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishReversal: 'bearishReversal',
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
-ema14InsideResults: 'ema14InsideResults',
 };	
 
 // 🟡 Apply trend & signal filters on top of the search/favorites filtered list
@@ -583,26 +582,7 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
-const ema14InsideResultsCount = useMemo(() => {
-  return filteredAndSortedSignals.filter((s) => {
-    const val14 = s.ema14 ?? s.indicators?.ema14;
-    const val70 = s.ema70 ?? s.indicators?.ema70;
-    const val200 = s.ema200 ?? s.indicators?.ema200;
-
-    if (
-      typeof val14 === 'number' &&
-      typeof val70 === 'number' &&
-      typeof val200 === 'number'
-    ) {
-      const lower = Math.min(val70, val200);
-      const upper = Math.max(val70, val200);
-      return val14 > lower && val14 < upper;
-    }
-    return false;
-  }).length;
-}, [filteredAndSortedSignals]);
 	
-
 const signalCounts = useMemo(() => {
   const counts = {
     maxZonePump: 0,
@@ -944,7 +924,35 @@ console.log({
 });
 
 const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);
-	      	      
+
+const enrichedSignals = signals.map((s) => {
+  const val14 = s.ema14 ?? s.indicators?.ema14;
+  const val70 = s.ema70 ?? s.indicators?.ema70;
+  const val200 = s.ema200 ?? s.indicators?.ema200;
+
+  const lower = Math.min(val70, val200);
+  const upper = Math.max(val70, val200);
+
+  const ema14Inside =
+    typeof val14 === 'number' &&
+    typeof val70 === 'number' &&
+    typeof val200 === 'number' &&
+    val14 > lower &&
+    val14 < upper;
+
+  return {
+    ...s,
+    ema14: val14,
+    ema70: val70,
+    ema200: val200,
+    ema14InsideResults: ema14Inside,
+  };
+});
+	      
+const ema14InsideResultsCount = useMemo(() => {
+  return filteredSignals.filter((s) => s.ema14InsideResults === true).length;
+}, [filteredSignals]);
+	      
 const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
 const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
