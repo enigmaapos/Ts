@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import axios from 'axios';
 
+// 👇 Add this near the top of your index.tsx file
+type Sentiment = 'Bullish' | 'Bearish' | 'Neutral' | 'Strong Bullish' | 'Strong Bearish';
+
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
   const ema: number[] = [];
