@@ -106,44 +106,54 @@ function getMainTrend(
   ema70: number[],
   ema200: number[],
   closes: number[],
-  tolerancePercent = 0.5 // allow configurable tolerance
-): TrendResult {
+  opens: number[],
+  highs: number[],
+  lows: number[],
+  tolerancePercent = 0.5, // for near crossover level
+  dojiToleranceRatio = 0.1 // for body vs range
+): TrendResult & { isDojiAfterBreakout?: boolean } {
   const len = ema70.length;
-  const lastClose = closes[closes.length - 1];
+  const lastClose = closes[len - 1];
+  const lastOpen = opens[len - 1];
+  const lastHigh = highs[len - 1];
+  const lastLow = lows[len - 1];
 
-  // Loop backward to detect the most recent EMA70/EMA200 crossover
+  const isDoji = Math.abs(lastClose - lastOpen) <= (lastHigh - lastLow) * dojiToleranceRatio;
+
   for (let i = len - 2; i >= 1; i--) {
     const prevEMA70 = ema70[i];
     const prevEMA200 = ema200[i];
     const currEMA70 = ema70[i + 1];
     const currEMA200 = ema200[i + 1];
 
-    // Bullish crossover: EMA70 crosses above EMA200
+    // Bullish crossover
     if (prevEMA70 <= prevEMA200 && currEMA70 > currEMA200) {
       const crossoverPrice = closes[i + 1];
       return {
         trend: 'bullish',
         type: 'support',
         crossoverPrice,
-        breakout: lastClose > crossoverPrice,
-        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent)
+        breakout: lastClose > ema200[len - 1],
+        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent),
+        isDojiAfterBreakout: lastClose > ema200[len - 1] && isDoji
       };
     }
 
-    // Bearish crossover: EMA70 crosses below EMA200
+    // Bearish crossover
     if (prevEMA70 >= prevEMA200 && currEMA70 < currEMA200) {
       const crossoverPrice = closes[i + 1];
       return {
         trend: 'bearish',
         type: 'resistance',
         crossoverPrice,
-        breakout: lastClose < crossoverPrice,
-        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent)
+        breakout: lastClose < ema200[len - 1],
+        isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent),
+        isDojiAfterBreakout: lastClose < ema200[len - 1] && isDoji
       };
     }
   }
 
-  // Fallback: no crossover found, use latest EMA70 vs EMA200
+  // Fallback trend (no crossover)
   const lastEMA70 = ema70[len - 1];
   const lastEMA200 = ema200[len - 1];
   const fallbackTrend = lastEMA70 >= lastEMA200 ? 'bullish' : 'bearish';
@@ -154,7 +164,8 @@ function getMainTrend(
     type: fallbackType,
     crossoverPrice: lastClose,
     breakout: null,
-    isNear: true // Since fallback uses lastClose as crossoverPrice, it's always "at" the level
+    isNear: true,
+    isDojiAfterBreakout: false
   };
 }
 
@@ -228,26 +239,18 @@ const getSignal = (s: any): string => {
     prevClosedRed,
   } = s;  
   
-  // âœ… MAX ZONE - Separate pump/dump  
+  // ✅ MAX ZONE - Separate pump/dump  
   if (direction === 'pump' && pumpAbove30) return 'MAX ZONE PUMP';  
   if (direction === 'dump' && dumpAbove30) return 'MAX ZONE DUMP';  
   
-  // âœ… BALANCE ZONE - Separate pump/dump  
+  // ✅ BALANCE ZONE - Separate pump/dump  
   if (pumpInRange_21_26 && direction === 'pump') return 'BALANCE ZONE PUMP';  
   if (dumpInRange_21_26 && direction === 'dump') return 'BALANCE ZONE DUMP';  
   
-  // âœ… LOWEST ZONE - Separate pump/dump
+  // ✅ LOWEST ZONE - Separate pump/dump
   if (pumpInRange_1_10 && direction === 'pump') return 'LOWEST ZONE PUMP';
   if (dumpInRange_1_10 && direction === 'dump') return 'LOWEST ZONE DUMP';
   
-  // âœ… SPIKE or COLLAPSE  
-  if (pumpOrDumpInRange_17_19 && direction === 'pump') return 'SPIKE/COLLAPSE ZONE PUMP';
-  if (pumpOrDumpInRange_17_19 && direction === 'dump') return 'SPIKE/COLLAPSE ZONE DUMP';  	
-
-  // âœ… MAIN TREND + PREVIOUS CLOSE STRATEGY
-  if ((mainTrend === 'bullish' && prevClosedGreen) && dumpAbove30) return 'SELL SIGNAL';
-  if ((mainTrend === 'bearish' && prevClosedRed) && pumpAbove30) return 'BUY SIGNAL';
-
   return 'NO STRONG SIGNAL';  
 };
 
@@ -339,9 +342,9 @@ const PriceChangePercent = ({ percent }: { percent: number }) => {
     'text-gray-400';
 
   const icon =
-    percent > 0 ? 'ðŸ“ˆ' :
-    percent < 0 ? 'ðŸ“‰' :
-    'âž–';
+    percent > 0 ? '📈' :
+    percent < 0 ? '📉' :
+    '➖';
 
   return (
     <span className={`font-semibold ${color}`}>
@@ -406,7 +409,7 @@ const filteredSignals = signals.filter((s) => {
   return matchesSearch && (!showOnlyFavorites || isFavorite);
 });
 
-// ðŸ”¹ Sorting logic
+// 🔹 Sorting logic
 const sortedSignals = signals.sort((a, b) => {
   let valA: any = a[sortField];
   let valB: any = b[sortField];
@@ -490,13 +493,13 @@ if (sortField === 'ema200Bounce') {
   return 0;
 });
 
-// ðŸ”¹ Filter logic
+// 🔹 Filter logic
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
   bearishMainTrend: 'bearish',
 };
 
-// ðŸ”¹ Other trend filter keys that map to boolean fields in the signal object
+// 🔹 Other trend filter keys that map to boolean fields in the signal object
 const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishBreakout: 'bullishBreakout',
   bearishBreakout: 'bearishBreakout',
@@ -507,9 +510,10 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishReversal: 'bearishReversal',
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
+ema14InsideResults: 'ema14InsideResults',	
 };	
 
-// ðŸŸ¡ Apply trend & signal filters on top of the search/favorites filtered list
+// 🟡 Apply trend & signal filters on top of the search/favorites filtered list
 const filteredAndSortedSignals = filteredSignals
   .filter((s) => {
     if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
@@ -526,7 +530,7 @@ const filteredAndSortedSignals = filteredSignals
     return true;
   })
 
-// ðŸ”¹ Count statistics
+// 🔹 Count statistics
 const bullishMainTrendCount = filteredSignals.filter(
   (s) => s.mainTrend?.trend === 'bullish'
 ).length;
@@ -571,8 +575,19 @@ const bearishCollapseCount = filteredSignals.filter(
   (s) => s.bearishCollapse === true
 ).length;  
 
+const ema14InsideResultsCount = filteredSignals.filter(
+  (s) => s.ema14InsideResults?.some(r => r.inside)
+).length;
 
+// 🔹 Price Change Statistics
+const greenPriceChangeCount = filteredSignals.filter(
+  (t) => parseFloat(t.priceChangePercent) > 0
+).length;
 
+const redPriceChangeCount = filteredSignals.filter(
+  (t) => parseFloat(t.priceChangePercent) < 0
+).length;	
+	
 const signalCounts = useMemo(() => {
   const counts = {
     maxZonePump: 0,
@@ -581,10 +596,6 @@ const signalCounts = useMemo(() => {
     balanceZoneDump: 0,
     lowestZonePump: 0,
     lowestZoneDump: 0,
-    spikeCollapsePump: 0,
-    spikeCollapseDump: 0,
-    sellSignal: 0,      // âœ… Added
-    buySignal: 0,       // âœ… Added
   };
 
   signals.forEach((s: any) => {
@@ -608,18 +619,6 @@ const signalCounts = useMemo(() => {
         break;
       case 'LOWEST ZONE DUMP':
         counts.lowestZoneDump++;
-        break;
-      case 'SPIKE/COLLAPSE ZONE PUMP':
-        counts.spikeCollapsePump++;
-        break;
-      case 'SPIKE/COLLAPSE ZONE DUMP':
-        counts.spikeCollapseDump++;
-        break;
-      case 'SELL SIGNAL':          // âœ… New case
-        counts.sellSignal++;
-        break;
-      case 'BUY SIGNAL':           // âœ… New case
-        counts.buySignal++;
         break;
     }
   });
@@ -682,8 +681,10 @@ const signalCounts = useMemo(() => {
 const closes = candles.map(c => c.close);
 const highs = candles.map(c => c.high);
 const lows = candles.map(c => c.low);
-const volumes = candles.map(c => c.volume); // âœ… Add volume here	      
+const volumes = candles.map(c => c.volume); // ✅ Add volume here	      
+const opens = candles.map(c => c.open);
 
+	      
 const ema14 = calculateEMA(closes, 14);
 const ema70 = calculateEMA(closes, 70);
 const ema200 = calculateEMA(closes, 200);
@@ -721,8 +722,7 @@ const lastEMA70 = ema70.at(-1)!;
 const lastEMA200 = ema200.at(-1)!;
 
 
-// Main trend
-const mainTrend = getMainTrend(ema70, ema200, closes);
+const mainTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows);
 
 
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
@@ -789,8 +789,8 @@ const testedPrevLow =
   todaysLowestLow >= prevSessionLow;
 
   let breakoutTestSignal = '';
-  if (testedPrevHigh) breakoutTestSignal = 'ðŸŸ¡ Tested & Failed to Break Previous High';
-  else if (testedPrevLow) breakoutTestSignal = 'ðŸŸ¡ Tested & Failed to Break Previous Low';
+  if (testedPrevHigh) breakoutTestSignal = '🟡 Tested & Failed to Break Previous High';
+  else if (testedPrevLow) breakoutTestSignal = '🟡 Tested & Failed to Break Previous Low';
 
 
 // Utility to generate UTC timestamp at specific hour
@@ -963,11 +963,11 @@ const bullishVolumeDivergence = detectBullishVolumeDivergence(prevLow, currLow, 
 	      
 // === Log results ===
 if (bearishDivergence.divergence) {
-  console.log("ðŸ”» Bearish Divergence Detected:", bearishDivergence);
+  console.log("🔻 Bearish Divergence Detected:", bearishDivergence);
 }
 
 if (bullishDivergence.divergence) {
-  console.log("ðŸ”¼ Bullish Divergence Detected:", bullishDivergence);
+  console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
 }
 
 const prevVolumesWithColor = candlesPrev.map(candle => {
@@ -991,8 +991,8 @@ const highestVolumeCandlePrev = prevVolumesWithColor.reduce((max, curr) =>
 // === Step 4: Log or use the color ===
 if (highestVolumeCandlePrev) {
   const highestVolumeColorPrev = highestVolumeCandlePrev.volumeColor;
-  console.log('ðŸ”´ Highest Volume (Yesterday):', highestVolumeCandlePrev.volume);
-  console.log('ðŸŸ¢ Color:', highestVolumeColorPrev);
+  console.log('🔴 Highest Volume (Yesterday):', highestVolumeCandlePrev.volume);
+  console.log('🟢 Color:', highestVolumeColorPrev);
 } else {
   console.log('No candles found in previous session.');
 }
@@ -1020,7 +1020,7 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   return true;
 };
 
-// âœ… Engulfing Candle Pattern Detection in Todayâ€™s Session
+// ✅ Engulfing Candle Pattern Detection in Today’s Session
 const engulfingPatterns = [];
 
 // Step 1: Get session-wide high/low and their indices
@@ -1066,7 +1066,7 @@ for (let i = 1; i < candlesToday.length - 1; i++) {
     curr.open > prev.close &&
     curr.close < prev.open;
 
-  // âœ… Apply condition: pattern must come after the high or low
+  // ✅ Apply condition: pattern must come after the high or low
   const bullishConfirmed =
     bullishEngulfing &&
     isNextBullish &&
@@ -1091,7 +1091,20 @@ const hasBearishEngulfing = engulfingPatterns.some(p => p.type === 'bearishConfi
 
 // Sample component using the above
    const latestRSI = rsi14.at(-1);
+
+const ema200Value = ema200[ema200.length - 1];
 	      
+let gapFromLowToEMA200 = null;
+let gapFromHighToEMA200 = null;
+
+if (todaysLowestLow !== null && ema200Value > 0) {
+  gapFromLowToEMA200 = ((ema200Value - todaysLowestLow) / ema200Value) * 100;
+}
+
+if (todaysHighestHigh !== null && ema200Value > 0) {
+  gapFromHighToEMA200 = ((todaysHighestHigh - ema200Value) / ema200Value) * 100;
+}
+	  
 	      		    
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
@@ -1120,7 +1133,7 @@ const detectBullishToBearish = (
   // Confirm bullish trend
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-  // ðŸ›‘ New: End early if RSI is ascending
+  // 🛑 New: End early if RSI is ascending
   if (isAscendingRSI(rsi14, 3)) return false;
 
   // Find crossover: EMA14 crossing above EMA70
@@ -1144,7 +1157,7 @@ const detectBullishToBearish = (
     const nearOrUnderEMA = nearEMA || underEMA;
 
     const fallingRSI = rsi14[i] < crossoverRSI;
-	  const rsiBelow50 = rsi14[i] < 50; // âœ… FIXED
+	  const rsiBelow50 = rsi14[i] < 50; // ✅ FIXED
     const lowerThanCrossover = closes[i] < crossoverLow;
 
     const currentHigh = highs[i];
@@ -1155,13 +1168,13 @@ const detectBullishToBearish = (
         lastHigh = currentHigh;
       }
 
-      // âœ… Final confirmation: most recent candle closes above EMA14
+      // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
 
       const descendingCloseBelowEMA = lastClose < lastEMA14;
 
-      // âœ… New: Check descending RSI over last 3 candles
+      // ✅ New: Check descending RSI over last 3 candles
       const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
 
       if (
@@ -1198,7 +1211,7 @@ const detectBearishToBullish = (
   // Confirm bearish trend
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
-  // ðŸ›‘ New: End early if RSI is descending (trend shift to bullish is weakening)
+  // 🛑 New: End early if RSI is descending (trend shift to bullish is weakening)
   if (isDescendingRSI(rsi14, 3)) return false;
 
   // Find crossover: EMA14 crossing below EMA70
@@ -1222,7 +1235,7 @@ const detectBearishToBullish = (
     const nearOrAboveEMA = nearEMA || aboveEMA;
 
     const risingRSI = rsi14[i] > crossoverRSI;
-	const rsiAbove50 = rsi14[i] < 50; // âœ… FIXED
+	const rsiAbove50 = rsi14[i] < 50; // ✅ FIXED
     const higherThanCrossover = closes[i] > crossoverHigh;
 
     const currentLow = lows[i];
@@ -1233,13 +1246,13 @@ const detectBearishToBullish = (
         lastLow = currentLow;
       }
 
-      // âœ… Final confirmation: most recent candle closes above EMA14
+      // ✅ Final confirmation: most recent candle closes above EMA14
       const lastClose = closes[len - 1];
       const lastEMA14 = ema14[len - 1];
 
       const ascendingCloseAboveEMA = lastClose > lastEMA14;
 
-      // âœ… Check RSI is currently ascending
+      // ✅ Check RSI is currently ascending
       const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
 
       if (
@@ -1280,12 +1293,12 @@ const bearishReversal = detectBearishToBullish(
 
         
 
-// âœ… Utility: Checks if high touched EMA14 within margin
+// ✅ Utility: Checks if high touched EMA14 within margin
 const touchedEMA14 = (high: number, ema14: number, margin = 0.002): boolean => {
   return Math.abs(high - ema14) / ema14 <= margin;
 };
 
-// âœ… NEW: Check if latest EMA14-touching low is higher than the previous one
+// ✅ NEW: Check if latest EMA14-touching low is higher than the previous one
 const isAscendingLowOnEMA14Touch = (
   lows: number[],
   ema14: number[]
@@ -1323,7 +1336,7 @@ const detectBullishSpike = (
 
   if (ema14[len - 1] <= ema70[len - 1]) return false;
 
-  // ðŸ” Detect EMA14 > EMA70 crossover
+  // 🔁 Detect EMA14 > EMA70 crossover
   let crossoverIndex70 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema70[i] && ema14[i + 1] > ema70[i + 1]) {
@@ -1333,7 +1346,7 @@ const detectBullishSpike = (
   }
   if (crossoverIndex70 === -1) return false;
 
-  // ðŸ” Detect EMA14 > EMA200 crossover
+  // 🔁 Detect EMA14 > EMA200 crossover
   let crossoverIndex200 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] <= ema200[i] && ema14[i + 1] > ema200[i + 1]) {
@@ -1343,7 +1356,7 @@ const detectBullishSpike = (
   }
   if (crossoverIndex200 === -1) return false;
 
-  // âœ… Choose the later crossover as starting point
+  // ✅ Choose the later crossover as starting point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
@@ -1356,7 +1369,7 @@ const detectBullishSpike = (
     }
   }
 
-  // ðŸ§ª Final candle checks
+  // 🧪 Final candle checks
   const i = len - 1;
   const currentLow = lows[i];
   const currentHigh = highs[i];
@@ -1366,17 +1379,17 @@ const detectBullishSpike = (
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
 
-  // âŒ Invalidate if the most recent candle touches EMA70
+  // ❌ Invalidate if the most recent candle touches EMA70
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return false;
 
-  // âœ… Spike conditions
+  // ✅ Spike conditions
   const aboveEMA70 = close > ema70Value;
   const aboveEMA200 = close > ema200Value;
   const aboveEMA14 = close > ema14Value;
   const ascendingLow = currentLow > lowestLowAfterCrossover;
   const risingRSI = rsi > crossoverRSI;
-  const rsiAbove50 = rsi > 50; // ðŸ‘ˆ NEW CONDITION
+  const rsiAbove50 = rsi > 50; // 👈 NEW CONDITION
   const higherThanCrossover = close > crossoverLow;
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
   const ema14TouchAscendingLow = isAscendingLowOnEMA14Touch(lows, ema14);
@@ -1387,14 +1400,14 @@ const detectBullishSpike = (
     (aboveEMA14 || ema14TouchAscendingLow) &&
     ascendingLow &&
     risingRSI &&
-    rsiAbove50 && // ðŸ‘ˆ INCLUDED HERE
+    rsiAbove50 && // 👈 INCLUDED HERE
     higherThanCrossover &&
     ascendingCurrentRSI
   );
 };
 
 
-// âœ… NEW: Check if latest EMA14-touching high is lower than the previous touch
+// ✅ NEW: Check if latest EMA14-touching high is lower than the previous touch
 const isDescendingHighOnEMA14Touch = (
   highs: number[],
   ema14: number[]
@@ -1435,7 +1448,7 @@ const detectBearishCollapse = (
 
   if (ema14[len - 1] >= ema70[len - 1]) return false;
 
-  // ðŸ” Detect EMA14 < EMA70 crossover
+  // 🔁 Detect EMA14 < EMA70 crossover
   let crossoverIndex70 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
@@ -1445,7 +1458,7 @@ const detectBearishCollapse = (
   }
   if (crossoverIndex70 === -1) return false;
 
-  // ðŸ” Detect EMA14 < EMA200 crossover
+  // 🔁 Detect EMA14 < EMA200 crossover
   let crossoverIndex200 = -1;
   for (let i = len - 2; i >= 1; i--) {
     if (ema14[i] >= ema200[i] && ema14[i + 1] < ema200[i + 1]) {
@@ -1455,13 +1468,13 @@ const detectBearishCollapse = (
   }
   if (crossoverIndex200 === -1) return false;
 
-  // âœ… Choose the later crossover as starting point
+  // ✅ Choose the later crossover as starting point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
   let highestHighAfterCrossover = crossoverHigh;
 
-  // ðŸ” Track highest high after crossover
+  // 🔍 Track highest high after crossover
   for (let i = crossoverIndex + 1; i < len; i++) {
     const currentHigh = highs[i];
     if (currentHigh > highestHighAfterCrossover) {
@@ -1469,7 +1482,7 @@ const detectBearishCollapse = (
     }
   }
 
-  // ðŸ§ª Final candle checks
+  // 🧪 Final candle checks
   const i = len - 1;
   const currentLow = lows[i];
   const currentHigh = highs[i];
@@ -1482,13 +1495,13 @@ const detectBearishCollapse = (
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return false;
 
-  // âœ… Collapse conditions
+  // ✅ Collapse conditions
   const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
   const belowEMA14 = close < ema14Value;
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
-  const rsiBelow50 = rsi < 50; // ðŸ‘ˆ NEW CONDITION
+  const rsiBelow50 = rsi < 50; // 👈 NEW CONDITION
   const lowerThanCrossover = close < crossoverHigh;
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
   const ema14TouchDescendingHigh = isDescendingHighOnEMA14Touch(highs, ema14);
@@ -1501,12 +1514,12 @@ const detectBearishCollapse = (
     fallingRSI &&
     lowerThanCrossover &&
     descendingCurrentRSI &&
-    rsiBelow50 // ðŸ‘ˆ INCLUDED HERE
+    rsiBelow50 // 👈 INCLUDED HERE
   );
 };
 
         
-      // âœ… Usage
+      // ✅ Usage
 const bullishSpike = detectBullishSpike(
   ema14,
   ema70,
@@ -1520,7 +1533,7 @@ const bullishSpike = detectBullishSpike(
 ); 
 
 
-// âœ… Usage
+// ✅ Usage
 const bearishCollapse = detectBearishCollapse(
   ema14,
   ema70,
@@ -1541,8 +1554,8 @@ const bearishCollapse = detectBearishCollapse(
   bearishMainTrendCount,
   bullishBreakoutCount,
   bearishBreakoutCount,       
-  testedPrevHighCount,   // âœ… New
-  testedPrevLowCount,    // âœ… New
+  testedPrevHighCount,   // ✅ New
+  testedPrevLowCount,    // ✅ New
   mainTrend,
   breakout,
   bullishBreakout,
@@ -1570,6 +1583,7 @@ latestRSI,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
+		ema14InsideResultsCount,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -1586,6 +1600,10 @@ latestRSI,
       price24hAgo,
       priceChangePercent,
       isUp,
+		greenPriceChangeCount, 
+		redPriceChangeCount,
+		gapFromLowToEMA200,
+		gapFromHighToEMA200,
 };
       } catch (err) {
         console.error("Error processing", symbol, err);
@@ -1664,7 +1682,7 @@ if (loading) {
       </h1>
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
-  {/* ðŸ”¸ Favorites Toggle */}
+  {/* 🔸 Favorites Toggle */}
   <label className="flex items-center gap-2 text-sm text-white">
     <input
       type="checkbox"
@@ -1675,7 +1693,7 @@ if (loading) {
     Show only favorites
   </label>
 
-  {/* ðŸ”¸ Search Input */}
+  {/* 🔸 Search Input */}
   <div className="relative">
     <input
       type="text"
@@ -1685,7 +1703,7 @@ if (loading) {
       className="p-2 pr-20 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
     />
     
-    {/* ðŸ”¸ Clear Button (only shows if there's input) */}
+    {/* 🔸 Clear Button (only shows if there's input) */}
     {search && (
       <button
         onClick={() => setSearch('')}
@@ -1698,13 +1716,13 @@ if (loading) {
 </div>
 
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
-  {/* ðŸŸ¢ Filter Controls Section */}
+  {/* 🟢 Filter Controls Section */}
   <div className="flex flex-col gap-4 text-sm">
 
-    {/* ðŸ”· Trend Filters Section */}
+    {/* 🔷 Trend Filters Section */}
 <div>
   <p className="text-gray-400 mb-2 font-semibold">
-    ðŸ“Š Trend Filters â€” Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
+    📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
   </p>
   <div className="flex flex-wrap gap-2">
     {[
@@ -1789,9 +1807,9 @@ if (loading) {
   </div>
 </div>
 
-    {/* âœ… Signal Filters Section */}
+    {/* ✅ Signal Filters Section */}
     <div>
-      <p className="text-gray-400 mb-2 font-semibold">ðŸ“ˆ Signal Filters â€” Tap to show signals based on technical zones or momentum shifts:</p>
+      <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
       <div className="flex flex-wrap gap-2">
         {[
   {
@@ -1830,31 +1848,7 @@ if (loading) {
     count: signalCounts.lowestZoneDump,
     color: 'text-yellow-600',
   },
-  {
-    label: 'SPIKE/COLLAPSE ZONE PUMP',
-    key: 'SPIKE/COLLAPSE ZONE PUMP',
-    count: signalCounts.spikeCollapsePump,
-    color: 'text-orange-400',
-  },
-  {
-    label: 'SPIKE/COLLAPSE ZONE DUMP',
-    key: 'SPIKE/COLLAPSE ZONE DUMP',
-    count: signalCounts.spikeCollapseDump,
-    color: 'text-orange-500',
-  },
 	
-{
-  label: 'SELL SIGNAL',
-  key: 'SELL SIGNAL',
-  count: signalCounts.sellSignal,
-  color: 'text-red-400', // ðŸ”» You can customize this
-},
-{
-  label: 'BUY SIGNAL',
-  key: 'BUY SIGNAL',
-  count: signalCounts.buySignal,
-  color: 'text-green-400', // ðŸ”º You can customize this
-},	      
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
@@ -1872,7 +1866,7 @@ if (loading) {
       </div>
     </div>
 
-    {/* ðŸ”´ Clear Button */}
+    {/* 🔴 Clear Button */}
     <div>
       <button
         onClick={() => {
@@ -1888,54 +1882,117 @@ if (loading) {
     </div>
   </div>
 
-{/* ðŸ“Š Summary Panel */}
+{/* 📊 Summary Panel */}
 <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
   <div className="flex flex-col gap-3">
-    
-    {/* Trend Counts */}
+
+    {/* 📈 Trend Counts */}
     <div className="flex items-center gap-2">
-      <span>ðŸ“ˆ Bull Trend:</span>
+      <span>📈 Bull Trend:</span>
       <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
     </div>
     <div className="flex items-center gap-2">
-      <span>ðŸ“‰ Bear Trend:</span>
+      <span>📉 Bear Trend:</span>
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
 
-    {/* Trend Note */}
+    {/* 📍 EMA14 Inside Range */}
+    <div className="flex items-center gap-1">
+      <span className="flex flex-col leading-tight">
+        <span className="text-sm">📍 EMA14 Inside</span>
+        <span className="text-sm">EMA70–200:</span>
+      </span>
+      <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+    </div>
+
+    {/* 🔹 24h Price Change Summary */}
+    <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+      <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
+      <div className="flex items-center gap-4 text-sm">
+        <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
+        <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+      </div>
+    </div>
+
+    {/* 📝 Market Sentiment Insights */}
     <div className="text-yellow-300 mt-2 text-xs leading-snug">
-      <p>ðŸ“ <span className="font-semibold text-white">Trend Insight:</span></p>
+      <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
       <ul className="list-disc list-inside space-y-1">
-        <li>If <span className="text-green-400 font-semibold">Bullish</span> count is below 100, overall market leans <span className="text-red-400 font-semibold">Bearish</span>.</li>
-        <li>If <span className="text-red-400 font-semibold">Bearish</span> count is below 100, overall market leans <span className="text-green-400 font-semibold">Bullish</span>.</li>
-        <li>When <span className="text-green-400 font-semibold">Bullish</span> count exceeds 100, trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.</li>
-        <li>When <span className="text-red-400 font-semibold">Bearish</span> count exceeds 100, trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.</li>
+        <li>
+          If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>,
+          the market leans <span className="text-red-400 font-semibold">Bearish</span>.
+        </li>
+        <li>
+          If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>,
+          the market leans <span className="text-green-400 font-semibold">Bullish</span>.
+        </li>
+        <li>
+          When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>,
+          trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.
+        </li>
+        <li>
+          When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>,
+          trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.
+        </li>
+        <li>
+          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
+          <span className="text-red-400 font-semibold"> Bearish continuation</span>
+        </li>
+        <li>
+          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
+          <span className="text-green-400 font-semibold"> Bullish continuation</span>
+        </li>
       </ul>
     </div>
-    
+
+    {/* 🧠 Strategy Signals */}
+    <div className="text-blue-300 mt-2 text-xs leading-snug">
+      <p>🧠 <span className="font-semibold text-white">Strategy Signals:</span></p>
+      <ul className="list-disc list-inside space-y-1">
+        <li>
+          <span className="text-green-400 font-semibold">Bullish</span> trend + 
+          previous candle <span className="text-green-400 font-medium">closed green</span> + 
+          <span className="text-red-300"> dump &gt; 30%</span> = 
+          <span className="text-yellow-400 font-semibold"> SELL SIGNAL</span> if sentiment is bullish.
+        </li>
+        <li>
+          <span className="text-red-400 font-semibold">Bearish</span> trend + 
+          previous candle <span className="text-red-400 font-medium">closed red</span> + 
+          <span className="text-green-300"> pump &gt; 30%</span> = 
+          <span className="text-yellow-400 font-semibold"> BUY SIGNAL</span> if sentiment is bearish.
+        </li>
+        <li>
+          <span className="text-red-300">Bearish trend</span> + <span className="text-red-400">24h red price change</span> = 
+          <span className="text-red-400 font-semibold"> Bearish sentiment</span>
+        </li>
+        <li>
+          <span className="text-green-300">Bullish trend</span> + <span className="text-green-400">24h green price change</span> = 
+          <span className="text-green-400 font-semibold"> Bullish sentiment</span>
+        </li>
+      </ul>
+    </div>
+
+    {/* 🔍 Breakdown/Breakup Price Logic */}
+    <div className="text-gray-400 text-xs mt-2">
+      <p className="leading-snug">
+        📝 <span className="text-yellow-300 font-semibold">Breakdown vs Breakup:</span> 
+        In a <span className="text-red-300 font-medium">bearish trend</span>:
+        <br />
+        - <span className="text-red-300">Breakdown price</span> = price is <u>below</u> resistance → confirms downtrend.
+        <br />
+        - <span className="text-green-300">Breakup price</span> = price is <u>above</u> resistance → possible reversal.
+      </p>
+      <p className="leading-snug mt-1">
+        In a <span className="text-green-300 font-medium">bullish trend</span>:
+        <br />
+        - <span className="text-green-300">Breakup price</span> = price is <u>above</u> support → confirms uptrend.
+        <br />
+        - <span className="text-red-300">Breakdown price</span> = price is <u>below</u> support → possible reversal.
+      </p>
+    </div>
+	  
   </div>
 </div>
-	
-    {/* ðŸ“ Breakdown/Breakup Note */}
-<div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">	
-<div className="text-gray-400 text-xs">
-  <p className="leading-snug">
-    ðŸ“ <span className="text-yellow-300 font-semibold">Note:</span> In 
-    <span className="text-red-300 font-medium"> bearish trends</span>, a 
-    <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
-    <span className="underline"> below</span> the crossover level (resistance), confirming the downtrend. 
-    A <span className="text-green-300 font-medium"> breakup price</span> means the price is 
-    <span className="underline"> above</span> the resistance, indicating a possible reversal.
-  </p>
-  <p className="leading-snug mt-1">
-    In <span className="text-green-300 font-medium"> bullish trends</span>, a 
-    <span className="text-green-300 font-medium"> breakup price</span> means the price is 
-    <span className="underline"> above</span> the crossover level (support), confirming the uptrend. 
-    A <span className="text-red-300 font-medium"> breakdown price</span> means the price is 
-    <span className="underline"> below</span> the support, signaling a potential reversal.
-  </p>
-  </div>
-</div>	
 </div>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
@@ -1950,7 +2007,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
     >
-      Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+      Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
 	    <th className="px-2 py-1 border border-gray-700 text-right">Current Price</th>
@@ -1961,7 +2018,7 @@ if (loading) {
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
-  24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+  24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 
     {/* Static Columns */}
@@ -1974,7 +2031,7 @@ if (loading) {
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
-  Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+  Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 	  
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
@@ -1988,7 +2045,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
-      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 	    <th
   onClick={() => {
@@ -1997,7 +2054,7 @@ if (loading) {
   }}
   className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
-  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 	  
 <th
@@ -2009,8 +2066,11 @@ if (loading) {
   }}
   className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
-  EMA14 Inside<br />EMA70â€“200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+  EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
+
+<th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
+<th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
 	  	  
 <th
   onClick={() => {
@@ -2021,7 +2081,7 @@ if (loading) {
   }}
   className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
-  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
 	  
 {/* Touched EMA200 Today */}
@@ -2032,7 +2092,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
-      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>	  
 	  
    {/* More Static Columns */}
@@ -2044,7 +2104,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
-      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 	  
 <th className="p-2 text-green-400">Bullish Engulfing</th>
@@ -2058,7 +2118,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
-      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
     {/* Bullish Divergence */}
@@ -2069,7 +2129,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
-      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>	  
 	  	  
     <th className="px-1 py-0.5 text-center">Tested High</th>
@@ -2094,7 +2154,7 @@ if (loading) {
   }}
   className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
-  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? 'â–²' : 'â–¼') : ''}
+  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
  
   </tr>
@@ -2115,7 +2175,7 @@ const isAbove30 = (val: number | undefined) => val !== undefined && val >= 30;
 const validPump = pump !== undefined && pump !== 0;
 const validDump = dump !== undefined && dump !== 0;
 
-// âœ… Early return: skip rendering if both are invalid or 0
+// ✅ Early return: skip rendering if both are invalid or 0
 if (!validPump && !validDump) return null;
 
 const pumpInRange_21_26 = inRange(pump, 21, 26);
@@ -2131,38 +2191,25 @@ const dumpInRange_17_19 = inRange(dump, 17, 19);
 
 let signal = '';
 
-// âœ… MAX ZONE
+// ✅ MAX ZONE
 if (direction === 'pump' && pumpAbove30) {
   signal = 'MAX ZONE PUMP';
 } else if (direction === 'dump' && dumpAbove30) {
   signal = 'MAX ZONE DUMP';
 }
 
-// âœ… BALANCE ZONE
+// ✅ BALANCE ZONE
 else if (direction === 'pump' && pumpInRange_21_26) {
   signal = 'BALANCE ZONE PUMP';
 } else if (direction === 'dump' && dumpInRange_21_26) {
   signal = 'BALANCE ZONE DUMP';
 }
 
-// âœ… LOWEST ZONE
+// ✅ LOWEST ZONE
 else if (direction === 'pump' && pumpInRange_1_10) {
   signal = 'LOWEST ZONE PUMP';
 } else if (direction === 'dump' && dumpInRange_1_10) {
   signal = 'LOWEST ZONE DUMP';
-}
-
-// âœ… SPIKE / COLLAPSE
-else if (direction === 'pump' && pumpInRange_17_19) {
-  signal = 'SPIKE/COLLAPSE ZONE PUMP';
-} else if (direction === 'dump' && dumpInRange_17_19) {
-  signal = 'SPIKE/COLLAPSE ZONE DUMP';
-}
-
-else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30) {
-  signal = 'SELL SIGNAL';
-} else if ((s.mainTrend?.trend === 'bearish' && s.prevClosedRed) && pumpAbove30) {
-  signal = 'BUY SIGNAL';
 }
 
 	
@@ -2188,7 +2235,7 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
           });
         }}
       >
-        {favorites.has(s.symbol) ? 'â˜…' : 'â˜†'}
+        {favorites.has(s.symbol) ? '★' : '☆'}
       </button>
     </div>
   </td>
@@ -2198,9 +2245,8 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
 </td>
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
-              </td>		   
-
-
+              </td>
+		   
   <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
     {s.bullishBreakout ? 'Yes' : 'No'}
   </td>	   
@@ -2230,15 +2276,20 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
     <>
       {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} `}
       {s.mainTrend.breakout === true ? (
-        s.mainTrend.trend === 'bullish' ? 'ðŸš€ Breakup price' : 'ðŸ”» Breakdown price'
+        s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
       ) : s.mainTrend.breakout === false ? (
-        s.mainTrend.trend === 'bullish' ? 'ðŸ”» Breakdown price' : 'ðŸš€ Breakup price'
+        s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price'
       ) : (
         ''
       )}
       {s.mainTrend.isNear && (
         <span className="ml-1 text-yellow-400 font-semibold">
-          â³ Near {s.mainTrend.type}
+          ⏳ Near {s.mainTrend.type}
+        </span>
+      )}
+      {s.mainTrend.isDojiAfterBreakout && (
+        <span className="ml-1 text-purple-400 font-bold">
+          🕯️ Doji After Breakout
         </span>
       )}
     </>
@@ -2261,14 +2312,6 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
       ? 'text-green-400 font-bold'
       : signal.trim() === 'LOWEST ZONE DUMP'
       ? 'text-green-500 font-bold'
-      : signal.trim() === 'SPIKE/COLLAPSE ZONE PUMP'
-      ? 'text-orange-400 font-bold'
-      : signal.trim() === 'SPIKE/COLLAPSE ZONE DUMP'
-      ? 'text-orange-500 font-bold'
-      : signal.trim() === 'SELL SIGNAL'
-      ? 'text-red-400 font-bold'
-      : signal.trim() === 'BUY SIGNAL'
-      ? 'text-blue-400 font-bold'
       : 'text-gray-500'
   }`}
 >
@@ -2318,8 +2361,26 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
   {s.ema14InsideResults.some(r => r.inside)
     ? <span className="text-green-400 font-semibold">YES</span>
     : <span className="text-red-400">NO</span>}
-</td>		   
+</td>	
+		   
+{/* Low → EMA200: Only for bearish trend */}
+<td className="px-1 py-0.5 text-center">
+  {s.mainTrend?.trend === 'bearish' && s.gapFromLowToEMA200 !== null ? (
+    <span className={s.gapFromLowToEMA200 < 1 ? 'text-red-400' : 'text-yellow-400'}>
+      {s.gapFromLowToEMA200.toFixed(2)}%
+    </span>
+  ) : '—'}
+</td>
 
+{/* High → EMA200: Only for bullish trend */}
+<td className="px-1 py-0.5 text-center">
+  {s.mainTrend?.trend === 'bullish' && s.gapFromHighToEMA200 !== null ? (
+    <span className={s.gapFromHighToEMA200 > 5 ? 'text-green-400' : 'text-gray-300'}>
+      {s.gapFromHighToEMA200.toFixed(2)}%
+    </span>
+  ) : '—'}
+</td>
+		   
 		  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.ema200Bounce ? 'Yes' : 'No'}
   </td> 
@@ -2422,7 +2483,7 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
   >
     {typeof s.highestVolumeColorPrev === 'string'
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
-      : 'â€”'}
+      : '—'}
   </td>
 	  <td
   className={`px-1 py-0.5 text-center font-semibold ${
@@ -2437,14 +2498,14 @@ else if ((s.mainTrend?.trend === 'bullish' && s.prevClosedGreen) && dumpAbove30)
     ? s.bullishVolumeDivergence.type === 'bullish-volume'
       ? 'Bullish'
       : 'Bearish'
-    : 'â€”'}
+    : '—'}
 </td>
 	 <td
   className={`p-2 font-semibold ${
     s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
   }`}
 >
-  {s.isVolumeSpike ? 'Spike' : 'â€”'}
+  {s.isVolumeSpike ? 'Spike' : '—'}
 </td>	    
 </tr>
         );
