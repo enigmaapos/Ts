@@ -1971,12 +1971,12 @@ if (loading) {
           <span className="text-yellow-400 font-semibold"> BUY SIGNAL</span> if sentiment is bearish.
         </li>
 	  <li>
-          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump + previous candle green = 
-          <span className="text-red-400 font-semibold"> Bearish continuation</span> if sentiment is bearish.
+          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump + previous candle red = 
+          <span className="text-red-400 font-semibold"> Bearish continuation</span> if sentiment is bullish.
         </li>
         <li>
-          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump + previous candle red = 
-          <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bullish.
+          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump + previous candle green = 
+          <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bearish.
         </li>       
         <li>
           <span className="text-red-300">Bearish trend</span> + <span className="text-red-400">24h red price change</span> = 
