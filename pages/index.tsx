@@ -2374,16 +2374,17 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
-		   
-   <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
-        {s.gap.toFixed(2)}%
-      </td>
+		     
 		   
 <td className="px-1 py-0.5 text-center text-[10px]">
   {s.ema14InsideResults.some(r => r.inside)
     ? <span className="text-green-400 font-semibold">YES</span>
     : <span className="text-red-400">NO</span>}
 </td>	
+
+<td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
+        {s.gap.toFixed(2)}%
+      </td>		   
 		   
 {/* Low → EMA200: Only for bearish trend */}
 <td className="px-1 py-0.5 text-center">
