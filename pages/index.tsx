@@ -928,7 +928,8 @@ console.log({
 
 const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);	      
 
-const gap = getCurrentEMAGapPercentage(closes, 14, 70);      
+const gap = getCurrentEMAGapPercentage(closes, 14, 70);
+const gap1 = getCurrentEMAGapPercentage(closes, 70, 200);	      
 
 	      const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
@@ -1601,6 +1602,7 @@ latestRSI,
 		ema14InsideResults,
 		ema14InsideResultsCount,
 		gap,
+		gap1,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -1971,12 +1973,12 @@ if (loading) {
           <span className="text-yellow-400 font-semibold"> BUY SIGNAL</span> if sentiment is bearish.
         </li>
 	  <li>
-          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump + previous candle red = 
-          <span className="text-red-400 font-semibold"> Bearish continuation</span> if sentiment is bullish.
+          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
+          <span className="text-red-400 font-semibold"> Bearish continuation</span> if sentiment is bearish.
         </li>
         <li>
-          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump + previous candle green = 
-          <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bearish.
+          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
+          <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bullish.
         </li>       
         <li>
           <span className="text-red-300">Bearish trend</span> + <span className="text-red-400">24h red price change</span> = 
@@ -2086,7 +2088,8 @@ if (loading) {
   EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
  <th className="px-4 py-2 border border-gray-700">Ema14&70 Gap %</th>	  
-
+<th className="px-4 py-2 border border-gray-700">Ema70&200 Gap %</th>
+	  
 <th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
 <th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
 	  	  
@@ -2384,6 +2387,9 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 
 <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
         {s.gap.toFixed(2)}%
+      </td>
+<td className={`px-4 py-2 border border-gray-700 ${s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+        {s.gap1.toFixed(2)}%
       </td>		   
 		   
 {/* Low → EMA200: Only for bearish trend */}
