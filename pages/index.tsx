@@ -1934,14 +1934,6 @@ if (loading) {
           When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>,
           trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.
         </li>
-        <li>
-          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
-          <span className="text-red-400 font-semibold"> Bearish continuation</span>
-        </li>
-        <li>
-          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
-          <span className="text-green-400 font-semibold"> Bullish continuation</span>
-        </li>
       </ul>
     </div>
 
@@ -1952,15 +1944,23 @@ if (loading) {
         <li>
           <span className="text-green-400 font-semibold">Bullish</span> trend + 
           previous candle <span className="text-green-400 font-medium">closed green</span> + 
-          <span className="text-red-300"> dump &gt; 30%</span> = 
+          <span className="text-red-300">max dump zone</span> = 
           <span className="text-yellow-400 font-semibold"> SELL SIGNAL</span> if sentiment is bullish.
         </li>
         <li>
           <span className="text-red-400 font-semibold">Bearish</span> trend + 
           previous candle <span className="text-red-400 font-medium">closed red</span> + 
-          <span className="text-green-300"> pump &gt; 30%</span> = 
+          <span className="text-green-300">max pump zone</span> = 
           <span className="text-yellow-400 font-semibold"> BUY SIGNAL</span> if sentiment is bearish.
         </li>
+	  <li>
+          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump + previous candle green = 
+          <span className="text-red-400 font-semibold"> Bearish continuation</span> if sentiment is bearish.
+        </li>
+        <li>
+          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump + previous candle red = 
+          <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bullish.
+        </li>       
         <li>
           <span className="text-red-300">Bearish trend</span> + <span className="text-red-400">24h red price change</span> = 
           <span className="text-red-400 font-semibold"> Bearish sentiment</span>
