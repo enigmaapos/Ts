@@ -23,6 +23,20 @@ function calculateEMA(data: number[], period: number) {
   return ema;
 }
 
+function getCurrentEMAGapPercentage(data: number[], periodShort: number, periodLong: number): number | null {
+  const emaShort = calculateEMA(data, periodShort);
+  const emaLong = calculateEMA(data, periodLong);
+
+  const lastShort = emaShort[emaShort.length - 1];
+  const lastLong = emaLong[emaLong.length - 1];
+
+  // Ensure values are valid numbers
+  if (isNaN(lastShort) || isNaN(lastLong)) return null;
+
+  const gapPercentage = ((lastShort - lastLong) / lastLong) * 100;
+  return gapPercentage;
+}
+
 function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: number[], lookback: number = 5) {
   const results = [];
 
@@ -912,9 +926,11 @@ console.log({
   isDoubleBottomFailure
 });
 
-const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);
-	      
-const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
+const ema14InsideResults = isEMA14InsideRange(ema14, ema70, ema200, 5);	      
+
+const gap = getCurrentEMAGapPercentage(closes, 14, 70);      
+
+	      const nearEMA14 = closes.slice(-3).some(c => Math.abs(c - lastEMA14) / c < 0.002);          
 const nearEMA70 = closes.slice(-3).some(c => Math.abs(c - lastEMA70) / c < 0.002);
 const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.002);
 
@@ -1584,6 +1600,7 @@ latestRSI,
   failedBullishBreak,
 		ema14InsideResults,
 		ema14InsideResultsCount,
+		gap,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
@@ -2068,6 +2085,7 @@ if (loading) {
 >
   EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
+ <th className="px-4 py-2 border border-gray-700">Ema14&70 Gap %</th>	  
 
 <th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
 <th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
@@ -2356,7 +2374,11 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
-
+		   
+   <td className={`px-4 py-2 border border-gray-700 ${gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
+        {s.gap.toFixed(2)}%
+      </td>
+		   
 <td className="px-1 py-0.5 text-center text-[10px]">
   {s.ema14InsideResults.some(r => r.inside)
     ? <span className="text-green-400 font-semibold">YES</span>
