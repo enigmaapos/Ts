@@ -349,6 +349,15 @@ function get24hChangePercent(currentPrice: number, price24hAgo: number): number 
   return parseFloat(change.toFixed(2));
 }
 
+  function didDropFromPeak(
+  peakPercent: number,
+  currentPercent: number,
+  dropThreshold: number = 5
+): boolean {
+  const drop = peakPercent - currentPercent;
+  return drop >= dropThreshold;
+}
+
 const PriceChangePercent = ({ percent }: { percent: number }) => {
   const color =
     percent > 0 ? 'text-green-500' :
@@ -360,9 +369,16 @@ const PriceChangePercent = ({ percent }: { percent: number }) => {
     percent < 0 ? '📉' :
     '➖';
 
+  const isSignificantDrop =
+    peakPercent !== undefined &&
+    didDropFromPeak(peakPercent, percent, dropThreshold);	
+
   return (
     <span className={`font-semibold ${color}`}>
       {icon} {percent.toFixed(2)}%
+	  {isSignificantDrop && (
+        <span className="ml-1 text-yellow-400 animate-pulse">🚨</span>
+      )}    
     </span>
   );
 };
@@ -2039,6 +2055,9 @@ if (loading) {
 >
   24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
+<th className="px-1 py-0.5 bg-gray-800 text-center">
+  Drop 🚨
+</th>	  
 
     {/* Static Columns */}
     <th className="px-1 py-0.5 text-center">Bull BO</th>
@@ -2267,6 +2286,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
+		<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {didDropFromPeak(10, s.priceChangePercent, 5) ? (
+    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>   
 		   
   <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
     {s.bullishBreakout ? 'Yes' : 'No'}
