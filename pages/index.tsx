@@ -2375,7 +2375,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : 'Below 50 (Bearish)'}
 </td>
 		   
-   <td className={`px-4 py-2 border border-gray-700 ${gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
+   <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
         {s.gap.toFixed(2)}%
       </td>
 		   
