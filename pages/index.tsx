@@ -358,11 +358,15 @@ function get24hChangePercent(currentPrice: number, price24hAgo: number): number 
   return drop >= dropThreshold;
 }
 
-const PriceChangePercent = ({ percent }: { percent: number }) => {
-  const color =
-    percent > 0 ? 'text-green-500' :
-    percent < 0 ? 'text-red-500' :
-    'text-gray-400';
+const PriceChangePercent = ({
+  percent,
+  peakPercent,
+  dropThreshold = 5,
+}: PriceChangePercentProps) => {
+  const isSignificantDrop =
+    typeof peakPercent === 'number' &&
+    didDropFromPeak(peakPercent, percent, dropThreshold);
+
 
   const icon =
     percent > 0 ? '📈' :
