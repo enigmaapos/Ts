@@ -2464,11 +2464,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 </td>	
 
 <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
-        {s.gap.toFixed(2)}%
-      </td>
+  {typeof s.gap === 'number' && !isNaN(s.gap) ? `${s.gap.toFixed(2)}%` : 'N/A'}
+</td>
+
 <td className={`px-4 py-2 border border-gray-700 ${s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
-        {s.gap1.toFixed(2)}%
-      </td>		   
+  {typeof s.gap1 === 'number' && !isNaN(s.gap1) ? `${s.gap1.toFixed(2)}%` : 'N/A'}
+</td>
 		   
 {/* Low → EMA200: Only for bearish trend */}
 <td className="px-1 py-0.5 text-center">
