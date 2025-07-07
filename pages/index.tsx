@@ -373,7 +373,12 @@ const PriceChangePercent = ({
     typeof peakPercent === 'number' &&
     didDropFromPeak(peakPercent, percent, dropThreshold);
 
+  const color =
+    percent > 0 ? 'text-green-500' :
+    percent < 0 ? 'text-red-500' :
+    'text-gray-400';
 
+	
   const icon =
     percent > 0 ? '📈' :
     percent < 0 ? '📉' :
