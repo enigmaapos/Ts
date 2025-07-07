@@ -403,16 +403,16 @@ const PriceChangePercent = ({
     '➖';
 
   return (
-    <span className={`font-semibold ${color}`}>
-      {icon} {percent.toFixed(2)}%
-      {isSignificantDrop && (
-        <span className="ml-1 text-yellow-400 animate-pulse">🚨 Dropped</span>
-      )}
-      {isSignificantRecovery && (
-        <span className="ml-1 text-green-300 animate-pulse">🟢 Recovery</span>
-      )}
-    </span>
-  );
+  <span className={`font-semibold ${color}`}>
+    {icon} {typeof percent === 'number' && !isNaN(percent) ? percent.toFixed(2) : 'N/A'}%
+    {isSignificantDrop && (
+      <span className="ml-1 text-yellow-400 animate-pulse">🚨 Dropped</span>
+    )}
+    {isSignificantRecovery && (
+      <span className="ml-1 text-green-300 animate-pulse">🟢 Recovery</span>
+    )}
+  </span>
+);
 };
 
 export default function Home() {
