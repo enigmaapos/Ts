@@ -343,6 +343,12 @@ function detectBullishVolumeDivergence(prevLow: number, currLow: number, volumeP
   return { divergence: false };
 }
 
+type PriceChangePercentProps = {
+  percent: number;
+  peakPercent?: number;
+  dropThreshold?: number;
+};
+
 function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
   if (currentPrice === 0) return 0;
   const change = ((currentPrice - price24hAgo) / currentPrice) * 100;
