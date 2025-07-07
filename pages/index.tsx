@@ -347,6 +347,8 @@ type PriceChangePercentProps = {
   percent: number;
   peakPercent?: number;
   dropThreshold?: number;
+  lowPercent?: number; // 🟢 for recovery tracking
+  recoveryThreshold?: number;
 };
 
 function get24hChangePercent(currentPrice: number, price24hAgo: number): number {
@@ -364,36 +366,54 @@ function get24hChangePercent(currentPrice: number, price24hAgo: number): number 
   return drop >= dropThreshold;
 }
 
+function didRecoverFromLow(
+  lowPercent: number,
+  currentPercent: number,
+  recoveryThreshold: number = 5
+): boolean {
+  const recovery = currentPercent - lowPercent;
+  return currentPercent > lowPercent && recovery >= recoveryThreshold;
+}
+
 const PriceChangePercent = ({
   percent,
   peakPercent,
   dropThreshold = 5,
+  lowPercent,
+  recoveryThreshold = 5,
 }: PriceChangePercentProps) => {
   const isSignificantDrop =
     typeof peakPercent === 'number' &&
-    didDropFromPeak(peakPercent, percent, dropThreshold);
+    percent < peakPercent &&
+    peakPercent - percent >= dropThreshold;
+
+  const isSignificantRecovery =
+    typeof lowPercent === 'number' &&
+    percent > lowPercent &&
+    percent - lowPercent >= recoveryThreshold;
 
   const color =
     percent > 0 ? 'text-green-500' :
     percent < 0 ? 'text-red-500' :
     'text-gray-400';
 
-	
   const icon =
     percent > 0 ? '📈' :
     percent < 0 ? '📉' :
-    '➖';	
+    '➖';
 
   return (
     <span className={`font-semibold ${color}`}>
       {icon} {percent.toFixed(2)}%
-	  {isSignificantDrop && (
-        <span className="ml-1 text-yellow-400 animate-pulse">🚨</span>
-      )}    
+      {isSignificantDrop && (
+        <span className="ml-1 text-yellow-400 animate-pulse">🚨 Dropped</span>
+      )}
+      {isSignificantRecovery && (
+        <span className="ml-1 text-green-300 animate-pulse">🟢 Recovery</span>
+      )}
     </span>
   );
 };
-
 
 export default function Home() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -2068,6 +2088,9 @@ if (loading) {
 </th>
 <th className="px-1 py-0.5 bg-gray-800 text-center">
   Drop 🚨
+</th>
+<th className="px-1 py-0.5 bg-gray-800 text-center">
+  Recovery 🟢
 </th>	  
 
     {/* Static Columns */}
@@ -2304,6 +2327,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <span className="text-gray-500">–</span>
   )}
 </td>   
+<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
+    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>		   
 		   
   <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
     {s.bullishBreakout ? 'Yes' : 'No'}
