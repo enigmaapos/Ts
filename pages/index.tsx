@@ -377,11 +377,7 @@ const PriceChangePercent = ({
   const icon =
     percent > 0 ? '📈' :
     percent < 0 ? '📉' :
-    '➖';
-
-  const isSignificantDrop =
-    peakPercent !== undefined &&
-    didDropFromPeak(peakPercent, percent, dropThreshold);	
+    '➖';	
 
   return (
     <span className={`font-semibold ${color}`}>
