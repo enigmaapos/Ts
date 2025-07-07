@@ -2320,20 +2320,22 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
-		<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {didDropFromPeak(10, s.priceChangePercent, 5) ? (
+
+	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
     <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
   ) : (
     <span className="text-gray-500">–</span>
   )}
-</td>   
+</td>
+
 <td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
+  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
     <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
   ) : (
     <span className="text-gray-500">–</span>
   )}
-</td>		   
+</td>	   
 		   
   <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
     {s.bullishBreakout ? 'Yes' : 'No'}
