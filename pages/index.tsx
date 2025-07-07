@@ -1981,27 +1981,44 @@ if (loading) {
     </div>
 
     {/* 📝 Market Sentiment Insights */}
-    <div className="text-yellow-300 mt-2 text-xs leading-snug">
-      <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
-      <ul className="list-disc list-inside space-y-1">
-        <li>
-          If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>,
-          the market leans <span className="text-red-400 font-semibold">Bearish</span>.
+<div className="text-yellow-300 mt-2 text-xs leading-snug">
+  <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
+  <ul className="list-disc list-inside space-y-1">
+
+<li>
+          <span className="text-red-300">Bearish trend is high</span> + <span className="text-red-400">24h red price change is high</span> = 
+          <span className="text-red-400 font-semibold"> Bearish sentiment</span>
         </li>
         <li>
-          If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>,
-          the market leans <span className="text-green-400 font-semibold">Bullish</span>.
-        </li>
-        <li>
-          When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>,
-          trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.
-        </li>
-        <li>
-          When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>,
-          trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.
-        </li>
-      </ul>
-    </div>
+          <span className="text-green-300">Bullish trend is high</span> + <span className="text-green-400">24h green price change is high</span> = 
+          <span className="text-green-400 font-semibold"> Bullish sentiment</span>
+        </li>	  
+    <li>
+      If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>,
+      the market leans <span className="text-red-400 font-semibold">Bearish</span>.
+    </li>
+    <li>
+      If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>,
+      the market leans <span className="text-green-400 font-semibold">Bullish</span>.
+    </li>
+    <li>
+      When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>,
+      trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.
+    </li>
+    <li>
+      When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>,
+      trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.
+    </li>
+    <li>
+      If <span className="text-green-400 font-semibold">Bullish</span> trend is high + <span className="text-purple-300 font-semibold">Balance Zone Pump</span> is also high,
+      this may signal a <span className="text-red-400 font-semibold">trend reversal to Bearish Sentiment</span>.
+    </li>
+    <li>
+      If <span className="text-red-400 font-semibold">Bearish</span> trend is high + <span className="text-purple-300 font-semibold">Balance Zone Dump</span> is also high,
+      this may signal a <span className="text-green-400 font-semibold">trend reversal to Bullish Sentiment</span>.
+    </li>
+  </ul>
+</div>
 
     {/* 🧠 Strategy Signals */}
     <div className="text-blue-300 mt-2 text-xs leading-snug">
@@ -2027,14 +2044,6 @@ if (loading) {
           <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
           <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bullish.
         </li>       
-        <li>
-          <span className="text-red-300">Bearish trend</span> + <span className="text-red-400">24h red price change</span> = 
-          <span className="text-red-400 font-semibold"> Bearish sentiment</span>
-        </li>
-        <li>
-          <span className="text-green-300">Bullish trend</span> + <span className="text-green-400">24h green price change</span> = 
-          <span className="text-green-400 font-semibold"> Bullish sentiment</span>
-        </li>
       </ul>
     </div>
 
