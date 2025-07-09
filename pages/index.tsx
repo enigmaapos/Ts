@@ -572,7 +572,7 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
 ema14InsideResults: 'ema14InsideResults',
-prevVolumesWithColor: 'prevVolumesWithColor'
+highestVolumeColorPrev: 'highestVolumeColorPrev'
 };	
 
 // 🟡 Apply trend & signal filters on top of the search/favorites filtered list
