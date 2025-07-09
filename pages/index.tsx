@@ -649,8 +649,8 @@ const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
 ).length;
 
-const greenVolumeCount = prevVolumesWithColor.filter(c => c.volumeColor === 'green').length;
-const redVolumeCount = prevVolumesWithColor.filter(c => c.volumeColor === 'red').length;	
+const greenVolumeCount = filteredSignals.filter(c => c.volumeColor === 'green').length;
+const redVolumeCount = filteredSignals.filter(c => c.volumeColor === 'red').length;	
 	
 const signalCounts = useMemo(() => {
   const counts = {
