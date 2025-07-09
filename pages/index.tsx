@@ -650,20 +650,20 @@ const redPriceChangeCount = filteredSignals.filter(
 ).length;
 
   const { greenVolumeCount, redVolumeCount } = useMemo(() => {
-    if (filteredSignals.length === 0) {
-      return { greenVolumeCount: 0, redVolumeCount: 0 };
-    }
+  if (filteredAndSortedSignals.length === 0) {
+    return { greenVolumeCount: 0, redVolumeCount: 0 };
+  }
 
-    const highestVolumeCandle = filteredSignals.reduce((max, curr) =>
-      curr.volume > max.volume ? curr : max,
-      filteredSignals[0]
-    );
+  const highestVolumeCandle = filteredAndSortedSignals.reduce((max, curr) =>
+    curr.volume > max.volume ? curr : max,
+    filteredAndSortedSignals[0]
+  );
 
-    return {
-      greenVolumeCount: highestVolumeCandle.close > highestVolumeCandle.open ? 1 : 0,
-      redVolumeCount: highestVolumeCandle.close < highestVolumeCandle.open ? 1 : 0,
-    };
-  }, [filteredSignals]);
+  return {
+    greenVolumeCount: highestVolumeCandle.close > highestVolumeCandle.open ? 1 : 0,
+    redVolumeCount: highestVolumeCandle.close < highestVolumeCandle.open ? 1 : 0,
+  };
+}, [filteredAndSortedSignals]);
 	
 const signalCounts = useMemo(() => {
   const counts = {
