@@ -649,8 +649,8 @@ const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
 ).length;
 
-const greenVolumeCount = filteredSignals.filter(c => s.volumeColor === 'green').length;
-const redVolumeCount = filteredSignals.filter(c => s.volumeColor === 'red').length;	
+const greenVolumeCount = prevVolumesWithColor.filter(c => c.volumeColor === 'green').length;
+const redVolumeCount = prevVolumesWithColor.filter(c => c.volumeColor === 'red').length;	
 	
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1662,6 +1662,7 @@ latestRSI,
 		bearishVolumeDivergence,
 		bullishVolumeDivergence,
 		highestVolumeColorPrev,
+		prevVolumesWithColor,
 		greenVolumeCount,
 		redVolumeCount,
 		isVolumeSpike,
