@@ -649,13 +649,18 @@ const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
 ).length;
 
-const greenVolumeCount = filteredSignals.filter(
-  (s) => s.close > s.open && s.volume > 0
-).length;
+let greenVolumeCount = 0;
+let redVolumeCount = 0;
 
-const redVolumeCount = filteredSignals.filter(
-  (s) => s.close < s.open && s.volume > 0
-).length;
+if (filteredSignals.length > 0) {
+  const highestVolumeCandle = filteredSignals.reduce((max, curr) =>
+    curr.volume > max.volume ? curr : max,
+    filteredSignals[0]
+  );
+
+  greenVolumeCount = highestVolumeCandle.close > highestVolumeCandle.open ? 1 : 0;
+  redVolumeCount = highestVolumeCandle.close < highestVolumeCandle.open ? 1 : 0;
+}
 	
 const signalCounts = useMemo(() => {
   const counts = {
