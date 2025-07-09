@@ -1983,6 +1983,7 @@ if (loading) {
         <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
         <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
       </div>
+	</div>    
 
 {/* 🔸 Volume Color Summary */}
 <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
