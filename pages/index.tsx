@@ -647,7 +647,10 @@ const greenPriceChangeCount = filteredSignals.filter(
 
 const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
-).length;	
+).length;
+
+const greenVolumeCount = prevVolumesWithColor.filter(c => c.volumeColor === 'green').length;
+const redVolumeCount = prevVolumesWithColor.filter(c => c.volumeColor === 'red').length;	
 	
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1659,6 +1662,8 @@ latestRSI,
 		bearishVolumeDivergence,
 		bullishVolumeDivergence,
 		highestVolumeColorPrev,
+		greenVolumeCount,
+		redVolumeCount,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
@@ -1978,8 +1983,16 @@ if (loading) {
         <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
         <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
       </div>
-    </div>
 
+{/* 🔸 Volume Color Summary */}
+<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+  <div className="text-white text-sm mb-2 font-semibold">🔸 Volume Color Summary</div>
+  <div className="flex items-center gap-4 text-sm">
+    <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
+    <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
+  </div>
+</div>
+	  
     {/* 📝 Market Sentiment Insights */}
 <div className="text-yellow-300 mt-2 text-xs leading-snug">
   <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
