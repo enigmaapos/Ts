@@ -650,11 +650,11 @@ const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
 ).length;
 
- const greenVolumeCount = filteredSignals.filter(
+ const greenCandleCount = filteredSignals.filter(
   (s) => s.highestVolumeColorPrev === 'green'
 ).length;
 
-const redVolumeCount = filteredSignals.filter(
+const redCandleCount = filteredSignals.filter(
   (s) => s.highestVolumeColorPrev === 'red'
 ).length;
 
