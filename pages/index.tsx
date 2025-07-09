@@ -571,7 +571,8 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishReversal: 'bearishReversal',
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
-ema14InsideResults: 'ema14InsideResults',	
+ema14InsideResults: 'ema14InsideResults',
+prevVolumesWithColor: 'prevVolumesWithColor'
 };	
 
 // 🟡 Apply trend & signal filters on top of the search/favorites filtered list
@@ -649,21 +650,14 @@ const redPriceChangeCount = filteredSignals.filter(
   (t) => parseFloat(t.priceChangePercent) < 0
 ).length;
 
-  const { greenVolumeCount, redVolumeCount } = useMemo(() => {
-  if (filteredAndSortedSignals.length === 0) {
-    return { greenVolumeCount: 0, redVolumeCount: 0 };
-  }
+ const greenCandleCount = filteredSignals.filter(
+  (s) => s.highestVolumeColorPrev === 'green'
+).length;
 
-  const highestVolumeCandle = filteredAndSortedSignals.reduce((max, curr) =>
-    curr.volume > max.volume ? curr : max,
-    filteredAndSortedSignals[0]
-  );
+const redCandleCount = filteredSignals.filter(
+  (s) => s.highestVolumeColorPrev === 'red'
+).length;
 
-  return {
-    greenVolumeCount: highestVolumeCandle.close > highestVolumeCandle.open ? 1 : 0,
-    redVolumeCount: highestVolumeCandle.close < highestVolumeCandle.open ? 1 : 0,
-  };
-}, [filteredAndSortedSignals]);
 	
 const signalCounts = useMemo(() => {
   const counts = {
@@ -1675,7 +1669,6 @@ latestRSI,
 		bearishVolumeDivergence,
 		bullishVolumeDivergence,
 		highestVolumeColorPrev,
-		prevVolumesWithColor,
 		greenVolumeCount,
 		redVolumeCount,
 		isVolumeSpike,
