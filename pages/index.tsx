@@ -1753,8 +1753,8 @@ if (loading) {
 
     {signalData ? (
       <div>
-        <p>Last Close: ${signalData.lastClose}</p>
-        <p>Signal: {signalData.signal}</p>
+        <p>Last Close: ${signals.lastClose}</p>
+        <p>Signal: {signals.signal}</p>
       </div>
     ) : (
       <p>Loading signal...</p>
