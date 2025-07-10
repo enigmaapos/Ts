@@ -1742,15 +1742,6 @@ if (loading) {
       <button onClick={() => setTimeframe('1d')}>1D</button>
     </div>
 
-    {signals ? (
-      <div>
-        <p>Last Close: ${signals.lastClose}</p>
-        <p>Signal: {signals.signal}</p>
-      </div>
-    ) : (
-      <p>Loading signal...</p>
-    )}
-
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
