@@ -416,9 +416,7 @@ const PriceChangePercent = ({
 };
 
 export default function Home() {
- // Option 2 (multiple signal objects):
 const [signals, setSignals] = useState<any[]>([]);
-setSignals([result]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
@@ -1666,16 +1664,7 @@ latestRSI,
         return null;
       }
     };
-
-
-  useEffect(() => {
-    const getData = async () => {
-      const result = await fetchAndAnalyze('BTCUSDT', timeframe);
-      if (result) setSignals(result);
-    };
-
-    getData();
-  }, [timeframe]);	  
+	  
 
     const fetchSymbols = async () => {
       const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
