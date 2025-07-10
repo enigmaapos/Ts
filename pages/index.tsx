@@ -1689,7 +1689,9 @@ setLoading(false);  // stop showing loading spinner
       const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
       currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
-      const results = await Promise.all(batch.map(fetchAndAnalyze));
+      const results = await Promise.all(
+  batch.map(symbol => fetchAndAnalyze(symbol, timeframe))
+);
       const cleanedResults = results.filter(r => r !== null);
       
       if (isMounted) {
