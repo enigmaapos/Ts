@@ -1741,24 +1741,25 @@ if (loading) {
 }
 
     return (
-          <div>
-      <h2>Current Timeframe: {timeframe}</h2>
+	    
+  <div>
+    <h2>Current Timeframe: {timeframe}</h2>
 
-      <div>
-        <button onClick={() => setTimeframe('15m')}>15m</button>
-        <button onClick={() => setTimeframe('4h')}>4H</button>
-        <button onClick={() => setTimeframe('1d')}>1D</button>
-      </div>
-
-      {signalData ? (
-        <div>
-          <p>Last Close: ${signals.lastClose}</p>
-          <p>Signal: {signals.signal}</p>
-        </div>
-      ) : (
-        <p>Loading signal...</p>
-      )}
+    <div>
+      <button onClick={() => setTimeframe('15m')}>15m</button>
+      <button onClick={() => setTimeframe('4h')}>4H</button>
+      <button onClick={() => setTimeframe('1d')}>1D</button>
     </div>
+
+    {signalData ? (
+      <div>
+        <p>Last Close: ${signalData.lastClose}</p>
+        <p>Signal: {signalData.signal}</p>
+      </div>
+    ) : (
+      <p>Loading signal...</p>
+    )}
+
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
