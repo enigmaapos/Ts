@@ -1082,18 +1082,6 @@ const recentVolume = latestCandle?.volume ?? 0;
 
 const isVolumeSpike = recentVolume > avgPrevVolume * 1.5; // You can tweak 1.5 threshold	      
 
-const isDescendingRSI = (rsi: number[], window = 3): boolean => {
-  const len = rsi.length;
-  if (len < window) return false;
-
-  for (let i = len - window; i < len - 1; i++) {
-    if (rsi[i] <= rsi[i + 1]) {
-      return false;
-    }
-  }
-  return true;
-};
-
 // ✅ Engulfing Candle Pattern Detection in Today’s Session
 const engulfingPatterns = [];
 
@@ -1192,6 +1180,18 @@ const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   return true;
 };
 
+const isDescendingRSI = (rsi: number[], window = 3): boolean => {
+  const len = rsi.length;
+  if (len < window) return false;
+
+  for (let i = len - window; i < len - 1; i++) {
+    if (rsi[i] <= rsi[i + 1]) {
+      return false;
+    }
+  }
+  return true;
+};
+	      
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
@@ -1471,26 +1471,20 @@ const detectBullishSpike = (
 };
 
 
+const touchedEMA14 = (price: number, ema14: number, margin = 0.0015): boolean => {
+  return Math.abs(price - ema14) / ema14 <= margin;
+};
 
-// ✅ NEW: Check if latest EMA14-touching high is lower than the previous touch
-const isDescendingHighOnEMA14Touch = (
-  highs: number[],
-  ema14: number[]
-): boolean => {
+const isDescendingHighOnEMA14Touch = (highs: number[], ema14: number[]): boolean => {
   const len = highs.length;
   const latestIndex = len - 1;
-
-  // Check if latest candle touched EMA14
   if (!touchedEMA14(highs[latestIndex], ema14[latestIndex])) return false;
 
-  // Find the last previous EMA14-touching high
   for (let i = latestIndex - 1; i >= 0; i--) {
     if (touchedEMA14(highs[i], ema14[i])) {
       return highs[latestIndex] < highs[i];
     }
   }
-
-  // No previous touch found
   return false;
 };
 
@@ -1509,64 +1503,60 @@ const detectBearishCollapse = (
   if (!breakout || !bearishBreakout) return false;
 
   const len = closes.length;
-  if (len < 3) return false;
+  if (len < 5) return false;
 
-  if (ema14[len - 1] >= ema70[len - 1]) return false;
-
-  // 🔁 Detect EMA14 < EMA70 crossover
-  let crossoverIndex70 = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] >= ema70[i] && ema14[i + 1] < ema70[i + 1]) {
-      crossoverIndex70 = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex70 === -1) return false;
-
-  // 🔁 Detect EMA14 < EMA200 crossover
-  let crossoverIndex200 = -1;
-  for (let i = len - 2; i >= 1; i--) {
-    if (ema14[i] >= ema200[i] && ema14[i + 1] < ema200[i + 1]) {
-      crossoverIndex200 = i + 1;
-      break;
-    }
-  }
-  if (crossoverIndex200 === -1) return false;
-
-  // ✅ Choose the later crossover as starting point
-  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
-  const crossoverHigh = highs[crossoverIndex];
-  const crossoverRSI = rsi14[crossoverIndex];
-  let highestHighAfterCrossover = crossoverHigh;
-
-  // 🔍 Track highest high after crossover
-  for (let i = crossoverIndex + 1; i < len; i++) {
-    const currentHigh = highs[i];
-    if (currentHigh > highestHighAfterCrossover) {
-      highestHighAfterCrossover = currentHigh;
-    }
-  }
-
-  // 🧪 Final candle checks
   const i = len - 1;
+  const close = closes[i];
   const currentLow = lows[i];
   const currentHigh = highs[i];
-  const close = closes[i];
-  const rsi = rsi14[i];
   const ema14Value = ema14[i];
   const ema70Value = ema70[i];
   const ema200Value = ema200[i];
+  const rsi = rsi14[i];
+
+  if (ema14Value >= ema70Value || close >= ema70Value || close >= ema200Value) {
+    return false;
+  }
+
+  let crossoverIndex70 = -1;
+  let crossoverIndex200 = -1;
+
+  for (let j = len - 4; j >= 1; j--) {
+    if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
+      crossoverIndex70 = j + 1;
+      break;
+    }
+  }
+
+  for (let j = len - 4; j >= 1; j--) {
+    if (ema14[j] >= ema200[j] && ema14[j + 1] < ema200[j + 1]) {
+      crossoverIndex200 = j + 1;
+      break;
+    }
+  }
+
+  if (crossoverIndex70 === -1 || crossoverIndex200 === -1) return false;
+
+  const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
+  const crossoverHigh = highs[crossoverIndex];
+  const crossoverRSI = rsi14[crossoverIndex];
+
+  let highestHighAfterCrossover = crossoverHigh;
+  for (let k = crossoverIndex + 1; k < len; k++) {
+    if (highs[k] > highestHighAfterCrossover) {
+      highestHighAfterCrossover = highs[k];
+    }
+  }
 
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return false;
 
-  // ✅ Collapse conditions
   const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
   const belowEMA14 = close < ema14Value;
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
-  const rsiBelow50 = rsi < 50; // 👈 NEW CONDITION
+  const rsiBelow50 = rsi < 50;
   const lowerThanCrossover = close < crossoverHigh;
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
   const ema14TouchDescendingHigh = isDescendingHighOnEMA14Touch(highs, ema14);
@@ -1579,7 +1569,7 @@ const detectBearishCollapse = (
     fallingRSI &&
     lowerThanCrossover &&
     descendingCurrentRSI &&
-    rsiBelow50 // 👈 INCLUDED HERE
+    rsiBelow50
   );
 };
 
