@@ -1733,7 +1733,7 @@ if (loading) {
 
     return (
 	    
-  <div>
+  <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
     <h2>Current Timeframe: {timeframe}</h2>
 
     <div>
