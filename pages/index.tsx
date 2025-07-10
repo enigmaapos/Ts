@@ -1689,9 +1689,7 @@ setLoading(false);  // stop showing loading spinner
       const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
       currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
-      const results = await Promise.all(
-  batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
-);
+      const results = await Promise.all(batch.map(fetchAndAnalyze));
       const cleanedResults = results.filter(r => r !== null);
       
       if (isMounted) {
@@ -1734,13 +1732,24 @@ if (loading) {
     return (
 	    
   <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-    <h2>Current Timeframe: {timeframe}</h2>
+    <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
+  ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
+</h2>
 
-    <div>
-      <button onClick={() => setTimeframe('15m')}>15m</button>
-      <button onClick={() => setTimeframe('4h')}>4H</button>
-      <button onClick={() => setTimeframe('1d')}>1D</button>
-    </div>
+    <div className="flex space-x-4 my-4">
+  {['15m', '4h', '1d'].map((tf) => (
+    <button
+      key={tf}
+      onClick={() => setTimeframe(tf)}
+      className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md 
+        ${timeframe === tf
+          ? 'bg-yellow-400 text-black scale-105'
+          : 'bg-gray-800 text-white hover:bg-gray-700'}`}
+    >
+      {tf.toUpperCase()}
+    </button>
+  ))}
+</div>
 
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
