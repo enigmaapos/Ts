@@ -737,7 +737,7 @@ const signalCounts = useMemo(() => {
     const fetchAndAnalyze = async (symbol: string) => {
       try {
         const raw = await fetch(
-          `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=500`
+          `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=500`
         ).then((res) => res.json());
 
         const candles = raw.map((c: any) => ({
