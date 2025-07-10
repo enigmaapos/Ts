@@ -416,7 +416,7 @@ const PriceChangePercent = ({
 };
 
 export default function Home() {
-  const [signals, setSignals] = useState<any | null>(null);
+ const [signals, setSignals] = useState<any[]>([]); // 👈 Default to empty array
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(true);
