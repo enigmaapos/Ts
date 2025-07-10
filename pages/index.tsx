@@ -2158,6 +2158,11 @@ if (loading) {
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
+
+<th className="px-1 py-0.5 text-center">Collapse</th>
+    <th className="px-1 py-0.5 text-center">Spike</th>
+<th className="px-1 py-0.5 text-center">Bear Rev</th>
+    <th className="px-1 py-0.5 text-center">Bull Rev</th>	  
 	  
 <th
   onClick={() => {
@@ -2170,6 +2175,8 @@ if (loading) {
 >
   EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
+
+	  
  <th className="px-4 py-2 border border-gray-700">Ema14&70 Gap %</th>	  
 <th className="px-4 py-2 border border-gray-700">Ema70&200 Gap %</th>
 	  
@@ -2241,10 +2248,6 @@ if (loading) {
     <th className="px-1 py-0.5 text-center">Breakout Fail</th>
     <th className="px-1 py-0.5 text-center">Top Pattern</th>
     <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
-	      <th className="px-1 py-0.5 text-center">Collapse</th>
-    <th className="px-1 py-0.5 text-center">Spike</th>
-<th className="px-1 py-0.5 text-center">Bear Rev</th>
-    <th className="px-1 py-0.5 text-center">Bull Rev</th>
 	  
     {/* Volume */}
     <th className="p-2 text-center">Volume</th>
@@ -2476,7 +2479,24 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>
-		     
+
+		   
+  {/* Pattern/Signal Columns */}
+  <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+    {s.bearishCollapse ? 'Yes' : 'No'}
+  </td>
+
+	<td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+    {s.bullishSpike ? 'Yes' : 'No'}
+  </td>
+
+<td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+    {s.bearishReversal ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+    {s.bullishReversal ? 'Yes' : 'No'}
+  </td>		     
 		   
 <td className="px-1 py-0.5 text-center text-[10px]">
   {s.ema14InsideResults.some(r => r.inside)
@@ -2581,23 +2601,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
         ? 'Ascending Bottom'
         : '-'
       : '-'}
-  </td>
-
-	  {/* Pattern/Signal Columns */}
-  <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-    {s.bearishCollapse ? 'Yes' : 'No'}
-  </td>
-
-	<td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-    {s.bullishSpike ? 'Yes' : 'No'}
-  </td>
-
-<td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-    {s.bearishReversal ? 'Yes' : 'No'}
-  </td>
-
-  <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-    {s.bullishReversal ? 'Yes' : 'No'}
   </td>
   
   {/* Volume */}
