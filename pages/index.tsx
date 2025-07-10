@@ -1669,7 +1669,7 @@ latestRSI,
   useEffect(() => {
     const getData = async () => {
       const result = await fetchAndAnalyze('BTCUSDT', timeframe);
-      if (result) setSignalData(result);
+      if (result) setSignals(result);
     };
 
     getData();
