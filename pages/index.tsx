@@ -1364,7 +1364,6 @@ const bearishReversal = detectBearishToBullish(
   lows,
   closes,
 );
-
         
 const touchedEMA14 = (price: number, ema14: number, margin = 0.0015): boolean => {
   return Math.abs(price - ema14) / ema14 <= margin;
@@ -1470,10 +1469,6 @@ const detectBullishSpike = (
   );
 };
 
-
-const touchedEMA14 = (price: number, ema14: number, margin = 0.0015): boolean => {
-  return Math.abs(price - ema14) / ema14 <= margin;
-};
 
 const isDescendingHighOnEMA14Touch = (highs: number[], ema14: number[]): boolean => {
   const len = highs.length;
