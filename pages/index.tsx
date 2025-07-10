@@ -426,6 +426,7 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
+	  const [timeframe, setTimeframe] = useState('1d');
   
   
 
@@ -734,11 +735,11 @@ const signalCounts = useMemo(() => {
       return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
     };
 
-    const fetchAndAnalyze = async (symbol: string) => {
-      try {
-        const raw = await fetch(
-          `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=500`
-        ).then((res) => res.json());
+    const fetchAndAnalyze = async (symbol: string, interval: string) => {
+  try {
+    const raw = await fetch(
+      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`
+    ).then((res) => res.json());
 
         const candles = raw.map((c: any) => ({
           timestamp: c[0],
@@ -1663,7 +1664,16 @@ latestRSI,
         return null;
       }
     };
- 
+
+
+  useEffect(() => {
+    const getData = async () => {
+      const result = await fetchAndAnalyze('BTCUSDT', timeframe);
+      if (result) setSignalData(result);
+    };
+
+    getData();
+  }, [timeframe]);	  
 
     const fetchSymbols = async () => {
       const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
@@ -1729,10 +1739,24 @@ if (loading) {
 }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-4">
-        Binance 15m Signal Analysis (UTC)
-      </h1>
+          <div>
+      <h2>Current Timeframe: {timeframe}</h2>
+
+      <div>
+        <button onClick={() => setTimeframe('15m')}>15m</button>
+        <button onClick={() => setTimeframe('4h')}>4H</button>
+        <button onClick={() => setTimeframe('1d')}>1D</button>
+      </div>
+
+      {signalData ? (
+        <div>
+          <p>Last Close: ${signals.lastClose}</p>
+          <p>Signal: {signals.signal}</p>
+        </div>
+      ) : (
+        <p>Loading signal...</p>
+      )}
+    </div>
 
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
