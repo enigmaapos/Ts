@@ -1751,7 +1751,7 @@ if (loading) {
       <button onClick={() => setTimeframe('1d')}>1D</button>
     </div>
 
-    {signalData ? (
+    {signals ? (
       <div>
         <p>Last Close: ${signals.lastClose}</p>
         <p>Signal: {signals.signal}</p>
