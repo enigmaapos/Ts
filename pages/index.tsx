@@ -428,7 +428,7 @@ const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('1d');	  
   const timeframes = ['15m', '4h', '1d'];
-	
+const symbolsRef = useRef<string[]>([]);	
   
 
 
@@ -700,12 +700,12 @@ const signalCounts = useMemo(() => {
 }, [signals]);
 	
   useEffect(() => {
-    let isMounted = true;
+    const isMountedRef = useRef(true);
 
     const BATCH_SIZE = 10;
     const INTERVAL_MS = 1000;
     let currentIndex = 0;
-    let symbols: string[] = [];
+    const symbolsRef = useRef<string[]>([]);
 
     const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
       Date.UTC(y, m, d, hPH - 8, min);
@@ -1668,42 +1668,44 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
-      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-      symbols = info.symbols
-        .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-        .slice(0, 500)
-        .map((s: any) => s.symbol);
-    };
+  const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+  symbolsRef.current = info.symbols
+    .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+    .slice(0, 500)
+    .map((s: any) => s.symbol);
+};
 
   const fetchBatch = async () => {
-    if (!symbols.length) return;
+  const symbols = symbolsRef.current;
+  if (!symbols.length) return;
 
-    const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-    currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+  const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+  currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
-    const results = await Promise.all(
-      batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
-    );
-    const cleanedResults = results.filter((r) => r !== null);
+  const results = await Promise.all(
+    batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
+  );
+  const cleanedResults = results.filter((r) => r !== null);
 
-    if (isMounted) {
-      setSignals((prev) => {
-        const updated = [...prev];
-        const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-        for (const result of cleanedResults) {
-          const index = updated.findIndex((r) => r.symbol === result.symbol);
-          if (index >= 0) {
-            updated[index] = result;
-          } else {
-            updated.push(result);
-          }
-          updatedMap[result.symbol] = Date.now();
+  if (isMountedRef.current) {
+    setSignals((prev) => {
+      const updated = [...prev];
+      const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+      for (const result of cleanedResults) {
+        const index = updated.findIndex((r) => r.symbol === result.symbol);
+        if (index >= 0) {
+          updated[index] = result;
+        } else {
+          updated.push(result);
         }
-        setLastUpdatedMap(updatedMap);
-        return updated;
-      });
-    }
-  };
+        updatedMap[result.symbol] = Date.now();
+      }
+      setLastUpdatedMap(updatedMap);
+      return updated;
+    });
+  }
+};
+
 
   const runBatches = async () => {
     await fetchSymbols();
@@ -1721,16 +1723,22 @@ latestRSI,
   });
 
   return () => {
-    isMounted = false;
+    isMountedRef.current = false;
     if (cleanup) cleanup();
   };
-}, [timeframe]); // ✅ triggers on timeframe change
+}, [timeframe]);
 
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
+
+const handleRefresh = async () => {
+  toast.info("Refreshing signals...");
+  await fetchBatch();
+  toast.success("Signals refreshed!");
+};	
 
 if (loading) {
   return (
@@ -1762,9 +1770,16 @@ if (loading) {
           >
             {tf.toUpperCase()}
           </button>
-  ))}
+  ))}	    
+<button
+  onClick={handleRefresh}
+  className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
+>
+  🔄 Refresh Signals
+</button>		    
 </div>
 
+  
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
