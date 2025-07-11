@@ -1666,59 +1666,65 @@ latestRSI,
     };
 	  
 
-    const fetchSymbols = async () => {
-      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-      symbols = info.symbols
-        .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-        .slice(0, 500)
-        .map((s: any) => s.symbol);
-    };
+  const fetchSymbols = async () => {
+    const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then((res) => res.json());
+    symbols = info.symbols
+      .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+      .slice(0, 500)
+      .map((s: any) => s.symbol);
+  };
 
-    const runBatches = async () => {
-      await fetchSymbols();
-      await fetchBatch(); // fetch first batch before showing UI
-setLoading(false);  // stop showing loading spinner
-      
-      const interval = setInterval(fetchBatch, INTERVAL_MS);
-      return () => clearInterval(interval);
-    };
+  const fetchBatch = async () => {
+    if (!symbols.length) return;
 
-    const fetchBatch = async () => {
-      if (!symbols.length) return;
+    const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+    currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
-      const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-      currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+    const results = await Promise.all(
+      batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
+    );
+    const cleanedResults = results.filter((r) => r !== null);
 
-      const results = await Promise.all(
-  batch.map(symbol => fetchAndAnalyze(symbol, timeframe))
-);
-      const cleanedResults = results.filter(r => r !== null);
-      
-      if (isMounted) {
-        setSignals((prev) => {
-          const updated = [...prev];
-          const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-          for (const result of cleanedResults) {
-            const index = updated.findIndex((r) => r.symbol === result.symbol);
-            if (index >= 0) {
-              updated[index] = result;
-            } else {
-              updated.push(result);
-            }
-            updatedMap[result.symbol] = Date.now();
+    if (isMounted) {
+      setSignals((prev) => {
+        const updated = [...prev];
+        const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+        for (const result of cleanedResults) {
+          const index = updated.findIndex((r) => r.symbol === result.symbol);
+          if (index >= 0) {
+            updated[index] = result;
+          } else {
+            updated.push(result);
           }
-          setLastUpdatedMap(updatedMap);
-          return updated;
-        });
-      }
-    };
+          updatedMap[result.symbol] = Date.now();
+        }
+        setLastUpdatedMap(updatedMap);
+        return updated;
+      });
+    }
+  };
 
-    const stop = runBatches();
-    return () => {
-      isMounted = false;
-      stop.then((clear) => clear && clear());
-    };
-  }, [timeframe]);
+  const runBatches = async () => {
+    await fetchSymbols();
+    await fetchBatch();
+    setLoading(false);
+
+    const interval = setInterval(fetchBatch, INTERVAL_MS);
+    return () => clearInterval(interval);
+  };
+
+  let cleanup: () => void;
+
+  runBatches().then((stop) => {
+    cleanup = stop;
+  });
+
+  return () => {
+    isMounted = false;
+    if (cleanup) cleanup();
+  };
+}, [timeframe]); // ✅ triggers on timeframe change
+    
 
 if (loading) {
   return (
