@@ -1710,13 +1710,6 @@ latestRSI,
       });
     }
   };
-
-// Define handleRefresh inside the component
-  const handleRefresh = async () => {
-    toast.info("Refreshing signals...");
-    await fetchBatch();
-    toast.success("Signals refreshed!");
-  };	
 	  
     let cleanup: () => void;
     isMountedRef.current = true;
@@ -1747,6 +1740,12 @@ latestRSI,
   };	
 
 
+  // Define handleRefresh inside component
+  const handleRefresh = async () => {
+    toast.info("Refreshing signals...");
+    await fetchBatch();
+    toast.success("Signals refreshed!");
+  };	
 
 if (loading) {
   return (
