@@ -1710,6 +1710,13 @@ latestRSI,
       });
     }
   };
+
+// Define handleRefresh inside component
+  const handleRefresh = async () => {
+    toast.info("Refreshing signals...");
+    await fetchBatch();
+    toast.success("Signals refreshed!");
+  };		  
 	  
     let cleanup: () => void;
     isMountedRef.current = true;
@@ -1739,13 +1746,6 @@ latestRSI,
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
 
-
-  // Define handleRefresh inside component
-  const handleRefresh = async () => {
-    toast.info("Refreshing signals...");
-    await fetchBatch();
-    toast.success("Signals refreshed!");
-  };	
 
 if (loading) {
   return (
@@ -1779,14 +1779,7 @@ if (loading) {
           </button>
   ))}	    	    
 </div>
-	  <div>
-       <button
-        onClick={handleRefresh}
-        className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
-      >
-        🔄 Refresh Signals
-      </button>
-  </div>
+	  
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
