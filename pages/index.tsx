@@ -1759,6 +1759,15 @@ if (loading) {
 }
 
     return (
+
+<div>
+       <button
+        onClick={handleRefresh}
+        className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
+      >
+        🔄 Refresh Signals
+      </button>
+  </div>
 	    
   <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
     <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
@@ -1779,6 +1788,7 @@ if (loading) {
           </button>
   ))}	    	    
 </div>
+
 	  
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
