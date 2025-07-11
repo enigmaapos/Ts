@@ -1675,7 +1675,7 @@ latestRSI,
     .slice(0, 500)
     .map((s: any) => s.symbol);
   setSignals(filtered);
-  setSignalssLoaded(true);
+  setSignalsLoaded(true);
 };
 
   const fetchBatch = async () => {
