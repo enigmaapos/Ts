@@ -430,6 +430,7 @@ const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('1d');	  
   const timeframes = ['15m', '4h', '1d'];
+const isMountedRef = useRef(true);	
 const symbolsRef = useRef<string[]>([]);	
   
 
@@ -1776,15 +1777,15 @@ if (loading) {
           >
             {tf.toUpperCase()}
           </button>
-  ))}	    
+  ))}	    	    
+</div>
+	  
 <button
   onClick={handleRefresh}
   className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
 >
   🔄 Refresh Signals
-</button>		    
-</div>
-
+</button>	
   
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
