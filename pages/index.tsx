@@ -1,4 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
