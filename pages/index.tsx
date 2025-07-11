@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
@@ -417,22 +417,20 @@ const PriceChangePercent = ({
 
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
-const [search, setSearch] = useState("");
-const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
-const [loading, setLoading] = useState(true);
-const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
+  const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
+  const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-const [sortField, setSortField] = useState<string>('symbol');
+  const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
-const [signalFilter, setSignalFilter] = useState<string | null>(null);
-const [timeframe, setTimeframe] = useState('1d');	  
-const timeframes = ['15m', '4h', '1d'];
-const isMountedRef = useRef(true);	
-const symbolsRef = useRef<string[]>([]);
-const currentIndexRef = useRef(0);	
-  
+  const [signalFilter, setSignalFilter] = useState<string | null>(null);
+	  const [timeframe, setTimeframe] = useState('1d');	  
+  const timeframes = ['15m', '4h', '1d'];
 	
+  
+
 
 useEffect(() => {
   const stored = localStorage.getItem("favorites");
@@ -702,12 +700,12 @@ const signalCounts = useMemo(() => {
 }, [signals]);
 	
   useEffect(() => {
-    const isMountedRef = useRef(true);
+    let isMounted = true;
 
     const BATCH_SIZE = 10;
     const INTERVAL_MS = 1000;
     let currentIndex = 0;
-    const symbolsRef = useRef<string[]>([]);
+    let symbols: string[] = [];
 
     const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
       Date.UTC(y, m, d, hPH - 8, min);
@@ -1670,27 +1668,25 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
-  const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-  symbolsRef.current = info.symbols
-    .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-    .slice(0, 500)
-    .map((s: any) => s.symbol);
-};
+      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+      symbols = info.symbols
+        .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+        .slice(0, 500)
+        .map((s: any) => s.symbol);
+    };
 
-    const fetchBatch = async () => {
-    const symbols = symbolsRef.current;
+  const fetchBatch = async () => {
     if (!symbols.length) return;
 
-    const batch = symbols.slice(currentIndexRef.current, currentIndexRef.current + BATCH_SIZE);
-    currentIndexRef.current = (currentIndexRef.current + BATCH_SIZE) % symbols.length;
+    const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+    currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
     const results = await Promise.all(
       batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
     );
-
     const cleanedResults = results.filter((r) => r !== null);
 
-    if (isMountedRef.current) {
+    if (isMounted) {
       setSignals((prev) => {
         const updated = [...prev];
         const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
@@ -1709,35 +1705,32 @@ latestRSI,
     }
   };
 
-	  
-    let cleanup: () => void;
-    isMountedRef.current = true;
+  const runBatches = async () => {
+    await fetchSymbols();
+    await fetchBatch();
+    setLoading(false);
 
-    const runBatches = async () => {
-      await fetchSymbols();
-      await fetchBatch();
-      setLoading(false);
+    const interval = setInterval(fetchBatch, INTERVAL_MS);
+    return () => clearInterval(interval);
+  };
 
-      const interval = setInterval(fetchBatch, INTERVAL_MS);
-      return () => clearInterval(interval);
-    };
+  let cleanup: () => void;
 
-    runBatches().then((stop) => {
-      cleanup = stop;
-    });
+  runBatches().then((stop) => {
+    cleanup = stop;
+  });
 
-    return () => {
-      isMountedRef.current = false;
-      if (cleanup) cleanup();
-    };
-  }, [timeframe]);
+  return () => {
+    isMounted = false;
+    if (cleanup) cleanup();
+  };
+}, [timeframe]); // ✅ triggers on timeframe change
 
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
-
 
 if (loading) {
   return (
@@ -1769,10 +1762,9 @@ if (loading) {
           >
             {tf.toUpperCase()}
           </button>
-  ))}	    	    
+  ))}
 </div>
 
-	  
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
