@@ -1711,12 +1711,6 @@ latestRSI,
     }
   };
 
-// Define handleRefresh inside component
-  const handleRefresh = async () => {
-    toast.info("Refreshing signals...");
-    await fetchBatch();
-    toast.success("Signals refreshed!");
-  };		  
 	  
     let cleanup: () => void;
     isMountedRef.current = true;
@@ -1764,15 +1758,6 @@ if (loading) {
     <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
   ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
 </h2>
-
-<div>
-       <button
-        onClick={handleRefresh}
-        className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
-      >
-        🔄 Refresh Signals
-      </button>
-  </div>	  
 
     <div className="flex space-x-4 my-4">
     {timeframes.map((tf) => (
