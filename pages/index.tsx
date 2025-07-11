@@ -428,7 +428,7 @@ const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('1d');	  
   const timeframes = ['15m', '4h', '1d'];
-	const [signalsLoaded, setSignalsLoaded] = useState(false);
+	const [symbolsLoaded, setSymbolsLoaded] = useState(false);
   
 
 
@@ -1675,7 +1675,7 @@ latestRSI,
     .slice(0, 500)
     .map((s: any) => s.symbol);
   setSignals(filtered);
-  setSignalsLoaded(true);
+  setSymbolsLoaded(true);
 };
 
   const fetchBatch = async () => {
