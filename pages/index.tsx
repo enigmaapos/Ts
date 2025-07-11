@@ -1747,15 +1747,18 @@ if (loading) {
     <div className="flex space-x-4 my-4">
     {timeframes.map((tf) => (
     <button
-      key={tf}
-      onClick={() => setTimeframe(tf)}
-      className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md 
-        ${timeframe === tf
-          ? 'bg-yellow-400 text-black scale-105'
-          : 'bg-gray-800 text-white hover:bg-gray-700'}`}
-    >
-      {tf.toUpperCase()}
-    </button>
+  key={tf}
+  onClick={() => {
+    setTimeframe(tf);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }}
+  className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md 
+    ${timeframe === tf
+      ? 'bg-yellow-400 text-black scale-105'
+      : 'bg-gray-800 text-white hover:bg-gray-700'}`}
+>
+  {tf.toUpperCase()}
+</button>
   ))}
 </div>
 
