@@ -1719,7 +1719,7 @@ setLoading(false);  // stop showing loading spinner
       isMounted = false;
       stop.then((clear) => clear && clear());
     };
-  }, [timeframe]);
+  }, [timeframes]);
 
 if (loading) {
   return (
