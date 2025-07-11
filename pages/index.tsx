@@ -1668,7 +1668,7 @@ latestRSI,
 	  
 
   const fetchSymbols = async () => {
-  if (signalsLoaded) return;
+  if (symbolsLoaded) return;
   const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
   const filtered = info.symbols
     .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
