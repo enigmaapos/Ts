@@ -1711,13 +1711,6 @@ latestRSI,
     }
   };
 
-  const fetchSymbols = async () => {
-    const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
-    symbolsRef.current = info.symbols
-      .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-      .slice(0, 500)
-      .map((s: any) => s.symbol);
-  };
 
   const handleRefresh = async () => {
     toast.info("Refreshing signals...");
