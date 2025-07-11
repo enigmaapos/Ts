@@ -1689,6 +1689,7 @@ latestRSI,
   );
   const cleanedResults = results.filter((r) => r !== null);
 
+	  
   if (isMountedRef.current) {
     setSignals((prev) => {
       const updated = [...prev];
@@ -1708,6 +1709,13 @@ latestRSI,
   }
 };
 
+// ✅ Refresh button handler
+const handleRefresh = async () => {
+  toast.info("Refreshing signals...");
+  await fetchBatch();
+  toast.success("Signals refreshed!");
+};
+	  
 
   const runBatches = async () => {
     await fetchSymbols();
@@ -1736,11 +1744,7 @@ latestRSI,
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
 
-const handleRefresh = async () => {
-  toast.info("Refreshing signals...");
-  await fetchBatch();
-  toast.success("Signals refreshed!");
-};	
+
 
 if (loading) {
   return (
