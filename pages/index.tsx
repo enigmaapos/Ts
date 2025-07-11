@@ -434,7 +434,7 @@ const isMountedRef = useRef(true);
 const symbolsRef = useRef<string[]>([]);
 const currentIndexRef = useRef(0);	
   
-
+	
 
 useEffect(() => {
   const stored = localStorage.getItem("favorites");
@@ -465,6 +465,13 @@ const toggleFavorite = (symbol: string) => {
     return newSet;
   });
 };
+
+  // Define handleRefresh inside the component
+  const handleRefresh = async () => {
+    toast.info("Refreshing signals...");
+    await fetchBatch();
+    toast.success("Signals refreshed!");
+  };	
 
 const searchTerm = search.trim().toLowerCase();
 
@@ -1709,13 +1716,6 @@ latestRSI,
         return updated;
       });
     }
-  };
-
-
-  const handleRefresh = async () => {
-    toast.info("Refreshing signals...");
-    await fetchBatch();
-    toast.success("Signals refreshed!");
   };
 
   
