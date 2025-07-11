@@ -428,8 +428,7 @@ const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('1d');	  
   const timeframes = ['15m', '4h', '1d'];
-	const [symbols, setSymbols] = useState<string[]>([]);
-	const [symbolsLoaded, setSymbolsLoaded] = useState(false);
+	const [signalsLoaded, setSignalsLoaded] = useState(false);
   
 
 
@@ -1669,14 +1668,14 @@ latestRSI,
 	  
 
   const fetchSymbols = async () => {
-  if (symbolsLoaded) return;
+  if (signalsLoaded) return;
   const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
   const filtered = info.symbols
     .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
     .slice(0, 500)
     .map((s: any) => s.symbol);
-  setSymbols(filtered);
-  setSymbolsLoaded(true);
+  setSignals(filtered);
+  setSignalssLoaded(true);
 };
 
   const fetchBatch = async () => {
