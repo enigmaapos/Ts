@@ -426,8 +426,8 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('1d');
-	  const timeframes = ['15m', '4h', '1d'];
+	  const [timeframe, setTimeframe] = useState('15m', '4h', '1d');
+	  
   
   
 
@@ -1719,7 +1719,7 @@ setLoading(false);  // stop showing loading spinner
       isMounted = false;
       stop.then((clear) => clear && clear());
     };
-  }, [timeframes]);
+  }, [timeframe]);
 
 if (loading) {
   return (
