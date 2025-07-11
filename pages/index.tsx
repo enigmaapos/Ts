@@ -1735,26 +1735,28 @@ if (loading) {
     return (
 	    
   <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-    <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
-  ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
-</h2>
+    <h2 className="text-xl font-bold text-gray-800 mb-4">
+        🕒 Current Timeframe: <span className="text-blue-600">{timeframe.toUpperCase()}</span>
+      </h2>
 
-    <div className="flex space-x-4 my-4">
-  {['15m', '4h', '1d'].map((tf) => (
-    <button
-      key={tf}
-      onClick={() => setTimeframe(tf)}
-      className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md 
-        ${timeframe === tf
-          ? 'bg-yellow-400 text-black scale-105'
-          : 'bg-gray-800 text-white hover:bg-gray-700'}`}
-    >
-      {tf.toUpperCase()}
-    </button>
+      <div className="flex space-x-4">
+        {timeframes.map((tf) => (
+          <button
+            key={tf}
+            onClick={() => setTimeframe(tf)}
+            className={`px-4 py-2 rounded-lg font-semibold transition duration-200 border
+              ${
+                timeframe === tf
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-100'
+              }`}
+          >
+            {tf.toUpperCase()}
+          </button>
   ))}
 </div>
 
-
+	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
   <label className="flex items-center gap-2 text-sm text-white">
