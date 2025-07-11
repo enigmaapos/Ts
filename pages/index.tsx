@@ -1780,12 +1780,7 @@ if (loading) {
   ))}	    	    
 </div>
 	  
-<button
-  onClick={handleRefresh}
-  className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
->
-  🔄 Refresh Signals
-</button>	
+  <button onClick={handleRefresh}>🔄 Refresh Signals</button>
   
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
