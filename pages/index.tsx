@@ -419,19 +419,20 @@ const PriceChangePercent = ({
 
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
-  const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+const [search, setSearch] = useState("");
+const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
+const [loading, setLoading] = useState(true);
+const [favorites, setFavorites] = useState<Set<string>>(new Set());
 const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-  const [sortField, setSortField] = useState<string>('symbol');
+const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
-  const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('1d');	  
-  const timeframes = ['15m', '4h', '1d'];
+const [signalFilter, setSignalFilter] = useState<string | null>(null);
+const [timeframe, setTimeframe] = useState('1d');	  
+const timeframes = ['15m', '4h', '1d'];
 const isMountedRef = useRef(true);	
-const symbolsRef = useRef<string[]>([]);	
+const symbolsRef = useRef<string[]>([]);
+const currentIndexRef = useRef(0);	
   
 
 
@@ -1678,66 +1679,74 @@ latestRSI,
     .map((s: any) => s.symbol);
 };
 
-  const fetchBatch = async () => {
-  const symbols = symbolsRef.current;
-  if (!symbols.length) return;
+    const fetchBatch = async () => {
+    const symbols = symbolsRef.current;
+    if (!symbols.length) return;
 
-  const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-  currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+    const batch = symbols.slice(currentIndexRef.current, currentIndexRef.current + BATCH_SIZE);
+    currentIndexRef.current = (currentIndexRef.current + BATCH_SIZE) % symbols.length;
 
-  const results = await Promise.all(
-    batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
-  );
-  const cleanedResults = results.filter((r) => r !== null);
+    const results = await Promise.all(
+      batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
+    );
 
-	  
-  if (isMountedRef.current) {
-    setSignals((prev) => {
-      const updated = [...prev];
-      const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-      for (const result of cleanedResults) {
-        const index = updated.findIndex((r) => r.symbol === result.symbol);
-        if (index >= 0) {
-          updated[index] = result;
-        } else {
-          updated.push(result);
+    const cleanedResults = results.filter((r) => r !== null);
+
+    if (isMountedRef.current) {
+      setSignals((prev) => {
+        const updated = [...prev];
+        const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+        for (const result of cleanedResults) {
+          const index = updated.findIndex((r) => r.symbol === result.symbol);
+          if (index >= 0) {
+            updated[index] = result;
+          } else {
+            updated.push(result);
+          }
+          updatedMap[result.symbol] = Date.now();
         }
-        updatedMap[result.symbol] = Date.now();
-      }
-      setLastUpdatedMap(updatedMap);
-      return updated;
-    });
-  }
-};
+        setLastUpdatedMap(updatedMap);
+        return updated;
+      });
+    }
+  };
 
-// ✅ Refresh button handler
-const handleRefresh = async () => {
-  toast.info("Refreshing signals...");
-  await fetchBatch();
-  toast.success("Signals refreshed!");
-};
-	  
+  const fetchSymbols = async () => {
+    const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+    symbolsRef.current = info.symbols
+      .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+      .slice(0, 500)
+      .map((s: any) => s.symbol);
+  };
 
-  const runBatches = async () => {
-    await fetchSymbols();
+  const handleRefresh = async () => {
+    toast.info("Refreshing signals...");
     await fetchBatch();
-    setLoading(false);
-
-    const interval = setInterval(fetchBatch, INTERVAL_MS);
-    return () => clearInterval(interval);
+    toast.success("Signals refreshed!");
   };
 
-  let cleanup: () => void;
+  useEffect(() => {
+    let cleanup: () => void;
+    isMountedRef.current = true;
 
-  runBatches().then((stop) => {
-    cleanup = stop;
-  });
+    const runBatches = async () => {
+      await fetchSymbols();
+      await fetchBatch();
+      setLoading(false);
 
-  return () => {
-    isMountedRef.current = false;
-    if (cleanup) cleanup();
-  };
-}, [timeframe]);
+      const interval = setInterval(fetchBatch, INTERVAL_MS);
+      return () => clearInterval(interval);
+    };
+
+    runBatches().then((stop) => {
+      cleanup = stop;
+    });
+
+    return () => {
+      isMountedRef.current = false;
+      if (cleanup) cleanup();
+    };
+  }, [timeframe]);
 
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
@@ -1780,7 +1789,12 @@ if (loading) {
   ))}	    	    
 </div>
 	  
-  <button onClick={handleRefresh}>🔄 Refresh Signals</button>
+       <button
+        onClick={handleRefresh}
+        className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow"
+      >
+        🔄 Refresh Signals
+      </button>
   
 	     
       <div className="flex flex-wrap gap-4 mb-4 items-center">
