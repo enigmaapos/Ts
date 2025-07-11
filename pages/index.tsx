@@ -1759,6 +1759,11 @@ if (loading) {
 }
 
     return (
+	    
+  <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
+    <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
+  ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
+</h2>
 
 <div>
        <button
@@ -1767,12 +1772,7 @@ if (loading) {
       >
         🔄 Refresh Signals
       </button>
-  </div>
-	    
-  <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-    <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
-  ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
-</h2>
+  </div>	  
 
     <div className="flex space-x-4 my-4">
     {timeframes.map((tf) => (
