@@ -1725,7 +1725,7 @@ latestRSI,
     toast.success("Signals refreshed!");
   };
 
-  useEffect(() => {
+  
     let cleanup: () => void;
     isMountedRef.current = true;
 
