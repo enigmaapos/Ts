@@ -1977,7 +1977,8 @@ if (loading) {
     </div>
 	</div>	
 
-    {/* 📍 EMA14 Inside Range */}
+	{/* 📍 EMA14 Inside Range */}
+	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">  
     <div className="flex items-center gap-1">
       <span className="flex flex-col leading-tight">
         <span className="text-sm">📍 EMA14 Inside</span>
@@ -1985,7 +1986,8 @@ if (loading) {
       </span>
       <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
     </div>
-
+</div>
+		
     {/* 🔹 24h Price Change Summary */}
     <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
       <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
