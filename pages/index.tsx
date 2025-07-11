@@ -426,9 +426,8 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('15m', '4h', '1d');
-	  
-  
+	  const [timeframe, setTimeframe] = useState('1d');	  
+  const timeframes = ['15m', '4h', '1d'];
   
 
 
@@ -1740,7 +1739,7 @@ if (loading) {
 </h2>
 
     <div className="flex space-x-4 my-4">
-  {['15m', '4h', '1d'].map((tf) => (
+    {timeframes.map((tf) => (
     <button
       key={tf}
       onClick={() => setTimeframe(tf)}
