@@ -1966,6 +1966,7 @@ if (loading) {
   <div className="flex flex-col gap-3">
 
     {/* 📈 Trend Counts */}
+	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">  
     <div className="flex items-center gap-2">
       <span>📈 Bull Trend:</span>
       <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
@@ -1974,6 +1975,7 @@ if (loading) {
       <span>📉 Bear Trend:</span>
       <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
     </div>
+	</div>	
 
     {/* 📍 EMA14 Inside Range */}
     <div className="flex items-center gap-1">
@@ -2000,94 +2002,7 @@ if (loading) {
     <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
     <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
   </div>
-</div>
-	  
-    {/* 📝 Market Sentiment Insights */}
-<div className="text-yellow-300 mt-2 text-xs leading-snug">
-  <p>📝 <span className="font-semibold text-white">Trend Insight:</span></p>
-  <ul className="list-disc list-inside space-y-1">
-
-<li>
-          <span className="text-red-300">Bearish trend is high</span> + <span className="text-red-400">24h red price change is high</span> = 
-          <span className="text-red-400 font-semibold"> Bearish sentiment</span>
-        </li>
-        <li>
-          <span className="text-green-300">Bullish trend is high</span> + <span className="text-green-400">24h green price change is high</span> = 
-          <span className="text-green-400 font-semibold"> Bullish sentiment</span>
-        </li>	  
-    <li>
-      If <span className="text-green-400 font-semibold">Bullish</span> count is below <span className="text-white">100</span>,
-      the market leans <span className="text-red-400 font-semibold">Bearish</span>.
-    </li>
-    <li>
-      If <span className="text-red-400 font-semibold">Bearish</span> count is below <span className="text-white">100</span>,
-      the market leans <span className="text-green-400 font-semibold">Bullish</span>.
-    </li>
-    <li>
-      When <span className="text-green-400 font-semibold">Bullish</span> count exceeds <span className="text-white">100</span>,
-      trend is shifting toward <span className="text-green-400 font-semibold">Bullish</span>.
-    </li>
-    <li>
-      When <span className="text-red-400 font-semibold">Bearish</span> count exceeds <span className="text-white">100</span>,
-      trend is shifting toward <span className="text-red-400 font-semibold">Bearish</span>.
-    </li>
-    <li>
-      If <span className="text-green-400 font-semibold">Bullish</span> trend is high + <span className="text-purple-300 font-semibold">Balance Zone Pump</span> is also high,
-      this may signal a <span className="text-red-400 font-semibold">trend reversal to Bearish Sentiment</span>.
-    </li>
-    <li>
-      If <span className="text-red-400 font-semibold">Bearish</span> trend is high + <span className="text-purple-300 font-semibold">Balance Zone Dump</span> is also high,
-      this may signal a <span className="text-green-400 font-semibold">trend reversal to Bullish Sentiment</span>.
-    </li>
-  </ul>
-</div>
-
-    {/* 🧠 Strategy Signals */}
-    <div className="text-blue-300 mt-2 text-xs leading-snug">
-      <p>🧠 <span className="font-semibold text-white">Strategy Signals:</span></p>
-      <ul className="list-disc list-inside space-y-1">
-        <li>
-          <span className="text-green-400 font-semibold">Bullish</span> trend + 
-          previous candle <span className="text-green-400 font-medium">closed green</span> + 
-          <span className="text-red-300">max dump zone</span> = 
-          <span className="text-yellow-400 font-semibold"> SELL SIGNAL</span> if sentiment is bullish.
-        </li>
-        <li>
-          <span className="text-red-400 font-semibold">Bearish</span> trend + 
-          previous candle <span className="text-red-400 font-medium">closed red</span> + 
-          <span className="text-green-300">max pump zone</span> = 
-          <span className="text-yellow-400 font-semibold"> BUY SIGNAL</span> if sentiment is bearish.
-        </li>
-	  <li>
-          <span className="text-red-400 font-semibold">Bearish</span> trend + lowest pump = 
-          <span className="text-red-400 font-semibold"> Bearish continuation</span> if sentiment is bearish.
-        </li>
-        <li>
-          <span className="text-green-400 font-semibold">Bullish</span> trend + lowest dump = 
-          <span className="text-green-400 font-semibold"> Bullish continuation</span> if sentiment is bullish.
-        </li>       
-      </ul>
-    </div>
-
-    {/* 🔍 Breakdown/Breakup Price Logic */}
-    <div className="text-gray-400 text-xs mt-2">
-      <p className="leading-snug">
-        📝 <span className="text-yellow-300 font-semibold">Breakdown vs Breakup:</span> 
-        In a <span className="text-red-300 font-medium">bearish trend</span>:
-        <br />
-        - <span className="text-red-300">Breakdown price</span> = price is <u>below</u> resistance → confirms downtrend.
-        <br />
-        - <span className="text-green-300">Breakup price</span> = price is <u>above</u> resistance → possible reversal.
-      </p>
-      <p className="leading-snug mt-1">
-        In a <span className="text-green-300 font-medium">bullish trend</span>:
-        <br />
-        - <span className="text-green-300">Breakup price</span> = price is <u>above</u> support → confirms uptrend.
-        <br />
-        - <span className="text-red-300">Breakdown price</span> = price is <u>below</u> support → possible reversal.
-      </p>
-    </div>
-	  
+</div>	  
   </div>
 </div>
 </div>
