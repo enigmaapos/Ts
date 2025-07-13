@@ -1276,7 +1276,7 @@ type BullishSignalInfo = {
   tp2: number;
 };
 
-export const detectBearishToBullish = (
+const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
