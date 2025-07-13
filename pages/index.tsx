@@ -2010,10 +2010,17 @@ if (loading) {
     <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
     <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
   </div>
+    {/* 📝 Strategy Note */}
+	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+    <div className="text-yellow-300 font-medium mt-2">
+      ⚠️ Note: If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.
+    </div>
+</div>	
 </div>	  
   </div>
 </div>
 </div>
+	  
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
