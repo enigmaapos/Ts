@@ -1268,18 +1268,24 @@ const detectBullishToBearish = (
   return false;
 };
         
+type BullishSignalInfo = {
+  signal: boolean;
+  entry: number;
+  stopLoss: number;
+  tp1: number;
+  tp2: number;
+};
 
-
-const detectBearishToBullish = (
+export const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
   rsi14: number[],
   lows: number[],
   highs: number[],
   closes: number[]
-): boolean => {
+): BullishSignalInfo | null => {
   const len = closes.length;
-  if (len < 5) return false;
+  if (len < 5) return null;
 
   const i = len - 1;
   const close = closes[i];
@@ -1287,13 +1293,8 @@ const detectBearishToBullish = (
   const ema14Value = ema14[i];
   const ema70Value = ema70[i];
 
-  // ❌ Exit if not in bearish trend
-  if (ema14Value >= ema70Value) return false;
+  if (ema14Value >= ema70Value || isDescendingRSI(rsi14, 3)) return null;
 
-  // ❌ Exit early if RSI is still falling (bullish reversal not ready)
-  if (isDescendingRSI(rsi14, 3)) return false;
-
-  // 🔍 Find recent bearish crossover (EMA14 < EMA70)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
@@ -1302,26 +1303,23 @@ const detectBearishToBullish = (
     }
   }
 
-  if (crossoverIndex === -1) return false;
+  if (crossoverIndex === -1) return null;
 
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
-
   let lastLow: number | null = null;
 
   for (let k = crossoverIndex + 1; k < len - 1; k++) {
     const nearEMA70 = highs[k] >= ema70[k] && lows[k] <= ema70[k];
     const closeBelowEMA70 = closes[k] < ema70[k];
-    const isNearOrBelowEMA70 = nearEMA70 || closeBelowEMA70;
 
     const risingRSI = rsi14[k] > crossoverRSI;
-    const rsiAbove50 = rsi14[k] > 50; // ✅ Corrected logic
+    const rsiAbove50 = rsi14[k] > 50;
     const closeAboveCrossoverHigh = closes[k] > crossoverHigh;
-
     const currentLow = lows[k];
     const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
-    if (isNearOrBelowEMA70) {
+    if (nearEMA70 || closeBelowEMA70) {
       if (lastLow === null || currentLow > lastLow) {
         lastLow = currentLow;
       }
@@ -1339,12 +1337,27 @@ const detectBearishToBullish = (
         closingAboveEMA14 &&
         ascendingRSI;
 
-      if (conditionsMet) return true;
+      if (conditionsMet) {
+        const entry = finalClose;
+        const stopLoss = lastLow!;
+        const tp1 = entry + (entry - stopLoss);
+        const tp2 = entry + 2 * (entry - stopLoss);
+
+        return {
+          signal: true,
+          entry,
+          stopLoss,
+          tp1,
+          tp2,
+        };
+      }
     }
   }
 
-  return false;
+  return null;
 };
+
+
     
 // Usage
   const bullishReversal = detectBullishToBearish(
@@ -2364,9 +2377,34 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.bullishSpike ? 'Yes' : 'No'}
   </td>
 
-<td className={`px-1 py-0.5 text-center ${s.bearishReversal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-    {s.bearishReversal ? 'Yes' : 'No'}
-  </td>
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bearishReversal ? 'text-green-400' : 'text-gray-500'
+  }`}>
+    {s.bearishReversal ? 'Yes ✅ Bearish to Bullish' : 'No Signal'}
+  </div>
+
+  {s.bearishReversal && (
+    <>
+      <div>
+        <span className="text-green-400 font-semibold">Entry:</span>{' '}
+        ${s.entry?.toFixed(2)}
+      </div>
+      <div>
+        <span className="text-red-400 font-semibold">SL:</span>{' '}
+        ${s.stopLoss?.toFixed(2)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.tp1?.toFixed(2)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.tp2?.toFixed(2)}
+      </div>
+    </>
+  )}
+</td>
 
   <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
     {s.bullishReversal ? 'Yes' : 'No'}
