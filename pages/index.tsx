@@ -1378,6 +1378,14 @@ const bearishReversal = detectBearishToBullish(
   lows,
   closes,
 );
+
+const s = {
+  bearishReversal: bearishReversal?.signal ?? false,
+  entry: bearishReversal?.entry ?? null,
+  stopLoss: bearishReversal?.stopLoss ?? null,
+  tp1: bearishReversal?.tp1 ?? null,
+  tp2: bearishReversal?.tp2 ?? null,
+};
         
 const touchedEMA14 = (price: number, ema14: number, margin = 0.0015): boolean => {
   return Math.abs(price - ema14) / ema14 <= margin;
