@@ -1338,10 +1338,27 @@ const detectBearishToBullish = (
         ascendingRSI;
 
       if (conditionsMet) {
-        const entry = finalClose;
-        const stopLoss = lastLow!;
-        const tp1 = entry + (entry - stopLoss);
-        const tp2 = entry + 2 * (entry - stopLoss);
+  const entry = finalClose;
+  const stopLoss = lastLow!;
+
+  // ❌ Skip invalid setup where SL is above or equal to Entry
+  if (stopLoss >= entry) return null;
+
+  // ✅ Calculate risk
+  const risk = entry - stopLoss;
+
+  // ✅ TP1 = 1R, TP2 = 2R
+  const tp1 = entry + risk;
+  const tp2 = entry + 2 * risk;
+
+  return {
+    signal: true,
+    entry,
+    stopLoss,
+    tp1,
+    tp2,
+  };
+}
 
         return {
           signal: true,
