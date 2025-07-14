@@ -2452,7 +2452,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <div className={`font-semibold mb-1 ${
     s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'
   }`}>
-    {s.bearishCollapse?.signal ? 'Yes 🚨 Bearish Collapse' : 'No Signal'}
+    {s.bearishCollapse?.signal ? 'Yes 🚨' : 'No Signal'}
   </div>
 
   {s.bearishCollapse?.signal && (
@@ -2481,7 +2481,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <div className={`font-semibold mb-1 ${
     s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'
   }`}>
-    {s.bullishSpike?.signal ? 'Yes ✅ Bullish Spike' : 'No Signal'}
+    {s.bullishSpike?.signal ? 'Yes ✅' : 'No Signal'}
   </div>
 
   {s.bullishSpike?.signal && (
@@ -2510,7 +2510,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <div className={`font-semibold mb-1 ${
     s.bearishReversal?.signal ? 'text-green-400' : 'text-gray-500'
   }`}>
-    {s.bearishReversal?.signal ? 'Yes ✅ Bearish to Bullish' : 'No Signal'}
+    {s.bearishReversal?.signal ? 'Yes ✅' : 'No Signal'}
   </div>
 
   {s.bearishReversal?.signal && (
@@ -2541,7 +2541,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       s.bullishReversal?.signal ? 'text-red-400' : 'text-gray-500'
     }`}
   >
-    {s.bullishReversal?.signal ? 'Yes ❌ Bullish to Bearish' : 'No Signal'}
+    {s.bullishReversal?.signal ? 'Yes ❌' : 'No Signal'}
   </div>
 
   {s.bullishReversal?.signal && (
