@@ -2379,7 +2379,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   </td>
 
   <td className="px-2 py-1 border-b border-gray-700 text-right">
-  ${Number(s.currentPrice).toFixed(9)}
+  ${Number(s.currentPrice).toFixed(7)}
 </td>
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
@@ -2428,7 +2428,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 >
   {s.mainTrend ? (
     <>
-      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(9)} `}
+      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(7)} `}
       {s.mainTrend.breakout === true ? (
         s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
       ) : s.mainTrend.breakout === false ? (
@@ -2463,19 +2463,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.bearishCollapse.entry.toFixed(9)}
+        ${s.bearishCollapse.entry.toFixed(7)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bearishCollapse.stopLoss.toFixed(9)}
+        ${s.bearishCollapse.stopLoss.toFixed(7)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bearishCollapse.tp1.toFixed(9)}
+        ${s.bearishCollapse.tp1.toFixed(7)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bearishCollapse.tp2.toFixed(9)}
+        ${s.bearishCollapse.tp2.toFixed(7)}
       </div>
     </>
   )}
@@ -2492,19 +2492,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.bullishSpike.entry.toFixed(9)}
+        ${s.bullishSpike.entry.toFixed(7)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bullishSpike.stopLoss.toFixed(9)}
+        ${s.bullishSpike.stopLoss.toFixed(7)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bullishSpike.tp1.toFixed(9)}
+        ${s.bullishSpike.tp1.toFixed(7)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bullishSpike.tp2.toFixed(9)}
+        ${s.bullishSpike.tp2.toFixed(7)}
       </div>
     </>
   )}
@@ -2521,19 +2521,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.entry?.toFixed(9)}
+        ${s.entry?.toFixed(7)}
       </div>
       <div>
         <span className="text-red-400 font-semibold">SL:</span>{' '}
-        ${s.stopLoss?.toFixed(9)}
+        ${s.stopLoss?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.tp1?.toFixed(9)}
+        ${s.tp1?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.tp2?.toFixed(9)}
+        ${s.tp2?.toFixed(7)}
       </div>
     </>
   )}
@@ -2552,19 +2552,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.entry?.toFixed(9)}
+        ${s.entry?.toFixed(7)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.stopLoss?.toFixed(9)}
+        ${s.stopLoss?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.tp1?.toFixed(9)}
+        ${s.tp1?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.tp2?.toFixed(9)}
+        ${s.tp2?.toFixed(7)}
       </div>
     </>
   )}
