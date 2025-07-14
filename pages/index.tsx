@@ -1444,7 +1444,7 @@ const detectBullishSpike = (
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
-): BullishSpikeSignal {
+): BullishSpikeSignal => {
   // Require bullish breakout and overall breakout
   if (!(bullishBreakout && (bullishBreakout || bearishBreakout))) return null;
 
@@ -1585,7 +1585,7 @@ const detectBearishCollapse = (
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
-): BearishCollapseSignal {
+): BearishCollapseSignal => {
   // Require bearish breakout and overall breakout
   if (!(bearishBreakout && (bullishBreakout || bearishBreakout))) return null;
 
