@@ -1434,7 +1434,7 @@ type BullishSpikeSignal = {
 /**
  * Main function to detect bullish spike signals with trade levels.
  */
-const detectBullishSpike(
+const detectBullishSpike = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
@@ -1575,7 +1575,7 @@ const isDescendingHighOnEMA14Touch = (highs: number[], ema14: number[]): boolean
 /**
  * Main function to detect bearish collapse signals with trade levels.
  */
-const detectBearishCollapse(
+const detectBearishCollapse = (
   ema14: number[],
   ema70: number[],
   ema200: number[],
