@@ -1197,13 +1197,17 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
 };
 	      
 type BearishSignalInfo = {
-  signal: boolean;
+  signal: true;
   entry: number;
   stopLoss: number;
   tp1: number;
   tp2: number;
-};
+} | null;
 
+
+/**
+ * Detect Bullish to Bearish Reversal Signal (return full SL/TP trade plan)
+ */
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
@@ -1211,7 +1215,7 @@ const detectBullishToBearish = (
   lows: number[],
   highs: number[],
   closes: number[]
-): BearishSignalInfo | null => {
+): BearishSignalInfo => {
   const len = closes.length;
   if (len < 5) return null;
 
@@ -1220,8 +1224,10 @@ const detectBullishToBearish = (
   const ema14Value = ema14[i];
   const ema70Value = ema70[i];
 
+  // ❌ Must be coming from bullish structure
   if (ema14Value <= ema70Value || isAscendingRSI(rsi14, 3)) return null;
 
+  // ✅ Detect EMA14 crossing above EMA70 (recent crossover)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
@@ -1252,8 +1258,11 @@ const detectBullishToBearish = (
         lastHigh = currentHigh;
       }
 
-      const descendingCloseBelowEMA14 = closes[k] < ema14[k];
-      const descendingCurrentRSI = isDescendingRSI(rsi14.slice(0, k + 1), 3);
+      const finalClose = closes[len - 1];
+      const finalEMA14 = ema14[len - 1];
+
+      const descendingCloseBelowEMA14 = finalClose < finalEMA14;
+      const descendingCurrentRSI = isDescendingRSI(rsi14.slice(0, len), 3);
 
       const triggerCandle =
         isDescendingHigh &&
@@ -1264,7 +1273,7 @@ const detectBullishToBearish = (
         descendingCurrentRSI;
 
       if (triggerCandle) {
-        const entry = lows[k] - (lows[k] * 0.001); // ✅ safer entry below trigger candle
+        const entry = lows[k] - lows[k] * 0.001; // Confirmed short entry below trigger candle
         const stopLoss = lastHigh!;
 
         if (stopLoss <= entry) return null;
@@ -1288,13 +1297,16 @@ const detectBullishToBearish = (
 };
         
 type BullishSignalInfo = {
-  signal: boolean;
+  signal: true;
   entry: number;
   stopLoss: number;
   tp1: number;
   tp2: number;
-};
+} | null;
 
+/**
+ * Detects a bullish reversal after a bearish trend.
+ */
 const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
@@ -1302,7 +1314,7 @@ const detectBearishToBullish = (
   lows: number[],
   highs: number[],
   closes: number[]
-): BullishSignalInfo | null => {
+): BullishSignalInfo => {
   const len = closes.length;
   if (len < 5) return null;
 
@@ -1311,10 +1323,10 @@ const detectBearishToBullish = (
   const ema14Value = ema14[i];
   const ema70Value = ema70[i];
 
-  // ❌ Invalid if still bullish (EMA14 > EMA70) or RSI falling
+  // ❌ Invalidate if still in bullish structure or RSI is falling
   if (ema14Value >= ema70Value || isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
-  // ✅ Look for recent bullish EMA crossover
+  // ✅ Find recent EMA14 < EMA70 crossover (bearish-to-bullish setup)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
@@ -1322,19 +1334,20 @@ const detectBearishToBullish = (
       break;
     }
   }
+
   if (crossoverIndex === -1) return null;
 
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
   let lastLow: number | null = null;
 
-  // 🔍 Search for valid structure and trigger
   for (let k = crossoverIndex + 1; k < len - 1; k++) {
     const nearEMA70 = highs[k] >= ema70[k] && lows[k] <= ema70[k];
     const closeBelowEMA70 = closes[k] < ema70[k];
+    const rsi = rsi14[k];
 
-    const risingRSI = rsi14[k] > crossoverRSI;
-    const rsiAbove50 = rsi14[k] > 50;
+    const risingRSI = rsi > crossoverRSI;
+    const rsiAbove50 = rsi > 50;
     const closeAboveCrossoverHigh = closes[k] > crossoverHigh;
 
     const currentLow = lows[k];
@@ -1359,7 +1372,7 @@ const detectBearishToBullish = (
         ascendingRSI;
 
       if (triggerCandle) {
-        const entry = highs[len - 1] + highs[len - 1] * 0.001; // ✅ Entry above current high
+        const entry = highs[len - 1] + highs[len - 1] * 0.001;
         const stopLoss = lastLow!;
 
         if (stopLoss >= entry) return null;
