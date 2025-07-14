@@ -2394,19 +2394,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.entry?.toFixed(2)}
+        ${s.entry?.toFixed(9)}
       </div>
       <div>
         <span className="text-red-400 font-semibold">SL:</span>{' '}
-        ${s.stopLoss?.toFixed(2)}
+        ${s.stopLoss?.toFixed(9)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.tp1?.toFixed(2)}
+        ${s.tp1?.toFixed(9)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.tp2?.toFixed(2)}
+        ${s.tp2?.toFixed(9)}
       </div>
     </>
   )}
