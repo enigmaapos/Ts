@@ -2452,11 +2452,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 		   
-{/* Bearish Collapse */}
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
-  <div className={`font-semibold mb-1 ${s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'}`}>
+  <div className={`font-semibold mb-1 ${
+    s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'
+  }`}>
     {s.bearishCollapse?.signal ? 'Yes 🚨 Bearish Collapse' : 'No Signal'}
   </div>
+
   {s.bearishCollapse?.signal && (
     <>
       <div>
@@ -2479,11 +2481,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 
-{/* Bullish Spike */}
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
-  <div className={`font-semibold mb-1 ${s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'}`}>
+  <div className={`font-semibold mb-1 ${
+    s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'
+  }`}>
     {s.bullishSpike?.signal ? 'Yes ✅ Bullish Spike' : 'No Signal'}
   </div>
+
   {s.bullishSpike?.signal && (
     <>
       <div>
@@ -2491,16 +2495,16 @@ else if (direction === 'pump' && pumpInRange_1_10) {
         ${s.bullishSpike.entry.toFixed(9)}
       </div>
       <div>
-        <span className="text-red-400 font-semibold">SL:</span>{' '}
-        ${s.stopLoss?.toFixed(9)}
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bullishSpike.stopLoss.toFixed(9)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.tp1?.toFixed(9)}
+        ${s.bullishSpike.tp1.toFixed(9)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.tp2?.toFixed(9)}
+        ${s.bullishSpike.tp2.toFixed(9)}
       </div>
     </>
   )}
