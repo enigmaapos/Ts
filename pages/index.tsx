@@ -1312,7 +1312,7 @@ const detectBearishToBullish = (
   const ema70Value = ema70[i];
 
   // ❌ Invalid if still bearish (EMA14 < EMA70) or RSI falling
-  if (ema14Value <= ema70Value || isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
+  if (ema14Value >= ema70Value || isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
   // ✅ Look for recent bullish EMA crossover
   let crossoverIndex = -1;
