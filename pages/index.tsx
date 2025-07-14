@@ -631,13 +631,15 @@ const bearishReversalCount = filteredSignals.filter(
   (s) => s.bearishReversal === true
 ).length;
 
+// For bullishSpike, check the .signal property inside the object
 const bullishSpikeCount = filteredSignals.filter(
-  (s) => s.bullishSpike === true
+  (s) => s.bullishSpike?.signal === true
 ).length;
 
+// For bearishCollapse, check the .signal property inside the object
 const bearishCollapseCount = filteredSignals.filter(
-  (s) => s.bearishCollapse === true
-).length;  
+  (s) => s.bearishCollapse?.signal === true
+).length;
 
 const ema14InsideResultsCount = filteredSignals.filter(
   (s) => s.ema14InsideResults?.some(r => r.inside)
@@ -2450,29 +2452,58 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 		   
-  {/* Pattern/Signal Columns */}
-<td className={`px-1 py-0.5 text-center ${s.bearishCollapse?.signal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-  {s.bearishCollapse?.signal ? (
+{/* Bearish Collapse */}
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'}`}>
+    {s.bearishCollapse?.signal ? 'Yes 🚨 Bearish Collapse' : 'No Signal'}
+  </div>
+  {s.bearishCollapse?.signal && (
     <>
-      <div>Yes 🚨</div>
-      <div><span className="font-bold text-red-300">Entry:</span> ${s.bearishCollapse.entry.toFixed(9)}</div>
-      <div><span className="font-bold text-red-400">SL:</span> ${s.bearishCollapse.stopLoss.toFixed(9)}</div>
-      <div><span className="font-bold text-green-300">TP1:</span> ${s.bearishCollapse.tp1.toFixed(9)}</div>
-      <div><span className="font-bold text-green-500">TP2:</span> ${s.bearishCollapse.tp2.toFixed(9)}</div>
+      <div>
+        <span className="text-red-400 font-semibold">Entry:</span>{' '}
+        ${s.bearishCollapse.entry.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bearishCollapse.stopLoss.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bearishCollapse.tp1.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bearishCollapse.tp2.toFixed(9)}
+      </div>
     </>
-  ) : 'No'}
+  )}
 </td>
 
-<td className={`px-1 py-0.5 text-center ${s.bullishSpike?.signal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-  {s.bullishSpike?.signal ? (
+{/* Bullish Spike */}
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'}`}>
+    {s.bullishSpike?.signal ? 'Yes ✅ Bullish Spike' : 'No Signal'}
+  </div>
+  {s.bullishSpike?.signal && (
     <>
-      <div>Yes ✅</div>
-      <div><span className="font-bold text-green-300">Entry:</span> ${s.bullishSpike.entry.toFixed(9)}</div>
-      <div><span className="font-bold text-red-400">SL:</span> ${s.bullishSpike.stopLoss.toFixed(9)}</div>
-      <div><span className="font-bold text-green-300">TP1:</span> ${s.bullishSpike.tp1.toFixed(9)}</div>
-      <div><span className="font-bold text-green-500">TP2:</span> ${s.bullishSpike.tp2.toFixed(9)}</div>
+      <div>
+        <span className="text-green-400 font-semibold">Entry:</span>{' '}
+        ${s.bullishSpike.entry.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-red-400 font-semibold">SL:</span>{' '}
+        ${s.stopLoss?.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.tp1?.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.tp2?.toFixed(9)}
+      </div>
     </>
-  ) : 'No'}
+  )}
 </td>
 
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
