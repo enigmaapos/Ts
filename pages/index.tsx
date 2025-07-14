@@ -1194,6 +1194,14 @@ const isDescendingRSI = (rsi: number[], window = 3): boolean => {
   return true;
 };
 	      
+type BearishSignalInfo = {
+  signal: boolean;
+  entry: number;
+  stopLoss: number;
+  tp1: number;
+  tp2: number;
+};
+
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
@@ -1201,23 +1209,17 @@ const detectBullishToBearish = (
   lows: number[],
   highs: number[],
   closes: number[]
-): boolean => {
+): BearishSignalInfo | null => {
   const len = closes.length;
-  if (len < 5) return false;
+  if (len < 5) return null;
 
   const i = len - 1;
   const close = closes[i];
-  const rsi = rsi14[i];
   const ema14Value = ema14[i];
   const ema70Value = ema70[i];
 
-  // 🔁 Exit early if trend still bullish
-  if (ema14Value <= ema70Value) return false;
+  if (ema14Value <= ema70Value || isAscendingRSI(rsi14, 3)) return null;
 
-  // 🔁 Exit if RSI is still rising (no weakness yet)
-  if (isAscendingRSI(rsi14, 3)) return false;
-
-  // 🔍 Find recent bullish crossover (EMA14 > EMA70)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
@@ -1226,17 +1228,15 @@ const detectBullishToBearish = (
     }
   }
 
-  if (crossoverIndex === -1) return false;
+  if (crossoverIndex === -1) return null;
 
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
-
   let lastHigh: number | null = null;
 
   for (let k = crossoverIndex + 1; k < len - 1; k++) {
     const nearEMA70 = highs[k] >= ema70[k] && lows[k] <= ema70[k];
     const closeAboveEMA70 = closes[k] > ema70[k];
-    const isNearOrAboveEMA70 = nearEMA70 || closeAboveEMA70;
 
     const fallingRSI = rsi14[k] < crossoverRSI;
     const rsiBelow50 = rsi14[k] < 50;
@@ -1245,7 +1245,7 @@ const detectBullishToBearish = (
     const currentHigh = highs[k];
     const isDescendingHigh = lastHigh !== null && currentHigh < lastHigh;
 
-    if (isNearOrAboveEMA70) {
+    if (nearEMA70 || closeAboveEMA70) {
       if (lastHigh === null || currentHigh < lastHigh) {
         lastHigh = currentHigh;
       }
@@ -1261,11 +1261,29 @@ const detectBullishToBearish = (
         descendingCloseBelowEMA14 &&
         descendingCurrentRSI;
 
-      if (conditionsMet) return true;
+      if (conditionsMet) {
+        const entry = close;
+        const stopLoss = lastHigh!;
+
+        // ❌ Ensure SL is higher than entry (valid short setup)
+        if (stopLoss <= entry) return null;
+
+        const risk = stopLoss - entry;
+        const tp1 = entry - risk;
+        const tp2 = entry - 2 * risk;
+
+        return {
+          signal: true,
+          entry,
+          stopLoss,
+          tp1,
+          tp2,
+        };
+      }
     }
   }
 
-  return false;
+  return null;
 };
         
 type BullishSignalInfo = {
@@ -2420,9 +2438,36 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 
-  <td className={`px-1 py-0.5 text-center ${s.bullishReversal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-    {s.bullishReversal ? 'Yes' : 'No'}
-  </td>	
+  <td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div
+    className={`font-semibold mb-1 ${
+      s.bullishReversal ? 'text-red-400' : 'text-gray-500'
+    }`}
+  >
+    {s.bullishReversal ? 'Yes ❌ Bullish to Bearish' : 'No Signal'}
+  </div>
+
+  {s.bullishReversal && (
+    <>
+      <div>
+        <span className="text-red-400 font-semibold">Entry:</span>{' '}
+        ${s.entry?.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.stopLoss?.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.tp1?.toFixed(9)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.tp2?.toFixed(9)}
+      </div>
+    </>
+  )}
+</td>
 		   
 <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
