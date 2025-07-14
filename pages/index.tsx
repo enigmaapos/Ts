@@ -2508,28 +2508,28 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div className={`font-semibold mb-1 ${
-    s.bearishReversal ? 'text-green-400' : 'text-gray-500'
+    s.bearishReversal?.signal ? 'text-green-400' : 'text-gray-500'
   }`}>
-    {s.bearishReversal ? 'Yes ✅ Bearish to Bullish' : 'No Signal'}
+    {s.bearishReversal?.signal ? 'Yes ✅ Bearish to Bullish' : 'No Signal'}
   </div>
 
-  {s.bearishReversal && (
+  {s.bearishReversal?.signal && (
     <>
       <div>
         <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.entry?.toFixed(7)}
+        ${s.bearishReversal.entry?.toFixed(7)}
       </div>
       <div>
         <span className="text-red-400 font-semibold">SL:</span>{' '}
-        ${s.stopLoss?.toFixed(7)}
+        ${s.bearishReversal.stopLoss?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.tp1?.toFixed(7)}
+        ${s.bearishReversal.tp1?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.tp2?.toFixed(7)}
+        ${s.bearishReversal.tp2?.toFixed(7)}
       </div>
     </>
   )}
@@ -2538,29 +2538,29 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div
     className={`font-semibold mb-1 ${
-      s.bullishReversal ? 'text-red-400' : 'text-gray-500'
+      s.bullishReversal?.signal ? 'text-red-400' : 'text-gray-500'
     }`}
   >
-    {s.bullishReversal ? 'Yes ❌ Bullish to Bearish' : 'No Signal'}
+    {s.bullishReversal?.signal ? 'Yes ❌ Bullish to Bearish' : 'No Signal'}
   </div>
 
-  {s.bullishReversal && (
+  {s.bullishReversal?.signal && (
     <>
       <div>
         <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.entry?.toFixed(7)}
+        ${s.bullishReversal.entry?.toFixed(7)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.stopLoss?.toFixed(7)}
+        ${s.bullishReversal.stopLoss?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.tp1?.toFixed(7)}
+        ${s.bullishReversal.tp1?.toFixed(7)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.tp2?.toFixed(7)}
+        ${s.bullishReversal.tp2?.toFixed(7)}
       </div>
     </>
   )}
