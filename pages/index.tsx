@@ -2150,8 +2150,13 @@ if (loading) {
 {/* 📝 Strategy Note */}
 	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
     <div className="text-yellow-300 font-medium mt-2">
-      ⚠️ Note: If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.
-    </div>	  
+  ⚠️ Note:
+  <ul className="list-disc list-inside mt-1 space-y-1">
+    <li>If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.</li>
+    <li>If <span className="font-bold">200 EMA</span> is broken and divergence forms toward the <span className="font-bold">highest high</span> after the crossover, the likely direction is to breakout that high.</li>
+    <li>If <span className="font-bold">200 EMA</span> is broken and divergence forms toward the <span className="font-bold">lowest low</span> after the crossover, the likely direction is to breakout that low.</li>
+  </ul>
+</div>	  
 </div>	  
   </div>
 </div>
