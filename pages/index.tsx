@@ -1424,6 +1424,14 @@ const isAscendingLowOnEMA14Touch = (lows: number[], ema14: number[]): boolean =>
   return false;
 };
 
+type BullishSpikeSignal = {
+  signal: boolean;
+  entry: number;
+  stopLoss: number;
+  tp1: number;
+  tp2: number;
+};
+	
 const detectBullishSpike = (
   ema14: number[],
   ema70: number[],
@@ -1434,12 +1442,12 @@ const detectBullishSpike = (
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
-): boolean => {
+): BullishSpikeSignal | null => {
   const breakout = bullishBreakout || bearishBreakout;
-  if (!breakout || !bullishBreakout) return false;
+  if (!breakout || !bullishBreakout) return null;
 
   const len = closes.length;
-  if (len < 5) return false; // require enough data
+  if (len < 5) return null;
 
   const i = len - 1;
   const close = closes[i];
@@ -1450,12 +1458,10 @@ const detectBullishSpike = (
   const ema200Value = ema200[i];
   const rsi = rsi14[i];
 
-  // Ensure current trend alignment
   if (ema14Value <= ema70Value || close <= ema70Value || close <= ema200Value) {
-    return false;
+    return null;
   }
 
-  // Look for crossover after bearish phase
   let crossoverIndex70 = -1;
   let crossoverIndex200 = -1;
 
@@ -1473,7 +1479,7 @@ const detectBullishSpike = (
     }
   }
 
-  if (crossoverIndex70 === -1 || crossoverIndex200 === -1) return false;
+  if (crossoverIndex70 === -1 || crossoverIndex200 === -1) return null;
 
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverLow = lows[crossoverIndex];
@@ -1487,7 +1493,7 @@ const detectBullishSpike = (
   }
 
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
-  if (touchedEMA70) return false;
+  if (touchedEMA70) return null;
 
   const aboveEMA70 = close > ema70Value;
   const aboveEMA200 = close > ema200Value;
@@ -1499,7 +1505,7 @@ const detectBullishSpike = (
   const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
   const ema14TouchAscendingLow = isAscendingLowOnEMA14Touch(lows, ema14);
 
-  return (
+  const conditionsMet = (
     aboveEMA70 &&
     aboveEMA200 &&
     (aboveEMA14 || ema14TouchAscendingLow) &&
@@ -1509,7 +1515,25 @@ const detectBullishSpike = (
     higherThanCrossover &&
     ascendingCurrentRSI
   );
+
+  if (conditionsMet) {
+    const entry = close;
+    const stopLoss = lowestLowAfterCrossover;
+    const tp1 = entry + (entry - stopLoss);
+    const tp2 = entry + 2 * (entry - stopLoss);
+
+    return {
+      signal: true,
+      entry,
+      stopLoss,
+      tp1,
+      tp2,
+    };
+  }
+
+  return null;
 };
+
 
 
 const isDescendingHighOnEMA14Touch = (highs: number[], ema14: number[]): boolean => {
@@ -1525,6 +1549,14 @@ const isDescendingHighOnEMA14Touch = (highs: number[], ema14: number[]): boolean
   return false;
 };
 
+type BearishCollapseSignal = {
+  signal: boolean;
+  entry: number;
+  stopLoss: number;
+  tp1: number;
+  tp2: number;
+};
+
 const detectBearishCollapse = (
   ema14: number[],
   ema70: number[],
@@ -1535,12 +1567,12 @@ const detectBearishCollapse = (
   closes: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
-): boolean => {
+): BearishCollapseSignal | null => {
   const breakout = bullishBreakout || bearishBreakout;
-  if (!breakout || !bearishBreakout) return false;
+  if (!breakout || !bearishBreakout) return null;
 
   const len = closes.length;
-  if (len < 5) return false;
+  if (len < 5) return null;
 
   const i = len - 1;
   const close = closes[i];
@@ -1552,7 +1584,7 @@ const detectBearishCollapse = (
   const rsi = rsi14[i];
 
   if (ema14Value >= ema70Value || close >= ema70Value || close >= ema200Value) {
-    return false;
+    return null;
   }
 
   let crossoverIndex70 = -1;
@@ -1572,7 +1604,7 @@ const detectBearishCollapse = (
     }
   }
 
-  if (crossoverIndex70 === -1 || crossoverIndex200 === -1) return false;
+  if (crossoverIndex70 === -1 || crossoverIndex200 === -1) return null;
 
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverHigh = highs[crossoverIndex];
@@ -1586,7 +1618,7 @@ const detectBearishCollapse = (
   }
 
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
-  if (touchedEMA70) return false;
+  if (touchedEMA70) return null;
 
   const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
@@ -1598,7 +1630,7 @@ const detectBearishCollapse = (
   const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
   const ema14TouchDescendingHigh = isDescendingHighOnEMA14Touch(highs, ema14);
 
-  return (
+  const conditionsMet = (
     belowEMA70 &&
     belowEMA200 &&
     (belowEMA14 || ema14TouchDescendingHigh) &&
@@ -1608,7 +1640,25 @@ const detectBearishCollapse = (
     descendingCurrentRSI &&
     rsiBelow50
   );
-};
+
+  if (conditionsMet) {
+    const entry = close;
+    const stopLoss = highestHighAfterCrossover;
+    const tp1 = entry - (stopLoss - entry);
+    const tp2 = entry - 2 * (stopLoss - entry);
+
+    return {
+      signal: true,
+      entry,
+      stopLoss,
+      tp1,
+      tp2,
+    };
+  }
+
+  return null;
+};	  
+
 
         
       // ✅ Usage
@@ -1658,12 +1708,12 @@ prevClosedRed,
   bearishReversalCount,
   bullishReversal,
   bearishReversal,
-  entry: bearishReversal?.entry ?? null,
-  stopLoss: bearishReversal?.stopLoss ?? null,
-  tp1: bearishReversal?.tp1 ?? null,
-  tp2: bearishReversal?.tp2 ?? null,
   bullishSpike,
   bearishCollapse,
+entry: bearishReversal?.entry ?? null,
+  stopLoss: bearishReversal?.stopLoss ?? null,
+  tp1: bearishReversal?.tp1 ?? null,
+  tp2: bearishReversal?.tp2 ?? null,		
   rsi14,
 latestRSI,		
   testedPrevHigh,
@@ -2401,13 +2451,29 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 </td>
 		   
   {/* Pattern/Signal Columns */}
-  <td className={`px-1 py-0.5 text-center ${s.bearishCollapse ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
-    {s.bearishCollapse ? 'Yes' : 'No'}
-  </td>
+<td className={`px-1 py-0.5 text-center ${s.bearishCollapse?.signal ? 'bg-red-900 text-white' : 'text-gray-500'}`}>
+  {s.bearishCollapse?.signal ? (
+    <>
+      <div>Yes 🚨</div>
+      <div><span className="font-bold text-red-300">Entry:</span> ${s.bearishCollapse.entry.toFixed(9)}</div>
+      <div><span className="font-bold text-red-400">SL:</span> ${s.bearishCollapse.stopLoss.toFixed(9)}</div>
+      <div><span className="font-bold text-green-300">TP1:</span> ${s.bearishCollapse.tp1.toFixed(9)}</div>
+      <div><span className="font-bold text-green-500">TP2:</span> ${s.bearishCollapse.tp2.toFixed(9)}</div>
+    </>
+  ) : 'No'}
+</td>
 
-	<td className={`px-1 py-0.5 text-center ${s.bullishSpike ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
-    {s.bullishSpike ? 'Yes' : 'No'}
-  </td>
+<td className={`px-1 py-0.5 text-center ${s.bullishSpike?.signal ? 'bg-green-900 text-white' : 'text-gray-500'}`}>
+  {s.bullishSpike?.signal ? (
+    <>
+      <div>Yes ✅</div>
+      <div><span className="font-bold text-green-300">Entry:</span> ${s.bullishSpike.entry.toFixed(9)}</div>
+      <div><span className="font-bold text-red-400">SL:</span> ${s.bullishSpike.stopLoss.toFixed(9)}</div>
+      <div><span className="font-bold text-green-300">TP1:</span> ${s.bullishSpike.tp1.toFixed(9)}</div>
+      <div><span className="font-bold text-green-500">TP2:</span> ${s.bullishSpike.tp2.toFixed(9)}</div>
+    </>
+  ) : 'No'}
+</td>
 
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div className={`font-semibold mb-1 ${
