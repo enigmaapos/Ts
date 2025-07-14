@@ -1379,13 +1379,7 @@ const bearishReversal = detectBearishToBullish(
   closes,
 );
 
-const s = {
-  bearishReversal: bearishReversal?.signal ?? false,
-  entry: bearishReversal?.entry ?? null,
-  stopLoss: bearishReversal?.stopLoss ?? null,
-  tp1: bearishReversal?.tp1 ?? null,
-  tp2: bearishReversal?.tp2 ?? null,
-};
+
         
 const touchedEMA14 = (price: number, ema14: number, margin = 0.0015): boolean => {
   return Math.abs(price - ema14) / ema14 <= margin;
@@ -1638,10 +1632,10 @@ prevClosedRed,
   bearishReversalCount,
   bullishReversal,
   bearishReversal,
-entry,
-          stopLoss,
-          tp1,
-          tp2,		
+  entry: signal?.entry ?? null,
+  stopLoss: signal?.stopLoss ?? null,
+  tp1: signal?.tp1 ?? null,
+  tp2: signal?.tp2 ?? null,
   bullishSpike,
   bearishCollapse,
   rsi14,
