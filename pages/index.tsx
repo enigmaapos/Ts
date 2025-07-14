@@ -1252,10 +1252,10 @@ const detectBullishToBearish = (
         lastHigh = currentHigh;
       }
 
-      const descendingCloseBelowEMA14 = close < ema14Value;
-      const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
+      const descendingCloseBelowEMA14 = closes[k] < ema14[k];
+      const descendingCurrentRSI = isDescendingRSI(rsi14.slice(0, k + 1), 3);
 
-      const conditionsMet =
+      const triggerCandle =
         isDescendingHigh &&
         fallingRSI &&
         rsiBelow50 &&
@@ -1263,11 +1263,10 @@ const detectBullishToBearish = (
         descendingCloseBelowEMA14 &&
         descendingCurrentRSI;
 
-      if (conditionsMet) {
-        const entry = close;
+      if (triggerCandle) {
+        const entry = lows[k] - (lows[k] * 0.001); // ✅ safer entry below trigger candle
         const stopLoss = lastHigh!;
 
-        // ❌ Ensure SL is higher than entry (valid short setup)
         if (stopLoss <= entry) return null;
 
         const risk = stopLoss - entry;
@@ -1309,12 +1308,13 @@ const detectBearishToBullish = (
 
   const i = len - 1;
   const close = closes[i];
-  const rsi = rsi14[i];
   const ema14Value = ema14[i];
   const ema70Value = ema70[i];
 
-  if (ema14Value >= ema70Value || isDescendingRSI(rsi14, 3)) return null;
+  // ❌ Invalid if still bearish (EMA14 < EMA70) or RSI falling
+  if (ema14Value <= ema70Value || isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
+  // ✅ Look for recent bullish EMA crossover
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
@@ -1322,13 +1322,13 @@ const detectBearishToBullish = (
       break;
     }
   }
-
   if (crossoverIndex === -1) return null;
 
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
   let lastLow: number | null = null;
 
+  // 🔍 Search for valid structure and trigger
   for (let k = crossoverIndex + 1; k < len - 1; k++) {
     const nearEMA70 = highs[k] >= ema70[k] && lows[k] <= ema70[k];
     const closeBelowEMA70 = closes[k] < ema70[k];
@@ -1336,6 +1336,7 @@ const detectBearishToBullish = (
     const risingRSI = rsi14[k] > crossoverRSI;
     const rsiAbove50 = rsi14[k] > 50;
     const closeAboveCrossoverHigh = closes[k] > crossoverHigh;
+
     const currentLow = lows[k];
     const isAscendingLow = lastLow !== null && currentLow > lastLow;
 
@@ -1347,9 +1348,9 @@ const detectBearishToBullish = (
       const finalClose = closes[len - 1];
       const finalEMA14 = ema14[len - 1];
       const closingAboveEMA14 = finalClose > finalEMA14;
-      const ascendingRSI = isAscendingRSI(rsi14, 3);
+      const ascendingRSI = isAscendingRSI(rsi14.slice(0, len), 3);
 
-      const conditionsMet =
+      const triggerCandle =
         isAscendingLow &&
         risingRSI &&
         rsiAbove50 &&
@@ -1357,19 +1358,15 @@ const detectBearishToBullish = (
         closingAboveEMA14 &&
         ascendingRSI;
 
-      if (conditionsMet) {
-  const entry = finalClose;
-  const stopLoss = lastLow!;
+      if (triggerCandle) {
+        const entry = highs[len - 1] + highs[len - 1] * 0.001; // ✅ Entry above current high
+        const stopLoss = lastLow!;
 
-  // ❌ Skip invalid setup where SL is above or equal to Entry
-  if (stopLoss >= entry) return null;
+        if (stopLoss >= entry) return null;
 
-  // ✅ Calculate risk
-  const risk = entry - stopLoss;
-
-  // ✅ TP1 = 1R, TP2 = 2R
-  const tp1 = entry + risk;
-  const tp2 = entry + 2 * risk;
+        const risk = entry - stopLoss;
+        const tp1 = entry + risk;
+        const tp2 = entry + 2 * risk;
 
         return {
           signal: true,
@@ -1433,7 +1430,7 @@ type BullishSpikeSignal = {
   tp1: number;
   tp2: number;
 };
-	
+
 const detectBullishSpike = (
   ema14: number[],
   ema70: number[],
@@ -1460,10 +1457,15 @@ const detectBullishSpike = (
   const ema200Value = ema200[i];
   const rsi = rsi14[i];
 
-  if (ema14Value <= ema70Value || close <= ema70Value || close <= ema200Value) {
-    return null;
-  }
+  // 🚫 Must be in strong bullish structure
+  if (
+    ema14Value <= ema70Value ||
+    ema14Value <= ema200Value ||
+    close <= ema70Value ||
+    close <= ema200Value
+  ) return null;
 
+  // ✅ Look for crossovers
   let crossoverIndex70 = -1;
   let crossoverIndex200 = -1;
 
@@ -1487,6 +1489,7 @@ const detectBullishSpike = (
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
+  // 📉 Find lowest low after crossover
   let lowestLowAfterCrossover = crossoverLow;
   for (let k = crossoverIndex + 1; k < len; k++) {
     if (lows[k] < lowestLowAfterCrossover) {
@@ -1494,17 +1497,19 @@ const detectBullishSpike = (
     }
   }
 
+  // ❌ Avoid if current candle touched EMA70 (retest behavior, not spike)
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return null;
 
+  // ✅ Core spike criteria
   const aboveEMA70 = close > ema70Value;
   const aboveEMA200 = close > ema200Value;
   const aboveEMA14 = close > ema14Value;
   const ascendingLow = currentLow > lowestLowAfterCrossover;
   const risingRSI = rsi > crossoverRSI;
   const rsiAbove50 = rsi > 50;
-  const higherThanCrossover = close > crossoverLow;
-  const ascendingCurrentRSI = isAscendingRSI(rsi14, 3);
+  const higherThanCrossoverLow = close > crossoverLow;
+  const ascendingRSITrend = isAscendingRSI(rsi14.slice(0, len), 3);
   const ema14TouchAscendingLow = isAscendingLowOnEMA14Touch(lows, ema14);
 
   const conditionsMet = (
@@ -1514,15 +1519,20 @@ const detectBullishSpike = (
     ascendingLow &&
     risingRSI &&
     rsiAbove50 &&
-    higherThanCrossover &&
-    ascendingCurrentRSI
+    higherThanCrossoverLow &&
+    ascendingRSITrend
   );
 
   if (conditionsMet) {
-    const entry = close;
+    // ✅ Entry slightly above close to confirm true spike
+    const entry = close + close * 0.001; 
     const stopLoss = lowestLowAfterCrossover;
-    const tp1 = entry + (entry - stopLoss);
-    const tp2 = entry + 2 * (entry - stopLoss);
+
+    if (stopLoss >= entry) return null;
+
+    const risk = entry - stopLoss;
+    const tp1 = entry + risk;
+    const tp2 = entry + 2 * risk;
 
     return {
       signal: true,
@@ -1585,10 +1595,15 @@ const detectBearishCollapse = (
   const ema200Value = ema200[i];
   const rsi = rsi14[i];
 
-  if (ema14Value >= ema70Value || close >= ema70Value || close >= ema200Value) {
-    return null;
-  }
+  // 🧱 Reject if bullish structure still exists
+  if (
+    ema14Value >= ema70Value ||
+    ema14Value >= ema200Value ||
+    close >= ema70Value ||
+    close >= ema200Value
+  ) return null;
 
+  // 🔍 Detect bearish EMA crossovers
   let crossoverIndex70 = -1;
   let crossoverIndex200 = -1;
 
@@ -1612,6 +1627,7 @@ const detectBearishCollapse = (
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
+  // 🧮 Find highest high after crossover for proper SL
   let highestHighAfterCrossover = crossoverHigh;
   for (let k = crossoverIndex + 1; k < len; k++) {
     if (highs[k] > highestHighAfterCrossover) {
@@ -1619,17 +1635,19 @@ const detectBearishCollapse = (
     }
   }
 
+  // ❌ Skip if candle is testing EMA70 (not a clean collapse)
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return null;
 
+  // ✅ Signal Conditions
   const belowEMA70 = close < ema70Value;
   const belowEMA200 = close < ema200Value;
   const belowEMA14 = close < ema14Value;
   const descendingHigh = currentHigh < highestHighAfterCrossover;
   const fallingRSI = rsi < crossoverRSI;
   const rsiBelow50 = rsi < 50;
-  const lowerThanCrossover = close < crossoverHigh;
-  const descendingCurrentRSI = isDescendingRSI(rsi14, 3);
+  const lowerThanCrossoverHigh = close < crossoverHigh;
+  const descendingRSI = isDescendingRSI(rsi14.slice(0, len), 3);
   const ema14TouchDescendingHigh = isDescendingHighOnEMA14Touch(highs, ema14);
 
   const conditionsMet = (
@@ -1638,16 +1656,20 @@ const detectBearishCollapse = (
     (belowEMA14 || ema14TouchDescendingHigh) &&
     descendingHigh &&
     fallingRSI &&
-    lowerThanCrossover &&
-    descendingCurrentRSI &&
+    lowerThanCrossoverHigh &&
+    descendingRSI &&
     rsiBelow50
   );
 
   if (conditionsMet) {
-    const entry = close;
+    const entry = close - close * 0.001; // ✅ safer entry below close
     const stopLoss = highestHighAfterCrossover;
-    const tp1 = entry - (stopLoss - entry);
-    const tp2 = entry - 2 * (stopLoss - entry);
+
+    if (stopLoss <= entry) return null;
+
+    const risk = stopLoss - entry;
+    const tp1 = entry - risk;
+    const tp2 = entry - 2 * risk;
 
     return {
       signal: true,
