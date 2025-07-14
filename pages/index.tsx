@@ -1351,15 +1351,6 @@ const detectBearishToBullish = (
   const tp1 = entry + risk;
   const tp2 = entry + 2 * risk;
 
-  return {
-    signal: true,
-    entry,
-    stopLoss,
-    tp1,
-    tp2,
-  };
-}
-
         return {
           signal: true,
           entry,
