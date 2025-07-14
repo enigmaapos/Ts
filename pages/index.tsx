@@ -624,11 +624,11 @@ const testedPrevLowCount = filteredSignals.filter(
 ).length;
 
 const bullishReversalCount = filteredSignals.filter(
-  (s) => s.bullishReversal === true
+  (s) => s.bullishReversal?.signal === true
 ).length;
 
 const bearishReversalCount = filteredSignals.filter(
-  (s) => s.bearishReversal === true
+  (s) => s.bearishReversal?.signal === true
 ).length;
 
 // For bullishSpike, check the .signal property inside the object
