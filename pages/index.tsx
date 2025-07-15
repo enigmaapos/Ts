@@ -2153,8 +2153,6 @@ if (loading) {
   ⚠️ Note:
   <ul className="list-disc list-inside mt-1 space-y-1">
     <li>If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.</li>
-    <li>If <span className="font-bold">200 EMA</span> is broken and divergence forms toward the <span className="font-bold">highest high</span> after the crossover, the likely direction is to breakout that high.</li>
-    <li>If <span className="font-bold">200 EMA</span> is broken and divergence forms toward the <span className="font-bold">lowest low</span> after the crossover, the likely direction is to breakout that low.</li>
   </ul>
 </div>	  
 </div>	  
