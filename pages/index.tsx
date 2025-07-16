@@ -2153,8 +2153,10 @@ if (loading) {
   ⚠️ Note:
   <ul className="list-disc list-inside mt-1 space-y-1">
     <li>If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.</li>
+    <li>If Max Zone Pump is detected, check RSI on 15-minute timeframe — if it's below 50, that’s a signal.</li>
+    <li>If price fails to break the open of the candle where RSI is below 50 → Sell. If it breaks the open → Buy.</li>
   </ul>
-</div>	  
+</div>
 </div>	  
   </div>
 </div>
