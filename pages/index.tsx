@@ -1211,6 +1211,7 @@ type BearishSignalInfo = {
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
+ema200: number[],	
   rsi14: number[],
   lows: number[],
   highs: number[],
@@ -1221,11 +1222,11 @@ const detectBullishToBearish = (
 
   const i = len - 1;
   const close = closes[i];
-  const ema14Value = ema14[i];
   const ema70Value = ema70[i];
+const ema200Value = ema200[i];	
 
   // ❌ Must be coming from bullish structure
-  if (ema14Value >= ema70Value && isAscendingRSI(rsi14, 3)) return null;
+  if (ema70Value >= ema200Value && isAscendingRSI(rsi14, 3)) return null;
 
   // ✅ Detect EMA14 crossing above EMA70 (recent crossover)
   let crossoverIndex = -1;
@@ -1310,7 +1311,8 @@ type BullishSignalInfo = {
 const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
-  rsi14: number[],
+ema200: number[],	
+  rsi14: number[],	
   lows: number[],
   highs: number[],
   closes: number[]
@@ -1320,11 +1322,11 @@ const detectBearishToBullish = (
 
   const i = len - 1;
   const close = closes[i];
-  const ema14Value = ema14[i];
   const ema70Value = ema70[i];
+const ema200Value = ema200[i];	
 
   // ❌ Invalidate if still in bullish structure or RSI is falling
-  if (ema14Value <= ema70Value && isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
+  if (ema70Value <= ema200Value && isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
   // ✅ Find recent EMA14 < EMA70 crossover (bearish-to-bullish setup)
   let crossoverIndex = -1;
@@ -1401,6 +1403,7 @@ const detectBearishToBullish = (
   const bullishReversal = detectBullishToBearish(
   ema14,
   ema70,
+ema200,	  
   rsi14,
   lows,
   highs,
@@ -1411,6 +1414,7 @@ const detectBearishToBullish = (
 const bearishReversal = detectBearishToBullish(
   ema14,
   ema70,
+ema200,	
   rsi14,
   highs,
   lows,
