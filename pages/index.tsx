@@ -1225,7 +1225,7 @@ const detectBullishToBearish = (
   const ema70Value = ema70[i];
 
   // ❌ Must be coming from bullish structure
-  if (ema14Value <= ema70Value || isAscendingRSI(rsi14, 3)) return null;
+  if (ema14Value <= ema70Value && isAscendingRSI(rsi14, 3)) return null;
 
   // ✅ Detect EMA14 crossing above EMA70 (recent crossover)
   let crossoverIndex = -1;
@@ -1324,7 +1324,7 @@ const detectBearishToBullish = (
   const ema70Value = ema70[i];
 
   // ❌ Invalidate if still in bullish structure or RSI is falling
-  if (ema14Value >= ema70Value || isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
+  if (ema14Value >= ema70Value && isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
   // ✅ Find recent EMA14 < EMA70 crossover (bearish-to-bullish setup)
   let crossoverIndex = -1;
