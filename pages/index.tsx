@@ -1459,33 +1459,29 @@ const detectBullishSpike = (
   lows: number[],
   highs: number[],
   closes: number[],
+  opens: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
 ): BullishSpikeSignal => {
-  // Require bullish breakout and overall breakout
-  if (!(bullishBreakout && (bullishBreakout || bearishBreakout))) return null;
-
   const len = closes.length;
-  if (len < 5) return null; // Need enough data
+  if (len < 10) return null;
 
-  const i = len - 1;
-  const close = closes[i];
-  const currentLow = lows[i];
-  const currentHigh = highs[i];
-  const ema14Value = ema14[i];
-  const ema70Value = ema70[i];
-  const ema200Value = ema200[i];
-  const rsi = rsi14[i];
+  const close = closes[len - 1];
+  const currentLow = lows[len - 1];
+  const currentHigh = highs[len - 1];
+  const ema14Value = ema14[len - 1];
+  const ema70Value = ema70[len - 1];
+  const ema200Value = ema200[len - 1];
+  const rsi = rsi14[len - 1];
 
-  // Strong bullish structure validation
-  if (
-    ema14Value >= ema70Value ||
-    ema14Value >= ema200Value ||
-    close >= ema70Value ||
-    close >= ema200Value
-  ) return null;
+  // Reject if it's already a breakout candle
+  if (bearishBreakout) return null;
 
-  // Find EMA14 > EMA70 crossover (most recent)
+  // ✅ Fix: Only reject if the main trend is NOT bullish
+  const isBullishTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows) === 'bullish';
+  if (!isBullishTrend) return null;
+
+  // Find EMA14 > EMA70 crossover
   let crossoverIndex70 = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
@@ -1495,7 +1491,7 @@ const detectBullishSpike = (
   }
   if (crossoverIndex70 === -1) return null;
 
-  // Find EMA14 > EMA200 crossover (most recent)
+  // Find EMA14 > EMA200 crossover
   let crossoverIndex200 = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] <= ema200[j] && ema14[j + 1] > ema200[j + 1]) {
@@ -1505,12 +1501,11 @@ const detectBullishSpike = (
   }
   if (crossoverIndex200 === -1) return null;
 
-  // Use the later crossover as the reference point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverLow = lows[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  // Find lowest low after crossover for stop loss calculation
+  // Find lowest low after crossover
   let lowestLowAfterCrossover = crossoverLow;
   for (let k = crossoverIndex + 1; k < len; k++) {
     if (lows[k] < lowestLowAfterCrossover) {
@@ -1518,11 +1513,11 @@ const detectBullishSpike = (
     }
   }
 
-  // Reject if current candle touches EMA70 (likely retest, not spike)
+  // Reject if current candle touches EMA70
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return null;
 
-  // Core spike criteria
+  // Spike criteria
   const aboveEMA70 = close > ema70Value;
   const aboveEMA200 = close > ema200Value;
   const aboveEMA14 = close > ema14Value;
@@ -1546,16 +1541,15 @@ const detectBullishSpike = (
 
   if (!conditionsMet) return null;
 
-  // Calculate trade levels
-  const entry = close * 1.001; // Entry: 0.1% above close to confirm spike
+  // Entry, SL, TP
+  const entry = close * 1.001;
   const stopLoss = lowestLowAfterCrossover;
 
-  // Validate stopLoss is below entry price
   if (stopLoss >= entry) return null;
 
   const risk = entry - stopLoss;
-  const tp1 = entry + risk; // 1:1 risk reward
-  const tp2 = entry + 2 * risk; // 2:1 risk reward
+  const tp1 = entry + risk;
+  const tp2 = entry + 2 * risk;
 
   return {
     signal: true,
@@ -1564,7 +1558,7 @@ const detectBullishSpike = (
     tp1,
     tp2,
   };
-}
+};
 
 
 
@@ -1600,33 +1594,29 @@ const detectBearishCollapse = (
   lows: number[],
   highs: number[],
   closes: number[],
+  opens: number[],
   bullishBreakout: boolean,
   bearishBreakout: boolean
 ): BearishCollapseSignal => {
-  // Require bearish breakout and overall breakout
-  if (!(bearishBreakout && (bullishBreakout || bearishBreakout))) return null;
-
   const len = closes.length;
-  if (len < 5) return null; // Need enough data
+  if (len < 10) return null;
 
-  const i = len - 1;
-  const close = closes[i];
-  const currentLow = lows[i];
-  const currentHigh = highs[i];
-  const ema14Value = ema14[i];
-  const ema70Value = ema70[i];
-  const ema200Value = ema200[i];
-  const rsi = rsi14[i];
+  const close = closes[len - 1];
+  const currentLow = lows[len - 1];
+  const currentHigh = highs[len - 1];
+  const ema14Value = ema14[len - 1];
+  const ema70Value = ema70[len - 1];
+  const ema200Value = ema200[len - 1];
+  const rsi = rsi14[len - 1];
 
-  // Strong bearish structure validation
-  if (
-    ema14Value <= ema70Value ||
-    ema14Value <= ema200Value ||
-    close <= ema70Value ||
-    close <= ema200Value
-  ) return null;
+  // ❌ Reject if bullish breakout candle
+  if (bullishBreakout) return null;
 
-  // Find EMA14 < EMA70 crossover (most recent)
+  // ✅ Require that the main trend is bearish
+  const isBearishTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows) === 'bearish';
+  if (!isBearishTrend) return null;
+
+  // Find EMA14 < EMA70 crossover
   let crossoverIndex70 = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
@@ -1636,7 +1626,7 @@ const detectBearishCollapse = (
   }
   if (crossoverIndex70 === -1) return null;
 
-  // Find EMA14 < EMA200 crossover (most recent)
+  // Find EMA14 < EMA200 crossover
   let crossoverIndex200 = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema14[j] >= ema200[j] && ema14[j + 1] < ema200[j + 1]) {
@@ -1646,12 +1636,11 @@ const detectBearishCollapse = (
   }
   if (crossoverIndex200 === -1) return null;
 
-  // Use the later crossover as the reference point
   const crossoverIndex = Math.max(crossoverIndex70, crossoverIndex200);
   const crossoverHigh = highs[crossoverIndex];
   const crossoverRSI = rsi14[crossoverIndex];
 
-  // Find highest high after crossover for stop loss calculation
+  // Find highest high after crossover for stop loss
   let highestHighAfterCrossover = crossoverHigh;
   for (let k = crossoverIndex + 1; k < len; k++) {
     if (highs[k] > highestHighAfterCrossover) {
@@ -1659,7 +1648,7 @@ const detectBearishCollapse = (
     }
   }
 
-  // Reject if current candle touches EMA70 (likely retest, not collapse)
+  // Reject if current candle touches EMA70 (possible retest, not breakdown)
   const touchedEMA70 = currentLow <= ema70Value && currentHigh >= ema70Value;
   if (touchedEMA70) return null;
 
@@ -1688,15 +1677,14 @@ const detectBearishCollapse = (
   if (!conditionsMet) return null;
 
   // Calculate trade levels
-  const entry = close * 0.999; // Entry: 0.1% below close to confirm collapse
+  const entry = close * 0.999; // Entry: 0.1% below close
   const stopLoss = highestHighAfterCrossover;
 
-  // Validate stopLoss is above entry price
   if (stopLoss <= entry) return null;
 
   const risk = stopLoss - entry;
-  const tp1 = entry - risk; // 1:1 risk reward
-  const tp2 = entry - 2 * risk; // 2:1 risk reward
+  const tp1 = entry - risk; // 1:1 risk-reward
+  const tp2 = entry - 2 * risk; // 2:1 risk-reward
 
   return {
     signal: true,
@@ -1705,7 +1693,7 @@ const detectBearishCollapse = (
     tp1,
     tp2,
   };
-}
+};
 
 
         
