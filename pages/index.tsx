@@ -709,34 +709,55 @@ const signalCounts = useMemo(() => {
     let currentIndex = 0;
     let symbols: string[] = [];
 
+    const getSessions = (timeframe?: Timeframe) => {
+  if (!timeframe || timeframe === '1d') {
+    // Use custom session logic
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+    const date = now.getUTCDate();
+
     const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
       Date.UTC(y, m, d, hPH - 8, min);
 
-    const getSessions = () => {
-      const now = new Date();
-      const year = now.getUTCFullYear();
-      const month = now.getUTCMonth();
-      const date = now.getUTCDate();
+    const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
+    const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
 
-      const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
-      const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+    let sessionStart: number, sessionEnd: number;
+    if (now.getTime() >= today8AM_UTC) {
+      sessionStart = today8AM_UTC;
+      sessionEnd = tomorrow745AM_UTC;
+    } else {
+      const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
+      const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
+      sessionStart = yesterday8AM_UTC;
+      sessionEnd = today745AM_UTC;
+    }
 
-      let sessionStart: number, sessionEnd: number;
-      if (now.getTime() >= today8AM_UTC) {
-        sessionStart = today8AM_UTC;
-        sessionEnd = tomorrow745AM_UTC;
-      } else {
-        const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
-        const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
-        sessionStart = yesterday8AM_UTC;
-        sessionEnd = today745AM_UTC;
-      }
+    const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
+    const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
 
-      const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
-      const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
-
-      return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
+    return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
+  } else {
+    // Use generic timeframe-based logic
+    const now = new Date();
+    const nowMillis = now.getTime();
+    const MILLISECONDS = {
+      '15m': 15 * 60 * 1000,
+      '4h': 4 * 60 * 60 * 1000,
     };
+
+    const tfMillis = MILLISECONDS[timeframe];
+    if (!tfMillis) throw new Error('Unsupported timeframe');
+
+    const sessionStart = Math.floor(nowMillis / tfMillis) * tfMillis;
+    const sessionEnd = sessionStart + tfMillis;
+    const prevSessionStart = sessionStart - tfMillis;
+    const prevSessionEnd = sessionStart;
+
+    return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
+  }
+};
 
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
