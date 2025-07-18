@@ -1708,6 +1708,7 @@ const bullishSpike = detectBullishSpike(
   lows,
   highs,
   closes,
+opens,	
   bullishBreakout,
   bearishBreakout
 ); 
@@ -1722,6 +1723,7 @@ const bearishCollapse = detectBearishCollapse(
   lows,
   highs,
   closes,
+opens,	
   bullishBreakout,
   bearishBreakout
 ); 
