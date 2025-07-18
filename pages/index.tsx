@@ -1228,10 +1228,10 @@ const ema200Value = ema200[i];
   // ❌ Must be coming from bullish structure
   if (ema70Value >= ema200Value && isAscendingRSI(rsi14, 3)) return null;
 
-  // ✅ Detect EMA14 crossing above EMA70 (recent crossover)
+  // ✅ Detect EMA70 crossing above EMA200 (recent crossover)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
-    if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
+    if (ema70[j] <= ema200[j] && ema70[j + 1] > ema200[j + 1]) {
       crossoverIndex = j + 1;
       break;
     }
@@ -1331,7 +1331,7 @@ const ema200Value = ema200[i];
   // ✅ Find recent EMA14 < EMA70 crossover (bearish-to-bullish setup)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
-    if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
+    if (ema70[j] >= ema200[j] && ema70[j + 1] < ema200[j + 1]) {
       crossoverIndex = j + 1;
       break;
     }
