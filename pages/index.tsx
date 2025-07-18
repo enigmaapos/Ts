@@ -709,16 +709,24 @@ const signalCounts = useMemo(() => {
     let currentIndex = 0;
     let symbols: string[] = [];
 
-    const getSessions = (timeframe?: Timeframe) => {
+    // Define available timeframes
+const timeframes = ['15m', '4h', '1d'] as const;
+
+// Derive Timeframe type from the array
+type Timeframe = typeof timeframes[number];
+
+// Unified getSessions function
+const getSessions = (timeframe?: Timeframe) => {
+  const now = new Date();
+
   if (!timeframe || timeframe === '1d') {
-    // Use custom session logic
-    const now = new Date();
+    // Use custom 1d session logic (8:00 AM to next day 7:45 AM PH time)
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();
     const date = now.getUTCDate();
 
     const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
-      Date.UTC(y, m, d, hPH - 8, min);
+      Date.UTC(y, m, d, hPH - 8, min); // UTC+8 to UTC
 
     const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
     const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
@@ -739,17 +747,14 @@ const signalCounts = useMemo(() => {
 
     return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
   } else {
-    // Use generic timeframe-based logic
-    const now = new Date();
+    // Generic timeframe sessions (15m, 4h)
     const nowMillis = now.getTime();
-    const MILLISECONDS = {
+    const MILLISECONDS: Record<Exclude<Timeframe, '1d'>, number> = {
       '15m': 15 * 60 * 1000,
       '4h': 4 * 60 * 60 * 1000,
     };
 
     const tfMillis = MILLISECONDS[timeframe];
-    if (!tfMillis) throw new Error('Unsupported timeframe');
-
     const sessionStart = Math.floor(nowMillis / tfMillis) * tfMillis;
     const sessionEnd = sessionStart + tfMillis;
     const prevSessionStart = sessionStart - tfMillis;
