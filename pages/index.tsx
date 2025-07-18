@@ -1479,10 +1479,10 @@ const detectBullishSpike = (
 
   // Strong bullish structure validation
   if (
-    ema14Value <= ema70Value ||
-    ema14Value <= ema200Value ||
-    close <= ema70Value ||
-    close <= ema200Value
+    ema14Value >= ema70Value ||
+    ema14Value >= ema200Value ||
+    close >= ema70Value ||
+    close >= ema200Value
   ) return null;
 
   // Find EMA14 > EMA70 crossover (most recent)
@@ -1620,10 +1620,10 @@ const detectBearishCollapse = (
 
   // Strong bearish structure validation
   if (
-    ema14Value >= ema70Value ||
-    ema14Value >= ema200Value ||
-    close >= ema70Value ||
-    close >= ema200Value
+    ema14Value <= ema70Value ||
+    ema14Value <= ema200Value ||
+    close <= ema70Value ||
+    close <= ema200Value
   ) return null;
 
   // Find EMA14 < EMA70 crossover (most recent)
