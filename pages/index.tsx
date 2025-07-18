@@ -1204,18 +1204,18 @@ type BearishSignalInfo = {
   tp2: number;
 } | null;
 
-
 /**
  * Detect Bullish to Bearish Reversal Signal (return full SL/TP trade plan)
  */
 const detectBullishToBearish = (
   ema14: number[],
   ema70: number[],
-ema200: number[],	
+  ema200: number[],
   rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[]
+  closes: number[],
+  opens: number[] // ✅ Added for trend detection
 ): BearishSignalInfo => {
   const len = closes.length;
   if (len < 5) return null;
@@ -1223,12 +1223,17 @@ ema200: number[],
   const i = len - 1;
   const close = closes[i];
   const ema70Value = ema70[i];
-const ema200Value = ema200[i];	
+  const ema200Value = ema200[i];
 
-  // ❌ Must be coming from bullish structure
-  if (ema70Value >= ema200Value && isAscendingRSI(rsi14, 3)) return null;
+  // ✅ Must be in a bullish main trend
+  const trendResult = getMainTrend(ema70, ema200, closes, opens, highs, lows);
+  const isBullishTrend = trendResult.trend === 'bullish';
+  if (!isBullishTrend) return null;
 
-  // ✅ Detect EMA70 crossing above EMA200 (recent crossover)
+  // ❌ Reject if RSI is still climbing (structure not exhausted)
+  if (isAscendingRSI(rsi14, 3)) return null;
+
+  // ✅ Detect EMA70 > EMA200 crossover (recent bullish structure)
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema70[j] <= ema200[j] && ema70[j + 1] > ema200[j + 1]) {
@@ -1274,7 +1279,7 @@ const ema200Value = ema200[i];
         descendingCurrentRSI;
 
       if (triggerCandle) {
-        const entry = lows[k] - lows[k] * 0.001; // Confirmed short entry below trigger candle
+        const entry = lows[k] - lows[k] * 0.001;
         const stopLoss = lastHigh!;
 
         if (stopLoss <= entry) return null;
@@ -1311,11 +1316,12 @@ type BullishSignalInfo = {
 const detectBearishToBullish = (
   ema14: number[],
   ema70: number[],
-ema200: number[],	
-  rsi14: number[],	
+  ema200: number[],
+  rsi14: number[],
   lows: number[],
   highs: number[],
-  closes: number[]
+  closes: number[],
+  opens: number[] // ✅ Required for trend detection
 ): BullishSignalInfo => {
   const len = closes.length;
   if (len < 5) return null;
@@ -1323,12 +1329,17 @@ ema200: number[],
   const i = len - 1;
   const close = closes[i];
   const ema70Value = ema70[i];
-const ema200Value = ema200[i];	
+  const ema200Value = ema200[i];
 
-  // ❌ Invalidate if still in bullish structure or RSI is falling
-  if (ema70Value <= ema200Value && isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
+  // ✅ Require the main trend to be bearish
+  const trendResult = getMainTrend(ema70, ema200, closes, opens, highs, lows);
+  const isBearishTrend = trendResult.trend === 'bearish';
+  if (!isBearishTrend) return null;
 
-  // ✅ Find recent EMA14 < EMA70 crossover (bearish-to-bullish setup)
+  // ❌ Invalidate if RSI is falling
+  if (isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
+
+  // ✅ Find recent EMA70 < EMA200 crossover
   let crossoverIndex = -1;
   for (let j = len - 4; j >= 1; j--) {
     if (ema70[j] >= ema200[j] && ema70[j + 1] < ema200[j + 1]) {
@@ -1408,6 +1419,7 @@ ema200,
   lows,
   highs,
   closes,
+opens,	  
 );
 
 
@@ -1419,6 +1431,7 @@ ema200,
   highs,
   lows,
   closes,
+opens,	
 );
 
 
