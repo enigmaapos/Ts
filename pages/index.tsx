@@ -1233,10 +1233,10 @@ const detectBullishToBearish = (
   // ❌ Reject if RSI is still climbing (structure not exhausted)
   if (isAscendingRSI(rsi14, 3)) return null;
 
-  // ✅ Detect EMA14 < EMA70 crossover (recent bearish structure)
+  // ✅ Detect EMA14 > EMA70 crossover (recent bullish structure)
   let crossoverIndex = -1;
   for (let j = len - 10; j >= 1; j--) {
-    if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
+    if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
       crossoverIndex = j + 1;
       break;
     }
@@ -1339,10 +1339,10 @@ const detectBearishToBullish = (
   // ❌ Invalidate if RSI is falling
   if (isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
-  // ✅ Find recent EMA14 > EMA70 crossover
+  // ✅ Find recent EMA14 < EMA70 crossover
   let crossoverIndex = -1;
   for (let j = len - 10; j >= 1; j--) {
-    if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
+    if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
       crossoverIndex = j + 1;
       break;
     }
