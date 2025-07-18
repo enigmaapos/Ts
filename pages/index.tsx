@@ -1218,7 +1218,7 @@ const detectBullishToBearish = (
   opens: number[] // ✅ Added for trend detection
 ): BearishSignalInfo => {
   const len = closes.length;
-  if (len < 5) return null;
+  if (len < 10) return null;
 
   const i = len - 1;
   const close = closes[i];
@@ -1233,10 +1233,10 @@ const detectBullishToBearish = (
   // ❌ Reject if RSI is still climbing (structure not exhausted)
   if (isAscendingRSI(rsi14, 3)) return null;
 
-  // ✅ Detect EMA70 > EMA200 crossover (recent bullish structure)
+  // ✅ Detect EMA14 < EMA70 crossover (recent bearish structure)
   let crossoverIndex = -1;
-  for (let j = len - 4; j >= 1; j--) {
-    if (ema70[j] <= ema200[j] && ema70[j + 1] > ema200[j + 1]) {
+  for (let j = len - 10; j >= 1; j--) {
+    if (ema14[j] >= ema70[j] && ema14[j + 1] < ema70[j + 1]) {
       crossoverIndex = j + 1;
       break;
     }
@@ -1324,7 +1324,7 @@ const detectBearishToBullish = (
   opens: number[] // ✅ Required for trend detection
 ): BullishSignalInfo => {
   const len = closes.length;
-  if (len < 5) return null;
+  if (len < 10) return null;
 
   const i = len - 1;
   const close = closes[i];
@@ -1339,10 +1339,10 @@ const detectBearishToBullish = (
   // ❌ Invalidate if RSI is falling
   if (isDescendingRSI(rsi14.slice(0, i + 1), 3)) return null;
 
-  // ✅ Find recent EMA70 < EMA200 crossover
+  // ✅ Find recent EMA14 > EMA70 crossover
   let crossoverIndex = -1;
-  for (let j = len - 4; j >= 1; j--) {
-    if (ema70[j] >= ema200[j] && ema70[j + 1] < ema200[j + 1]) {
+  for (let j = len - 10; j >= 1; j--) {
+    if (ema14[j] <= ema70[j] && ema14[j + 1] > ema70[j + 1]) {
       crossoverIndex = j + 1;
       break;
     }
