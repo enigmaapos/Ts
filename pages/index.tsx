@@ -1478,7 +1478,7 @@ const detectBullishSpike = (
   if (bearishBreakout) return null;
 
   // ✅ Fix: Only reject if the main trend is NOT bullish
-  const isBullishTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows) === 'bullish';
+  const isBullishTrend = mainTrend(ema70, ema200, closes, opens, highs, lows) === 'bullish';
   if (!isBullishTrend) return null;
 
   // Find EMA14 > EMA70 crossover
@@ -1613,7 +1613,7 @@ const detectBearishCollapse = (
   if (bullishBreakout) return null;
 
   // ✅ Require that the main trend is bearish
-  const isBearishTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows) === 'bearish';
+  const isBearishTrend = mainTrend(ema70, ema200, closes, opens, highs, lows) === 'bearish';
   if (!isBearishTrend) return null;
 
   // Find EMA14 < EMA70 crossover
