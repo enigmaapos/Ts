@@ -2163,8 +2163,9 @@ if (loading) {
   <ul className="list-disc list-inside mt-1 space-y-1">
     <li>If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.</li>
     <li>If Max Zone Pump is detected, look for the first red candle where RSI is below 50. That candle signals whether the trend will continue bullish or reverse to bearish.</li>
-    <li>If price stays **above the opening** of that red candle, it's a <span className="text-green-400 font-semibold">Buy Signal</span>.</li>
-    <li>If price drops **below the opening** of that red candle, it's a <span className="text-red-400 font-semibold">Sell Signal</span>.</li>
+    <li>If price stays <strong>above the opening</strong> of that red candle, it's a <span className="text-green-400 font-semibold">Buy Signal</span>.</li>
+    <li>If price drops <strong>below the opening</strong> of that red candle, it's a <span className="text-red-400 font-semibold">Sell Signal</span>.</li>
+    <li>To identify the <strong>peak of the Max Zone Pump</strong>, look for <span className="text-white font-semibold">MA5 volume divergence</span> with the current price — this is a signal of a potential pullback or reversal.</li>
   </ul>
 </div>
 </div>	  
