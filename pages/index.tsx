@@ -2190,7 +2190,6 @@ if (loading) {
     <li>If current day has Max Zone Pump, it often leads to a Bearish candle the next day.</li>
     <li>
       Pick the top Max Zone Pump in the list. Then:
-      <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
         <li>
           If the current day's 24H change shows **bullish sentiment** (green % is higher),
           this means the current candle may become a **bullish breakout with divergence**. 
