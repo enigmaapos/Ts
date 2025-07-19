@@ -2183,37 +2183,66 @@ if (loading) {
 </div>
 	  
 {/* 📝 Strategy Note */}
-	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
-    <div className="text-yellow-300 font-medium mt-2">
-  ⚠️ Note:
-  <ul className="list-disc list-inside mt-1 space-y-1">
-    <li>If current day has Max Zone Pump, it often leads to a Bearish candle the next day.</li>
+<div className="border border-gray-700 rounded-lg p-4 bg-gray-900 shadow-sm">
+  <div className="text-yellow-300 font-bold mb-2">⚠️ Strategy Note:</div>
+  <ul className="list-disc list-inside text-yellow-200 space-y-2">
+    
     <li>
-      Pick the top Max Zone Pump in the list. Then:
-      <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
+      <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a 
+      <span className="text-red-400 font-semibold"> Bearish candle</span> the next day.
+    </li>
+
+    <li>
+      <span className="text-white font-semibold">Max Zone Pump Decision Flow:</span>
+      <ul className="list-disc list-inside ml-5 mt-1 space-y-1">
         <li>
-          If the current day's 24H change shows <span className="font-semibold">bullish sentiment</span> (green % is higher),
-          this may lead to a <span className="font-semibold">bullish breakout with divergence</span>. 
-          Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
+          <span className="text-green-400 font-semibold">Bullish Sentiment:</span> If the 24H change is green (higher %),
+          expect a <span className="font-semibold">bullish breakout with divergence</span>. 
+          <br />
+          → Start selling at the <span className="font-semibold text-red-400">first red candle</span> with 
+          RSI < 50 on the <span className="text-white">1-minute</span> timeframe.
         </li>
         <li>
-          If the current day's 24H change shows <span className="font-semibold">bearish sentiment</span> (red % is higher),
-          this indicates a <span className="font-semibold">failure to breakout</span>. 
-          Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
+          <span className="text-red-400 font-semibold">Bearish Sentiment:</span> If the 24H change is red (higher %),
+          it likely signals a <span className="font-semibold">failed breakout</span>. 
+          <br />
+          → Also sell at the <span className="font-semibold text-red-400">first red candle</span> with 
+          RSI < 50 on the <span className="text-white">1-minute</span> timeframe.
         </li>
       </ul>
     </li>
+
     <li>
-      Fridays usually lean toward a <span className="font-semibold">bearish trend</span>, 
-      but sometimes result in a <span className="font-semibold">small bullish movement</span> before closing.
-    </li>      
-    <li>If Max Zone Pump is detected, look for the first red candle where RSI is below 50. That candle signals whether the trend will continue bullish or reverse to bearish.</li>
-    <li>If price stays <strong>above the opening</strong> of that red candle, it's a <span className="text-green-400 font-semibold">Buy Signal</span>.</li>
-    <li>If price drops <strong>below the opening</strong> of that red candle, it's a <span className="text-red-400 font-semibold">Sell Signal</span>.</li>
-    <li>To identify the <strong>peak of the Max Zone Pump</strong>, look for <span className="text-white font-semibold">MA5 volume divergence</span> with the current price — this is a signal of a potential pullback or reversal.</li>
+      <span className="text-white font-semibold">Friday Behavior:</span>
+      Fridays usually show a <span className="text-red-400 font-semibold">bearish trend</span>,
+      but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.
+    </li>
+
+    <li>
+      After Max Zone Pump:
+      <br />
+      → Watch for the <span className="font-semibold text-red-400">first red candle</span> where RSI drops below 50.
+      That candle acts as a decision point.
+    </li>
+
+    <li>
+      If price stays <span className="font-semibold text-green-400">above the opening</span> of that red candle,
+      it becomes a <span className="text-green-400 font-bold">Buy Signal</span>.
+    </li>
+
+    <li>
+      If price breaks <span className="font-semibold text-red-400">below the opening</span> of that red candle,
+      it's a clear <span className="text-red-400 font-bold">Sell Signal</span>.
+    </li>
+
+    <li>
+      To detect the <span className="text-white font-semibold">peak of the Max Zone Pump</span>, look for
+      <span className="text-white font-semibold"> MA5 volume divergence</span> from the current price.
+      This divergence often signals a pullback or reversal zone.
+    </li>
+
   </ul>
 </div>
-</div>	  
   </div>
 </div>
 </div>
