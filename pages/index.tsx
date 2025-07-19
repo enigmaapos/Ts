@@ -2241,6 +2241,18 @@ if (loading) {
       This divergence often signals a pullback or reversal zone.
     </li>
 
+    <li>
+      <span className="text-white font-semibold">Trade Set-up Condition:</span>
+      <ul className="list-decimal list-inside ml-5 mt-1 space-y-1">
+        <li>Max Zone Pump — must be Top 1 in the list.</li>
+        <li>High 24H price change — indicates strong momentum.</li>
+        <li>Find the <span className="font-semibold text-yellow-300">divergence zone</span> — acts as the take profit zone.</li>
+        <li>Identify <span className="font-semibold text-green-300">entry zone</span> — the first 1m red candle with RSI &lt; 50.</li>
+        <li>Wait for entry signal breakout or near — look for RSI resistance reaction (RSI bounce or rejection).</li>
+        <li>Set stop loss at the <span className="text-red-400 font-semibold">highest peak</span> of the current pump.</li>
+      </ul>
+    </li>
+
   </ul>
 </div>
  </div>
