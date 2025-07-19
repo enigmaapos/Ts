@@ -2201,6 +2201,10 @@ if (loading) {
           this indicates a **failure to breakout**. 
           Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
         </li>
+  <li>
+      Fridays usually lean toward a <span className="font-semibold">bearish trend</span>, 
+      but sometimes result in a <span className="font-semibold">small bullish movement</span> before closing.
+    </li>	      
     <li>If Max Zone Pump is detected, look for the first red candle where RSI is below 50. That candle signals whether the trend will continue bullish or reverse to bearish.</li>
     <li>If price stays <strong>above the opening</strong> of that red candle, it's a <span className="text-green-400 font-semibold">Buy Signal</span>.</li>
     <li>If price drops <strong>below the opening</strong> of that red candle, it's a <span className="text-red-400 font-semibold">Sell Signal</span>.</li>
