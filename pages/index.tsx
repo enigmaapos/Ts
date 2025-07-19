@@ -2247,6 +2247,7 @@ if (loading) {
 </div>
 </div>
 	</div>
+	</div>
 	  
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
