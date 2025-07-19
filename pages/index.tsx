@@ -2248,7 +2248,7 @@ if (loading) {
         <li>High 24H price change — indicates strong momentum.</li>
         <li>Find the <span className="font-semibold text-yellow-300">divergence zone</span> — acts as the take profit zone.</li>
         <li>Identify <span className="font-semibold text-green-300">entry zone</span> — the first 1m red candle with RSI &lt; 50.</li>
-        <li>Wait for entry signal breakout or near — look for RSI resistance reaction (RSI bounce or rejection).</li>
+        <li>Wait for entry signal breakout or near — look for RSI resistance reaction (RSI bounce or rejection) to the divergence zone.</li>
         <li>Set stop loss at the <span className="text-red-400 font-semibold">highest peak</span> of the current pump.</li>
       </ul>
     </li>
