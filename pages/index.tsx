@@ -2207,7 +2207,7 @@ if (loading) {
           it likely signals a <span className="font-semibold">failed breakout</span>. 
           <br />
           → Also sell at the <span className="font-semibold text-red-400">first red candle</span> with 
-          RSI < 50 on the <span className="text-white">1-minute</span> timeframe.
+          RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
         </li>
       </ul>
     </li>
@@ -2246,8 +2246,8 @@ if (loading) {
   </div>
 </div>
 </div>
-	</div>
-	</div>
+	
+	
 	  
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
