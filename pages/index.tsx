@@ -2239,6 +2239,7 @@ if (loading) {
       To detect the <span className="text-white font-semibold">peak of the Max Zone Pump</span>, look for
       <span className="text-white font-semibold"> MA5 volume divergence</span> from the current price.
       This divergence often signals a pullback or reversal zone.
+<img src="/images/1.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />    
     </li>
 
     <li>
@@ -2254,7 +2255,7 @@ if (loading) {
     </li>
 
 	   <li>
-      <span className="text-white font-semibold">5 Steps for 15-Minute Timeframe Scalping:</span>
+      <span className="text-white font-semibold">Steps for 15-Minute Timeframe Scalping:</span>
       <ul className="list-decimal list-inside ml-5 mt-1 space-y-1">
         <li>Check for <span className="text-green-400 font-semibold">high 24H price change</span>.</li>
         <li>Identify the <span className="text-yellow-300 font-semibold">divergence zone</span> (potential reversal/take profit).</li>
