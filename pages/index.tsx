@@ -2200,7 +2200,7 @@ if (loading) {
           expect a <span className="font-semibold">bullish breakout with divergence</span>. 
           <br />
           → Start selling at the <span className="font-semibold text-red-400">first red candle</span> with 
-          RSI < 50 on the <span className="text-white">1-minute</span> timeframe.
+          RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
         </li>
         <li>
           <span className="text-red-400 font-semibold">Bearish Sentiment:</span> If the 24H change is red (higher %),
@@ -2243,6 +2243,7 @@ if (loading) {
 
   </ul>
 </div>
+ </div>
   </div>
 </div>
 </div>
