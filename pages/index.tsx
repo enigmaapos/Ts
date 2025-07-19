@@ -2278,8 +2278,8 @@ if (loading) {
 
   {/* 📸 Strategy Images */}
   <div className="mt-6 space-y-4">
-    <img src="/1.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />
-    <img src="/2.jpg" alt="Strategy Chart 2" className="rounded-lg w-full border border-gray-600" />
+    <img src="/images/1.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />
+    <img src="/images/2.jpg" alt="Strategy Chart 2" className="rounded-lg w-full border border-gray-600" />
   </div>	  
 
   </ul>
