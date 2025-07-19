@@ -2253,6 +2253,29 @@ if (loading) {
       </ul>
     </li>
 
+	   <li>
+      <span className="text-white font-semibold">5 Steps for 15-Minute Timeframe Scalping:</span>
+      <ul className="list-decimal list-inside ml-5 mt-1 space-y-1">
+        <li>Check for <span className="text-green-400 font-semibold">high 24H price change</span>.</li>
+        <li>Identify the <span className="text-yellow-300 font-semibold">divergence zone</span> (potential reversal/take profit).</li>
+        <li>Find selling entry level in the <span className="text-red-400">1-minute</span> timeframe:
+          <br />→ Look for the <span className="text-red-400 font-semibold">first red candle</span> with RSI &lt; 50.
+        </li>
+        <li>Mark the <span className="text-white font-semibold">neckline</span> — often the base support of the pump.</li>
+        <li>Wait for a <span className="text-green-300 font-semibold">neckline pullback confirmation</span>.</li>
+        <li>
+          <span className="text-green-400 font-semibold">Buy Setup:</span> Buy at neckline pullback confirmation,
+          <br />→ Take profit at selling entry level,
+          <br />→ Stop loss at the first neckline low.
+        </li>
+        <li>
+          <span className="text-red-400 font-semibold">Sell Setup:</span> Sell at selling entry level,
+          <br />→ Stop loss at the highest pump level,
+          <br />→ TP1 at neckline, TP2 at divergence zone.
+        </li>
+      </ul>
+    </li>  
+
   </ul>
 </div>
  </div>
