@@ -2239,7 +2239,7 @@ if (loading) {
       To detect the <span className="text-white font-semibold">peak of the Max Zone Pump</span>, look for
       <span className="text-white font-semibold"> MA5 volume divergence</span> from the current price.
       This divergence often signals a pullback or reversal zone.
-<img src="/images/1.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />    
+<img src="/images/3.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />    
     </li>
 
     <li>
