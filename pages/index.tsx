@@ -2190,20 +2190,23 @@ if (loading) {
     <li>If current day has Max Zone Pump, it often leads to a Bearish candle the next day.</li>
     <li>
       Pick the top Max Zone Pump in the list. Then:
+      <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
         <li>
-          If the current day's 24H change shows **bullish sentiment** (green % is higher),
-          this means the current candle may become a **bullish breakout with divergence**. 
+          If the current day's 24H change shows <span className="font-semibold">bullish sentiment</span> (green % is higher),
+          this may lead to a <span className="font-semibold">bullish breakout with divergence</span>. 
           Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
         </li>
         <li>
-          If the current day's 24H change shows **bearish sentiment** (red % is higher),
-          this indicates a **failure to breakout**. 
+          If the current day's 24H change shows <span className="font-semibold">bearish sentiment</span> (red % is higher),
+          this indicates a <span className="font-semibold">failure to breakout</span>. 
           Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
         </li>
-  <li>
+      </ul>
+    </li>
+    <li>
       Fridays usually lean toward a <span className="font-semibold">bearish trend</span>, 
       but sometimes result in a <span className="font-semibold">small bullish movement</span> before closing.
-    </li>	      
+    </li>      
     <li>If Max Zone Pump is detected, look for the first red candle where RSI is below 50. That candle signals whether the trend will continue bullish or reverse to bearish.</li>
     <li>If price stays <strong>above the opening</strong> of that red candle, it's a <span className="text-green-400 font-semibold">Buy Signal</span>.</li>
     <li>If price drops <strong>below the opening</strong> of that red candle, it's a <span className="text-red-400 font-semibold">Sell Signal</span>.</li>
@@ -2214,7 +2217,6 @@ if (loading) {
   </div>
 </div>
 </div>
-	</div>
 	  
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
