@@ -2187,7 +2187,20 @@ if (loading) {
     <div className="text-yellow-300 font-medium mt-2">
   ⚠️ Note:
   <ul className="list-disc list-inside mt-1 space-y-1">
-    <li>If current day has Max Zone Pump + Spike, it often leads to a Bearish candle the next day.</li>
+    <li>If current day has Max Zone Pump, it often leads to a Bearish candle the next day.</li>
+    <li>
+      Pick the top Max Zone Pump in the list. Then:
+      <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
+        <li>
+          If the current day's 24H change shows **bullish sentiment** (green % is higher),
+          this means the current candle may become a **bullish breakout with divergence**. 
+          Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
+        </li>
+        <li>
+          If the current day's 24H change shows **bearish sentiment** (red % is higher),
+          this indicates a **failure to breakout**. 
+          Start selling at the first red candle where RSI is below 50 on the 1-minute timeframe.
+        </li>
     <li>If Max Zone Pump is detected, look for the first red candle where RSI is below 50. That candle signals whether the trend will continue bullish or reverse to bearish.</li>
     <li>If price stays <strong>above the opening</strong> of that red candle, it's a <span className="text-green-400 font-semibold">Buy Signal</span>.</li>
     <li>If price drops <strong>below the opening</strong> of that red candle, it's a <span className="text-red-400 font-semibold">Sell Signal</span>.</li>
