@@ -2179,7 +2179,6 @@ if (loading) {
   <div className="flex items-center gap-4 text-sm">
     <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
     <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
-<img src="/images/4.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />  
   </div>
 </div>
 	  
@@ -2217,6 +2216,7 @@ if (loading) {
       <span className="text-white font-semibold">Friday Behavior:</span>
       Fridays usually show a <span className="text-red-400 font-semibold">bearish trend</span>,
       but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.
+	<img src="/images/4.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />      
     </li>
 
     <li>
