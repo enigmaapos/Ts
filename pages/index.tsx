@@ -2170,6 +2170,7 @@ if (loading) {
       <div className="flex items-center gap-4 text-sm">
         <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
         <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+	 <img src="/images/4.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />     
       </div>
 	</div>    
 
