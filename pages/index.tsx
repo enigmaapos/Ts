@@ -2169,8 +2169,7 @@ if (loading) {
       <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
       <div className="flex items-center gap-4 text-sm">
         <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
-        <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
-	 <img src="/images/4.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />     
+        <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>     
       </div>
 	</div>    
 
@@ -2180,6 +2179,7 @@ if (loading) {
   <div className="flex items-center gap-4 text-sm">
     <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
     <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
+<img src="/images/4.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />  
   </div>
 </div>
 	  
