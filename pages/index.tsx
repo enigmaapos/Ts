@@ -2215,8 +2215,7 @@ if (loading) {
     <li>
       <span className="text-white font-semibold">Friday Behavior:</span>
       Fridays usually show a <span className="text-red-400 font-semibold">bearish trend</span>,
-      but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.
-	<img src="/images/4.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />      
+      but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.     
     </li>
 
     <li>
@@ -2235,48 +2234,6 @@ if (loading) {
       If price breaks <span className="font-semibold text-red-400">below the opening</span> of that red candle,
       it's a clear <span className="text-red-400 font-bold">Sell Signal</span>.
     </li>
-
-    <li>
-      To detect the <span className="text-white font-semibold">peak of the Max Zone Pump</span>, look for
-      <span className="text-white font-semibold"> MA5 volume divergence</span> from the current price.
-      This divergence often signals a pullback or reversal zone.
-<img src="/images/3.jpg" alt="Strategy Chart 1" className="rounded-lg w-full border border-gray-600" />    
-    </li>
-
-    <li>
-      <span className="text-white font-semibold">Trade Set-up Condition:</span>
-      <ul className="list-decimal list-inside ml-5 mt-1 space-y-1">
-        <li>Max Zone Pump — must be Top 1 in the list.</li>
-        <li>High 24H price change — indicates strong momentum.</li>
-        <li>Find the <span className="font-semibold text-yellow-300">divergence zone</span> — acts as the take profit zone.</li>
-        <li>Identify <span className="font-semibold text-green-300">entry zone</span> — the first 1m red candle with RSI &lt; 50.</li>
-        <li>Wait for entry signal breakout or near — look for RSI resistance reaction (RSI bounce or rejection) to the divergence zone.</li>
-        <li>Set stop loss at the <span className="text-red-400 font-semibold">highest peak</span> of the current pump.</li>
-      </ul>
-    </li>
-
-	   <li>
-      <span className="text-white font-semibold">Steps for 15-Minute Timeframe Scalping:</span>
-      <ul className="list-decimal list-inside ml-5 mt-1 space-y-1">
-        <li>Check for <span className="text-green-400 font-semibold">high 24H price change</span>.</li>
-        <li>Identify the <span className="text-yellow-300 font-semibold">divergence zone</span> (potential reversal/take profit).</li>
-        <li>Find selling entry level in the <span className="text-red-400">1-minute</span> timeframe:
-          <br />→ Look for the <span className="text-red-400 font-semibold">first red candle</span> with RSI &lt; 50.
-        </li>
-        <li>Mark the <span className="text-white font-semibold">neckline</span> — often the base support of the pump.</li>
-        <li>Wait for a <span className="text-green-300 font-semibold">neckline pullback confirmation</span>.</li>
-        <li>
-          <span className="text-green-400 font-semibold">Buy Setup:</span> Buy at neckline pullback confirmation,
-          <br />→ Take profit at selling entry level,
-          <br />→ Stop loss at the first neckline low.
-        </li>
-        <li>
-          <span className="text-red-400 font-semibold">Sell Setup:</span> Sell at selling entry level,
-          <br />→ Stop loss at the highest pump level,
-          <br />→ TP1 at neckline, TP2 at divergence zone.
-        </li>
-      </ul>
-    </li>    
 
   </ul>
 </div>
