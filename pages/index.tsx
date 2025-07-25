@@ -62,7 +62,7 @@ function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: n
   return results;
 }
 
-function calculateRSI(closes: number[], period = 14): number[] {
+function calculateRSI(closes: number[], period = 3): number[] {
   if (!Array.isArray(closes) || closes.length <= period) return [];
 
   const rsi: number[] = [];
