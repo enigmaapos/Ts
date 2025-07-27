@@ -1,39 +1,6 @@
 import React from 'react';
-import { SignalData } from '../hooks/useCryptoSignals'; // Adjust import path
-import { getRecentRSIDiff, getSignal } from '../utils/calculations'; // Adjust import path
-
-interface FilterControlsProps {
-  signals: SignalData[];
-  search: string;
-  setSearch: (search: string) => void;
-  showOnlyFavorites: boolean;
-  setShowOnlyFavorites: (show: boolean) => void;
-  favorites: Set<string>;
-  setFavorites: React.Dispatch<React.SetStateAction<Set<string>>>;
-  trendFilter: string | null;
-  setTrendFilter: (filter: string | null) => void;
-  signalFilter: string | null;
-  setSignalFilter: (filter: string | null) => void;
-}
-
-const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
-  bullishMainTrend: 'bullish',
-  bearishMainTrend: 'bearish',
-};
-
-const trendKeyToBooleanField: Record<string, keyof SignalData> = {
-  bullishBreakout: 'bullishBreakout',
-  bearishBreakout: 'bearishBreakout',
-  breakoutFailure: 'breakoutFailure',
-  testedPrevHigh: 'testedPrevHigh',
-  testedPrevLow: 'testedPrevLow',
-  bullishReversal: 'bullishReversal',
-  bearishReversal: 'bearishReversal',
-  bullishSpike: 'bullishSpike',
-  bearishCollapse: 'bearishCollapse',
-  ema14InsideResults: 'ema14InsideResults',
-  highestVolumeColorPrev: 'highestVolumeColorPrev'
-};
+import { SignalData } from '../hooks/useCryptoSignals'; 
+import { getRecentRSIDiff, getSignal } from '../utils/calculations'; 
 
 const FilterControls: React.FC<FilterControlsProps> = ({
   signals,
@@ -101,34 +68,39 @@ const FilterControls: React.FC<FilterControlsProps> = ({
     return counts;
   }, [filteredSignalsForCounts]);
 
+  const buttonBase =
+    'px-3 py-1 rounded-full flex items-center gap-1 transition-all duration-200 border';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
-      <div className="flex flex-col gap-4 text-sm">
-        {/* Trend Filters Section */}
-        <div>
-          <p className="text-gray-400 mb-2 font-semibold">
-            📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
-          </p>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mb-6">
+      {/* Left Panel - Filters */}
+      <div className="flex flex-col gap-6 text-sm">
+        {/* Trend Filters */}
+        <section>
+          <h2 className="mb-3 font-semibold text-gradient-to-br from-yellow-400 via-orange-300 to-pink-300 bg-clip-text text-transparent text-base">
+            📊 Trend Filters
+          </h2>
           <div className="flex flex-wrap gap-2">
             {[
               { label: 'Bullish Trend', key: 'bullishMainTrend', count: bullishMainTrendCount, color: 'text-green-300' },
               { label: 'Bearish Trend', key: 'bearishMainTrend', count: bearishMainTrendCount, color: 'text-red-300' },
-              { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
-              { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
-              { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
-              { label: 'Bearish Collapse', key: 'bearishCollapse', count: bearishCollapseCount, color: 'text-red-300' },
+              { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-400' },
+              { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-400' },
+              { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-200' },
+              { label: 'Bearish Collapse', key: 'bearishCollapse', count: bearishCollapseCount, color: 'text-red-200' },
               { label: 'Breakout Failure', key: 'breakoutFailure', count: breakoutFailureCount, color: 'text-yellow-300' },
               { label: 'Bullish Breakout', key: 'bullishBreakout', count: bullishBreakoutCount, color: 'text-yellow-400' },
-              { label: 'Bearish Breakout', key: 'bearishBreakout', count: bearishBreakoutCount, color: 'text-yellow-400' },
+              { label: 'Bearish Breakout', key: 'bearishBreakout', count: bearishBreakoutCount, color: 'text-yellow-500' },
               { label: 'Tested Prev High', key: 'testedPrevHigh', count: testedPrevHighCount, color: 'text-blue-300' },
-              { label: 'Tested Prev Low', key: 'testedPrevLow', count: testedPrevLowCount, color: 'text-blue-300' },
+              { label: 'Tested Prev Low', key: 'testedPrevLow', count: testedPrevLowCount, color: 'text-blue-400' },
             ].map(({ label, key, count, color }) => (
               <button
                 key={key}
                 onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-                className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-                  trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+                className={`${buttonBase} ${
+                  trendFilter === key
+                    ? 'bg-yellow-500 text-black border-yellow-600 shadow-md'
+                    : 'bg-gray-800 border-gray-600 hover:bg-gray-700'
                 }`}
               >
                 <span>{label}</span>
@@ -136,11 +108,13 @@ const FilterControls: React.FC<FilterControlsProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Signal Filters Section */}
-        <div>
-          <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
+        {/* Signal Filters */}
+        <section>
+          <h2 className="mb-3 font-semibold text-gradient-to-br from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent text-base">
+            📈 Zone Signal Filters
+          </h2>
           <div className="flex flex-wrap gap-2">
             {[
               { label: 'MAX ZONE PUMP', key: 'MAX ZONE PUMP', count: signalCounts.maxZonePump, color: 'text-yellow-300' },
@@ -153,8 +127,10 @@ const FilterControls: React.FC<FilterControlsProps> = ({
               <button
                 key={key}
                 onClick={() => setSignalFilter(signalFilter === key ? null : key)}
-                className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-                  signalFilter === key ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
+                className={`${buttonBase} ${
+                  signalFilter === key
+                    ? 'bg-green-500 text-black border-green-600 shadow-md'
+                    : 'bg-gray-800 border-gray-600 hover:bg-gray-700'
                 }`}
               >
                 <span>{label}</span>
@@ -162,9 +138,9 @@ const FilterControls: React.FC<FilterControlsProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Clear Button */}
+        {/* Clear All */}
         <div>
           <button
             onClick={() => {
@@ -173,104 +149,60 @@ const FilterControls: React.FC<FilterControlsProps> = ({
               setSignalFilter(null);
               setShowOnlyFavorites(false);
             }}
-            className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
+            className="px-5 py-2 rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold shadow hover:brightness-110 transition"
           >
-            Clear All Filters
+            🔄 Clear All Filters
           </button>
         </div>
       </div>
 
-      {/* Summary Panel (placeholder, will be a separate component) */}
-      <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
-        <div className="flex flex-col gap-3">
-          {/* Trend Counts */}
-          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
-            <div className="flex items-center gap-2">
+      {/* Right Panel - Summary */}
+      <div className="sticky top-0 z-20 bg-gray-900 border border-gray-700 rounded-xl p-5 text-white shadow-lg space-y-5">
+        <div className="space-y-3">
+          {/* Trend Summary */}
+          <div className="bg-gray-800 p-3 rounded-lg shadow-inner border border-gray-600">
+            <div className="flex justify-between">
               <span>📈 Bull Trend:</span>
               <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex justify-between">
               <span>📉 Bear Trend:</span>
               <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
             </div>
           </div>
 
-          {/* EMA14 Inside Range */}
-          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
-            <div className="flex items-center gap-1">
-              <span className="flex flex-col leading-tight">
-                <span className="text-sm">📍 EMA14 Inside</span>
-                <span className="text-sm">EMA70–200:</span>
-              </span>
-              <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+          {/* EMA Inside */}
+          <div className="bg-gray-800 p-3 rounded-lg border border-gray-600 shadow-inner">
+            <div className="flex justify-between items-center">
+              <span>📍 EMA14 Inside EMA70–200:</span>
+              <span className="text-yellow-300 font-bold text-lg">{ema14InsideResultsCount}</span>
             </div>
           </div>
 
-          {/* 24h Price Change Summary */}
-          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
-            <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
-              <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+          {/* Price Summary */}
+          <div className="bg-gray-800 p-3 rounded-lg border border-gray-600 shadow-inner">
+            <div className="font-semibold mb-2">🔹 24h Price Change</div>
+            <div className="flex justify-between">
+              <span className="text-green-400">🟢 Green:</span>
+              <span>{greenPriceChangeCount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-red-400">🔴 Red:</span>
+              <span>{redPriceChangeCount}</span>
             </div>
           </div>
 
-          {/* Volume Color Summary */}
-          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
-            <div className="text-white text-sm mb-2 font-semibold">🔸 Volume Color Summary</div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
-              <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
+          {/* Volume Summary */}
+          <div className="bg-gray-800 p-3 rounded-lg border border-gray-600 shadow-inner">
+            <div className="font-semibold mb-2">🔸 Volume Summary</div>
+            <div className="flex justify-between">
+              <span className="text-green-400">🟢 Green Volume:</span>
+              <span>{greenVolumeCount}</span>
             </div>
-          </div>
-
-          {/* Strategy Note */}
-          <div className="border border-gray-700 rounded-lg p-4 bg-gray-900 shadow-sm">
-            <div className="text-yellow-300 font-bold mb-2">⚠️ Strategy Note:</div>
-            <ul className="list-disc list-inside text-yellow-200 space-y-2">
-              <li>
-                <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a
-                <span className="text-red-400 font-semibold"> Bearish candle</span> the next day.
-              </li>
-              <li>
-                <span className="text-white font-semibold">Max Zone Pump Decision Flow:</span>
-                <ul className="list-disc list-inside ml-5 mt-1 space-y-1">
-                  <li>
-                    <span className="text-green-400 font-semibold">Bullish Sentiment:</span> If the 24H change is green (higher %),
-                    expect a <span className="font-semibold">bullish breakout with divergence</span>.
-                    <br />
-                    → Start selling at the <span className="font-semibold text-red-400">first red candle</span> with
-                    RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
-                  </li>
-                  <li>
-                    <span className="text-red-400 font-semibold">Bearish Sentiment:</span> If the 24H change is red (higher %),
-                    it likely signals a <span className="font-semibold">failed breakout</span>.
-                    <br />
-                    → Also sell at the <span className="font-semibold text-red-400">first red candle</span> with
-                    RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <span className="text-white font-semibold">Friday Behavior:</span>
-                Fridays usually show a <span className="text-red-400 font-semibold">bearish trend</span>,
-                but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.
-              </li>
-              <li>
-                After Max Zone Pump:
-                <br />
-                → Watch for the <span className="font-semibold text-red-400">first red candle</span> where RSI drops below 50.
-                That candle acts as a decision point.
-              </li>
-              <li>
-                If price stays <span className="font-semibold text-green-400">above the opening</span> of that red candle,
-                it becomes a <span className="text-green-400 font-bold">Buy Signal</span>.
-              </li>
-              <li>
-                If price breaks <span className="font-semibold text-red-400">below the opening</span> of that red candle,
-                it's a clear <span className="text-red-400 font-bold">Sell Signal</span>.
-              </li>
-            </ul>
+            <div className="flex justify-between">
+              <span className="text-red-400">🔴 Red Volume:</span>
+              <span>{redVolumeCount}</span>
+            </div>
           </div>
         </div>
       </div>
