@@ -120,6 +120,8 @@ export default function Home() {
       </div>
 
       <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+        <table className="w-full text-[11px] border-collapse">
+    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <SignalsTable
         signals={signals}
         lastUpdatedMap={lastUpdatedMap}
@@ -134,6 +136,8 @@ export default function Home() {
         trendFilter={trendFilter}
         signalFilter={signalFilter}
       />
+      </tbody>
+  </table>
     </div>
       </div>
   );
