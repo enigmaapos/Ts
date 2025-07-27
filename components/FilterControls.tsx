@@ -52,6 +52,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   setSignalFilter,
 }) => {
   const searchTerm = search.trim().toLowerCase();
+
   const filtered = React.useMemo(() =>
     signals.filter((s) => {
       const match = s.symbol?.toLowerCase().includes(searchTerm);
@@ -59,6 +60,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
     }), [signals, searchTerm, showOnlyFavorites, favorites]);
 
   const countBool = (key: keyof SignalData) => filtered.filter((s) => s[key]).length;
+
   const counts = React.useMemo(() => ({
     bullishMainTrend: filtered.filter(s => s.mainTrend?.trend === 'bullish').length,
     bearishMainTrend: filtered.filter(s => s.mainTrend?.trend === 'bearish').length,
@@ -71,8 +73,10 @@ const FilterControls: React.FC<FilterControlsProps> = ({
     redVol: filtered.filter(s => s.highestVolumeColorPrev === 'red').length,
     green24h: filtered.filter(s => +s.priceChangePercent > 0).length,
     red24h: filtered.filter(s => +s.priceChangePercent < 0).length,
-    ...Object.fromEntries(['breakoutFailure', 'bullishBreakout', 'bearishBreakout', 'testedPrevHigh', 'testedPrevLow']
-      .map(k => [k, countBool(k as keyof SignalData)]))
+    ...Object.fromEntries(
+      ['breakoutFailure', 'bullishBreakout', 'bearishBreakout', 'testedPrevHigh', 'testedPrevLow']
+        .map(k => [k, countBool(k as keyof SignalData)])
+    )
   }), [filtered]);
 
   const signalCounts = React.useMemo(() => {
@@ -86,17 +90,23 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   }, [filtered]);
 
   return (
-    <div className="grid lg:grid-cols-[1fr_300px] gap-4 mb-4">
-      {/* Buttons */}
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
+      {/* Filter Buttons */}
       <div className="space-y-4">
         <div>
           <p className="text-sm text-gray-400 font-medium mb-1">📊 Trend Filters</p>
           <div className="flex flex-wrap gap-2">
             {trendKeys.map(({ label, key, color }) => (
-              <button key={key} onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+              <button
+                key={key}
+                onClick={() => setTrendFilter(trendFilter === key ? null : key)}
                 className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition
-                ${trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}>
-                {label} <span className={`${color} text-xs font-bold`}>{counts[key as keyof typeof counts]}</span>
+                  ${trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}
+              >
+                {label}
+                <span className={`${color} text-xs font-bold`}>
+                  {counts[key as keyof typeof counts]}
+                </span>
               </button>
             ))}
           </div>
@@ -106,27 +116,36 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           <p className="text-sm text-gray-400 font-medium mb-1">📈 Signal Filters</p>
           <div className="flex flex-wrap gap-2">
             {signalKeys.map(({ label, color }) => (
-              <button key={label} onClick={() => setSignalFilter(signalFilter === label ? null : label)}
+              <button
+                key={label}
+                onClick={() => setSignalFilter(signalFilter === label ? null : label)}
                 className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition
-                ${signalFilter === label ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'}`}>
-                {label} <span className={`${color} text-xs font-bold`}>{signalCounts[label]}</span>
+                  ${signalFilter === label ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'}`}
+              >
+                {label}
+                <span className={`${color} text-xs font-bold`}>
+                  {signalCounts[label]}
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        <button onClick={() => {
-          setSearch('');
-          setTrendFilter(null);
-          setSignalFilter(null);
-          setShowOnlyFavorites(false);
-        }} className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600">
+        <button
+          onClick={() => {
+            setSearch('');
+            setTrendFilter(null);
+            setSignalFilter(null);
+            setShowOnlyFavorites(false);
+          }}
+          className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
+        >
           Clear All Filters
         </button>
       </div>
 
       {/* Summary Panel */}
-      <div className="sticky top-0 p-4 rounded-xl bg-gray-900 border border-gray-700 shadow space-y-4 text-sm">
+      <div className="p-4 rounded-xl bg-gray-900 border border-gray-700 shadow space-y-4 text-sm">
         <div className="space-y-1">
           <p>📈 <span className="text-green-400 font-bold">Bull:</span> {counts.bullishMainTrend}</p>
           <p>📉 <span className="text-red-400 font-bold">Bear:</span> {counts.bearishMainTrend}</p>
