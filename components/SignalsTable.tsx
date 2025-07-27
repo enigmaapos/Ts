@@ -866,29 +866,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.breakoutFailure ? 'Yes' : '-'}
   </td>
 
-  <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
-    {s.mainTrend === 'bullish'
-      ? s.isDoubleTopFailure
-        ? 'Top Fail'
-        : s.isDoubleTop
-        ? 'Double Top'
-        : s.isDescendingTop
-        ? 'Descending Top'
-        : '-'
-      : '-'}
-  </td>
-
-  <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
-    {s.mainTrend === 'bearish'
-      ? s.isDoubleBottomFailure
-        ? 'Bottom Fail'
-        : s.isDoubleBottom
-        ? 'Double Bottom'
-        : s.isAscendingBottom
-        ? 'Ascending Bottom'
-        : '-'
-      : '-'}
-  </td>
+ <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
+                {s.testedPrevHigh ? 'Yes' : '-'}
+              </td>
+              <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
+                {s.testedPrevLow ? 'Yes' : '-'}
+              </td> 
   
 </tr>
         );
