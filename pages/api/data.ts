@@ -26,7 +26,7 @@ export default async function handler(req: any, res: any) { // Use 'any' for req
     // IMPORTANT: Modify getCryptoSignals() or ensure the data it returns includes
     // a 'closes' array for RSI calculation if 'latestRSI' is not directly provided.
     // For this example, let's assume `RawSignalData` has a `closes: number[]` property.
-    const rawSignals: RawSignalData[] = await getCryptoSignals();
+    const rawSignals: RawSignalData[] = await useCryptoSignals();
 
     // 2. Process and format signals for the Site A DataLoader
     const formatted: SiteAFormattedSignal[] = rawSignals.map((s) => {
