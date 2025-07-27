@@ -1,22 +1,25 @@
 import React, { useMemo } from 'react';
-import PriceChangePercent from './PriceChangePercent'; // Adjust import path
-import { SignalData } from '../hooks/useCryptoSignals'; // Adjust import path
-import { getRecentRSIDiff, getSignal, didDropFromPeak, didRecoverFromLow } from '../utils/calculations'; // Adjust import path
+import PriceChangePercent from './PriceChangePercent';
+import { SignalData } from '../hooks/useCryptoSignals';
+import { getRecentRSIDiff, getSignal, didDropFromPeak, didRecoverFromLow } from '../utils/calculations';
 
+// --- Corrected SignalsTableProps interface ---
 interface SignalsTableProps {
   signals: SignalData[];
   lastUpdatedMap: { [symbol: string]: number };
   favorites: Set<string>;
   toggleFavorite: (symbol: string) => void;
-  sortField: string;
-  setSortField: (field: string) => void;
+  sortField: string | null; // It's good practice to allow sortField to be null initially
+  setSortField: (field: string | null) => void;
+  // This is the crucial change: Use React.Dispatch<React.SetStateAction<T>> for setters
   sortOrder: 'asc' | 'desc';
-  setSortOrder: (order: 'asc' | 'desc') => void;
+  setSortOrder: React.Dispatch<React.SetStateAction<'asc' | 'desc'>>;
   searchTerm: string;
   showOnlyFavorites: boolean;
   trendFilter: string | null;
   signalFilter: string | null;
 }
+// --- End Corrected SignalsTableProps interface ---
 
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
@@ -54,6 +57,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
   const handleSort = (field: string) => {
     if (sortField === field) {
+      // This line is now correctly typed to accept the updater function
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
@@ -84,9 +88,13 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
     });
 
     return filtered.sort((a, b) => {
-      let valA: any = (a as any)[sortField];
-      let valB: any = (b as any)[sortField];
+      let valA: any = (a as any)[sortField as string]; // Cast sortField to string as it's used as an index
+      let valB: any = (b as any)[sortField as string]; // Cast sortField to string
 
+      // Defensive check for sortField being null
+      if (sortField === null) return 0;
+
+      // Your existing sorting logic
       if (sortField === 'touchedEMA200Today') {
         valA = a.touchedEMA200Today ? 1 : 0;
         valB = b.touchedEMA200Today ? 1 : 0;
@@ -206,7 +214,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
               Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th className="p-2 text-center">Volume</th>
-            <th className="px-1 py-0.5 bg-gray-800 text-center">Volume Divergence</th>
+            <th className="px-1 py-0.5 text-center">Volume Divergence</th>
             <th onClick={() => handleSort('isVolumeSpike')} className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer">
               Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
