@@ -65,7 +65,9 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ data, title = "Summa
   }, [data, sortField, sortOrder]);
 
   return (
-    <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700">
+     <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
+  <div className="flex flex-col gap-3">
+ 
       <h2 className="text-2xl font-bold text-blue-400 mb-2">{title}</h2>
       {description && <p className="text-gray-400 text-sm mb-4">{description}</p>}
 
@@ -113,5 +115,6 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ data, title = "Summa
         </div>
       )}
     </div>
+       </div>
   );
 };
