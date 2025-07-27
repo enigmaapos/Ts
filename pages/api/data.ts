@@ -1,32 +1,31 @@
-// pages/api/data.ts (Site A)
-export default function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+import { useEffect, useState } from 'react';
 
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
-
-  // Replace with your real logic
-  const data = [
-    {
-      symbol: "BTC/USDT",
-      signal: "MAX ZONE DUMP",
-      latestRSI: 48.7
-    },
-    {
-      symbol: "ETH/USDT",
-      signal: "NEUTRAL",
-      latestRSI: 55.2
-    },
-    {
-      symbol: "XRP/USDT",
-      signal: "BUY SIGNAL",
-      latestRSI: 62.1
-    }
-  ];
-
-  res.status(200).json(data);
+export interface SignalData {
+  symbol: string;
+  signal: string;
+  latestRSI: number;
+  // Add other properties if needed
 }
+
+export const useCryptoSignals = () => {
+  const [signals, setSignals] = useState<SignalData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSignals = async () => {
+      try {
+        const response = await fetch('/api/data'); // ✅ Or full URL if remote
+        const data: SignalData[] = await response.json();
+        setSignals(data);
+      } catch (error) {
+        console.error('Failed to fetch signal data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSignals();
+  }, []);
+
+  return { signals, loading };
+};
