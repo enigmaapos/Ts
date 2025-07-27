@@ -451,17 +451,11 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
     <div className="flex items-center justify-between">
       <span className="truncate">{s.symbol}</span>
       <button
-        className="ml-1 text-yellow-400 hover:text-yellow-300"
-        onClick={() => {
-          toggleFavorite((prev: Set<string>) => {
-            const newSet = new Set(prev);
-            newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-            return newSet;
-          });
-        }}
-      >
-        {favorites.has(s.symbol) ? '★' : '☆'}
-      </button>
+  className="ml-1 text-yellow-400 hover:text-yellow-300"
+  onClick={() => toggleFavorite(s.symbol)}
+>
+  {favorites.has(s.symbol) ? '★' : '☆'}
+</button>
     </div>
   </td>
 
