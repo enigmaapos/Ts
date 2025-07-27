@@ -241,6 +241,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
 
   return (
+    // The key change is here: `overflow-x-auto` instead of `overflow-auto`
     <div className="overflow-x-auto max-h-[80vh] border border-gray-700 rounded-lg shadow-lg bg-gray-900">
       <table className="w-full text-xs border-collapse">
         {/* Table Header */}
@@ -249,136 +250,136 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
             {/* Sticky Symbol Column */}
             <th
               onClick={() => handleSort('symbol')}
-              className="px-2 py-2 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer whitespace-nowrap border-r border-gray-700 hover:bg-gray-700 min-w-[100px]" // Use min-width
+              className="px-2 py-2 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer whitespace-nowrap border-r border-gray-700 hover:bg-gray-700 w-[100px]"
             >
               Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
-            <th className="px-2 py-2 text-right whitespace-nowrap min-w-[80px]">Price</th>
+            <th className="px-2 py-2 text-right whitespace-nowrap w-[80px]">Price</th>
             <th
               onClick={() => handleSort('priceChangePercent')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               24h Chg (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[60px]">Drop 🚨</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[70px]">Recovery 🟢</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[60px]">Bull BO</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[60px]">Bear BO</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[60px]">Drop 🚨</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[70px]">Recovery 🟢</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[60px]">Bull BO</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[60px]">Bear BO</th>
             <th
               onClick={() => handleSort('prevClose')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[80px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[80px]"
             >
               Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('mainTrend')}
-              className="px-2 py-2 text-center whitespace-nowrap cursor-pointer hover:bg-gray-700 min-w-[90px]"
+              className="px-2 py-2 text-center whitespace-nowrap cursor-pointer hover:bg-gray-700 w-[90px]"
             >
               Trend (200) {sortField === 'mainTrend' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[70px]">Collapse</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[60px]">Spike</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[70px]">Bear Rev</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[70px]">Bull Rev</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[70px]">Collapse</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[60px]">Spike</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[70px]">Bear Rev</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[70px]">Bull Rev</th>
             <th
               onClick={() => handleSort('signal')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 min-w-[100px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 w-[100px]"
             >
               Signal {sortField === 'signal' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('pumpStrength')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               RSI P/D {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('latestRSI')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[70px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[70px]"
             >
               RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('bearishDivergence')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[70px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[70px]"
             >
               Bear Div {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('bullishDivergence')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[70px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[70px]"
             >
               Bull Div {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[80px]">Vol Color</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[70px]">Vol Div</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[80px]">Vol Color</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[70px]">Vol Div</th>
             <th
               onClick={() => handleSort('isVolumeSpike')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[70px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[70px]"
             >
               Vol Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('ema14InsideResults')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[100px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[100px]"
             >
               EMA14 Inside {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('gap')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               EMA14&70 Gap {sortField === 'gap' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('gap1')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               EMA70&200 Gap {sortField === 'gap1' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('gapFromLowToEMA200')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[100px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[100px]"
             >
               Low→EMA200 {sortField === 'gapFromLowToEMA200' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('gapFromHighToEMA200')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[100px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[100px]"
             >
               High→EMA200 {sortField === 'gapFromHighToEMA200' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('ema200Bounce')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('touchedEMA200Today')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[120px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[120px]"
             >
               Touched EMA200 {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('ema14Bounce')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               EMA14 Bounce {sortField === 'ema14Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
             <th
               onClick={() => handleSort('ema70Bounce')}
-              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap min-w-[90px]"
+              className="px-2 py-2 text-center cursor-pointer hover:bg-gray-700 whitespace-nowrap w-[90px]"
             >
               EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
             </th>
-            <th className="px-2 py-2 text-center whitespace-nowrap text-green-400 min-w-[90px]">Bullish Eng.</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap text-red-400 min-w-[90px]">Bearish Eng.</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[80px]">Tested High</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[80px]">Tested Low</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[90px]">Breakout Fail</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[90px]">Top Pattern</th>
-            <th className="px-2 py-2 text-center whitespace-nowrap min-w-[100px]">Bottom Pattern</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap text-green-400 w-[90px]">Bullish Eng.</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap text-red-400 w-[90px]">Bearish Eng.</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[80px]">Tested High</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[80px]">Tested Low</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[90px]">Breakout Fail</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[90px]">Top Pattern</th>
+            <th className="px-2 py-2 text-center whitespace-nowrap w-[100px]">Bottom Pattern</th>
           </tr>
         </thead>
         {/* Table Body */}
@@ -410,7 +411,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   }`}
                 >
                   {/* Sticky Symbol Cell */}
-                  <td className="px-2 py-1 bg-gray-900 sticky left-0 z-10 text-left align-middle truncate border-r border-gray-700 min-w-[100px]">
+                  <td className="px-2 py-1 bg-gray-900 sticky left-0 z-10 text-left align-middle truncate border-r border-gray-700 w-[100px]">
                     <div className="flex items-center justify-between text-white">
                       <span className="truncate max-w-[calc(100%-20px)]">{s.symbol}</span>
                       <button
@@ -423,22 +424,22 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                     </div>
                   </td>
 
-                  <td className="px-2 py-1 text-right text-gray-200 min-w-[80px]">
+                  <td className="px-2 py-1 text-right text-gray-200 w-[80px]">
                     ${Number(s.currentPrice).toFixed(7)}
                   </td>
-                  <td className="px-2 py-1 text-center min-w-[90px]">
+                  <td className="px-2 py-1 text-center w-[90px]">
                     <PriceChangePercent percent={s.priceChangePercent} />
                   </td>
 
                   {/* Drop / Recovery Signals */}
-                  <td className="px-2 py-1 text-center min-w-[60px]">
+                  <td className="px-2 py-1 text-center w-[60px]">
                     {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
                       <span className="text-yellow-400 font-semibold animate-pulse">🚨 Yes</span>
                     ) : (
                       <span className="text-gray-500">–</span>
                     )}
                   </td>
-                  <td className="px-2 py-1 text-center min-w-[70px]">
+                  <td className="px-2 py-1 text-center w-[70px]">
                     {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
                       <span className="text-green-400 font-semibold animate-pulse">🟢 Yes</span>
                     ) : (
@@ -447,16 +448,16 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   </td>
 
                   {/* Breakouts */}
-                  <td className={`px-2 py-1 text-center min-w-[60px] ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[60px] ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
                     {s.bullishBreakout ? 'Yes' : 'No'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[60px] ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[60px] ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
                     {s.bearishBreakout ? 'Yes' : 'No'}
                   </td>
 
                   {/* Prev Close */}
                   <td
-                    className={`px-2 py-1 text-center font-semibold min-w-[80px] ${
+                    className={`px-2 py-1 text-center font-semibold w-[80px] ${
                       s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
                     }`}
                   >
@@ -465,7 +466,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
                   {/* Main Trend (200 EMA) */}
                   <td
-                    className={`px-2 py-1 min-w-[90px] ${
+                    className={`px-2 py-1 w-[90px] ${
                       s.mainTrend?.trend === 'bullish'
                         ? 'text-green-500'
                         : s.mainTrend?.trend === 'bearish'
@@ -487,24 +488,24 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   </td>
 
                   {/* Collapse / Spike */}
-                  <td className={`px-2 py-1 text-center min-w-[70px] ${s.bearishCollapse?.signal ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[70px] ${s.bearishCollapse?.signal ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
                     {s.bearishCollapse?.signal ? '🚨' : '–'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[60px] ${s.bullishSpike?.signal ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[60px] ${s.bullishSpike?.signal ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
                     {s.bullishSpike?.signal ? '✅' : '–'}
                   </td>
 
                   {/* Reversals */}
-                  <td className={`px-2 py-1 text-center min-w-[70px] ${s.bearishReversal?.signal ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[70px] ${s.bearishReversal?.signal ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
                     {s.bearishReversal?.signal ? '✅' : '–'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[70px] ${s.bullishReversal?.signal ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[70px] ${s.bullishReversal?.signal ? 'text-red-400 font-semibold' : 'text-gray-500'}`}>
                     {s.bullishReversal?.signal ? '❌' : '–'}
                   </td>
 
                   {/* Signal Zone */}
                   <td
-                    className={`px-2 py-1 text-center font-semibold min-w-[100px] align-middle ${
+                    className={`px-2 py-1 text-center font-semibold w-[100px] align-middle ${
                       signalText.includes('MAX ZONE')
                         ? 'text-yellow-400'
                         : signalText.includes('BALANCE ZONE')
@@ -525,7 +526,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
                   {/* RSI Pump | Dump */}
                   <td
-                    className={`px-2 py-1 text-center font-bold whitespace-nowrap min-w-[90px] ${
+                    className={`px-2 py-1 text-center font-bold whitespace-nowrap w-[90px] ${
                       direction === 'pump' && pump !== undefined && pump > 30
                         ? 'text-green-400'
                         : direction === 'dump' && dump !== undefined && dump > 30
@@ -544,7 +545,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
                   {/* RSI14 */}
                   <td
-                    className={`px-2 py-1 text-center font-semibold min-w-[70px] ${
+                    className={`px-2 py-1 text-center font-semibold w-[70px] ${
                       typeof s.latestRSI !== 'number'
                         ? 'text-gray-400'
                         : s.latestRSI > 50
@@ -559,16 +560,16 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   </td>
 
                   {/* Divergences */}
-                  <td className={`px-2 py-1 text-center font-semibold min-w-[70px] ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center font-semibold w-[70px] ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-500'}`}>
                     {s.bearishDivergence?.divergence ? 'Yes' : '–'}
                   </td>
-                  <td className={`px-2 py-1 text-center font-semibold min-w-[70px] ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center font-semibold w-[70px] ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-500'}`}>
                     {s.bullishDivergence?.divergence ? 'Yes' : '–'}
                   </td>
 
                   {/* Volume */}
                   <td
-                    className={`px-2 py-1 text-center font-semibold min-w-[80px] ${
+                    className={`px-2 py-1 text-center font-semibold w-[80px] ${
                       s.highestVolumeColorPrev === 'green'
                         ? 'text-green-400'
                         : s.highestVolumeColorPrev === 'red'
@@ -582,7 +583,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   </td>
 
                   <td
-                    className={`px-2 py-1 text-center font-semibold min-w-[70px] ${
+                    className={`px-2 py-1 text-center font-semibold w-[70px] ${
                       s.bullishVolumeDivergence?.divergence
                         ? s.bullishVolumeDivergence.type === 'bullish-volume'
                           ? 'text-green-400'
@@ -597,7 +598,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                       : '—'}
                   </td>
                   <td
-                    className={`px-2 py-1 text-center font-semibold min-w-[70px] ${
+                    className={`px-2 py-1 text-center font-semibold w-[70px] ${
                       s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-500'
                     }`}
                   >
@@ -605,29 +606,29 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   </td>
 
                   {/* EMA14 Inside */}
-                  <td className="px-2 py-1 text-center min-w-[100px]">
+                  <td className="px-2 py-1 text-center w-[100px]">
                     {s.ema14InsideResults.some(r => r.inside)
                       ? <span className="text-green-400 font-semibold">Yes</span>
                       : <span className="text-red-400">No</span>}
                   </td>
 
                   {/* Gaps */}
-                  <td className={`px-2 py-1 text-center min-w-[90px] ${s.gap !== null && s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <td className={`px-2 py-1 text-center w-[90px] ${s.gap !== null && s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {typeof s.gap === 'number' && !isNaN(s.gap) ? `${s.gap.toFixed(1)}%` : 'N/A'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[90px] ${s.gap1 !== null && s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <td className={`px-2 py-1 text-center w-[90px] ${s.gap1 !== null && s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {typeof s.gap1 === 'number' && !isNaN(s.gap1) ? `${s.gap1.toFixed(1)}%` : 'N/A'}
                   </td>
 
                   {/* EMA200 Proximity */}
-                  <td className="px-2 py-1 text-center min-w-[100px]">
+                  <td className="px-2 py-1 text-center w-[100px]">
                     {s.mainTrend?.trend === 'bearish' && s.gapFromLowToEMA200 !== null ? (
                       <span className={s.gapFromLowToEMA200 < 1 ? 'text-red-400' : 'text-yellow-400'}>
                         {s.gapFromLowToEMA200.toFixed(1)}%
                       </span>
                     ) : '—'}
                   </td>
-                  <td className="px-2 py-1 text-center min-w-[100px]">
+                  <td className="px-2 py-1 text-center w-[100px]">
                     {s.mainTrend?.trend === 'bullish' && s.gapFromHighToEMA200 !== null ? (
                       <span className={s.gapFromHighToEMA200 > 5 ? 'text-green-400' : 'text-gray-300'}>
                         {s.gapFromHighToEMA200.toFixed(1)}%
@@ -636,42 +637,42 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                   </td>
 
                   {/* Bounces & Touches */}
-                  <td className={`px-2 py-1 text-center min-w-[90px] ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[90px] ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
                     {s.ema200Bounce ? 'Yes' : 'No'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[120px] ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[120px] ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
                     {s.touchedEMA200Today ? 'Yes' : 'No'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[90px] ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[90px] ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
                     {s.ema14Bounce ? 'Yes' : 'No'}
                   </td>
-                  <td className={`px-2 py-1 text-center min-w-[90px] ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
+                  <td className={`px-2 py-1 text-center w-[90px] ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
                     {s.ema70Bounce ? 'Yes' : 'No'}
                   </td>
 
                   {/* Engulfing & Patterns */}
-                  <td className="px-2 py-1 text-center text-green-400 font-semibold min-w-[90px]">
+                  <td className="px-2 py-1 text-center text-green-400 font-semibold w-[90px]">
                     {s.mainTrend?.trend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
                   </td>
-                  <td className="px-2 py-1 text-center text-red-400 font-semibold min-w-[90px]">
+                  <td className="px-2 py-1 text-center text-red-400 font-semibold w-[90px]">
                     {s.mainTrend?.trend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
                   </td>
-                  <td className="px-2 py-1 text-center text-blue-300 font-semibold min-w-[80px]">
+                  <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
                     {s.testedPrevHigh ? 'Yes' : '-'}
                   </td>
-                  <td className="px-2 py-1 text-center text-blue-300 font-semibold min-w-[80px]">
+                  <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
                     {s.testedPrevLow ? 'Yes' : '-'}
                   </td>
-                  <td className="px-2 py-1 text-center text-red-400 font-semibold min-w-[90px]">
+                  <td className="px-2 py-1 text-center text-red-400 font-semibold w-[90px]">
                     {s.breakoutFailure ? 'Yes' : '-'}
                   </td>
-                  <td className="px-2 py-1 text-center text-yellow-400 font-semibold min-w-[90px]">
+                  <td className="px-2 py-1 text-center text-yellow-400 font-semibold w-[90px]">
                     {s.mainTrend?.trend === 'bullish' &&
                     (s.isDoubleTopFailure || s.isDoubleTop || s.isDescendingTop)
                       ? s.isDoubleTopFailure ? 'Fail' : s.isDoubleTop ? 'Double' : 'Desc'
                       : '-'}
                   </td>
-                  <td className="px-2 py-1 text-center text-green-400 font-semibold min-w-[100px]">
+                  <td className="px-2 py-1 text-center text-green-400 font-semibold w-[100px]">
                     {s.mainTrend?.trend === 'bearish' &&
                     (s.isDoubleBottomFailure || s.isDoubleBottom || s.isAscendingBottom)
                       ? s.isDoubleBottomFailure ? 'Fail' : s.isDoubleBottom ? 'Double' : 'Asc'
