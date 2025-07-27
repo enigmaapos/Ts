@@ -70,7 +70,7 @@ export default function Home() {
             setTimeframe={handleTimeframeSwitch}
             timeframes={timeframes}
           />
-        </div>
+      
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6">
