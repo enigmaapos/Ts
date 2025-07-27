@@ -241,8 +241,8 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
 
   return (
-<div className="overflow-x-auto max-h-[80vh] border border-gray-700 rounded-lg shadow-lg bg-gray-900">
-  <table className="w-full text-xs border-collapse">
+<div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+  <table className="w-full text-[11px] border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
   <tr>
     {/* Symbol */}
