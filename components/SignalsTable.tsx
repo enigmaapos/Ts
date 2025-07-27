@@ -843,8 +843,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.ema70Bounce ? 'Yes' : 'No'}
   </td>	   
 		   		   
- <td className="text-center font-semibold text-blue-300">{s.symbol}</td>
-              <td className="text-center capitalize">
+     <td className="text-center capitalize">
                 {s.mainTrend?.trend ?? '-'}
               </td>
               <td className="text-center text-green-400">
@@ -852,7 +851,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               </td>
               <td className="text-center text-red-400">
                 {s.mainTrend?.trend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
-              </td>	   	   
+              </td>
 		   	
 		   
   {/* Support/Breakout Detection */}
