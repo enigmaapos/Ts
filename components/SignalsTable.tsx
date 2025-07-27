@@ -251,7 +251,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
         setSortField('symbol');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-2 py-1 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer w-[100px]"
+      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
     >
       Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
@@ -441,24 +441,29 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
           return (
             <tr
-              key={s.symbol}
-              className={`border-b border-gray-700 transition-colors duration-150 hover:bg-gray-800 ${
-                updatedRecently ? 'bg-yellow-900/30' : ''
-              }`}
-            >
-              {/* Sticky Symbol Cell */}
-              <td className="px-2 py-1 bg-gray-900 sticky left-0 z-10 text-left align-middle truncate border-r border-gray-700 w-[100px]">
-                <div className="flex items-center justify-between text-white">
-                  <span className="truncate max-w-[calc(100%-20px)]">{s.symbol}</span>
-                  <button
-                    className="ml-1 text-yellow-400 hover:text-yellow-300"
-                    onClick={() => toggleFavorite(s.symbol)}
-                    aria-label={favorites.has(s.symbol) ? 'Remove from favorites' : 'Add to favorites'}
-                  >
-                    {favorites.has(s.symbol) ? '★' : '☆'}
-                  </button>
-                </div>
-              </td>
+  key={s.symbol}
+  className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
+    updatedRecently ? 'bg-yellow-900/30' : ''
+  }`}
+>
+  {/* Symbol + Favorite */}
+  <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
+    <div className="flex items-center justify-between">
+      <span className="truncate">{s.symbol}</span>
+      <button
+        className="ml-1 text-yellow-400 hover:text-yellow-300"
+        onClick={() => {
+          setFavorites((prev: Set<string>) => {
+            const newSet = new Set(prev);
+            newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+            return newSet;
+          });
+        }}
+      >
+        {favorites.has(s.symbol) ? '★' : '☆'}
+      </button>
+    </div>
+  </td>
 
               <td className="px-2 py-1 text-right text-gray-200 w-[80px]">
                 ${Number(s.currentPrice).toFixed(7)}
