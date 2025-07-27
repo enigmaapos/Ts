@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import PriceChangePercent from './PriceChangePercent';
-import { SignalData } from '../hooks/useCryptoSignals';
+import { SignalData } from '../hooks/useCryptoSignals'; // Assuming SignalData is correctly imported
 import { getRecentRSIDiff, getSignal, didDropFromPeak, didRecoverFromLow } from '../utils/calculations';
 
 interface SignalsTableProps {
@@ -688,10 +688,12 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
               {/* Engulfing & Patterns */}
               <td className="px-2 py-1 text-center text-green-400 font-semibold w-[90px]">
-                {s.mainTrend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
+                {/* FIX: Access s.mainTrend?.trend */}
+                {s.mainTrend?.trend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
               </td>
               <td className="px-2 py-1 text-center text-red-400 font-semibold w-[90px]">
-                {s.mainTrend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
+                {/* FIX: Access s.mainTrend?.trend */}
+                {s.mainTrend?.trend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
               </td>
               <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
                 {s.testedPrevHigh ? 'Yes' : '-'}
@@ -703,25 +705,29 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
                 {s.breakoutFailure ? 'Yes' : '-'}
               </td>
               <td className="px-2 py-1 text-center text-yellow-400 font-semibold w-[90px]">
-                {s.mainTrend === 'bullish'
+                {/* FIX: Access s.mainTrend?.trend and combine conditions logically */}
+                {s.mainTrend?.trend === 'bullish' &&
+                (s.isDoubleTopFailure || s.isDoubleTop || s.isDescendingTop)
                   ? s.isDoubleTopFailure
                     ? 'Fail'
                     : s.isDoubleTop
                     ? 'Double'
                     : s.isDescendingTop
                     ? 'Desc'
-                    : '-'
+                    : '-' // Should not reach here if one of the above is true
                   : '-'}
               </td>
               <td className="px-2 py-1 text-center text-green-400 font-semibold w-[100px]">
-                {s.mainTrend === 'bearish'
+                {/* FIX: Access s.mainTrend?.trend and combine conditions logically */}
+                {s.mainTrend?.trend === 'bearish' &&
+                (s.isDoubleBottomFailure || s.isDoubleBottom || s.isAscendingBottom)
                   ? s.isDoubleBottomFailure
                     ? 'Fail'
                     : s.isDoubleBottom
                     ? 'Double'
                     : s.isAscendingBottom
                     ? 'Asc'
-                    : '-'
+                    : '-' // Should not reach here if one of the above is true
                   : '-'}
               </td>
             </tr>
