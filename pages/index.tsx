@@ -200,5 +200,6 @@ export default function Home() {
             signalFilter={signalFilter}
           />
         </div>
+        </div>
   );
 }
