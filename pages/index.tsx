@@ -119,6 +119,7 @@ export default function Home() {
         </div>
       </div>
 
+      <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
       <SignalsTable
         signals={signals}
         lastUpdatedMap={lastUpdatedMap}
@@ -134,5 +135,6 @@ export default function Home() {
         signalFilter={signalFilter}
       />
     </div>
+      </div>
   );
 }
