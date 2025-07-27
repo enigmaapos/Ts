@@ -453,7 +453,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
       <button
         className="ml-1 text-yellow-400 hover:text-yellow-300"
         onClick={() => {
-          setFavorites((prev: Set<string>) => {
+          toggleFavorite((prev: Set<string>) => {
             const newSet = new Set(prev);
             newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
             return newSet;
