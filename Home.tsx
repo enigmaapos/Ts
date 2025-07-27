@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useCryptoSignals } from "./hooks/useCryptoSignals";
-import TimeframeSelector from "./components/TimeframeSelector";
-import FilterControls from "./components/FilterControls";
-import SignalsTable from "./components/SignalsTable";
-import { getRecentRSIDiff, getSignal, Timeframe } from "./utils/calculations";
+import TimeframeSelector from "../components/TimeframeSelector";
+import FilterControls from "../components/FilterControls";
+import SignalsTable from "../components/SignalsTable";
+import { getRecentRSIDiff, getSignal, Timeframe } from "../utils/calculations";
 
 export default function Home() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1d'); // Explicitly type timeframe
