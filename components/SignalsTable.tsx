@@ -243,7 +243,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
   return (
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
-    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
+    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">	    
   <tr>
     {/* Symbol */}
     <th
@@ -251,7 +251,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
         setSortField('symbol');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"    
     >
       Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
