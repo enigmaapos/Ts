@@ -1,59 +1,38 @@
-import { useEffect, useState } from 'react';
+// File: pages/api/data.ts
 
-export interface SignalData {
-  symbol: string;
-  signal: string;
-  latestRSI: number;
-  // You can add more fields here if needed
+export default function handler(req, res) {
+  try {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(200).end();
+      return;
+    }
+
+    // 🔐 Dummy data
+    const data = [
+      {
+        symbol: "BTC/USDT",
+        signal: "MAX ZONE DUMP",
+        latestRSI: 48.7,
+      },
+      {
+        symbol: "ETH/USDT",
+        signal: "NEUTRAL",
+        latestRSI: 55.2,
+      },
+      {
+        symbol: "XRP/USDT",
+        signal: "BUY SIGNAL",
+        latestRSI: 62.1,
+      },
+    ];
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Internal API error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 }
-
-export const useCryptoSignals = () => {
-  const [signals, setSignals] = useState<SignalData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const API_URL = "https://ts-five-umber.vercel.app/api/data"; // Change to `/api/data` for local dev
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchSignals = async () => {
-      if (!isMounted) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data: SignalData[] = await response.json();
-
-        if (isMounted) {
-          setSignals(data);
-        }
-      } catch (err: any) {
-        console.error("Failed to fetch signal data:", err);
-        if (isMounted) {
-          setError(err.message || "Unknown error");
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchSignals();
-    const interval = setInterval(fetchSignals, 60000); // Refresh every 60s
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  return { signals, loading, error };
-};
