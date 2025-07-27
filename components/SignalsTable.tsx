@@ -250,11 +250,14 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
           <tr>
             {/* Sticky Symbol Column */}
             <th
-              onClick={() => handleSort('symbol')}
-              className="px-2 py-2 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer whitespace-nowrap border-r border-gray-700 hover:bg-gray-700 w-[100px]"
-            >
-              Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-            </th>
+      onClick={() => {
+        setSortField('symbol');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
+    >
+      Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
             <th className="px-2 py-2 text-right whitespace-nowrap w-[80px]">Price</th>
             <th
               onClick={() => handleSort('priceChangePercent')}
@@ -406,11 +409,11 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
               return (
                 <tr
-                  key={s.symbol}
-                  className={`border-b border-gray-700 transition-colors duration-150 hover:bg-gray-800 ${
-                    updatedRecently ? 'bg-yellow-900/30' : ''
-                  }`}
-                >
+  key={s.symbol}
+  className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
+    updatedRecently ? 'bg-yellow-900/30' : ''
+  }`}
+>
                   {/* Sticky Symbol Cell */}
                   <td className="px-2 py-1 bg-gray-900 sticky left-0 z-10 text-left align-middle truncate border-r border-gray-700 w-[100px]">
                     <div className="flex items-center justify-between text-white">
