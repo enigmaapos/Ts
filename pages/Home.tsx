@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useCryptoSignals } from "./hooks/useCryptoSignals";
+import { useCryptoSignals } from "../hooks/useCryptoSignals";
 import TimeframeSelector from "../components/TimeframeSelector";
 import FilterControls from "../components/FilterControls";
 import SignalsTable from "../components/SignalsTable";
