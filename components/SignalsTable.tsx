@@ -843,13 +843,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.ema70Bounce ? 'Yes' : 'No'}
   </td>	   
 		   		   
-     <td className="text-center capitalize">
-                {s.mainTrend?.trend ?? '-'}
-              </td>
-              <td className="text-center text-green-400">
+     <td className="px-2 py-1 text-center text-green-400 font-semibold w-[90px]">
+                {/* FIX: Access s.mainTrend?.trend */}
                 {s.mainTrend?.trend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
               </td>
-              <td className="text-center text-red-400">
+              <td className="px-2 py-1 text-center text-red-400 font-semibold w-[90px]">
+                {/* FIX: Access s.mainTrend?.trend */}
                 {s.mainTrend?.trend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
               </td>
 		   	
