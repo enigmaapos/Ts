@@ -419,7 +419,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
   </tr>
 </thead>
     
-    <tbody className="divide-y divide-gray-700">
+    <tbody>
       {filteredAndSortedSignals.length === 0 ? (
         <tr>
           <td colSpan={35} className="py-4 text-center text-gray-500">
@@ -451,7 +451,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
     <div className="flex items-center justify-between">
       <span className="truncate">{s.symbol}</span>
       <button
-  className="ml-1 text-yellow-400 hover:text-yellow-300"
+  className="ml-1 text-yellow-400 hover:text-yellow-300"	      
   onClick={() => toggleFavorite(s.symbol)}
 >
   {favorites.has(s.symbol) ? '★' : '☆'}
