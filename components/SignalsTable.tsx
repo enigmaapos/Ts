@@ -34,7 +34,7 @@ const trendKeyToBooleanField: Record<string, keyof SignalData> = {
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
   ema14InsideResults: 'ema14InsideResults',
-  highestVolumeColorPrev: 'highestVolumeColorPrev'
+  highestVolumeColorPrev: 'highestVolumeColorPrev' // This is a string, which caused the error
 };
 
 const SignalsTable: React.FC<SignalsTableProps> = ({
@@ -74,14 +74,42 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
           if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
         } else if (trendKeyToBooleanField[trendFilter]) {
           const field = trendKeyToBooleanField[trendFilter];
-          // Use optional chaining and nullish coalescing for safety
-          if (!((s as any)[field] || s[field as keyof SignalData]?.signal === true || s[field as keyof SignalData]?.some?.(r => r.inside))) {
-             return false;
+          const fieldValue = s[field]; // Get the value of the field safely
+
+          let matchesTrendFilter = false;
+
+          // Case 1: Field is a direct boolean (e.g., bullishBreakout)
+          if (typeof fieldValue === 'boolean' && fieldValue === true) {
+            matchesTrendFilter = true;
+          }
+          // Case 2: Field is an object with a 'signal' property (e.g., bullishReversal, bearishCollapse)
+          else if (
+            typeof fieldValue === 'object' &&
+            fieldValue !== null &&
+            'signal' in fieldValue &&
+            (fieldValue as { signal: boolean }).signal === true // Type assertion for safety
+          ) {
+            matchesTrendFilter = true;
+          }
+          // Case 3: Field is an array where some element has 'inside: true' (e.g., ema14InsideResults)
+          else if (Array.isArray(fieldValue) && fieldValue.some && fieldValue.some(item => (item as any).inside === true)) {
+            matchesTrendFilter = true;
+          }
+          // Case 4: Field is a string and it matches a specific condition (e.g. highestVolumeColorPrev for 'green' or 'red')
+          // This case needs to be handled carefully based on how 'highestVolumeColorPrev' filter is intended
+          // For now, if it's a string, and it's not handled by other logic, it won't match.
+          // If you need specific string matching, you would add it here:
+          // else if (typeof fieldValue === 'string' && trendFilter === 'highestVolumeColorPrev' && fieldValue === 'green') {
+          //   matchesTrendFilter = true;
+          // }
+
+
+          if (!matchesTrendFilter) {
+            return false;
           }
         }
       }
 
-      // Ensure signalFilter matches exactly or the signal function result
       if (signalFilter && getSignal(s)?.trim().toUpperCase() !== signalFilter.trim().toUpperCase()) return false;
 
       return true;
@@ -96,26 +124,30 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
       // Centralized handling for boolean-like sorts
       const handleBooleanSort = (fieldKey: keyof SignalData) => {
-        // Handle fields that are directly booleans or objects with a 'signal' property or array with 'inside'
         let aVal = false;
         let bVal = false;
+        
+        const aFieldVal = a[fieldKey];
+        const bFieldVal = b[fieldKey];
 
-        if (typeof (a as any)[fieldKey] === 'boolean') {
-          aVal = (a as any)[fieldKey];
-        } else if (typeof (a as any)[fieldKey] === 'object' && (a as any)[fieldKey]?.signal !== undefined) {
-          aVal = (a as any)[fieldKey].signal;
-        } else if (Array.isArray((a as any)[fieldKey]) && (a as any)[fieldKey].some) {
-          aVal = (a as any)[fieldKey].some((r: any) => r.inside);
+        // Check if it's a direct boolean
+        if (typeof aFieldVal === 'boolean') {
+          aVal = aFieldVal;
+        } else if (typeof aFieldVal === 'object' && aFieldVal !== null && 'signal' in aFieldVal) {
+          aVal = (aFieldVal as { signal: boolean }).signal;
+        } else if (Array.isArray(aFieldVal) && aFieldVal.some) {
+          aVal = aFieldVal.some((r: any) => r.inside);
         }
 
-        if (typeof (b as any)[fieldKey] === 'boolean') {
-          bVal = (b as any)[fieldKey];
-        } else if (typeof (b as any)[fieldKey] === 'object' && (b as any)[fieldKey]?.signal !== undefined) {
-          bVal = (b as any)[fieldKey].signal;
-        } else if (Array.isArray((b as any)[fieldKey]) && (b as any)[fieldKey].some) {
-          bVal = (b as any)[fieldKey].some((r: any) => r.inside);
+        if (typeof bFieldVal === 'boolean') {
+          bVal = bFieldVal;
+        } else if (typeof bFieldVal === 'object' && bFieldVal !== null && 'signal' in bFieldVal) {
+          bVal = (bFieldVal as { signal: boolean }).signal;
+        } else if (Array.isArray(bFieldVal) && bFieldVal.some) {
+          bVal = bFieldVal.some((r: any) => r.inside);
         }
         
+        // Sort booleans: true (1) before false (0) for 'asc', false before true for 'desc'
         return sortOrder === 'asc' ? (aVal === bVal ? 0 : aVal ? 1 : -1) : (aVal === bVal ? 0 : aVal ? -1 : 1);
       };
 
@@ -133,7 +165,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
           return handleBooleanSort(sortField);
 
         case 'ema14InsideResults':
-          return handleBooleanSort('ema14InsideResults'); // Use the correct field key
+          return handleBooleanSort('ema14InsideResults');
 
         case 'pumpStrength':
         case 'dumpStrength':
@@ -156,7 +188,6 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
           valB = divB;
           break;
 
-
         case 'priceChangePercent':
           valA = Number(a.priceChangePercent);
           valB = Number(b.priceChangePercent);
@@ -172,7 +203,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
         case 'prevClose':
           const getCloseValue = (item: SignalData) =>
-            item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0; // Green > N/A > Red
+            item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0; // Green > N/A > Red (arbitrary order)
           valA = getCloseValue(a);
           valB = getCloseValue(b);
           break;
@@ -190,9 +221,7 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
         case 'signal': // Sorting by the derived signal text
           valA = getSignal(a) || '';
           valB = getSignal(b) || '';
-          // For signal, a simple string comparison is probably best unless you have a specific order
           return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-
 
         case 'gap': // EMA14&70 Gap
         case 'gap1': // EMA70&200 Gap
