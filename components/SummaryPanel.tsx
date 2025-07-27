@@ -1,3 +1,20 @@
+import React, { useState, useMemo } from 'react';
+
+// Define the item structure
+interface SummaryDataItem {
+  id: string;
+  name: string;
+  value: number;
+  change: number;
+}
+
+// ✅ Define props BEFORE the component
+interface SummaryPanelProps {
+  data: SummaryDataItem[];
+  title?: string;
+  description?: string;
+}
+
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({ data, title = "Summary Panel", description }) => {
   const [sortField, setSortField] = useState<keyof SummaryDataItem | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
