@@ -62,9 +62,6 @@ export default function Home() {
   return (
     
       <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
-      <div className="max-w-screen-2xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-2">
           <h2 className="text-2xl font-bold tracking-wide text-yellow-400">
             ⏱ Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
           </h2>
@@ -203,7 +200,5 @@ export default function Home() {
             signalFilter={signalFilter}
           />
         </div>
-      </div>
-    </div>
   );
 }
