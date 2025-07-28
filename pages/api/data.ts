@@ -1,6 +1,12 @@
 import { fetchRawCryptoSignals } from '../../lib/api';
+import { calculateRSI, getRecentRSIDiff } from '../../utils/calculations';
+import { Timeframe } from '../../utils/calculations';
 
-...
+interface SiteAFormattedSignal {
+  symbol: string;
+  signal: string;
+  latestRSI: number | null;
+}
 
 export default async function handler(req: any, res: any) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -13,17 +19,17 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const requestedTimeframe = (req.query.timeframe as Timeframe) || '1d';
+    const requestedTimeframe: Timeframe = (req.query.timeframe as Timeframe) || '1d';
     console.log(`[API] Request received for timeframe: ${requestedTimeframe}`);
 
     const { signals: rawSignalsData, lastUpdatedMap } = await fetchRawCryptoSignals(requestedTimeframe);
-
     console.log(`[API] Raw signals received: ${rawSignalsData.length}`);
+
     if (rawSignalsData.length === 0) {
       console.warn("[API] Empty signal list — likely Binance fetch failed or returned no data.");
     }
 
-    const formatted = rawSignalsData.map((s) => {
+    const formatted: SiteAFormattedSignal[] = rawSignalsData.map((s) => {
       const rsiArray = s.closes ? calculateRSI(s.closes, 14) : [];
       const latestRSI = rsiArray.length > 0 && !isNaN(rsiArray[rsiArray.length - 1])
         ? rsiArray[rsiArray.length - 1]
@@ -33,7 +39,6 @@ export default async function handler(req: any, res: any) {
       const pumpDump = getRecentRSIDiff(rsiArray, 14);
       if (pumpDump) {
         const { direction, pumpStrength, dumpStrength } = pumpDump;
-
         const inRange = (val: number | undefined, min: number, max: number) =>
           val !== undefined && val >= min && val <= max;
 
@@ -48,7 +53,7 @@ export default async function handler(req: any, res: any) {
       return {
         symbol: s.symbol,
         signal: signalText,
-        latestRSI,
+        latestRSI: latestRSI,
       };
     });
 
@@ -56,6 +61,6 @@ export default async function handler(req: any, res: any) {
     res.status(200).json(formatted);
   } catch (error: any) {
     console.error(`[API] ERROR: ${error.message}`);
-    res.status(500).json({ error: "Failed to fetch signal data." });
+    res.status(500).json({ error: "Failed to generate signal data." });
   }
 }
