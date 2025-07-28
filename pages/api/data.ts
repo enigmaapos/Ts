@@ -4,18 +4,19 @@
 import { fetchRawCryptoSignals, RawCandleSignalData } from '../../lib/api'; // This now gives you the raw data
 import {
   calculateEMA, calculateRSI, getCurrentEMAGapPercentage, isEMA14InsideRange, getMainTrend,
-  getRecentRSIDiff, detectBearishDivergence, detectBullishDivergence, detectBearishVolumeDivergence,
+  getRecentRSIDiff, // <-- Still needed here if getSignal uses it
+  detectBearishDivergence, detectBullishDivergence, detectBearishVolumeDivergence,
   detectBullishVolumeDivergence, get24hChangePercent,
   getSessions, getLastNSessionStartTimes, getRecentSessionHighs, getRecentSessionLows,
   detectTopPatterns, detectBottomPatterns, detectBullishToBearish, detectBearishToBullish,
   detectBullishSpike, detectBearishCollapse, getTestThreshold,
   CandleData, // Need CandleData type here for internal processing
   Timeframe as CalculationTimeframe, // Use alias to avoid conflict if you export a Timeframe here
+  getSignal // <-- IMPORT getSignal here
 } from '../../utils/calculations';
 
 // Define the exact structure of the signal data you want to send to the frontend.
 // This MUST match the `SignalData` type in your `useCryptoSignals.ts` hook.
-// I've copied it directly from your useCryptoSignals for consistency.
 export type SignalData = {
   symbol: string;
   bullishMainTrendCount?: number;
@@ -77,6 +78,8 @@ export type SignalData = {
   gapFromLowToEMA200: number | null;
   gapFromHighToEMA200: number | null;
   closes?: number[]; // Only include if frontend needs the raw closes for something
+  // *** ADD THIS NEW FIELD ***
+  primarySignalText: string;
 };
 
 // This type should match Timeframe from `utils/calculations`
@@ -97,7 +100,6 @@ export default async function handler(req: any, res: any) {
 
     console.log(`[pages/api/data.ts] Received request for timeframe: ${requestedTimeframe}`);
 
-    // Call your lib/api.ts to get the raw candle and ticker data
     const { signals: rawSignalsData } = await fetchRawCryptoSignals(requestedTimeframe);
 
     if (!rawSignalsData || rawSignalsData.length === 0) {
@@ -109,7 +111,7 @@ export default async function handler(req: any, res: any) {
     const processedSignals: SignalData[] = rawSignalsData.map((s) => {
       try {
         const symbol = s.symbol;
-        const candles = s.candles; // Raw candle data from lib/api.ts
+        const candles = s.candles;
         const closes = s.closes;
         const highs = s.highs;
         const lows = s.lows;
@@ -120,14 +122,11 @@ export default async function handler(req: any, res: any) {
         const priceChangePercent = s.priceChangePercent;
         const isUp = priceChangePercent > 0;
 
-        // --- Start of calculations (Copied from your useCryptoSignals.ts) ---
-
         const ema14 = calculateEMA(closes, 14);
         const ema70 = calculateEMA(closes, 70);
         const ema200 = calculateEMA(closes, 200);
         const rsi14 = calculateRSI(closes, 14);
 
-        // Add RSI and volumeColor to candles for subsequent calculations if needed
         const processedCandles: CandleData[] = candles.map((c, i) => ({
           ...c,
           rsi: rsi14[i],
@@ -142,7 +141,7 @@ export default async function handler(req: any, res: any) {
 
         const mainTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows);
 
-        const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(requestedTimeframe); // Use requestedTimeframe here
+        const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(requestedTimeframe);
 
         const candlesToday = processedCandles.filter((c) => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
         const candlesPrev = processedCandles.filter((c) => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
@@ -225,10 +224,8 @@ export default async function handler(req: any, res: any) {
         const prevLow = Math.min(...lowsPrev);
         const currLow = Math.min(...lowsToday);
 
-        // Ensure rsi14 has enough elements before accessing
         const rsiPrev = rsi14.length > candlesToday.length ? rsi14[rsi14.length - candlesToday.length - 1] : undefined;
         const rsiCurr = rsi14.at(-1);
-
 
         const bearishDivergence = detectBearishDivergence(prevHigh, currHigh, rsiPrev, rsiCurr);
         const bullishDivergence = detectBullishDivergence(prevLow, currLow, rsiPrev, rsiCurr);
@@ -242,7 +239,7 @@ export default async function handler(req: any, res: any) {
         const bearishVolumeDivergence = detectBearishVolumeDivergence(prevHigh, currHigh, volumePrev, volumeCurr);
         const bullishVolumeDivergence = detectBullishVolumeDivergence(prevLow, currLow, volumePrev, volumeCurr);
 
-        const prevVolumesWithColor = prevSessionCandles.map(candle => ({ // Use prevSessionCandles as it's already filtered for prev session
+        const prevVolumesWithColor = prevSessionCandles.map(candle => ({
           ...candle,
           volumeColor: candle.close > candle.open ? 'green' : candle.close < candle.open ? 'red' : 'neutral',
         }));
@@ -257,7 +254,6 @@ export default async function handler(req: any, res: any) {
         const recentVolume = latestCandle?.volume ?? 0;
         const isVolumeSpike = recentVolume > avgPrevVolume * 1.5;
 
-        // Engulfing patterns
         const engulfingPatterns = [];
         let sessionHigh = -Infinity;
         let sessionLow = Infinity;
@@ -286,7 +282,7 @@ export default async function handler(req: any, res: any) {
 
           const isPrevBullish = prev.close > prev.open;
           const isCurrBearish = curr.close < curr.open;
-          const isNextBearish = next.close < curr.close; // Corrected: next.close < curr.close
+          const isNextBearish = next.close < curr.close;
 
           const bullishEngulfing =
             isPrevBearish &&
@@ -304,13 +300,13 @@ export default async function handler(req: any, res: any) {
             bullishEngulfing &&
             isNextBullish &&
             next.close > curr.close &&
-            i > sessionHighIndex; // This condition might be too strict for engulfing pattern itself. Check your logic.
+            i > sessionHighIndex;
 
           const bearishConfirmed =
             bearishEngulfing &&
             isNextBearish &&
             next.close < curr.close &&
-            i > sessionLowIndex; // This condition might be too strict for engulfing pattern itself. Check your logic.
+            i > sessionLowIndex;
 
           if (bullishConfirmed) {
             engulfingPatterns.push({ index: i, type: 'bullishConfirmed', candle: curr, confirm: next });
@@ -350,7 +346,10 @@ export default async function handler(req: any, res: any) {
           ema14, ema70, ema200, rsi14, lows, highs, closes, opens, bullishBreakout, bearishBreakout
         );
 
-        // --- End of calculations ---
+        // *** CALCULATE THE PRIMARY SIGNAL TEXT HERE ***
+        // You'll need to define this `getSignal` function based on your `utils/calculations`.
+        // If it takes (rsi: number[], period: number) as before, then:
+        const primarySignalText = getSignal(rsi14, 14);
 
         return {
           symbol,
@@ -399,15 +398,15 @@ export default async function handler(req: any, res: any) {
           isUp,
           gapFromLowToEMA200,
           gapFromHighToEMA200,
-          closes: closes, // Keep if frontend needs it for some reason, otherwise remove
-          // Any other counts you were tracking in SignalData should be calculated here too
-          // bullishMainTrendCount etc.
+          closes: closes,
+          // *** ADD THE NEWLY CALCULATED FIELD ***
+          primarySignalText,
         } as SignalData;
       } catch (processingError: any) {
         console.error(`[pages/api/data.ts] Error processing signal data for ${s.symbol}:`, processingError.message);
-        return null; // Return null if processing for a symbol fails
+        return null;
       }
-    }).filter((s): s is SignalData => s !== null); // Filter out any symbols that failed processing
+    }).filter((s): s is SignalData => s !== null);
 
     console.log(`[pages/api/data.ts] Successfully processed ${processedSignals.length} signals.`);
     res.status(200).json(processedSignals);
