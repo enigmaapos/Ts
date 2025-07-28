@@ -1,15 +1,10 @@
 // File: hooks/useCryptoSignals.ts
 
 import { useState, useEffect, useCallback, useRef } from "react";
-// Remove all calculation imports, as the server will handle them
-// import { calculateEMA, calculateRSI, ... } from "../utils/calculations";
 
-// Re-export Timeframe type if it's strictly defined here and used elsewhere
 export type Timeframe = '15m' | '4h' | '1d';
 
 // SignalData type must EXACTLY match what your /api/data endpoint returns
-// This is critical for type safety and ensuring your frontend receives what it expects.
-// Copied directly from the pages/api/data.ts version above
 export type SignalData = {
   symbol: string;
   bullishMainTrendCount?: number;
@@ -18,7 +13,7 @@ export type SignalData = {
   bearishBreakoutCount?: number;
   testedPrevHighCount?: number;
   testedPrevLowCount?: number;
-  mainTrend: any; // ReturnType<typeof getMainTrend> won't be available here, use 'any' or define type literally
+  mainTrend: any; // Using 'any' as ReturnType<typeof getMainTrend> isn't available here
   breakout: boolean;
   bullishBreakout: boolean;
   bearishBreakout: boolean;
@@ -26,10 +21,10 @@ export type SignalData = {
   prevClosedRed: boolean | null;
   bullishReversalCount?: number;
   bearishReversalCount?: number;
-  bullishReversal: any; // ReturnType<typeof detectBullishToBearish>
-  bearishReversal: any; // ReturnType<typeof detectBearishToBullish>
-  bullishSpike: any; // ReturnType<typeof detectBullishSpike>
-  bearishCollapse: any; // ReturnType<typeof detectBearishCollapse>
+  bullishReversal: any; // Using 'any'
+  bearishReversal: any; // Using 'any'
+  bullishSpike: any; // Using 'any'
+  bearishCollapse: any; // Using 'any'
   rsi14: number[];
   latestRSI: number | undefined;
   testedPrevHigh: boolean;
@@ -44,7 +39,7 @@ export type SignalData = {
   breakoutFailure: boolean;
   failedBearishBreak: boolean;
   failedBullishBreak: boolean;
-  ema14InsideResults: any; // ReturnType<typeof isEMA14InsideRange>
+  ema14InsideResults: any; // Using 'any'
   ema14InsideResultsCount?: number;
   gap: number | null;
   gap1: number | null;
@@ -52,10 +47,10 @@ export type SignalData = {
   ema70Bounce: boolean;
   ema200Bounce: boolean;
   touchedEMA200Today: boolean;
-  bearishDivergence: any; // ReturnType<typeof detectBearishDivergence>
-  bullishDivergence: any; // ReturnType<typeof detectBullishDivergence>
-  bearishVolumeDivergence: any; // ReturnType<typeof detectBearishVolumeDivergence>
-  bullishVolumeDivergence: any; // ReturnType<typeof detectBullishVolumeDivergence>
+  bearishDivergence: any; // Using 'any'
+  bullishDivergence: any; // Using 'any'
+  bearishVolumeDivergence: any; // Using 'any'
+  bullishVolumeDivergence: any; // Using 'any'
   highestVolumeColorPrev: 'green' | 'red' | 'neutral';
   greenVolumeCount?: number;
   redVolumeCount?: number;
@@ -71,6 +66,8 @@ export type SignalData = {
   gapFromLowToEMA200: number | null;
   gapFromHighToEMA200: number | null;
   closes?: number[];
+  // *** ADD THIS NEW FIELD ***
+  primarySignalText: string;
 };
 
 export const useCryptoSignals = (timeframe: Timeframe) => {
@@ -78,16 +75,15 @@ export const useCryptoSignals = (timeframe: Timeframe) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
-  const timeframesList = ['15m', '4h', '1d'] as const; // Still hardcode or fetch from API if dynamic
+  const timeframesList = ['15m', '4h', '1d'] as const;
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchDataFromAPI = useCallback(async (tf: Timeframe) => {
     setLoading(true);
-    setError(null); // Clear any previous errors
+    setError(null);
     try {
       console.log(`[useCryptoSignals] Fetching processed signals from your API for timeframe: ${tf}`);
-      // THIS IS THE ONLY API CALL NOW
       const response = await fetch(`/api/data?timeframe=${tf}`);
 
       if (!response.ok) {
@@ -98,7 +94,6 @@ export const useCryptoSignals = (timeframe: Timeframe) => {
       const data: SignalData[] = await response.json();
 
       setSignals(data);
-      // Update lastUpdatedMap based on when the API call completed
       const newLastUpdatedMap: { [symbol: string]: number } = {};
       data.forEach(s => {
         newLastUpdatedMap[s.symbol] = Date.now();
@@ -109,34 +104,29 @@ export const useCryptoSignals = (timeframe: Timeframe) => {
     } catch (err: any) {
       console.error("[useCryptoSignals] Error fetching signals from your API:", err);
       setError(err.message || "Failed to load signals from server.");
-      setSignals([]); // Clear signals on error
+      setSignals([]);
       setLastUpdatedMap({});
     } finally {
       setLoading(false);
     }
-  }, []); // No dependencies as it always fetches from /api/data
+  }, []);
 
   useEffect(() => {
-    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
 
-    // Fetch data initially
     fetchDataFromAPI(timeframe);
 
-    // Set up polling (adjust interval based on how often you want to refresh from your API)
-    // Be mindful of Vercel function invocation limits and execution time if too frequent.
-    const pollingInterval = timeframe === '15m' ? 60 * 1000 : 5 * 60 * 1000; // 1 min for 15m, 5 min for others
+    const pollingInterval = timeframe === '15m' ? 60 * 1000 : 5 * 60 * 1000;
     intervalRef.current = setInterval(() => fetchDataFromAPI(timeframe), pollingInterval);
 
-    // Cleanup on unmount or timeframe change
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [timeframe, fetchDataFromAPI]); // Re-run effect when timeframe changes or fetchDataFromAPI changes (though it's useCallback'd)
+  }, [timeframe, fetchDataFromAPI]);
 
   return { signals, loading, error, lastUpdatedMap, timeframes: timeframesList };
 };
