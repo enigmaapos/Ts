@@ -1,6 +1,9 @@
+// File: components/FilterControls.tsx
+
 import React from 'react';
-import { SignalData } from '../hooks/useCryptoSignals';
-import { getSignal } from '../utils/calculations';
+import { SignalData } from '../hooks/useCryptoSignals'; // Import SignalData from the hook
+// REMOVE THIS IMPORT: getSignal is now calculated server-side
+// import { getSignal } from '../utils/calculations';
 
 interface FilterControlsProps {
   signals: SignalData[];
@@ -17,17 +20,22 @@ interface FilterControlsProps {
 }
 
 const trendKeys = [
-  { label: 'Bullish Trend', key: 'bullishMainTrend', color: 'text-green-300' },
-  { label: 'Bearish Trend', key: 'bearishMainTrend', color: 'text-red-300' },
-  { label: 'Bullish Reversal', key: 'bullishReversal', color: 'text-green-300' },
-  { label: 'Bearish Reversal', key: 'bearishReversal', color: 'text-red-300' },
-  { label: 'Bullish Spike', key: 'bullishSpike', color: 'text-green-300' },
-  { label: 'Bearish Collapse', key: 'bearishCollapse', color: 'text-red-300' },
+  { label: 'Bullish Trend', key: 'mainTrend.trend_bullish', color: 'text-green-300' }, // Adjusted key for object property
+  { label: 'Bearish Trend', key: 'mainTrend.trend_bearish', color: 'text-red-300' },   // Adjusted key for object property
+  { label: 'Bullish Reversal', key: 'bullishReversal.signal', color: 'text-green-300' }, // Adjusted key for object property
+  { label: 'Bearish Reversal', key: 'bearishReversal.signal', color: 'text-red-300' },   // Adjusted key for object property
+  { label: 'Bullish Spike', key: 'bullishSpike.signal', color: 'text-green-300' },       // Adjusted key for object property
+  { label: 'Bearish Collapse', key: 'bearishCollapse.signal', color: 'text-red-300' },   // Adjusted key for object property
   { label: 'Breakout Failure', key: 'breakoutFailure', color: 'text-yellow-300' },
   { label: 'Bullish Breakout', key: 'bullishBreakout', color: 'text-yellow-400' },
   { label: 'Bearish Breakout', key: 'bearishBreakout', color: 'text-yellow-400' },
   { label: 'Tested Prev High', key: 'testedPrevHigh', color: 'text-blue-300' },
   { label: 'Tested Prev Low', key: 'testedPrevLow', color: 'text-blue-300' },
+  // Add other trend-related boolean/signal properties here if you want filters for them
+  // { label: 'EMA14 Inside', key: 'ema14Inside', color: 'text-orange-300' }, // If you add a simplified boolean to SignalData
+  // { label: 'Bullish Divergence', key: 'bullishDivergence.signal', color: 'text-purple-300' },
+  // { label: 'Bearish Divergence', key: 'bearishDivergence.signal', color: 'text-purple-300' },
+  // { label: 'Double Top', key: 'isDoubleTop', color: 'text-gray-300' },
 ];
 
 const signalKeys = [
@@ -37,6 +45,7 @@ const signalKeys = [
   { label: 'BALANCE ZONE DUMP', color: 'text-purple-400' },
   { label: 'LOWEST ZONE PUMP', color: 'text-yellow-500' },
   { label: 'LOWEST ZONE DUMP', color: 'text-yellow-600' },
+  // Ensure this list matches the possible values of signal.primarySignalText
 ];
 
 const FilterControls: React.FC<FilterControlsProps> = ({
@@ -56,38 +65,89 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   const filtered = React.useMemo(() =>
     signals.filter((s) => {
       const match = s.symbol?.toLowerCase().includes(searchTerm);
+      // Ensure the signal.primarySignalText is available for filtering
       return match && (!showOnlyFavorites || favorites.has(s.symbol));
     }), [signals, searchTerm, showOnlyFavorites, favorites]);
 
-  const countBool = (key: keyof SignalData) => filtered.filter((s) => s[key]).length;
+  // Helper to safely access nested boolean properties
+  const getNestedBoolean = (obj: any, path: string) => {
+    const parts = path.split('.');
+    let current = obj;
+    for (let i = 0; i < parts.length; i++) {
+      if (current === undefined || current === null) return false; // If any part of path is null/undefined
+      if (i === parts.length - 1) { // Last part of path
+        if (parts[i].startsWith('trend_')) { // Special handling for 'trend_bullish'/'trend_bearish'
+          const trendType = parts[i].split('_')[1]; // 'bullish' or 'bearish'
+          return current.trend === trendType; // Check if mainTrend.trend matches
+        }
+        return !!current[parts[i]]; // Return boolean value
+      }
+      current = current[parts[i]];
+    }
+    return false;
+  };
 
-  const counts = React.useMemo(() => ({
-    bullishMainTrend: filtered.filter(s => s.mainTrend?.trend === 'bullish').length,
-    bearishMainTrend: filtered.filter(s => s.mainTrend?.trend === 'bearish').length,
-    bullishReversal: filtered.filter(s => s.bullishReversal?.signal).length,
-    bearishReversal: filtered.filter(s => s.bearishReversal?.signal).length,
-    bullishSpike: filtered.filter(s => s.bullishSpike?.signal).length,
-    bearishCollapse: filtered.filter(s => s.bearishCollapse?.signal).length,
-    ema14: filtered.filter(s => s.ema14InsideResults?.some(r => r.inside)).length,
-    greenVol: filtered.filter(s => s.highestVolumeColorPrev === 'green').length,
-    redVol: filtered.filter(s => s.highestVolumeColorPrev === 'red').length,
-    green24h: filtered.filter(s => +s.priceChangePercent > 0).length,
-    red24h: filtered.filter(s => +s.priceChangePercent < 0).length,
-    ...Object.fromEntries(
-      ['breakoutFailure', 'bullishBreakout', 'bearishBreakout', 'testedPrevHigh', 'testedPrevLow']
-        .map(k => [k, countBool(k as keyof SignalData)])
-    )
-  }), [filtered]);
+
+  const counts = React.useMemo(() => {
+    const calculatedCounts: { [key: string]: number } = {};
+
+    // Initialize all trend keys
+    trendKeys.forEach(({ key }) => {
+        calculatedCounts[key] = 0;
+    });
+
+    calculatedCounts.ema14 = 0;
+    calculatedCounts.greenVol = 0;
+    calculatedCounts.redVol = 0;
+    calculatedCounts.green24h = 0;
+    calculatedCounts.red24h = 0;
+
+    filtered.forEach(s => {
+      // Trend Filters
+      trendKeys.forEach(({ key }) => {
+        if (getNestedBoolean(s, key)) { // Use helper for nested properties
+          calculatedCounts[key]++;
+        }
+      });
+
+      // Other Summary Counts
+      if (s.ema14InsideResults && s.ema14InsideResults.some(r => r.inside)) { // Check if EMA14 inside results exist and at least one is 'inside'
+        calculatedCounts.ema14++;
+      }
+      if (s.highestVolumeColorPrev === 'green') {
+        calculatedCounts.greenVol++;
+      } else if (s.highestVolumeColorPrev === 'red') {
+        calculatedCounts.redVol++;
+      }
+      if (s.priceChangePercent > 0) {
+        calculatedCounts.green24h++;
+      } else if (s.priceChangePercent < 0) {
+        calculatedCounts.red24h++;
+      }
+    });
+    return calculatedCounts;
+  }, [filtered]);
+
 
   const signalCounts = React.useMemo(() => {
     const map: Record<string, number> = {};
     signalKeys.forEach(({ label }) => map[label] = 0);
     filtered.forEach(s => {
-      const key = getSignal(s)?.toUpperCase();
+      // Access the pre-calculated primarySignalText
+      const key = s.primarySignalText?.toUpperCase(); // Assuming you've added primarySignalText to SignalData
       if (key && map.hasOwnProperty(key)) map[key]++;
     });
     return map;
   }, [filtered]);
+
+  // Helper to map dynamic key names for display
+  const getDisplayCount = (key: string) => {
+      // Special mapping for mainTrend counts
+      if (key === 'bullishMainTrend') return counts['mainTrend.trend_bullish'];
+      if (key === 'bearishMainTrend') return counts['mainTrend.trend_bearish'];
+      // For other keys, just return directly from counts
+      return counts[key];
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
@@ -105,7 +165,8 @@ const FilterControls: React.FC<FilterControlsProps> = ({
               >
                 {label}
                 <span className={`${color} text-xs font-bold`}>
-                  {counts[key as keyof typeof counts]}
+                  {/* Using a helper to get count based on the new key format */}
+                  {getDisplayCount(key)}
                 </span>
               </button>
             ))}
@@ -147,8 +208,8 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       {/* Summary Panel */}
       <div className="p-4 rounded-xl bg-gray-900 border border-gray-700 shadow space-y-4 text-sm">
         <div className="space-y-1">
-          <p>📈 <span className="text-green-400 font-bold">Bull:</span> {counts.bullishMainTrend}</p>
-          <p>📉 <span className="text-red-400 font-bold">Bear:</span> {counts.bearishMainTrend}</p>
+          <p>📈 <span className="text-green-400 font-bold">Bull:</span> {getDisplayCount('mainTrend.trend_bullish')}</p>
+          <p>📉 <span className="text-red-400 font-bold">Bear:</span> {getDisplayCount('mainTrend.trend_bearish')}</p>
         </div>
         <p>📍 EMA14 Inside EMA70–200: <span className="text-yellow-400 font-bold">{counts.ema14}</span></p>
         <div className="space-y-1">
