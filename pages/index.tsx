@@ -1,12 +1,17 @@
-import { useEffect, useState, useMemo } from "react";
-import { useCryptoSignals } from "../hooks/useCryptoSignals";
+// File: pages/index.tsx
+
+import { useEffect, useState } from "react"; // Removed useMemo as it's not strictly necessary here without complex derivations
+import { useCryptoSignals, SignalData, Timeframe } from "../hooks/useCryptoSignals"; // Import SignalData and Timeframe from the hook
 import TimeframeSelector from "../components/TimeframeSelector";
 import FilterControls from "../components/FilterControls";
 import SignalsTable from "../components/SignalsTable";
-import { getRecentRSIDiff, getSignal, Timeframe } from "../utils/calculations";
+// REMOVE THESE IMPORTS. The calculations are now done server-side.
+// import { getRecentRSIDiff, getSignal, Timeframe } from "../utils/calculations";
+
 
 export default function Home() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1d'); // Explicitly type timeframe
+  // useCryptoSignals now returns the full SignalData[] directly
   const { signals, loading, lastUpdatedMap, timeframes } = useCryptoSignals(timeframe);
 
   const [search, setSearch] = useState("");
@@ -75,8 +80,9 @@ export default function Home() {
         timeframes={timeframes}
       />
 
+      {/* FilterControls and SignalsTable will now directly use properties from SignalData */}
       <FilterControls
-        signals={signals} // Pass signals for calculating counts in FilterControls
+        signals={signals} // Signals now directly contain all calculated fields
         search={search}
         setSearch={setSearch}
         showOnlyFavorites={showOnlyFavorites}
@@ -119,9 +125,9 @@ export default function Home() {
         </div>
       </div>
 
-      
+
       <SignalsTable
-        signals={signals}
+        signals={signals} // These signals are already the "finished product"
         lastUpdatedMap={lastUpdatedMap}
         favorites={favorites}
         toggleFavorite={toggleFavorite}
@@ -134,6 +140,6 @@ export default function Home() {
         trendFilter={trendFilter}
         signalFilter={signalFilter}
       />
-      </div>
+    </div>
   );
 }
