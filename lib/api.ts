@@ -1,12 +1,11 @@
 // File: lib/api.ts
 
-import { Timeframe } from '../hooks/useCryptoSignals'; // Or from '../utils/calculations' if it's truly a utility type.
+import { Timeframe } from '../utils/calculations'; // Assuming Timeframe is defined here now, as it's a utility type
 
 // This interface defines what this `fetchRawCryptoSignals` function will return.
 // It should contain *all* the raw data necessary for your analysis functions.
 export interface RawCandleSignalData {
   symbol: string;
-  // Based on your `useCryptoSignals` hook, you'll need these:
   candles: {
     timestamp: number;
     open: number;
@@ -25,47 +24,71 @@ export interface RawCandleSignalData {
   priceChangePercent: number; // From 24hr ticker
 }
 
+/**
+ * Fetches raw crypto signal data (klines and 24hr ticker) from Binance Futures API.
+ * Batches requests to stay within API limits.
+ *
+ * @param timeframe The desired candlestick interval (e.g., '15m', '4h', '1d').
+ * @returns An object containing an array of RawCandleSignalData and a map of last update timestamps.
+ */
 export async function fetchRawCryptoSignals(timeframe: Timeframe = '1d'): Promise<{ signals: RawCandleSignalData[]; lastUpdatedMap: { [symbol: string]: number; } }> {
-  const symbolsToFetch: string[] = [];
-  const BATCH_SIZE = 10; // Adjust based on your Vercel function's memory/time limits and Binance rate limits
-  const MAX_SYMBOLS = 500; // Limit to 500 as in your hook
+  // Constants for API behavior and limits
+  const BATCH_SIZE = 15; // Increased slightly from 10, common practice. Adjust based on observed limits.
+  const API_DELAY_MS = 600; // Delay between batches (was 500ms). Aim for ~1 second per 20 requests to be safe.
+  const KLINE_LIMIT = 500; // Number of historical candles to fetch (Binance default is 500, max is 1000)
+  const MAX_SYMBOLS_TO_PROCESS = 300; // Reduced from 500 to potentially lessen overall load for initial testing
 
   console.log(`[lib/api.ts] fetchRawCryptoSignals called for timeframe: ${timeframe}`);
+  console.log(`[lib/api.ts] Configuration: BATCH_SIZE=${BATCH_SIZE}, API_DELAY_MS=${API_DELAY_MS}, KLINE_LIMIT=${KLINE_LIMIT}, MAX_SYMBOLS_TO_PROCESS=${MAX_SYMBOLS_TO_PROCESS}`);
+
+  const fetchedSignals: RawCandleSignalData[] = [];
+  const lastUpdated: { [symbol: string]: number } = {};
+  let totalSymbolsFound = 0;
 
   try {
-    // 1. Fetch the list of symbols
+    // 1. Fetch the list of symbols from Exchange Info
     console.log("[lib/api.ts] Fetching exchange info from Binance...");
-    const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo");
-    if (!info.ok) {
-        throw new Error(`Failed to fetch exchange info: ${info.status} ${info.statusText}`);
+    const infoRes = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo");
+
+    if (!infoRes.ok) {
+        const errorText = await infoRes.text(); // Get more detail on error
+        throw new Error(`Failed to fetch exchange info: ${infoRes.status} ${infoRes.statusText} - ${errorText}`);
     }
-    const exchangeInfo = await info.json();
+    const exchangeInfo = await infoRes.json();
 
     const allSymbols = exchangeInfo.symbols
-      .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-      .slice(0, MAX_SYMBOLS)
+      .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT" && s.status === "TRADING") // Added s.status === "TRADING"
+      .slice(0, MAX_SYMBOLS_TO_PROCESS)
       .map((s: any) => s.symbol);
 
-    symbolsToFetch.push(...allSymbols);
-    console.log(`[lib/api.ts] Found ${allSymbols.length} perpetual USDT symbols.`);
+    totalSymbolsFound = allSymbols.length;
+    console.log(`[lib/api.ts] Identified ${totalSymbolsFound} perpetual USDT symbols in TRADING status.`);
 
-    const fetchedSignals: RawCandleSignalData[] = [];
-    const lastUpdated: { [symbol: string]: number } = {};
+    if (totalSymbolsFound === 0) {
+      console.warn("[lib/api.ts] No TRADING perpetual USDT symbols found. Returning empty data.");
+      return { signals: [], lastUpdatedMap: {} };
+    }
 
     // 2. Process symbols in batches
-    for (let i = 0; i < symbolsToFetch.length; i += BATCH_SIZE) {
-      const batch = symbolsToFetch.slice(i, i + BATCH_SIZE);
-      console.log(`[lib/api.ts] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(symbolsToFetch.length / BATCH_SIZE)} for symbols: ${batch.join(', ')}`);
+    for (let i = 0; i < totalSymbolsFound; i += BATCH_SIZE) {
+      const batch = allSymbols.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(totalSymbolsFound / BATCH_SIZE);
 
-      const batchResults = await Promise.all(
+      console.log(`[lib/api.ts] Processing batch ${batchNum}/${totalBatches} for ${batch.length} symbols.`);
+
+      // Use Promise.allSettled to ensure all promises in a batch are attempted,
+      // and we can log individual failures without stopping the whole batch.
+      const batchResults = await Promise.allSettled(
         batch.map(async (symbol) => {
           try {
             // Fetch Klines (historical candle data)
             const klinesRes = await fetch(
-              `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${timeframe}&limit=500`
+              `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${timeframe}&limit=${KLINE_LIMIT}`
             );
             if (!klinesRes.ok) {
-                throw new Error(`Failed to fetch klines for ${symbol}: ${klinesRes.status} ${klinesRes.statusText}`);
+                const errorText = await klinesRes.text();
+                throw new Error(`Failed klines for ${symbol}: ${klinesRes.status} ${klinesRes.statusText} - ${errorText}`);
             }
             const rawCandles = await klinesRes.json();
 
@@ -78,9 +101,14 @@ export async function fetchRawCryptoSignals(timeframe: Timeframe = '1d'): Promis
               volume: +c[5],
             }));
 
-            // Ensure we have enough data points, especially for RSI (14 periods)
-            if (candles.length < 14) {
-                console.warn(`[lib/api.ts] Not enough candle data for ${symbol} (${candles.length} < 14). Skipping for now.`);
+            // Crucial check: Ensure we have enough data points for RSI (14 periods) and other indicators
+            // RSI (14) needs at least 14 candles to produce its first non-NaN value (i.e., index 13)
+            // To ensure 14 *valid* RSI values are available for getRecentRSIDiff(rsiArray, 14)
+            // you might need more than 14 raw candles depending on how calculateRSI handles NaNs.
+            // A safer bet is to have significantly more candles than the RSI period.
+            const MIN_CANDLES_REQUIRED = 30; // Sufficient for RSI14 and potentially other lookbacks
+            if (candles.length < MIN_CANDLES_REQUIRED) {
+                console.warn(`[lib/api.ts] Skipping ${symbol}: Insufficient candle data (${candles.length} < ${MIN_CANDLES_REQUIRED}).`);
                 return null;
             }
 
@@ -95,7 +123,8 @@ export async function fetchRawCryptoSignals(timeframe: Timeframe = '1d'): Promis
               `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
             );
             if (!ticker24hRes.ok) {
-                throw new Error(`Failed to fetch 24hr ticker for ${symbol}: ${ticker24hRes.status} ${ticker24hRes.statusText}`);
+                const errorText = await ticker24hRes.text();
+                throw new Error(`Failed 24hr ticker for ${symbol}: ${ticker24hRes.status} ${ticker24hRes.statusText} - ${errorText}`);
             }
             const ticker24h = await ticker24hRes.json();
 
@@ -104,7 +133,7 @@ export async function fetchRawCryptoSignals(timeframe: Timeframe = '1d'): Promis
             const priceChangePercent = parseFloat(ticker24h.priceChangePercent);
 
             lastUpdated[symbol] = Date.now(); // Mark as updated
-            console.log(`[lib/api.ts] Successfully fetched data for ${symbol}`);
+            // console.log(`[lib/api.ts] Successfully processed data for ${symbol}`); // Log only successes for brevity
 
             return {
               symbol,
@@ -119,32 +148,38 @@ export async function fetchRawCryptoSignals(timeframe: Timeframe = '1d'): Promis
               priceChangePercent,
             } as RawCandleSignalData;
           } catch (fetchError: any) {
-            console.error(`[lib/api.ts] Error fetching data for ${symbol}:`, fetchError.message);
+            console.error(`[lib/api.ts] Detailed error for ${symbol}: ${fetchError.message}`);
             return null; // Return null for failed fetches
           }
         })
       );
 
-      // Filter out any null results from failed fetches
-      fetchedSignals.push(...batchResults.filter((r): r is RawCandleSignalData => r !== null));
+      // Process results from Promise.allSettled
+      batchResults.forEach(result => {
+        if (result.status === 'fulfilled' && result.value !== null) {
+          fetchedSignals.push(result.value);
+        } else if (result.status === 'rejected') {
+          // This case should ideally be caught by the individual try/catch inside map
+          // But good to have a fallback
+          console.error(`[lib/api.ts] Uncaught rejection in batch: ${result.reason}`);
+        }
+      });
 
-      // IMPORTANT: Add a small delay between batches to avoid hitting API rate limits
-      // Binance FAPI has a REQUEST_WEIGHT limit of 2400 per minute.
-      // Each klines request with limit=500 is weight 2. Ticker is weight 1.
-      // 10 symbols * (2 + 1) = 30 weight per batch.
-      // So, ~80 batches per minute, or 1 batch every ~0.75 seconds.
-      // Adjust this based on your actual usage and observations.
-      await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay between batches
+
+      // IMPORTANT: Add a delay between batches to avoid hitting API rate limits
+      if (i + BATCH_SIZE < totalSymbolsFound) { // Only delay if more batches are coming
+        await new Promise(resolve => setTimeout(resolve, API_DELAY_MS));
+      }
     }
 
-    console.log(`[lib/api.ts] Total signals fetched: ${fetchedSignals.length}`);
+    console.log(`[lib/api.ts] Finished fetching. Total VALID signals fetched: ${fetchedSignals.length}/${totalSymbolsFound}`);
     return {
       signals: fetchedSignals,
       lastUpdatedMap: lastUpdated,
     };
   } catch (overallError: any) {
-    console.error("[lib/api.ts] Overall error in fetchRawCryptoSignals:", overallError.message);
-    // Return empty arrays on error, which will lead to "No data found"
+    console.error(`[lib/api.ts] CRITICAL overall error in fetchRawCryptoSignals: ${overallError.message}`);
+    // Return empty arrays on any critical error, which will lead to "No data found"
     return { signals: [], lastUpdatedMap: {} };
   }
 }
