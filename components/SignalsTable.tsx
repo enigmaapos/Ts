@@ -1,7 +1,11 @@
+// File: components/SignalsTable.tsx
+
 import React, { useMemo } from 'react';
 import PriceChangePercent from './PriceChangePercent';
 import { SignalData } from '../hooks/useCryptoSignals'; // Assuming SignalData is correctly imported
-import { getRecentRSIDiff, getSignal, didDropFromPeak, didRecoverFromLow } from '../utils/calculations';
+// REMOVE THESE IMPORTS: getRecentRSIDiff, getSignal are now calculated server-side
+// import { getRecentRSIDiff, getSignal, didDropFromPeak, didRecoverFromLow } from '../utils/calculations';
+import { didDropFromPeak, didRecoverFromLow } from '../utils/calculations'; // Only keep what's truly client-side display logic
 
 interface SignalsTableProps {
   signals: SignalData[];
@@ -18,24 +22,27 @@ interface SignalsTableProps {
   signalFilter: string | null;
 }
 
+// These mappings help translate the filter keys to actual SignalData properties
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
-  bullishMainTrend: 'bullish',
-  bearishMainTrend: 'bearish',
+  'mainTrend.trend_bullish': 'bullish', // Updated key to match the FilterControls' key
+  'mainTrend.trend_bearish': 'bearish', // Updated key to match the FilterControls' key
 };
 
 const trendKeyToBooleanField: Record<string, keyof SignalData> = {
-  bullishBreakout: 'bullishBreakout',
-  bearishBreakout: 'bearishBreakout',
-  breakoutFailure: 'breakoutFailure',
-  testedPrevHigh: 'testedPrevHigh',
-  testedPrevLow: 'testedPrevLow',
-  bullishReversal: 'bullishReversal',
-  bearishReversal: 'bearishReversal',
-  bullishSpike: 'bullishSpike',
-  bearishCollapse: 'bearishCollapse',
-  ema14InsideResults: 'ema14InsideResults',
-  highestVolumeColorPrev: 'highestVolumeColorPrev'
+  'bullishBreakout': 'bullishBreakout',
+  'bearishBreakout': 'bearishBreakout',
+  'breakoutFailure': 'breakoutFailure',
+  'testedPrevHigh': 'testedPrevHigh',
+  'testedPrevLow': 'testedPrevLow',
+  'bullishReversal.signal': 'bullishReversal', // Mapped to the object, logic below will check .signal
+  'bearishReversal.signal': 'bearishReversal', // Mapped to the object, logic below will check .signal
+  'bullishSpike.signal': 'bullishSpike',       // Mapped to the object, logic below will check .signal
+  'bearishCollapse.signal': 'bearishCollapse', // Mapped to the object, logic below will check .signal
+  'ema14InsideResults': 'ema14InsideResults',
+  // Note: highestVolumeColorPrev is not a boolean, so it's handled differently in FilterControls
+  // If you add other boolean trend filters in FilterControls, add them here too.
 };
+
 
 const SignalsTable: React.FC<SignalsTableProps> = ({
   signals,
@@ -69,30 +76,36 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
       if (!matchesSearch || (showOnlyFavorites && !isFavorite)) return false;
 
+      // --- Trend Filtering Logic (Updated) ---
       if (trendFilter) {
+        // Handle mainTrend filter (e.g., 'mainTrend.trend_bullish')
         if (trendKeyToMainTrendValue[trendFilter]) {
-          if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
-        } else if (trendKeyToBooleanField[trendFilter]) {
+          const expectedTrend = trendKeyToMainTrendValue[trendFilter];
+          if (s.mainTrend?.trend !== expectedTrend) {
+            return false;
+          }
+        }
+        // Handle other boolean/signal filters (e.g., 'bullishBreakout', 'bullishReversal.signal')
+        else if (trendKeyToBooleanField[trendFilter]) {
           const field = trendKeyToBooleanField[trendFilter];
-          const fieldValue = s[field];
+          const fieldValue = s[field]; // Get the actual value from SignalData
 
           let matchesTrendFilter = false;
 
-          // Case 1: Field is a direct boolean (e.g., bullishBreakout)
+          // Logic to check the boolean status of the field based on its type
           if (typeof fieldValue === 'boolean' && fieldValue === true) {
             matchesTrendFilter = true;
-          }
-          // Case 2: Field is an object with a 'signal' property (e.g., bullishReversal, bearishCollapse)
-          else if (
+          } else if (
             typeof fieldValue === 'object' &&
             fieldValue !== null &&
             'signal' in fieldValue &&
-            (fieldValue as { signal: boolean }).signal === true
+            (fieldValue as { signal: boolean | undefined }).signal === true // Check for .signal property
           ) {
             matchesTrendFilter = true;
-          }
-          // Case 3: Field is an array where some element has 'inside: true' (e.g., ema14InsideResults)
-          else if (Array.isArray(fieldValue) && fieldValue.some && fieldValue.some(item => (item as any).inside === true)) {
+          } else if (
+            Array.isArray(fieldValue) &&
+            fieldValue.some((item: any) => (item as { inside: boolean }).inside === true) // Check for ema14InsideResults
+          ) {
             matchesTrendFilter = true;
           }
 
@@ -102,7 +115,11 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
         }
       }
 
-      if (signalFilter && getSignal(s)?.trim().toUpperCase() !== signalFilter.trim().toUpperCase()) return false;
+      // --- Signal Filtering Logic (Updated) ---
+      // Now directly use s.primarySignalText
+      if (signalFilter && s.primarySignalText?.trim().toUpperCase() !== signalFilter.trim().toUpperCase()) {
+        return false;
+      }
 
       return true;
     });
@@ -113,32 +130,41 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
       let valA: any = (a as any)[sortField as string];
       let valB: any = (b as any)[sortField as string];
 
-      const handleBooleanSort = (fieldKey: keyof SignalData) => {
+      const handleBooleanSort = (fieldKey: keyof SignalData | string) => { // Allow string for direct access
         let aVal = false;
         let bVal = false;
 
-        const aFieldVal = a[fieldKey];
-        const bFieldVal = b[fieldKey];
+        // Dynamic access for nested properties (e.g., 'bullishReversal.signal')
+        const getNestedValue = (obj: any, path: string) => {
+          const parts = path.split('.');
+          let current = obj;
+          for (const part of parts) {
+            if (current === undefined || current === null) return undefined;
+            current = current[part];
+          }
+          return current;
+        };
+
+        const aFieldVal = getNestedValue(a, fieldKey as string);
+        const bFieldVal = getNestedValue(b, fieldKey as string);
 
         if (typeof aFieldVal === 'boolean') {
           aVal = aFieldVal;
-        } else if (typeof aFieldVal === 'object' && aFieldVal !== null && 'signal' in aFieldVal) {
-          aVal = (aFieldVal as { signal: boolean }).signal;
         } else if (Array.isArray(aFieldVal) && aFieldVal.some) {
           aVal = aFieldVal.some((r: any) => r.inside);
         }
 
         if (typeof bFieldVal === 'boolean') {
           bVal = bFieldVal;
-        } else if (typeof bFieldVal === 'object' && bFieldVal !== null && 'signal' in bFieldVal) {
-          bVal = (bFieldVal as { signal: boolean }).signal;
         } else if (Array.isArray(bFieldVal) && bFieldVal.some) {
           bVal = bFieldVal.some((r: any) => r.inside);
         }
 
-        return sortOrder === 'asc' ? (aVal === bVal ? 0 : aVal ? 1 : -1) : (aVal === bVal ? 0 : aVal ? -1 : 1);
+        // For boolean sorting, true comes before false for 'asc', and false before true for 'desc'
+        return sortOrder === 'asc' ? (aVal === bVal ? 0 : aVal ? -1 : 1) : (aVal === bVal ? 0 : aVal ? 1 : -1);
       };
 
+      // Corrected switch cases to use the actual SignalData properties
       switch (sortField) {
         case 'touchedEMA200Today':
         case 'ema70Bounce':
@@ -155,16 +181,30 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
         case 'ema14InsideResults':
           return handleBooleanSort('ema14InsideResults');
 
+        // Added cases for properties that were objects with a 'signal' boolean
+        case 'bullishReversal':
+        case 'bearishReversal':
+        case 'bullishSpike':
+        case 'bearishCollapse':
+          return handleBooleanSort(`${sortField}.signal`); // Sort by the boolean 'signal' property
+
         case 'pumpStrength':
         case 'dumpStrength':
-          const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
-          const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
-          valA = sortField === 'pumpStrength' ? pumpDumpA?.pumpStrength : pumpDumpA?.dumpStrength;
-          valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
+          // These are now directly available on SignalData if you calculated them on the server
+          // Assuming you add pumpStrength and dumpStrength fields to SignalData
+          valA = (a as any).pumpStrength; // Example, adjust based on your SignalData
+          valB = (b as any).pumpStrength; // Example, adjust based on your SignalData
+          if (sortField === 'dumpStrength') {
+            valA = (a as any).dumpStrength;
+            valB = (b as any).dumpStrength;
+          }
           break;
 
         case 'bearishDivergence':
         case 'bullishDivergence':
+        case 'bearishVolumeDivergence': // Added volume divergence sorting
+        case 'bullishVolumeDivergence': // Added volume divergence sorting
+          // Access the 'divergence' property directly from the object on SignalData
           const divA = (a as any)[sortField]?.divergence;
           const divB = (b as any)[sortField]?.divergence;
 
@@ -207,8 +247,9 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
           break;
 
         case 'signal':
-          valA = getSignal(a) || '';
-          valB = getSignal(b) || '';
+          // Now use primarySignalText directly from SignalData
+          valA = a.primarySignalText || '';
+          valB = b.primarySignalText || '';
           return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
 
         case 'gap':
@@ -288,17 +329,42 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 	  
       <th className="px-1 py-0.5 text-center">Trend (200)</th>
 	  
-<th className="px-1 py-0.5 text-center">Collapse</th>
-    <th className="px-1 py-0.5 text-center">Spike</th>
-<th className="px-1 py-0.5 text-center">Bear Rev</th>
-    <th className="px-1 py-0.5 text-center">Bull Rev</th>	
+<th
+  onClick={() => handleSort('bearishCollapse')} // Use handleSort
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Collapse {sortField === 'bearishCollapse' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+<th
+  onClick={() => handleSort('bullishSpike')} // Use handleSort
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Spike {sortField === 'bullishSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+<th
+  onClick={() => handleSort('bearishReversal')} // Use handleSort
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Bear Rev {sortField === 'bearishReversal' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
+<th
+  onClick={() => handleSort('bullishReversal')} // Use handleSort
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Bull Rev {sortField === 'bullishReversal' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
 	  
-	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
+	<th
+  onClick={() => handleSort('primarySignalText')} // Sort by the new field
+  className="px-1 py-0.5 min-w-[60px] text-center cursor-pointer"
+>
+  Signal {sortField === 'primarySignalText' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
 	  
     {/* RSI Pump | Dump */}
     <th
       onClick={() => {
-        setSortField('pumpStrength');
+        setSortField('pumpStrength'); // Assuming these are now direct fields in SignalData
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
@@ -339,9 +405,12 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
 
 {/* Volume */}
     <th className="p-2 text-center">Volume</th>
-	<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Volume Divergence
-</th> 
+	<th
+  onClick={() => handleSort('bullishVolumeDivergence')} // Sort by this new field
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+>
+  Volume Divergence {sortField === 'bullishVolumeDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>
 	 <th
   onClick={() => {
     setSortField('isVolumeSpike');
@@ -422,11 +491,12 @@ const SignalsTable: React.FC<SignalsTableProps> = ({
     <tbody>
       {filteredAndSortedSignals.map((s) => {
   const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
-  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-const pump = pumpDump?.pumpStrength;
-const dump = pumpDump?.dumpStrength;
-const direction = pumpDump?.direction;
-	
+  // REMOVED getRecentRSIDiff call here, it should be calculated on the server
+  // and accessible as s.pumpStrength, s.dumpStrength, s.pumpDirection
+  const pump = (s as any).pumpStrength; // Assuming you've added this to SignalData
+  const dump = (s as any).dumpStrength; // Assuming you've added this to SignalData
+  const direction = (s as any).pumpDirection; // Assuming you've added this to SignalData
+
 const inRange = (val: number | undefined, min: number, max: number) =>
   val !== undefined && val >= min && val <= max;
 
@@ -434,44 +504,19 @@ const isAbove30 = (val: number | undefined) => val !== undefined && val >= 30;
 const validPump = pump !== undefined && pump !== 0;
 const validDump = dump !== undefined && dump !== 0;
 
-// ✅ Early return: skip rendering if both are invalid or 0
-if (!validPump && !validDump) return null;
+// You can still perform these checks for display logic if primarySignalText is not sufficient
+// However, the "signal" column below will now use s.primarySignalText
+// const pumpInRange_21_26 = inRange(pump, 21, 26);
+// const dumpInRange_21_26 = inRange(dump, 21, 26);
+// const pumpAbove30 = isAbove30(pump);
+// const dumpAbove30 = isAbove30(dump);
+// const pumpInRange_1_10 = inRange(pump, 1, 10);
+// const dumpInRange_1_10 = inRange(dump, 1, 10);
+// const pumpInRange_17_19 = inRange(pump, 17, 19);
+// const dumpInRange_17_19 = inRange(dump, 17, 19);
 
-const pumpInRange_21_26 = inRange(pump, 21, 26);
-const dumpInRange_21_26 = inRange(dump, 21, 26);
-const pumpAbove30 = isAbove30(pump);
-const dumpAbove30 = isAbove30(dump);
+// let signal = ''; // This 'signal' variable is no longer needed, use s.primarySignalText
 
-const pumpInRange_1_10 = inRange(pump, 1, 10);
-const dumpInRange_1_10 = inRange(dump, 1, 10);
-
-const pumpInRange_17_19 = inRange(pump, 17, 19);
-const dumpInRange_17_19 = inRange(dump, 17, 19);
-
-let signal = '';
-
-// ✅ MAX ZONE
-if (direction === 'pump' && pumpAbove30) {
-  signal = 'MAX ZONE PUMP';
-} else if (direction === 'dump' && dumpAbove30) {
-  signal = 'MAX ZONE DUMP';
-}
-
-// ✅ BALANCE ZONE
-else if (direction === 'pump' && pumpInRange_21_26) {
-  signal = 'BALANCE ZONE PUMP';
-} else if (direction === 'dump' && dumpInRange_21_26) {
-  signal = 'BALANCE ZONE DUMP';
-}
-
-// ✅ LOWEST ZONE
-else if (direction === 'pump' && pumpInRange_1_10) {
-  signal = 'LOWEST ZONE PUMP';
-} else if (direction === 'dump' && dumpInRange_1_10) {
-  signal = 'LOWEST ZONE DUMP';
-}
-
-	
 
         return (
            <tr
@@ -685,24 +730,25 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 		   
+{/* Use s.primarySignalText here */}
 <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
+    s.primarySignalText.trim() === 'MAX ZONE PUMP'
       ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
+      : s.primarySignalText.trim() === 'MAX ZONE DUMP'
       ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
+      : s.primarySignalText.trim() === 'BALANCE ZONE PUMP'
       ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
+      : s.primarySignalText.trim() === 'BALANCE ZONE DUMP'
       ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
+      : s.primarySignalText.trim() === 'LOWEST ZONE PUMP'
       ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
+      : s.primarySignalText.trim() === 'LOWEST ZONE DUMP'
       ? 'text-green-500 font-bold'
       : 'text-gray-500'
   }`}
 >
-  {signal.trim()}
+  {s.primarySignalText.trim()}
 </td>			   
 
   {/* Pump / Dump */}
@@ -725,7 +771,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 >
   {direction === 'pump' && pump !== undefined ? `Pump: ${pump.toFixed(2)}` : ''}
   {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
-  {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
+  {(!direction || (direction === 'pump' && (pump === undefined || pump === 0)) || (direction === 'dump' && (dump === undefined || dump === 0))) && 'N/A'}
 </td>
 
 	       <td
@@ -772,17 +818,15 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 
  <td
   className={`px-1 py-0.5 text-center font-semibold ${
-    s.bullishVolumeDivergence?.divergence
-      ? s.bullishVolumeDivergence.type === 'bullish-volume'
-        ? 'text-green-400'
-        : 'text-red-400'
+    s.bullishVolumeDivergence?.divergence || s.bearishVolumeDivergence?.divergence // Check both divergences for styling
+      ? (s.bullishVolumeDivergence?.type === 'bullish-volume' ? 'text-green-400' : 'text-red-400')
       : 'text-gray-400'
   }`}
 >
   {s.bullishVolumeDivergence?.divergence
-    ? s.bullishVolumeDivergence.type === 'bullish-volume'
-      ? 'Bullish'
-      : 'Bearish'
+    ? 'Bullish'
+    : s.bearishVolumeDivergence?.divergence
+    ? 'Bearish'
     : '—'}
 </td>
 	 <td
@@ -844,12 +888,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   </td>	   
 		   		   
      <td className="px-2 py-1 text-center text-green-400 font-semibold w-[90px]">
-                {/* FIX: Access s.mainTrend?.trend */}
-                {s.mainTrend?.trend === 'bearish' && s.hasBullishEngulfing ? 'Yes' : '-'}
+                {/* Check hasBullishEngulfing directly */}
+                {s.hasBullishEngulfing ? 'Yes' : '-'}
               </td>
               <td className="px-2 py-1 text-center text-red-400 font-semibold w-[90px]">
-                {/* FIX: Access s.mainTrend?.trend */}
-                {s.mainTrend?.trend === 'bullish' && s.hasBearishEngulfing ? 'Yes' : '-'}
+                {/* Check hasBearishEngulfing directly */}
+                {s.hasBearishEngulfing ? 'Yes' : '-'}
               </td>
 		   	
 		   
@@ -867,10 +911,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   </td>
 
  <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
-                {s.testedPrevHigh ? 'Yes' : '-'}
+                {/* This seems to duplicate testedPrevHigh, ensure this is intended for 'Top Pattern' */}
+                {s.isDoubleTop || s.isDescendingTop || s.isDoubleTopFailure ? 'Yes' : '-'}
               </td>
               <td className="px-2 py-1 text-center text-blue-300 font-semibold w-[80px]">
-                {s.testedPrevLow ? 'Yes' : '-'}
+                {/* This seems to duplicate testedPrevLow, ensure this is intended for 'Bottom Pattern' */}
+                {s.isDoubleBottom || s.isAscendingBottom || s.isDoubleBottomFailure ? 'Yes' : '-'}
               </td> 
   
 </tr>
