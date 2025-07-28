@@ -1,9 +1,9 @@
 // File: pages/api/data.ts (in Site A)
 
-import { getCryptoSignals, SignalData as RawSignalData } from '../../hooks/useCryptoSignals';
+import { fetchRawCryptoSignals } from '../lib/api'; // <--- Import the new data fetching function
 import { calculateRSI, getRecentRSIDiff } from '../../utils/calculations';
+import { SignalData as RawSignalData } from '../../hooks/useCryptoSignals'; // Keep this for type definition if needed
 
-// Define the structure of the data you will send back from this API
 interface SiteAFormattedSignal {
   symbol: string;
   signal: string;
@@ -21,14 +21,11 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // THIS IS THE CRUCIAL CHANGE AGAIN:
-    // Destructure the 'signals' property from the object returned by useCryptoSignals()
-    const { signals: rawSignalsData } = await getCryptoSignals();
+    // Now call the non-hook data fetching function
+    // You might want to pass a timeframe if your API supports it, e.g., req.query.timeframe
+    const { signals: rawSignalsData } = await fetchRawCryptoSignals('1d'); // Default to '1d' or get from query
 
-    // Now 'rawSignalsData' is the SignalData[] you expect to map over
     const formatted: SiteAFormattedSignal[] = rawSignalsData.map((s) => {
-      // Calculate RSI here if not already present in rawSignalsData
-      // You'll need `s.closes` for this. Assuming closes are available.
       const rsiArray = s.closes ? calculateRSI(s.closes, 14) : [];
       const latestRSI = rsiArray.length > 0 && !isNaN(rsiArray[rsiArray.length - 1])
         ? rsiArray[rsiArray.length - 1]
