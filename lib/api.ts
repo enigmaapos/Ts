@@ -1,8 +1,6 @@
 // File: lib/api.ts
 
 import { Timeframe } from '../utils/calculations'; // Assuming Timeframe is defined here now, as it's a utility type
-import { SignalData } from '../hooks/useCryptoSignals';
-import SignalsTable from "../components/SignalsTable";
 
 // This interface defines what this `fetchRawCryptoSignals` function will return.
 // It should contain *all* the raw data necessary for your analysis functions.
