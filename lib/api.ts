@@ -1,6 +1,6 @@
 // File: lib/api.ts
 
-import TimeframeSelector from "../components/TimeframeSelector"; // Assuming Timeframe is defined here now, as it's a utility type
+import Timeframe from "../components/TimeframeSelector"; // Assuming Timeframe is defined here now, as it's a utility type
 
 // This interface defines what this `fetchRawCryptoSignals` function will return.
 // It should contain *all* the raw data necessary for your analysis functions.
