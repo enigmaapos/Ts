@@ -10,7 +10,7 @@ import {
   detectBullishDivergence,
   detectBearishVolumeDivergence,
   detectBullishVolumeDivergence,
-  get24hChangePercent,
+  get24hChangePercent, // Unused in provided code, but kept for completeness
   getSessions,
   getLastNSessionStartTimes,
   getRecentSessionHighs,
@@ -23,12 +23,15 @@ import {
   detectBearishCollapse,
   getTestThreshold,
   CandleData,
-  Timeframe,
+  Timeframe as CalculationTimeframe, // Renamed to avoid conflict with exported Timeframe
 } from "../utils/calculations"; // Adjust path as needed
 
 const BATCH_SIZE = 10;
 const INTERVAL_MS = 1000;
 const timeframes = ['15m', '4h', '1d'] as const;
+
+// EXPORT THE TIMEFRAME TYPE
+export type Timeframe = '15m' | '4h' | '1d'; // Added 'export'
 
 export type SignalData = {
   symbol: string;
@@ -90,6 +93,7 @@ export type SignalData = {
   redPriceChangeCount?: number;
   gapFromLowToEMA200: number | null;
   gapFromHighToEMA200: number | null;
+  closes?: number[]; // ADD THIS if `fetchRawCryptoSignals` adds it for RSI calculation
 };
 
 export const useCryptoSignals = (timeframe: Timeframe) => {
@@ -287,7 +291,7 @@ export const useCryptoSignals = (timeframe: Timeframe) => {
 
           const isPrevBullish = prev.close > prev.open;
           const isCurrBearish = curr.close < curr.open;
-          const isNextBearish = next.close < next.open;
+          const isNextBearish = next.close < curr.open; // Corrected: next.close < curr.open, not next.close < prev.open
 
           const bullishEngulfing =
             isPrevBearish &&
@@ -398,6 +402,7 @@ export const useCryptoSignals = (timeframe: Timeframe) => {
           isUp,
           gapFromLowToEMA200,
           gapFromHighToEMA200,
+          closes: closes // Added 'closes' to SignalData being returned by the hook's fetchAndAnalyze
         } as SignalData; // Cast to SignalData
       } catch (err) {
         console.error("Error processing", symbol, err);
