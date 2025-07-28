@@ -1,6 +1,6 @@
 // File: pages/api/data.ts (in Site A)
 
-import { fetchRawCryptoSignals } from '../lib/api'; // <--- Import the new data fetching function
+import { fetchRawCryptoSignals } from './lib/api'; // <--- Import the new data fetching function
 import { calculateRSI, getRecentRSIDiff } from '../../utils/calculations';
 import { SignalData as RawSignalData } from '../../hooks/useCryptoSignals'; // Keep this for type definition if needed
 
