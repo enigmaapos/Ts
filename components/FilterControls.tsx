@@ -1,9 +1,6 @@
-// File: components/FilterControls.tsx
-
 import React from 'react';
-import { SignalData } from '../hooks/useCryptoSignals'; // Import SignalData from the hook
-// REMOVE THIS IMPORT: getSignal is now calculated server-side
-// import { getSignal } from '../utils/calculations';
+import { SignalData } from '../hooks/useCryptoSignals'; // Adjust import path
+import { getRecentRSIDiff, getSignal } from '../utils/calculations'; // Adjust import path
 
 interface FilterControlsProps {
   signals: SignalData[];
@@ -19,34 +16,24 @@ interface FilterControlsProps {
   setSignalFilter: (filter: string | null) => void;
 }
 
-const trendKeys = [
-  { label: 'Bullish Trend', key: 'mainTrend.trend_bullish', color: 'text-green-300' }, // Adjusted key for object property
-  { label: 'Bearish Trend', key: 'mainTrend.trend_bearish', color: 'text-red-300' },   // Adjusted key for object property
-  { label: 'Bullish Reversal', key: 'bullishReversal.signal', color: 'text-green-300' }, // Adjusted key for object property
-  { label: 'Bearish Reversal', key: 'bearishReversal.signal', color: 'text-red-300' },   // Adjusted key for object property
-  { label: 'Bullish Spike', key: 'bullishSpike.signal', color: 'text-green-300' },       // Adjusted key for object property
-  { label: 'Bearish Collapse', key: 'bearishCollapse.signal', color: 'text-red-300' },   // Adjusted key for object property
-  { label: 'Breakout Failure', key: 'breakoutFailure', color: 'text-yellow-300' },
-  { label: 'Bullish Breakout', key: 'bullishBreakout', color: 'text-yellow-400' },
-  { label: 'Bearish Breakout', key: 'bearishBreakout', color: 'text-yellow-400' },
-  { label: 'Tested Prev High', key: 'testedPrevHigh', color: 'text-blue-300' },
-  { label: 'Tested Prev Low', key: 'testedPrevLow', color: 'text-blue-300' },
-  // Add other trend-related boolean/signal properties here if you want filters for them
-  // { label: 'EMA14 Inside', key: 'ema14Inside', color: 'text-orange-300' }, // If you add a simplified boolean to SignalData
-  // { label: 'Bullish Divergence', key: 'bullishDivergence.signal', color: 'text-purple-300' },
-  // { label: 'Bearish Divergence', key: 'bearishDivergence.signal', color: 'text-purple-300' },
-  // { label: 'Double Top', key: 'isDoubleTop', color: 'text-gray-300' },
-];
+const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
+  bullishMainTrend: 'bullish',
+  bearishMainTrend: 'bearish',
+};
 
-const signalKeys = [
-  { label: 'MAX ZONE PUMP', color: 'text-yellow-300' },
-  { label: 'MAX ZONE DUMP', color: 'text-yellow-400' },
-  { label: 'BALANCE ZONE PUMP', color: 'text-purple-300' },
-  { label: 'BALANCE ZONE DUMP', color: 'text-purple-400' },
-  { label: 'LOWEST ZONE PUMP', color: 'text-yellow-500' },
-  { label: 'LOWEST ZONE DUMP', color: 'text-yellow-600' },
-  // Ensure this list matches the possible values of signal.primarySignalText
-];
+const trendKeyToBooleanField: Record<string, keyof SignalData> = {
+  bullishBreakout: 'bullishBreakout',
+  bearishBreakout: 'bearishBreakout',
+  breakoutFailure: 'breakoutFailure',
+  testedPrevHigh: 'testedPrevHigh',
+  testedPrevLow: 'testedPrevLow',
+  bullishReversal: 'bullishReversal',
+  bearishReversal: 'bearishReversal',
+  bullishSpike: 'bullishSpike',
+  bearishCollapse: 'bearishCollapse',
+  ema14InsideResults: 'ema14InsideResults',
+  highestVolumeColorPrev: 'highestVolumeColorPrev'
+};
 
 const FilterControls: React.FC<FilterControlsProps> = ({
   signals,
@@ -55,6 +42,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   showOnlyFavorites,
   setShowOnlyFavorites,
   favorites,
+  setFavorites,
   trendFilter,
   setTrendFilter,
   signalFilter,
@@ -62,165 +50,228 @@ const FilterControls: React.FC<FilterControlsProps> = ({
 }) => {
   const searchTerm = search.trim().toLowerCase();
 
-  const filtered = React.useMemo(() =>
-    signals.filter((s) => {
-      const match = s.symbol?.toLowerCase().includes(searchTerm);
-      // Ensure the signal.primarySignalText is available for filtering
-      return match && (!showOnlyFavorites || favorites.has(s.symbol));
-    }), [signals, searchTerm, showOnlyFavorites, favorites]);
+  const filteredSignalsForCounts = signals.filter((s) => {
+    const symbol = s.symbol?.toLowerCase() || '';
+    const matchesSearch = !searchTerm || symbol.includes(searchTerm);
+    const isFavorite = favorites.has(s.symbol);
+    return matchesSearch && (!showOnlyFavorites || isFavorite);
+  });
 
-  // Helper to safely access nested boolean properties
-  const getNestedBoolean = (obj: any, path: string) => {
-    const parts = path.split('.');
-    let current = obj;
-    for (let i = 0; i < parts.length; i++) {
-      if (current === undefined || current === null) return false; // If any part of path is null/undefined
-      if (i === parts.length - 1) { // Last part of path
-        if (parts[i].startsWith('trend_')) { // Special handling for 'trend_bullish'/'trend_bearish'
-          const trendType = parts[i].split('_')[1]; // 'bullish' or 'bearish'
-          return current.trend === trendType; // Check if mainTrend.trend matches
-        }
-        return !!current[parts[i]]; // Return boolean value
-      }
-      current = current[parts[i]];
-    }
-    return false;
-  };
+  const getCountForBooleanSignal = (field: keyof SignalData) =>
+    filteredSignalsForCounts.filter((s) => s[field]).length;
 
-
-  const counts = React.useMemo(() => {
-    const calculatedCounts: { [key: string]: number } = {};
-
-    // Initialize all trend keys
-    trendKeys.forEach(({ key }) => {
-        calculatedCounts[key] = 0;
-    });
-
-    calculatedCounts.ema14 = 0;
-    calculatedCounts.greenVol = 0;
-    calculatedCounts.redVol = 0;
-    calculatedCounts.green24h = 0;
-    calculatedCounts.red24h = 0;
-
-    filtered.forEach(s => {
-      // Trend Filters
-      trendKeys.forEach(({ key }) => {
-        if (getNestedBoolean(s, key)) { // Use helper for nested properties
-          calculatedCounts[key]++;
-        }
-      });
-
-      // Other Summary Counts
-      if (s.ema14InsideResults && s.ema14InsideResults.some(r => r.inside)) { // Check if EMA14 inside results exist and at least one is 'inside'
-        calculatedCounts.ema14++;
-      }
-      if (s.highestVolumeColorPrev === 'green') {
-        calculatedCounts.greenVol++;
-      } else if (s.highestVolumeColorPrev === 'red') {
-        calculatedCounts.redVol++;
-      }
-      if (s.priceChangePercent > 0) {
-        calculatedCounts.green24h++;
-      } else if (s.priceChangePercent < 0) {
-        calculatedCounts.red24h++;
-      }
-    });
-    return calculatedCounts;
-  }, [filtered]);
-
+  const bullishMainTrendCount = filteredSignalsForCounts.filter((s) => s.mainTrend?.trend === 'bullish').length;
+  const bearishMainTrendCount = filteredSignalsForCounts.filter((s) => s.mainTrend?.trend === 'bearish').length;
+  const bullishBreakoutCount = getCountForBooleanSignal('bullishBreakout');
+  const bearishBreakoutCount = getCountForBooleanSignal('bearishBreakout');
+  const breakoutFailureCount = getCountForBooleanSignal('breakoutFailure');
+  const testedPrevHighCount = getCountForBooleanSignal('testedPrevHigh');
+  const testedPrevLowCount = getCountForBooleanSignal('testedPrevLow');
+  const bullishReversalCount = filteredSignalsForCounts.filter((s) => s.bullishReversal?.signal === true).length;
+  const bearishReversalCount = filteredSignalsForCounts.filter((s) => s.bearishReversal?.signal === true).length;
+  const bullishSpikeCount = filteredSignalsForCounts.filter((s) => s.bullishSpike?.signal === true).length;
+  const bearishCollapseCount = filteredSignalsForCounts.filter((s) => s.bearishCollapse?.signal === true).length;
+  const ema14InsideResultsCount = filteredSignalsForCounts.filter((s) => s.ema14InsideResults?.some(r => r.inside)).length;
+  const greenPriceChangeCount = filteredSignalsForCounts.filter((t) => parseFloat(t.priceChangePercent as any) > 0).length;
+  const redPriceChangeCount = filteredSignalsForCounts.filter((t) => parseFloat(t.priceChangePercent as any) < 0).length;
+  const greenVolumeCount = filteredSignalsForCounts.filter((s) => s.highestVolumeColorPrev === 'green').length;
+  const redVolumeCount = filteredSignalsForCounts.filter((s) => s.highestVolumeColorPrev === 'red').length;
 
   const signalCounts = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    signalKeys.forEach(({ label }) => map[label] = 0);
-    filtered.forEach(s => {
-      // Access the pre-calculated primarySignalText
-      const key = s.primarySignalText?.toUpperCase(); // Assuming you've added primarySignalText to SignalData
-      if (key && map.hasOwnProperty(key)) map[key]++;
-    });
-    return map;
-  }, [filtered]);
+    const counts = {
+      maxZonePump: 0,
+      maxZoneDump: 0,
+      balanceZonePump: 0,
+      balanceZoneDump: 0,
+      lowestZonePump: 0,
+      lowestZoneDump: 0,
+    };
 
-  // Helper to map dynamic key names for display
-  const getDisplayCount = (key: string) => {
-      // Special mapping for mainTrend counts
-      if (key === 'bullishMainTrend') return counts['mainTrend.trend_bullish'];
-      if (key === 'bearishMainTrend') return counts['mainTrend.trend_bearish'];
-      // For other keys, just return directly from counts
-      return counts[key];
-  };
+    filteredSignalsForCounts.forEach((s) => {
+      const signal = getSignal(s)?.trim().toUpperCase();
+      switch (signal) {
+        case 'MAX ZONE PUMP': counts.maxZonePump++; break;
+        case 'MAX ZONE DUMP': counts.maxZoneDump++; break;
+        case 'BALANCE ZONE PUMP': counts.balanceZonePump++; break;
+        case 'BALANCE ZONE DUMP': counts.balanceZoneDump++; break;
+        case 'LOWEST ZONE PUMP': counts.lowestZonePump++; break;
+        case 'LOWEST ZONE DUMP': counts.lowestZoneDump++; break;
+      }
+    });
+    return counts;
+  }, [filteredSignalsForCounts]);
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
-      {/* Filter Buttons */}
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 text-sm">
+        {/* Trend Filters Section */}
         <div>
-          <p className="text-sm text-gray-400 font-medium mb-1">📊 Trend Filters</p>
+          <p className="text-gray-400 mb-2 font-semibold">
+            📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
+          </p>
           <div className="flex flex-wrap gap-2">
-            {trendKeys.map(({ label, key, color }) => (
+            {[
+              { label: 'Bullish Trend', key: 'bullishMainTrend', count: bullishMainTrendCount, color: 'text-green-300' },
+              { label: 'Bearish Trend', key: 'bearishMainTrend', count: bearishMainTrendCount, color: 'text-red-300' },
+              { label: 'Bullish Reversal', key: 'bullishReversal', count: bullishReversalCount, color: 'text-green-300' },
+              { label: 'Bearish Reversal', key: 'bearishReversal', count: bearishReversalCount, color: 'text-red-300' },
+              { label: 'Bullish Spike', key: 'bullishSpike', count: bullishSpikeCount, color: 'text-green-300' },
+              { label: 'Bearish Collapse', key: 'bearishCollapse', count: bearishCollapseCount, color: 'text-red-300' },
+              { label: 'Breakout Failure', key: 'breakoutFailure', count: breakoutFailureCount, color: 'text-yellow-300' },
+              { label: 'Bullish Breakout', key: 'bullishBreakout', count: bullishBreakoutCount, color: 'text-yellow-400' },
+              { label: 'Bearish Breakout', key: 'bearishBreakout', count: bearishBreakoutCount, color: 'text-yellow-400' },
+              { label: 'Tested Prev High', key: 'testedPrevHigh', count: testedPrevHighCount, color: 'text-blue-300' },
+              { label: 'Tested Prev Low', key: 'testedPrevLow', count: testedPrevLowCount, color: 'text-blue-300' },
+            ].map(({ label, key, count, color }) => (
               <button
                 key={key}
                 onClick={() => setTrendFilter(trendFilter === key ? null : key)}
-                className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition
-                  ${trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}
+                className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+                  trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+                }`}
               >
-                {label}
-                <span className={`${color} text-xs font-bold`}>
-                  {/* Using a helper to get count based on the new key format */}
-                  {getDisplayCount(key)}
-                </span>
+                <span>{label}</span>
+                <span className={`text-xs font-bold ${color}`}>{count}</span>
               </button>
             ))}
           </div>
         </div>
 
+        {/* Signal Filters Section */}
         <div>
-          <p className="text-sm text-gray-400 font-medium mb-1">📈 Signal Filters</p>
+          <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
           <div className="flex flex-wrap gap-2">
-            {signalKeys.map(({ label, color }) => (
+            {[
+              { label: 'MAX ZONE PUMP', key: 'MAX ZONE PUMP', count: signalCounts.maxZonePump, color: 'text-yellow-300' },
+              { label: 'MAX ZONE DUMP', key: 'MAX ZONE DUMP', count: signalCounts.maxZoneDump, color: 'text-yellow-400' },
+              { label: 'BALANCE ZONE PUMP', key: 'BALANCE ZONE PUMP', count: signalCounts.balanceZonePump, color: 'text-purple-300' },
+              { label: 'BALANCE ZONE DUMP', key: 'BALANCE ZONE DUMP', count: signalCounts.balanceZoneDump, color: 'text-purple-400' },
+              { label: 'LOWEST ZONE PUMP', key: 'LOWEST ZONE PUMP', count: signalCounts.lowestZonePump, color: 'text-yellow-500' },
+              { label: 'LOWEST ZONE DUMP', key: 'LOWEST ZONE DUMP', count: signalCounts.lowestZoneDump, color: 'text-yellow-600' },
+            ].map(({ label, key, count, color }) => (
               <button
-                key={label}
-                onClick={() => setSignalFilter(signalFilter === label ? null : label)}
-                className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 transition
-                  ${signalFilter === label ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'}`}
+                key={key}
+                onClick={() => setSignalFilter(signalFilter === key ? null : key)}
+                className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+                  signalFilter === key ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
+                }`}
               >
-                {label}
-                <span className={`${color} text-xs font-bold`}>
-                  {signalCounts[label]}
-                </span>
+                <span>{label}</span>
+                <span className={`text-xs font-bold ${color}`}>{count}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            setSearch('');
-            setTrendFilter(null);
-            setSignalFilter(null);
-            setShowOnlyFavorites(false);
-          }}
-          className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
-        >
-          Clear All Filters
-        </button>
+        {/* Clear Button */}
+        <div>
+          <button
+            onClick={() => {
+              setSearch('');
+              setTrendFilter(null);
+              setSignalFilter(null);
+              setShowOnlyFavorites(false);
+            }}
+            className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
+          >
+            Clear All Filters
+          </button>
+        </div>
       </div>
 
-      {/* Summary Panel */}
-      <div className="p-4 rounded-xl bg-gray-900 border border-gray-700 shadow space-y-4 text-sm">
-        <div className="space-y-1">
-          <p>📈 <span className="text-green-400 font-bold">Bull:</span> {getDisplayCount('mainTrend.trend_bullish')}</p>
-          <p>📉 <span className="text-red-400 font-bold">Bear:</span> {getDisplayCount('mainTrend.trend_bearish')}</p>
-        </div>
-        <p>📍 EMA14 Inside EMA70–200: <span className="text-yellow-400 font-bold">{counts.ema14}</span></p>
-        <div className="space-y-1">
-          <p>🔹 24h Price Change</p>
-          <p className="text-green-400">📈 Green: {counts.green24h}</p>
-          <p className="text-red-400">📉 Red: {counts.red24h}</p>
-        </div>
-        <div className="space-y-1">
-          <p>🔸 Volume Color</p>
-          <p className="text-green-400">🟢 Green: {counts.greenVol}</p>
-          <p className="text-red-400">🔴 Red: {counts.redVol}</p>
+      {/* Summary Panel (placeholder, will be a separate component) */}
+      <div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
+        <div className="flex flex-col gap-3">
+          {/* Trend Counts */}
+          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span>📈 Bull Trend:</span>
+              <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>📉 Bear Trend:</span>
+              <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+            </div>
+          </div>
+
+          {/* EMA14 Inside Range */}
+          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+            <div className="flex items-center gap-1">
+              <span className="flex flex-col leading-tight">
+                <span className="text-sm">📍 EMA14 Inside</span>
+                <span className="text-sm">EMA70–200:</span>
+              </span>
+              <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+            </div>
+          </div>
+
+          {/* 24h Price Change Summary */}
+          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+            <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
+              <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>
+            </div>
+          </div>
+
+          {/* Volume Color Summary */}
+          <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+            <div className="text-white text-sm mb-2 font-semibold">🔸 Volume Color Summary</div>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
+              <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
+            </div>
+          </div>
+
+          {/* Strategy Note */}
+          <div className="border border-gray-700 rounded-lg p-4 bg-gray-900 shadow-sm">
+            <div className="text-yellow-300 font-bold mb-2">⚠️ Strategy Note:</div>
+            <ul className="list-disc list-inside text-yellow-200 space-y-2">
+              <li>
+                <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a
+                <span className="text-red-400 font-semibold"> Bearish candle</span> the next day.
+              </li>
+              <li>
+                <span className="text-white font-semibold">Max Zone Pump Decision Flow:</span>
+                <ul className="list-disc list-inside ml-5 mt-1 space-y-1">
+                  <li>
+                    <span className="text-green-400 font-semibold">Bullish Sentiment:</span> If the 24H change is green (higher %),
+                    expect a <span className="font-semibold">bullish breakout with divergence</span>.
+                    <br />
+                    → Start selling at the <span className="font-semibold text-red-400">first red candle</span> with
+                    RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
+                  </li>
+                  <li>
+                    <span className="text-red-400 font-semibold">Bearish Sentiment:</span> If the 24H change is red (higher %),
+                    it likely signals a <span className="font-semibold">failed breakout</span>.
+                    <br />
+                    → Also sell at the <span className="font-semibold text-red-400">first red candle</span> with
+                    RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <span className="text-white font-semibold">Friday Behavior:</span>
+                Fridays usually show a <span className="text-red-400 font-semibold">bearish trend</span>,
+                but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.
+              </li>
+              <li>
+                After Max Zone Pump:
+                <br />
+                → Watch for the <span className="font-semibold text-red-400">first red candle</span> where RSI drops below 50.
+                That candle acts as a decision point.
+              </li>
+              <li>
+                If price stays <span className="font-semibold text-green-400">above the opening</span> of that red candle,
+                it becomes a <span className="text-green-400 font-bold">Buy Signal</span>.
+              </li>
+              <li>
+                If price breaks <span className="font-semibold text-red-400">below the opening</span> of that red candle,
+                it's a clear <span className="text-red-400 font-bold">Sell Signal</span>.
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
