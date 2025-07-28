@@ -1,8 +1,8 @@
 // File: pages/api/data.ts (in Site A)
 
-import { fetchRawCryptoSignals } from '../../lib/api'; // <--- Import the new data fetching function
-import { calculateRSI, getRecentRSIDiff } from '../../utils/calculations';
-import { SignalData as RawSignalData } from '../../hooks/useCryptoSignals'; // Keep this for type definition if needed
+import { fetchRawCryptoSignals, RawCandleSignalData } from '../../lib/api'; // <--- Import the new data fetching function and its type
+import { calculateRSI, getRecentRSIDiff, CandleData, getMainTrend, getSessions, getLastNSessionStartTimes, getRecentSessionHighs, getRecentSessionLows, detectTopPatterns, detectBottomPatterns, isEMA14InsideRange, getCurrentEMAGapPercentage, detectBearishDivergence, detectBullishDivergence, detectBearishVolumeDivergence, detectBullishVolumeDivergence, getTestThreshold, calculateEMA, detectBullishToBearish, detectBearishToBullish, detectBullishSpike, detectBearishCollapse } from '../../utils/calculations'; // Ensure all needed calculation functions are imported
+import { SignalData as FullSignalData, Timeframe } from '../../hooks/useCryptoSignals'; // Use a different alias for the full SignalData
 
 interface SiteAFormattedSignal {
   symbol: string;
@@ -21,11 +21,23 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // Now call the non-hook data fetching function
-    // You might want to pass a timeframe if your API supports it, e.g., req.query.timeframe
-    const { signals: rawSignalsData } = await fetchRawCryptoSignals('1d'); // Default to '1d' or get from query
+    // Get timeframe from query parameter, default to '1d' if not provided
+    const requestedTimeframe: Timeframe = (req.query.timeframe as Timeframe) || '1d';
+
+    // Now 'rawSignalsData' will be of type RawCandleSignalData[]
+    const { signals: rawSignalsData } = await fetchRawCryptoSignals(requestedTimeframe);
 
     const formatted: SiteAFormattedSignal[] = rawSignalsData.map((s) => {
+      // You need more raw data than just `closes` to perform ALL the calculations
+      // that `useCryptoSignals` does.
+      // This API route currently only assumes `closes` is available from `RawCandleSignalData`.
+      // If you want to compute all SignalData properties, `fetchRawCryptoSignals`
+      // will need to return `opens`, `highs`, `lows`, `volumes` arrays as well.
+
+      // For the purpose of this API (Site A DataLoader), we only care about
+      // `symbol`, `signal`, and `latestRSI`. The `signal` itself is derived
+      // from RSI, so `closes` is sufficient for that.
+
       const rsiArray = s.closes ? calculateRSI(s.closes, 14) : [];
       const latestRSI = rsiArray.length > 0 && !isNaN(rsiArray[rsiArray.length - 1])
         ? rsiArray[rsiArray.length - 1]
