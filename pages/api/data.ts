@@ -1,6 +1,6 @@
 // File: pages/api/data.ts (in Site A)
 
-import { useCryptoSignals, SignalData as RawSignalData } from '../../hooks/useCryptoSignals'; // Assuming SignalData structure comes from here
+import { useCryptoSignals, SignalData } from '../../hooks/useCryptoSignals'; // Assuming SignalData structure comes from here
 import { calculateRSI, getRecentRSIDiff } from '../../utils/calculations'; // Assuming these functions exist and are correct
 
 // Define the structure of the data you will send back from this API
