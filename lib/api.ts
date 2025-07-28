@@ -1,6 +1,6 @@
 // File: lib/api.ts (or services/cryptoData.ts)
 
-import { SignalData, Timeframe } from '../hooks/useCryptoSignals'; // Assuming SignalData and Timeframe are defined here
+import { SignalData, Timeframe } from './hooks/useCryptoSignals'; // Assuming SignalData and Timeframe are defined here
 
 // This function will contain the actual data fetching logic that both
 // the API route and the useCryptoSignals hook can use.
