@@ -2,13 +2,7 @@
 
 import { fetchRawCryptoSignals, RawCandleSignalData } from '../../lib/api';
 import {
-  calculateEMA, calculateRSI, getCurrentEMAGapPercentage, isEMA14InsideRange, getMainTrend,
-  getRecentRSIDiff,
-  detectBearishDivergence, detectBullishDivergence, detectBearishVolumeDivergence,
-  detectBullishVolumeDivergence, get24hChangePercent,
-  getSessions, getLastNSessionStartTimes, getRecentSessionHighs, getRecentSessionLows,
-  detectTopPatterns, detectBottomPatterns, detectBullishToBearish, detectBearishToBullish,
-  detectBullishSpike, detectBearishCollapse, getTestThreshold,
+  calculateRSI, getRecentRSIDiff,
   CandleData, Timeframe as CalculationTimeframe,
 } from '../../utils/calculations';
 
@@ -22,7 +16,7 @@ export type SignalData = {
 
 type Timeframe = CalculationTimeframe;
 
-function getSignal(s: { rsi14: number[] }) {
+function getSignal(s: { rsi14: number[] }): string {
   const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
   if (!pumpDump) return 'NO DATA';
 
@@ -54,13 +48,14 @@ export default async function handler(req: any, res: any) {
 
   try {
     const requestedTimeframe: Timeframe = (req.query.timeframe as Timeframe) || '1d';
+    const filter = req.query.filter?.toString() || '';
 
-    console.log(`[pages/api/data.ts] Received request for timeframe: ${requestedTimeframe}`);
+    console.log(`[data.ts] Fetching signals for timeframe: ${requestedTimeframe}`);
 
     const { signals: rawSignalsData } = await fetchRawCryptoSignals(requestedTimeframe);
 
     if (!rawSignalsData || rawSignalsData.length === 0) {
-      console.warn("[pages/api/data.ts] No raw signals data received. Returning empty array.");
+      console.warn("[data.ts] No raw signals returned.");
       res.status(200).json([]);
       return;
     }
@@ -73,6 +68,8 @@ export default async function handler(req: any, res: any) {
         const isUp = priceChangePercent > 0;
 
         const primarySignalText = getSignal({ rsi14 });
+
+        console.log(`[${symbol}] → ${primarySignalText}, RSI=${latestRSI?.toFixed(2)}, %Change=${priceChangePercent.toFixed(2)}`);
 
         return {
           symbol,
@@ -87,17 +84,21 @@ export default async function handler(req: any, res: any) {
       }
     }).filter((s): s is SignalData => s !== null);
 
-    // ✅ Filter only "MAX ZONE" signals
-    const maxZoneSignals = processedSignals.filter(
-      (s) =>
-        s.primarySignalText === 'MAX ZONE PUMP' ||
-        s.primarySignalText === 'MAX ZONE DUMP'
-    );
+    let result = processedSignals;
 
-    console.log(`[pages/api/data.ts] Returning ${maxZoneSignals.length} MAX ZONE signals.`);
-    res.status(200).json(maxZoneSignals);
+    // Optional filter
+    if (filter === 'maxZone') {
+      result = processedSignals.filter(
+        (s) =>
+          s.primarySignalText === 'MAX ZONE PUMP' ||
+          s.primarySignalText === 'MAX ZONE DUMP'
+      );
+    }
+
+    console.log(`[data.ts] Returning ${result.length} signals. Filter: ${filter || 'none'}`);
+    res.status(200).json(result);
   } catch (error: any) {
-    console.error("[pages/api/data.ts] Signal API error:", error.message);
-    res.status(500).json({ error: "Failed to generate signal data." });
+    console.error("[data.ts] ERROR:", error.message);
+    res.status(500).json({ error: "Failed to process signal data." });
   }
 }
