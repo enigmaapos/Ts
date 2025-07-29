@@ -103,7 +103,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
+    <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
       <div className="flex flex-col gap-4 text-sm">
         {/* Trend Filters Section */}
         <div>
