@@ -1225,7 +1225,30 @@ if (todaysHighestHigh !== null && ema200Value > 0) {
   gapFromHighToEMA200 = ((todaysHighestHigh - ema200Value) / ema200Value) * 100;
 }
 	  
-	      		    
+const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
+          const highestHigh = Math.max(...highs);
+          const lowestLow = Math.min(...lows);
+          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
+          const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
+
+           let divergenceFromLevel = false;
+          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
+
+          if (type && level !== null) {
+            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
+            if (levelIdx !== -1) {
+              const pastRSI = rsi14[levelIdx];
+              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bearish';
+              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bullish';
+              }
+            }
+          }
+
+	  
 const isAscendingRSI = (rsi: number[], window = 3): boolean => {
   const len = rsi.length;
   if (len < window) return false;
@@ -1794,29 +1817,6 @@ opens,
   bullishBreakout,
   bearishBreakout
 ); 
-
-	  const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
-          const highestHigh = Math.max(...highs);
-          const lowestLow = Math.min(...lows);
-          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
-          const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
-
-           let divergenceFromLevel = false;
-          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
-
-          if (type && level !== null) {
-            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
-            if (levelIdx !== -1) {
-              const pastRSI = rsi14[levelIdx];
-              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bearish';
-              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bullish';
-              }
-            }
-          }
 	      
         
         return {
