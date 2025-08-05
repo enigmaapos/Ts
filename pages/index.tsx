@@ -608,7 +608,8 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
 ema14InsideResults: 'ema14InsideResults',
-highestVolumeColorPrev: 'highestVolumeColorPrev'
+highestVolumeColorPrev: 'highestVolumeColorPrev',
+divergenceFromLevel: 'divergenceFromLevel'
 };	
 
 // 🟡 Apply trend & signal filters on top of the search/favorites filtered list
@@ -694,6 +695,10 @@ const redPriceChangeCount = filteredSignals.filter(
 
 const redVolumeCount = filteredSignals.filter(
   (s) => s.highestVolumeColorPrev === 'red'
+).length;
+
+	const divergenceFromLevelCount = filteredSignals.filter(
+  (s) => s.divergenceFromLevel === 'true'
 ).length;
 
 	
@@ -1839,7 +1844,8 @@ opens,
   bearishBreakoutCount,       
   testedPrevHighCount,   // ✅ New
   testedPrevLowCount,    // ✅ New
-  mainTrend,
+  divergenceFromLevelCount,
+mainTrend,
   breakout,
   bullishBreakout,
   bearishBreakout,
@@ -2073,6 +2079,12 @@ if (loading) {
         label: 'Tested Prev Low',
         key: 'testedPrevLow',
         count: testedPrevLowCount,
+        color: 'text-blue-300',
+      },
+	{
+        label: 'Div from lev',
+        key: 'divergenceFromLevel',
+        count: divergenceFromLevelCount,
         color: 'text-blue-300',
       },
     ].map(({ label, key, count, color }) => (
