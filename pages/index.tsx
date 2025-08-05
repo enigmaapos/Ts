@@ -529,7 +529,7 @@ if (sortField === 'ema200Bounce') {
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }	
 
-if (sortField === 'ema70Bounce') {
+if (sortField === 'divergenceFromLevel') {
     valA = a.divergenceFromLevel ? 1 : 0;
     valB = b.divergenceFromLevel ? 1 : 0;
     return sortOrder === 'asc' ? valA - valB : valB - valA;
