@@ -1224,6 +1224,12 @@ if (todaysLowestLow !== null && ema200Value > 0) {
 if (todaysHighestHigh !== null && ema200Value > 0) {
   gapFromHighToEMA200 = ((todaysHighestHigh - ema200Value) / ema200Value) * 100;
 }
+
+const currentRSI = rsi14.at(-1);
+          const prevHighIdx = highs.lastIndexOf(prevSessionHigh!);
+          const prevLowIdx = lows.lastIndexOf(prevSessionLow!);
+          const prevHighRSI = prevHighIdx !== -1 ? rsi14[prevHighIdx] : null;
+          const prevLowRSI = prevLowIdx !== -1 ? rsi14[prevLowIdx] : null;
 	  
 const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
           const highestHigh = Math.max(...highs);
