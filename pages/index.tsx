@@ -1767,6 +1767,28 @@ opens,
   bearishBreakout
 ); 
 
+	  const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
+          const highestHigh = Math.max(...highs);
+          const lowestLow = Math.min(...lows);
+          const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
+          const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
+
+           let divergenceFromLevel = false;
+          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
+
+          if (type && level !== null) {
+            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
+            if (levelIdx !== -1) {
+              const pastRSI = rsi14[levelIdx];
+              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bearish';
+              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bullish';
+              }
+            }
+          }
 	      
         
         return {
@@ -1787,6 +1809,7 @@ prevClosedRed,
   bearishReversalCount,
   bullishReversal,		
   bearishReversal,
+divergenceFromLevel,		
   bullishSpike,
   bearishCollapse,	
   rsi14,
@@ -2293,7 +2316,8 @@ if (loading) {
     <th className="px-1 py-0.5 text-center">Spike</th>
 <th className="px-1 py-0.5 text-center">Bear Rev</th>
     <th className="px-1 py-0.5 text-center">Bull Rev</th>	
-	  
+
+	<th className="p-2">Level Divergence</th>  
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
 	  
     {/* RSI Pump | Dump */}
@@ -2691,6 +2715,17 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     </>
   )}
 </td>
+
+		   <td
+                    className={`p-2 ${
+                      s.divergenceFromLevel
+                        ? 'bg-indigo-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    {s.divergenceFromLevel ? 'Yes' : 'No'}
+                  </td>
+		   
 		   
 <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
