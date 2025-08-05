@@ -852,7 +852,7 @@ const lastEMA200 = ema200.at(-1)!;
 
 
 const mainTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows);
-
+const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
         
