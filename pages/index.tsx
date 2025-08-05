@@ -529,6 +529,12 @@ if (sortField === 'ema200Bounce') {
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   }	
 
+if (sortField === 'ema70Bounce') {
+    valA = a.divergenceFromLevel ? 1 : 0;
+    valB = b.divergenceFromLevel ? 1 : 0;
+    return sortOrder === 'asc' ? valA - valB : valB - valA;
+}
+		     
   if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
     const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
     const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
@@ -2351,7 +2357,18 @@ if (loading) {
 <th className="px-1 py-0.5 text-center">Bear Rev</th>
     <th className="px-1 py-0.5 text-center">Bull Rev</th>	
 
-	<th className="p-2">Level Divergence</th>  
+<th
+  onClick={() => {
+    setSortField('divergenceFromLevel');
+    setSortOrder((prev) =>
+      sortField === 'divergenceFromLevel' && prev === 'asc' ? 'desc' : 'asc'
+    );
+  }}
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
+>
+  Div From Lev {sortField === 'divergenceFromLevel' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th> 
+	  
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
 	  
     {/* RSI Pump | Dump */}
