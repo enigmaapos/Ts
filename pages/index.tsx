@@ -2251,6 +2251,22 @@ if (loading) {
   <span className="text-green-400 font-semibold">volume keeps increasing.</span>
 </li>
 
+<li>
+  <span className="text-white">If a </span>
+  <span className="text-yellow-400 font-semibold">breakout fails today,</span>
+  <span className="text-white"> watch for a new breakout attempt the next day. It’s possible the </span>
+  <span className="text-green-400 font-semibold">trend continues</span>
+  <span className="text-white"> if the breakout succeeds, but if it </span>
+  <span className="text-red-400 font-semibold">fails again,</span>
+  <span className="text-white"> it often forms a </span>
+  <span className="text-purple-400 font-semibold">reversal candle.</span>
+  <span className="text-white"> For example, a </span>
+  <span className="text-green-400 font-semibold">green breakout failure</span>
+  <span className="text-white"> today may continue upward if resistance breaks tomorrow, but a </span>
+  <span className="text-red-400 font-semibold">red breakout failure</span>
+  <span className="text-white"> followed by another failure at support the next day often signals a </span>
+  <span className="text-purple-400 font-semibold">trend reversal.</span>
+</li>
   </ul>
 </div>
  </div>
