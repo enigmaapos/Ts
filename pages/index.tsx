@@ -2243,52 +2243,13 @@ if (loading) {
   <ul className="list-disc list-inside text-yellow-200 space-y-2">
     
     <li>
-      <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a 
-      <span className="text-red-400 font-semibold"> Bearish candle</span> the next day.
-    </li>
-
-    <li>
-      <span className="text-white font-semibold">Max Zone Pump Decision Flow:</span>
-      <ul className="list-disc list-inside ml-5 mt-1 space-y-1">
-        <li>
-          <span className="text-green-400 font-semibold">Bullish Sentiment:</span> If the 24H change is green (higher %),
-          expect a <span className="font-semibold">bullish breakout with divergence</span>. 
-          <br />
-          → Start selling at the <span className="font-semibold text-red-400">first red candle</span> with 
-          RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
-        </li>
-        <li>
-          <span className="text-red-400 font-semibold">Bearish Sentiment:</span> If the 24H change is red (higher %),
-          it likely signals a <span className="font-semibold">failed breakout</span>. 
-          <br />
-          → Also sell at the <span className="font-semibold text-red-400">first red candle</span> with 
-          RSI &lt; 50 on the <span className="text-white">1-minute</span> timeframe.
-        </li>
-      </ul>
-    </li>
-
-    <li>
-      <span className="text-white font-semibold">Friday Behavior:</span>
-      Fridays usually show a <span className="text-red-400 font-semibold">bearish trend</span>,
-      but occasionally have a <span className="text-green-400 font-semibold">small bullish move</span> before closing.     
-    </li>
-
-    <li>
-      After Max Zone Pump:
-      <br />
-      → Watch for the <span className="font-semibold text-red-400">first red candle</span> where RSI drops below 50.
-      That candle acts as a decision point.
-    </li>
-
-    <li>
-      If price stays <span className="font-semibold text-green-400">above the opening</span> of that red candle,
-      it becomes a <span className="text-green-400 font-bold">Buy Signal</span>.
-    </li>
-
-    <li>
-      If price breaks <span className="font-semibold text-red-400">below the opening</span> of that red candle,
-      it's a clear <span className="text-red-400 font-bold">Sell Signal</span>.
-    </li>
+  <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a 
+  <span className="text-red-400 font-semibold"> Bearish candle</span> the next day. 
+  <span className="text-white"> This Bearish candle forms when volume is </span>
+  <span className="text-yellow-400 font-semibold">divergent</span>
+  <span className="text-white"> and tends to continue if the </span>
+  <span className="text-green-400 font-semibold">volume keeps increasing.</span>
+</li>
 
   </ul>
 </div>
