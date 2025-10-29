@@ -443,6 +443,16 @@ function findRelevantLevel(
   return { level, type };
        }
 
+
+const blacklist = [
+  "ALPACAUSDT", "BNXUSDT", "ALPHAUSDT", "OCEANUSDT", "DGBUSDT", "AGIXUSDT",
+  "LINAUSDT", "LOKAUSDT", "KEYUSDT", "MDTUSDT", "LOOMUSDT", "RENUSDT",
+  "OMNIUSDT", "SLERFUSDT", "STMXUSDT", "UXLINKUSDT", "BSWUSDT", "NEIROETHUSDT",
+  "VIDTUSDT", "TROYUSDT", "BAKEUSDT", "AMBUSDT", "MEMEFIUSDT", "NULSUSDT",
+  "HIFIUSDT", "LEVERUSDT", "XEMUSDT", "STRAXUSDT", "COMBOUSDT"
+];
+
+
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -1909,10 +1919,14 @@ latestRSI,
       const fetchSymbols = async () => {
       const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
       symbols = info.symbols
-        .filter((s: any) => s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
-        .slice(0, 500)
-        .map((s: any) => s.symbol);
-    };
+  .filter(
+    (s: any) =>
+      s.contractType === "PERPETUAL" &&
+      s.quoteAsset === "USDT" &&
+      !blacklist.includes(s.symbol)
+  )
+  .slice(0, 500)
+  .map((s: any) => s.symbol);
 
   const fetchBatch = async () => {
     if (!symbols.length) return;
