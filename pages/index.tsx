@@ -1927,6 +1927,7 @@ latestRSI,
   )
   .slice(0, 500)
   .map((s: any) => s.symbol);
+	  };
 
   const fetchBatch = async () => {
     if (!symbols.length) return;
