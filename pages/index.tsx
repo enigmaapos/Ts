@@ -2295,7 +2295,7 @@ if (loading) {
   <span className="text-white"> — this area often becomes the </span>
   <span className="text-red-400 font-semibold">optimal selling zone</span>
   <span className="text-white"> with a target around the </span>
-  <span className="text-purple-400 font-semibold">EMA200.</span>
+  <span className="text-purple-400 font-semibold">EMA200 in 1m time frame.</span>
   <span className="text-white"> If the 15-minute candle continues dropping afterward, the </span>
   <span className="text-purple-400 font-semibold">next target</span>
   <span className="text-white"> is usually the </span>
