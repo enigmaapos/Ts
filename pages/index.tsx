@@ -753,8 +753,10 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
-    const BATCH_SIZE = 10;
-    const INTERVAL_MS = 1000;
+    const BATCH_SIZE = 5;        // scan 5 symbols at a time
+const INTERVAL_MS = 2000;    // run a batch every 2 seconds
+const MIN_DELAY_MS = 300;    // minimum 0.3 s between requests inside a batch
+const MAX_DELAY_MS = 600;    // maximum 0.6 s
     let currentIndex = 0;
     let symbols: string[] = [];
 
@@ -1929,35 +1931,52 @@ latestRSI,
   .map((s: any) => s.symbol);
 	  };
 
+	  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const fetchBatch = async () => {
-    if (!symbols.length) return;
+  if (!symbols.length) return;
 
-    const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-    currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+  const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+  currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
-    const results = await Promise.all(
-      batch.map((symbol) => fetchAndAnalyze(symbol, timeframe))
-    );
-    const cleanedResults = results.filter((r) => r !== null);
+  const results: any[] = [];
 
-    if (isMounted) {
-      setSignals((prev) => {
-        const updated = [...prev];
-        const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-        for (const result of cleanedResults) {
-          const index = updated.findIndex((r) => r.symbol === result.symbol);
-          if (index >= 0) {
-            updated[index] = result;
-          } else {
-            updated.push(result);
-          }
-          updatedMap[result.symbol] = Date.now();
-        }
-        setLastUpdatedMap(updatedMap);
-        return updated;
-      });
+  for (const symbol of batch) {
+    try {
+      const result = await fetchAndAnalyze(symbol, timeframe);
+      if (result) results.push(result);
+    } catch (err: any) {
+      // 429 = rate-limit; back off longer
+      if (err.message?.includes("429")) {
+        console.warn("⚠️ Rate limit hit, pausing 10 s...");
+        await delay(10_000);
+      } else {
+        console.warn(`Error on ${symbol}:`, err.message);
+      }
     }
-  };
+
+    // 🔹 small random delay between each request (300 – 600 ms)
+    const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
+    await delay(randomDelay);
+  }
+
+  const cleanedResults = results.filter(r => r !== null);
+
+  if (isMounted) {
+    setSignals(prev => {
+      const updated = [...prev];
+      const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+      for (const result of cleanedResults) {
+        const index = updated.findIndex(r => r.symbol === result.symbol);
+        if (index >= 0) updated[index] = result;
+        else updated.push(result);
+        updatedMap[result.symbol] = Date.now();
+      }
+      setLastUpdatedMap(updatedMap);
+      return updated;
+    });
+  }
+};
 
   const runBatches = async () => {
     await fetchSymbols();
