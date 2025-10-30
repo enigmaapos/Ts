@@ -753,10 +753,10 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
-    const BATCH_SIZE = 5;        // scan 5 symbols at a time
-const INTERVAL_MS = 2000;    // run a batch every 2 seconds
-const MIN_DELAY_MS = 300;    // minimum 0.3 s between requests inside a batch
-const MAX_DELAY_MS = 600;    // maximum 0.6 s
+    const BATCH_SIZE = 3;     // was 5
+const INTERVAL_MS = 8000; // was 3000 (now 8 seconds per batch)
+const MIN_DELAY = 800;
+const MAX_DELAY = 1500;
     let currentIndex = 0;
     let symbols: string[] = [];
 
