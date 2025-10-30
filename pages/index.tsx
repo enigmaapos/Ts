@@ -2270,6 +2270,39 @@ if (loading) {
   <span className="text-green-400 font-semibold">volume keeps increasing.</span>
 </li>
 
+	<li>
+  <span className="text-yellow-400 font-semibold">15-minute timeframe:</span>
+  <span className="text-white"> If there’s a </span>
+  <span className="text-red-400 font-semibold">Lowest Zone Dump</span>
+  <span className="text-white"> combined with a </span>
+  <span className="text-green-400 font-semibold">high 24-hour price change,</span>
+  <span className="text-white"> it often indicates a </span>
+  <span className="text-green-400 font-semibold">slow but strong bullish trend.</span>
+</li>
+
+<li>
+  <span className="text-yellow-400 font-semibold">15-minute timeframe with 1-minute confirmation:</span>
+  <span className="text-white"> If a </span>
+  <span className="text-green-400 font-semibold">Max Zone Pump</span>
+  <span className="text-white"> forms on the 15-minute chart and the </span>
+  <span className="text-blue-400 font-semibold">1-minute timeframe</span>
+  <span className="text-white"> touches the </span>
+  <span className="text-purple-400 font-semibold">EMA70</span>
+  <span className="text-white"> for the first time, that’s an early </span>
+  <span className="text-red-400 font-semibold">signal for a potential drop.</span>
+  <span className="text-white"> You can either sell near the top, or wait for a </span>
+  <span className="text-purple-400 font-semibold">second touch of EMA70</span>
+  <span className="text-white"> — this area often becomes the </span>
+  <span className="text-red-400 font-semibold">optimal selling zone</span>
+  <span className="text-white"> with a target around the </span>
+  <span className="text-purple-400 font-semibold">EMA200.</span>
+  <span className="text-white"> If the 15-minute candle continues dropping afterward, the </span>
+  <span className="text-purple-400 font-semibold">next target</span>
+  <span className="text-white"> is usually the </span>
+  <span className="text-purple-400 font-semibold">EMA200</span>
+  <span className="text-white"> in the same 15-minute timeframe.</span>
+</li>
+
 <li>
   <span className="text-white">If a </span>
   <span className="text-yellow-400 font-semibold">breakout fails today,</span>
@@ -2353,6 +2386,27 @@ if (loading) {
 >
   24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
+
+{/* RSI Pump | Dump */}
+    <th
+      onClick={() => {
+        setSortField('pumpStrength');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>
+	    <th
+  onClick={() => {
+    setSortField('latestRSI');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }}
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
+>
+  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+</th>	  
+	  
 <th className="px-1 py-0.5 bg-gray-800 text-center">
   Drop 🚨
 </th>
@@ -2393,26 +2447,6 @@ if (loading) {
 </th> 
 	  
 	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
-	  
-    {/* RSI Pump | Dump */}
-    <th
-      onClick={() => {
-        setSortField('pumpStrength');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-	    <th
-  onClick={() => {
-    setSortField('latestRSI');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	  
 
 {/* Bearish Divergence */}
     <th
@@ -2604,6 +2638,49 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
+
+			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
+
+  {/* Pump / Dump */}
+  <td
+  className={`text-center font-bold ${
+    direction === 'pump' && pump !== undefined && pump > 30
+      ? 'text-green-400'
+      : direction === 'dump' && dump !== undefined && dump > 30
+      ? 'text-red-400'
+      : direction === 'pump' && inRange(pump, 21, 26)
+      ? 'text-blue-400'
+      : direction === 'dump' && inRange(dump, 21, 26)
+      ? 'text-blue-400'
+      : direction === 'pump' && inRange(pump, 1, 10)
+      ? 'text-yellow-400'
+      : direction === 'dump' && inRange(dump, 1, 10)
+      ? 'text-yellow-400'
+      : 'text-gray-500'
+  }`}
+>
+  {direction === 'pump' && pump !== undefined ? `Pump: ${pump.toFixed(2)}` : ''}
+  {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
+  {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
+</td>
 
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
@@ -2800,49 +2877,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
                   </td>
 		   
-		   
-<td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>			   
-
-  {/* Pump / Dump */}
-  <td
-  className={`text-center font-bold ${
-    direction === 'pump' && pump !== undefined && pump > 30
-      ? 'text-green-400'
-      : direction === 'dump' && dump !== undefined && dump > 30
-      ? 'text-red-400'
-      : direction === 'pump' && inRange(pump, 21, 26)
-      ? 'text-blue-400'
-      : direction === 'dump' && inRange(dump, 21, 26)
-      ? 'text-blue-400'
-      : direction === 'pump' && inRange(pump, 1, 10)
-      ? 'text-yellow-400'
-      : direction === 'dump' && inRange(dump, 1, 10)
-      ? 'text-yellow-400'
-      : 'text-gray-500'
-  }`}
->
-  {direction === 'pump' && pump !== undefined ? `Pump: ${pump.toFixed(2)}` : ''}
-  {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
-  {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
-</td>
 
 	       <td
   className={`px-2 py-1 text-center font-semibold ${
