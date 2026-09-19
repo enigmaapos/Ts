@@ -3,6 +3,31 @@ import PriceChangePercent from "../components/PriceChangePercent";
 import { didDropFromPeak, didRecoverFromLow, getRecentRSIDiff, getSignal } from "../utils/calculations";
 import { SignalData, TIMEFRAMES, useCryptoSignals } from "../hooks/useCryptoSignals";
 
+// Historical validation safety gate. Live data alone cannot establish hit rate.
+const HIT_RATE_SAFETY_LIMIT = 60;
+const HIT_RATE_MIN_SAMPLES = 30;
+
+type HitRateInfo = { hitRate: number | null; samples: number };
+
+function getHitRateInfo(s: SignalData): HitRateInfo {
+  const raw = s as SignalData & Record<string, unknown>;
+  const rate = [raw.hitRate, raw.signalHitRate, raw.backtestHitRate, raw.validationHitRate]
+    .find(v => typeof v === "number" && Number.isFinite(v as number));
+  const samples = [raw.hitRateSamples, raw.signalSamples, raw.backtestSamples, raw.validationSamples]
+    .find(v => typeof v === "number" && Number.isFinite(v as number));
+  return { hitRate: typeof rate === "number" ? rate : null, samples: typeof samples === "number" ? Math.max(0, samples) : 0 };
+}
+
+function isHitRateSafe(s: SignalData): boolean {
+  const { hitRate, samples } = getHitRateInfo(s);
+  return hitRate !== null && hitRate >= HIT_RATE_SAFETY_LIMIT && samples >= HIT_RATE_MIN_SAMPLES;
+}
+
+function formatPrice(value: unknown): string {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(7) : "N/A";
+}
+
 export default function Home() {
   const [search, setSearch] = useState("");
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -70,7 +95,7 @@ export default function Home() {
         const active = trendFilter === "ema14InsideResults" ? value?.some((r: any) => r.inside) : trendFilter === "bullishReversal" || trendFilter === "bearishReversal" || trendFilter === "bullishSpike" || trendFilter === "bearishCollapse" ? value?.signal === true : value === true;
         if (!active) return false;
       }
-      if (signalFilter && getSignal(s) !== signalFilter) return false;
+      if (signalFilter && (getSignal(s) || "").toUpperCase() !== signalFilter.toUpperCase()) return false;
       return true;
     });
 
@@ -101,6 +126,8 @@ export default function Home() {
       return sortOrder === "asc" ? cmp : -cmp;
     });
   }, [filteredSignals, trendFilter, signalFilter, sortField, sortOrder]);
+
+  const safeSignalCount = filteredAndSortedSignals.filter(s => !!getSignal(s) && isHitRateSafe(s)).length;
 
   const bullishMainTrendCount = filteredSignals.filter(s => s.mainTrend?.trend === "bullish").length;
   const bearishMainTrendCount = filteredSignals.filter(s => s.mainTrend?.trend === "bearish").length;
@@ -185,6 +212,8 @@ export default function Home() {
   <span>{scanStatus}</span>
   <span>Progress: {scanProgress}</span>
   <span>Signals: {signals.length}</span>
+  <span>Visible: {filteredAndSortedSignals.length}</span>
+  <span className={safeSignalCount ? "text-green-300" : "text-yellow-300"}>Safe ≥{HIT_RATE_SAFETY_LIMIT}%: {safeSignalCount}</span>
 </div>
 
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
@@ -411,7 +440,7 @@ export default function Home() {
   <ul className="list-disc list-inside text-yellow-200 space-y-2">
     
     <li>
-  <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a 
+  <span className="text-white">If the current day has a Max Zone Pump,</span> it may be followed by a 
   <span className="text-red-400 font-semibold"> Bearish candle</span> the next day. 
   <span className="text-white"> This Bearish candle forms when volume is </span>
   <span className="text-yellow-400 font-semibold">divergent</span>
@@ -425,7 +454,7 @@ export default function Home() {
   <span className="text-red-400 font-semibold">Lowest Zone Dump</span>
   <span className="text-white"> combined with a </span>
   <span className="text-green-400 font-semibold">high 24-hour price change,</span>
-  <span className="text-white"> it often indicates a </span>
+  <span className="text-white"> it can coincide with a </span>
   <span className="text-green-400 font-semibold">slow but strong bullish trend.</span>
 </li>
 
@@ -441,7 +470,7 @@ export default function Home() {
   <span className="text-red-400 font-semibold">signal for a potential drop.</span>
   <span className="text-white"> You can either sell near the top, or wait for a </span>
   <span className="text-purple-400 font-semibold">second touch of EMA70</span>
-  <span className="text-white"> — this area often becomes the </span>
+  <span className="text-white"> — this area can be monitored as a </span>
   <span className="text-red-400 font-semibold">optimal selling zone</span>
   <span className="text-white"> with a target around the </span>
   <span className="text-purple-400 font-semibold">EMA200 in 1m time frame.</span>
@@ -459,7 +488,7 @@ export default function Home() {
   <span className="text-green-400 font-semibold">trend continues</span>
   <span className="text-white"> if the breakout succeeds, but if it </span>
   <span className="text-red-400 font-semibold">fails again,</span>
-  <span className="text-white"> it often forms a </span>
+  <span className="text-white"> it can precede a </span>
   <span className="text-purple-400 font-semibold">reversal candle.</span>
   <span className="text-white"> For example, a </span>
   <span className="text-green-400 font-semibold">green breakout failure</span>
@@ -468,6 +497,7 @@ export default function Home() {
   <span className="text-white"> followed by another failure at support the next day often signals a </span>
   <span className="text-purple-400 font-semibold">trend reversal.</span>
 </li>
+    <li><span className="text-white">Hit-rate safety limit:</span> a signal is <span className="text-green-400 font-semibold">SAFE</span> only with validated historical hit rate ≥ <span className="text-yellow-400 font-semibold">{HIT_RATE_SAFETY_LIMIT}%</span> and ≥ <span className="text-yellow-400 font-semibold">{HIT_RATE_MIN_SAMPLES} samples</span>. Missing or insufficient validation is not treated as a validated trade.</li>
   </ul>
 </div>
  </div>
@@ -536,6 +566,8 @@ export default function Home() {
   24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 
+    <th className="px-1 py-0.5 min-w-[90px] text-center">Signal</th>
+
 {/* RSI Pump | Dump */}
     <th
       onClick={() => {
@@ -594,9 +626,6 @@ export default function Home() {
 >
   Div From Lev {sortField === 'divergenceFromLevel' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
-	  
-	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
-
 {/* Bearish Divergence */}
     <th
       onClick={() => {
@@ -705,55 +734,16 @@ export default function Home() {
       {filteredAndSortedSignals.map((s) => {
   const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
   const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-const pump = pumpDump?.pumpStrength;
-const dump = pumpDump?.dumpStrength;
-const direction = pumpDump?.direction;
-	
-const inRange = (val: number | undefined, min: number, max: number) =>
-  val !== undefined && val >= min && val <= max;
+  const pump = pumpDump?.pumpStrength;
+  const dump = pumpDump?.dumpStrength;
+  const direction = pumpDump?.direction;
+  const signal = getSignal(s) || '';
+  const hitRateInfo = getHitRateInfo(s);
+  const hitRateSafe = isHitRateSafe(s);
 
-const isAbove30 = (val: number | undefined) => val !== undefined && val >= 30;
-const validPump = pump !== undefined && pump !== 0;
-const validDump = dump !== undefined && dump !== 0;
+  const inRange = (val: number | undefined, min: number, max: number) =>
+    typeof val === 'number' && Number.isFinite(val) && val >= min && val <= max;
 
-// ✅ Early return: skip rendering if both are invalid or 0
-if (!validPump && !validDump) return null;
-
-const pumpInRange_21_26 = inRange(pump, 21, 26);
-const dumpInRange_21_26 = inRange(dump, 21, 26);
-const pumpAbove30 = isAbove30(pump);
-const dumpAbove30 = isAbove30(dump);
-
-const pumpInRange_1_10 = inRange(pump, 1, 10);
-const dumpInRange_1_10 = inRange(dump, 1, 10);
-
-const pumpInRange_17_19 = inRange(pump, 17, 19);
-const dumpInRange_17_19 = inRange(dump, 17, 19);
-
-let signal = '';
-
-// ✅ MAX ZONE
-if (direction === 'pump' && pumpAbove30) {
-  signal = 'MAX ZONE PUMP';
-} else if (direction === 'dump' && dumpAbove30) {
-  signal = 'MAX ZONE DUMP';
-}
-
-// ✅ BALANCE ZONE
-else if (direction === 'pump' && pumpInRange_21_26) {
-  signal = 'BALANCE ZONE PUMP';
-} else if (direction === 'dump' && dumpInRange_21_26) {
-  signal = 'BALANCE ZONE DUMP';
-}
-
-// ✅ LOWEST ZONE
-else if (direction === 'pump' && pumpInRange_1_10) {
-  signal = 'LOWEST ZONE PUMP';
-} else if (direction === 'dump' && dumpInRange_1_10) {
-  signal = 'LOWEST ZONE DUMP';
-}
-
-	
 
         return (
            <tr
@@ -768,13 +758,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       <span className="truncate">{s.symbol}</span>
       <button
         className="ml-1 text-yellow-400 hover:text-yellow-300"
-        onClick={() => {
-          setFavorites((prev: Set<string>) => {
-            const newSet = new Set(prev);
-            newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
-            return newSet;
-          });
-        }}
+        onClick={() => toggleFavorite(s.symbol)}
       >
         {favorites.has(s.symbol) ? '★' : '☆'}
       </button>
@@ -782,7 +766,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   </td>
 
   <td className="px-2 py-1 border-b border-gray-700 text-right">
-  ${Number(s.currentPrice).toFixed(7)}
+  ${formatPrice(s.currentPrice)}
 </td>
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
@@ -805,7 +789,16 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       : 'text-gray-500'
   }`}
 >
-  {signal.trim()}
+  {signal.trim() || '—'}
+  {signal && (
+    <div className={hitRateSafe ? 'text-green-400 text-[9px]' : 'text-yellow-400 text-[9px]'}>
+      {hitRateSafe
+        ? `SAFE • ${hitRateInfo.hitRate!.toFixed(1)}% / ${hitRateInfo.samples} samples`
+        : hitRateInfo.hitRate === null
+        ? `UNVERIFIED • requires ≥${HIT_RATE_SAFETY_LIMIT}% + ${HIT_RATE_MIN_SAMPLES} samples`
+        : `BLOCKED • ${hitRateInfo.hitRate.toFixed(1)}% / ${hitRateInfo.samples} samples`}
+    </div>
+  )}
 </td>			   
 
   {/* Pump / Dump */}
@@ -829,6 +822,27 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   {direction === 'pump' && pump !== undefined ? `Pump: ${pump.toFixed(2)}` : ''}
   {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
   {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
+</td>
+		   
+
+	       <td
+  className={`px-2 py-1 text-center font-semibold ${
+    typeof s.latestRSI !== 'number'
+      ? 'text-gray-400'
+      : s.latestRSI > 50
+      ? 'text-green-400'
+      : s.latestRSI < 50
+      ? 'text-red-400'
+      : 'text-gray-300'
+  }`}
+>
+  {typeof s.latestRSI !== 'number'
+    ? 'N/A'
+    : s.latestRSI > 50
+    ? 'Above 50'
+    : s.latestRSI < 50
+    ? 'Below 50'
+    : 'Exactly 50'}
 </td>
 
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
@@ -874,7 +888,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 >
   {s.mainTrend ? (
     <>
-      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(7)} `}
+      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${formatPrice(s.mainTrend.crossoverPrice)} `}
       {s.mainTrend.breakout === true ? (
         s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
       ) : s.mainTrend.breakout === false ? (
@@ -909,19 +923,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.bearishCollapse.entry.toFixed(7)}
+        ${formatPrice(s.bearishCollapse.entry)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bearishCollapse.stopLoss.toFixed(7)}
+        ${formatPrice(s.bearishCollapse.stopLoss)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bearishCollapse.tp1.toFixed(7)}
+        ${formatPrice(s.bearishCollapse.tp1)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bearishCollapse.tp2.toFixed(7)}
+        ${formatPrice(s.bearishCollapse.tp2)}
       </div>
     </>
   )}
@@ -938,19 +952,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.bullishSpike.entry.toFixed(7)}
+        ${formatPrice(s.bullishSpike.entry)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bullishSpike.stopLoss.toFixed(7)}
+        ${formatPrice(s.bullishSpike.stopLoss)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bullishSpike.tp1.toFixed(7)}
+        ${formatPrice(s.bullishSpike.tp1)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bullishSpike.tp2.toFixed(7)}
+        ${formatPrice(s.bullishSpike.tp2)}
       </div>
     </>
   )}
@@ -967,19 +981,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.bearishReversal.entry?.toFixed(7)}
+        ${formatPrice(s.bearishReversal.entry)}
       </div>
       <div>
         <span className="text-red-400 font-semibold">SL:</span>{' '}
-        ${s.bearishReversal.stopLoss?.toFixed(7)}
+        ${formatPrice(s.bearishReversal.stopLoss)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bearishReversal.tp1?.toFixed(7)}
+        ${formatPrice(s.bearishReversal.tp1)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bearishReversal.tp2?.toFixed(7)}
+        ${formatPrice(s.bearishReversal.tp2)}
       </div>
     </>
   )}
@@ -998,19 +1012,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     <>
       <div>
         <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.bullishReversal.entry?.toFixed(7)}
+        ${formatPrice(s.bullishReversal.entry)}
       </div>
       <div>
         <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bullishReversal.stopLoss?.toFixed(7)}
+        ${formatPrice(s.bullishReversal.stopLoss)}
       </div>
       <div>
         <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bullishReversal.tp1?.toFixed(7)}
+        ${formatPrice(s.bullishReversal.tp1)}
       </div>
       <div>
         <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bullishReversal.tp2?.toFixed(7)}
+        ${formatPrice(s.bullishReversal.tp2)}
       </div>
     </>
   )}
@@ -1024,24 +1038,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                     }`}
                   >
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
-                  </td>
-		   
-
-	       <td
-  className={`px-2 py-1 text-center font-semibold ${
-    typeof s.latestRSI !== 'number'
-      ? 'text-gray-400'
-      : s.latestRSI > 50
-      ? 'text-green-400'
-      : 'text-red-400'
-  }`}
->
-  {typeof s.latestRSI !== 'number'
-    ? 'N/A'
-    : s.latestRSI > 50
-    ? 'Above 50 (Bullish)'
-    : 'Below 50 (Bearish)'}
-</td>		   
+                  </td>		   
 
 {/* Divergences */}
 {/* Bearish Divergence */}
@@ -1093,7 +1090,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 </td>	    	  
 		   
 <td className="px-1 py-0.5 text-center text-[10px]">
-  {s.ema14InsideResults.some(r => r.inside)
+  {s.ema14InsideResults?.some(r => r.inside)
     ? <span className="text-green-400 font-semibold">YES</span>
     : <span className="text-red-400">NO</span>}
 </td>	
