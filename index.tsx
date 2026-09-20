@@ -464,36 +464,8 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-  const [rsiFilter, setRsiFilter] = useState<'below50' | 'above50' | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');	  
   const timeframes = ['15m', '4h', '1d'];
-
-  // UI-only clock and refresh telemetry. These timers do not call Binance.
-  const [uiNow, setUiNow] = useState(() => Date.now());
-  const [lastBatchRefreshAt, setLastBatchRefreshAt] = useState<number | null>(null);
-  const [nextBatchRefreshAt, setNextBatchRefreshAt] = useState<number | null>(null);
-  const [tickerRefreshAt, setTickerRefreshAt] = useState<number | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setUiNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const formatAge = (timestamp: number | null) => {
-    if (!timestamp) return '—';
-    const seconds = Math.max(0, Math.floor((uiNow - timestamp) / 1000));
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}m ${seconds % 60}s ago`;
-  };
-
-  const formatCountdown = (timestamp: number | null) => {
-    if (!timestamp) return '—';
-    const seconds = Math.max(0, Math.ceil((timestamp - uiNow) / 1000));
-    if (seconds <= 0) return 'refreshing…';
-    if (seconds < 60) return `in ${seconds}s`;
-    return `in ${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  };
 	
   
 
@@ -537,15 +509,6 @@ const filteredSignals = signals.filter((s) => {
 
   return matchesSearch && (!showOnlyFavorites || isFavorite);
 });
-
-// RSI14 directional filter: below 50 = bearish, above 50 = bullish.
-// Exactly 50 is intentionally excluded from both filters.
-const rsiBelow50Count = filteredSignals.filter(
-  (s) => typeof s.latestRSI === 'number' && s.latestRSI < 50
-).length;
-const rsiAbove50Count = filteredSignals.filter(
-  (s) => typeof s.latestRSI === 'number' && s.latestRSI > 50
-).length;
 
 // 🔹 Sorting logic
 const sortedSignals = signals.sort((a, b) => {
@@ -673,9 +636,6 @@ const filteredAndSortedSignals = filteredSignals
 
     if (signalFilter && getSignal(s) !== signalFilter) return false;
 
-    if (rsiFilter === 'below50' && !(typeof s.latestRSI === 'number' && s.latestRSI < 50)) return false;
-    if (rsiFilter === 'above50' && !(typeof s.latestRSI === 'number' && s.latestRSI > 50)) return false;
-
     return true;
   })
 
@@ -793,21 +753,12 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
-    // Binance-safe scanner pacing.
-    // IMPORTANT: do not use setInterval for the scan loop because a slow batch
-    // can overlap the next batch and multiply request pressure.
-    const BATCH_SIZE = 2;
-    const MIN_DELAY_MS = 800;
-    const MAX_DELAY_MS = 1400;
-    const BATCH_PAUSE_MS = 5000;
-    const KLINE_LIMIT = 300;          // enough for EMA200, lower request weight than 500
-    const TICKER_CACHE_MS = 60_000;   // one all-symbol 24h ticker request per minute
-    const MAX_SYMBOLS = 500;
+    const BATCH_SIZE = 5;        // scan 5 symbols at a time
+const INTERVAL_MS = 2000;    // run a batch every 2 seconds
+const MIN_DELAY_MS = 300;    // minimum 0.3 s between requests inside a batch
+const MAX_DELAY_MS = 600;    // maximum 0.6 s
     let currentIndex = 0;
     let symbols: string[] = [];
-    let ticker24hMap: Record<string, any> = {};
-    let tickerCacheAt = 0;
-    let rateLimitCooldownUntil = 0;
 
     // Define available timeframes
 const timeframes = ['15m', '4h', '1d'] as const;
@@ -864,65 +815,11 @@ const getSessions = (timeframe?: Timeframe) => {
   }
 };
 
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const getRetryAfterMs = (res: Response, fallbackMs: number) => {
-      const retryAfter = Number(res.headers.get("Retry-After"));
-      return Number.isFinite(retryAfter) && retryAfter > 0
-        ? retryAfter * 1000
-        : fallbackMs;
-    };
-
-    // Centralized Binance REST fetch. A 429/418 puts the whole scanner into
-    // cooldown instead of continuing to fire requests from other symbols.
-    const fetchJson = async (url: string) => {
-      const now = Date.now();
-      if (now < rateLimitCooldownUntil) {
-        await delay(rateLimitCooldownUntil - now);
-      }
-
-      const res = await fetch(url);
-      if (res.ok) return res.json();
-
-      if (res.status === 429) {
-        const waitMs = getRetryAfterMs(res, 60_000);
-        rateLimitCooldownUntil = Date.now() + waitMs;
-        console.warn(`⚠️ Binance 429. Scanner cooling down for ${Math.ceil(waitMs / 1000)}s.`);
-        await delay(waitMs);
-        throw new Error("BINANCE_RATE_LIMIT_429");
-      }
-
-      if (res.status === 418) {
-        const waitMs = getRetryAfterMs(res, 300_000);
-        rateLimitCooldownUntil = Date.now() + waitMs;
-        console.error(`🛑 Binance 418 IP ban response. Scanner stopped for ${Math.ceil(waitMs / 1000)}s.`);
-        await delay(waitMs);
-        throw new Error("BINANCE_IP_BANNED_418");
-      }
-
-      throw new Error(`Binance HTTP ${res.status}`);
-    };
-
-    const refresh24hTickerCache = async (force = false) => {
-      if (!force && Date.now() - tickerCacheAt < TICKER_CACHE_MS && Object.keys(ticker24hMap).length) {
-        return;
-      }
-
-      const tickerRows = await fetchJson("https://fapi.binance.com/fapi/v1/ticker/24hr");
-      const nextMap: Record<string, any> = {};
-      for (const row of tickerRows) {
-        if (row?.symbol) nextMap[row.symbol] = row;
-      }
-      ticker24hMap = nextMap;
-      tickerCacheAt = Date.now();
-      setTickerRefreshAt(tickerCacheAt);
-    };
-
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
-    const raw = await fetchJson(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${KLINE_LIMIT}`
-    );
+    const raw = await fetch(
+      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`
+    ).then((res) => res.json());
 
         const candles = raw.map((c: any) => ({
           timestamp: c[0],
@@ -959,7 +856,11 @@ candles.forEach((c, i) => {
   // Volume is already assumed to be present as c.volume
 });
 
-    const ticker24h = ticker24hMap[symbol] || {};
+    const ticker24h = await fetch(
+      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
+    ).then(res => res.json());
+
+
 
     const currentPrice = parseFloat(ticker24h.lastPrice);
     const price24hAgo = parseFloat(ticker24h.openPrice);
@@ -2018,7 +1919,7 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
-      const info = await fetchJson("https://fapi.binance.com/fapi/v1/exchangeInfo");
+      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
       symbols = info.symbols
   .filter(
     (s: any) =>
@@ -2026,99 +1927,75 @@ latestRSI,
       s.quoteAsset === "USDT" &&
       !blacklist.includes(s.symbol)
   )
-  .slice(0, MAX_SYMBOLS)
+  .slice(0, 500)
   .map((s: any) => s.symbol);
 	  };
 
+	  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const fetchBatch = async () => {
-    if (!symbols.length || !isMounted) return;
+  if (!symbols.length) return;
 
-    if (Date.now() < rateLimitCooldownUntil) {
-      await delay(rateLimitCooldownUntil - Date.now());
-      if (!isMounted) return;
-    }
+  const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+  currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
-    // Refresh 24h ticker data once per minute for all symbols instead of making
-    // one ticker request per symbol. This removes hundreds of extra REST calls.
+  const results: any[] = [];
+
+  for (const symbol of batch) {
     try {
-      await refresh24hTickerCache();
+      const result = await fetchAndAnalyze(symbol, timeframe);
+      if (result) results.push(result);
     } catch (err: any) {
-      console.warn("Ticker refresh skipped:", err?.message || err);
-      return;
-    }
-
-    const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-    currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
-    const results: any[] = [];
-
-    for (const symbol of batch) {
-      if (!isMounted) return;
-
-      try {
-        const result = await fetchAndAnalyze(symbol, timeframe);
-        if (result) results.push(result);
-      } catch (err: any) {
-        // Do not immediately retry 429/418. fetchJson already applied the
-        // global cooldown, which protects the entire browser/IP from a retry storm.
-        if (err?.message === "BINANCE_RATE_LIMIT_429" || err?.message === "BINANCE_IP_BANNED_418") {
-          console.warn(`Scanner cooldown after ${err.message}`);
-          return;
-        }
-        console.warn(`Error on ${symbol}:`, err?.message || err);
+      // 429 = rate-limit; back off longer
+      if (err.message?.includes("429")) {
+        console.warn("⚠️ Rate limit hit, pausing 10 s...");
+        await delay(10_000);
+      } else {
+        console.warn(`Error on ${symbol}:`, err.message);
       }
-
-      const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
-      await delay(randomDelay);
     }
 
-    const cleanedResults = results.filter(r => r !== null);
+    // 🔹 small random delay between each request (300 – 600 ms)
+    const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
+    await delay(randomDelay);
+  }
 
-    if (isMounted && cleanedResults.length) {
-      setSignals(prev => {
-        const updated = [...prev];
-        const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-        for (const result of cleanedResults) {
-          const index = updated.findIndex(r => r.symbol === result.symbol);
-          if (index >= 0) updated[index] = result;
-          else updated.push(result);
-          updatedMap[result.symbol] = Date.now();
-        }
-        setLastUpdatedMap(updatedMap);
-        return updated;
-      });
+  const cleanedResults = results.filter(r => r !== null);
 
-      const completedAt = Date.now();
-      setLastBatchRefreshAt(completedAt);
-      setNextBatchRefreshAt(completedAt + BATCH_PAUSE_MS);
-    }
-  };
+  if (isMounted) {
+    setSignals(prev => {
+      const updated = [...prev];
+      const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+      for (const result of cleanedResults) {
+        const index = updated.findIndex(r => r.symbol === result.symbol);
+        if (index >= 0) updated[index] = result;
+        else updated.push(result);
+        updatedMap[result.symbol] = Date.now();
+      }
+      setLastUpdatedMap(updatedMap);
+      return updated;
+    });
+  }
+};
 
   const runBatches = async () => {
-    try {
-      await fetchSymbols();
-      await refresh24hTickerCache(true);
-      await fetchBatch();
-      setLoading(false);
+    await fetchSymbols();
+    await fetchBatch();
+    setLoading(false);
 
-      // Sequential loop: wait for the previous batch to finish before starting
-      // another one. This prevents overlapping requests and accidental bursts.
-      while (isMounted) {
-        await delay(BATCH_PAUSE_MS);
-        if (!isMounted) break;
-        await fetchBatch();
-      }
-    } catch (err) {
-      console.error("Scanner loop stopped:", err);
-      setLoading(false);
-    }
+    const interval = setInterval(fetchBatch, INTERVAL_MS);
+    return () => clearInterval(interval);
   };
 
-  runBatches();
+  let cleanup: () => void;
+
+  runBatches().then((stop) => {
+    cleanup = stop;
+  });
 
   return () => {
     isMounted = false;
-    // The scanner now uses a sequential async loop instead of setInterval.\n    // Setting isMounted=false stops the loop and prevents state updates.\n
+    if (cleanup) cleanup();
   };
 }, [timeframe]); // ✅ triggers on timeframe change
 
@@ -2161,64 +2038,15 @@ if (loading) {
   ))}
 </div>
 
-{/* ⚡ Scanner Status / Refresh Dashboard */}
-<div className="mb-4 rounded-2xl border border-slate-700/80 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 shadow-xl overflow-hidden">
-  <div className="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <div className="text-xs uppercase tracking-[0.18em] text-slate-400 font-semibold">Scanner Control Center</div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></span>
-        <span className="text-white font-bold">{loading ? 'Initializing market database…' : 'Live scanner active'}</span>
-      </div>
-    </div>
-    <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs">
-      <span className="text-slate-400">Timeframe</span>
-      <span className="font-bold text-cyan-300">{timeframe.toUpperCase()}</span>
-      <span className="text-slate-600">•</span>
-      <span className="text-slate-400">Local clock</span>
-      <span className="font-mono text-slate-200">{new Date(uiNow).toLocaleTimeString()}</span>
-    </div>
-  </div>
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-800">
-    <div className="bg-slate-950/90 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">Market Database</div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-200">{lastBatchRefreshAt ? `Updated ${formatAge(lastBatchRefreshAt)}` : 'Waiting for first batch'}</span>
-        <span className="text-emerald-400">●</span>
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500">Completed scanner batch.</div>
-    </div>
-    <div className="bg-slate-950/90 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">Next Scanner Refresh</div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-cyan-300">{formatCountdown(nextBatchRefreshAt)}</span>
-        <span className="text-cyan-400">↻</span>
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500">UI countdown only — no extra API calls.</div>
-    </div>
-    <div className="bg-slate-950/90 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">24h Ticker Cache</div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-amber-300">
-          {tickerRefreshAt ? `${formatAge(tickerRefreshAt)} · ${Math.max(0, 60 - Math.floor((uiNow - tickerRefreshAt) / 1000))}s cache` : 'Waiting'}
-        </span>
-        <span className="text-amber-400">◷</span>
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500">Reused for 60 seconds.</div>
-    </div>
-  </div>
-</div>
-
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
   {/* 🟢 Filter Controls Section */}
   <div className="flex flex-col gap-4 text-sm">
 
     {/* 🔷 Trend Filters Section */}
 <div>
-  <div className="mb-2 flex items-center justify-between gap-2">
-  <p className="text-slate-200 font-bold">📊 Trend Filters</p>
-  <span className="text-[10px] uppercase tracking-wider text-slate-500">Structure & direction</span>
-</div>
+  <p className="text-gray-400 mb-2 font-semibold">
+    📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
+  </p>
   <div className="flex flex-wrap gap-2">
     {[
       {
@@ -2308,35 +2136,6 @@ if (loading) {
   </div>
 </div>
 
-    {/* 🧭 RSI14 Filters Section */}
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-  <p className="text-slate-200 font-bold">🧭 RSI14 Filters</p>
-  <span className="text-[10px] uppercase tracking-wider text-slate-500">50-line bias</span>
-</div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setRsiFilter(rsiFilter === 'below50' ? null : 'below50')}
-          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-            rsiFilter === 'below50' ? 'bg-red-500/20 text-red-300 border border-red-500/60' : 'bg-slate-800 text-slate-200 border border-slate-700'
-          }`}
-        >
-          <span>RSI14 Below 50 (Bearish)</span>
-          <span className="text-xs font-bold text-red-200">{rsiBelow50Count}</span>
-        </button>
-
-        <button
-          onClick={() => setRsiFilter(rsiFilter === 'above50' ? null : 'above50')}
-          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-            rsiFilter === 'above50' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60' : 'bg-slate-800 text-slate-200 border border-slate-700'
-          }`}
-        >
-          <span>RSI14 Above 50 (Bullish)</span>
-          <span className="text-xs font-bold text-green-200">{rsiAbove50Count}</span>
-        </button>
-      </div>
-    </div>
-
     {/* ✅ Signal Filters Section */}
     <div>
       <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
@@ -2403,10 +2202,9 @@ if (loading) {
           setSearch('');
           setTrendFilter(null);
           setSignalFilter(null);
-          setRsiFilter(null);
           setShowOnlyFavorites(false);
         }}
-        className="px-4 py-2 rounded-lg bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 transition-colors font-semibold"
+        className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
       >
         Clear All Filters
       </button>
