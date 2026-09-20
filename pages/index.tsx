@@ -464,36 +464,8 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-  const [rsiFilter, setRsiFilter] = useState<'below50' | 'above50' | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');	  
   const timeframes = ['15m', '4h', '1d'];
-
-  // UI-only clock and refresh telemetry. These timers do not call Binance.
-  const [uiNow, setUiNow] = useState(() => Date.now());
-  const [lastBatchRefreshAt, setLastBatchRefreshAt] = useState<number | null>(null);
-  const [nextBatchRefreshAt, setNextBatchRefreshAt] = useState<number | null>(null);
-  const [tickerRefreshAt, setTickerRefreshAt] = useState<number | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setUiNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const formatAge = (timestamp: number | null) => {
-    if (!timestamp) return '—';
-    const seconds = Math.max(0, Math.floor((uiNow - timestamp) / 1000));
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}m ${seconds % 60}s ago`;
-  };
-
-  const formatCountdown = (timestamp: number | null) => {
-    if (!timestamp) return '—';
-    const seconds = Math.max(0, Math.ceil((timestamp - uiNow) / 1000));
-    if (seconds <= 0) return 'refreshing…';
-    if (seconds < 60) return `in ${seconds}s`;
-    return `in ${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  };
 	
   
 
@@ -537,15 +509,6 @@ const filteredSignals = signals.filter((s) => {
 
   return matchesSearch && (!showOnlyFavorites || isFavorite);
 });
-
-// RSI14 directional filter: below 50 = bearish, above 50 = bullish.
-// Exactly 50 is intentionally excluded from both filters.
-const rsiBelow50Count = filteredSignals.filter(
-  (s) => typeof s.latestRSI === 'number' && s.latestRSI < 50
-).length;
-const rsiAbove50Count = filteredSignals.filter(
-  (s) => typeof s.latestRSI === 'number' && s.latestRSI > 50
-).length;
 
 // 🔹 Sorting logic
 const sortedSignals = signals.sort((a, b) => {
@@ -672,9 +635,6 @@ const filteredAndSortedSignals = filteredSignals
     }
 
     if (signalFilter && getSignal(s) !== signalFilter) return false;
-
-    if (rsiFilter === 'below50' && !(typeof s.latestRSI === 'number' && s.latestRSI < 50)) return false;
-    if (rsiFilter === 'above50' && !(typeof s.latestRSI === 'number' && s.latestRSI > 50)) return false;
 
     return true;
   })
@@ -915,7 +875,6 @@ const getSessions = (timeframe?: Timeframe) => {
       }
       ticker24hMap = nextMap;
       tickerCacheAt = Date.now();
-      setTickerRefreshAt(tickerCacheAt);
     };
 
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
@@ -2087,10 +2046,6 @@ latestRSI,
         setLastUpdatedMap(updatedMap);
         return updated;
       });
-
-      const completedAt = Date.now();
-      setLastBatchRefreshAt(completedAt);
-      setNextBatchRefreshAt(completedAt + BATCH_PAUSE_MS);
     }
   };
 
@@ -2161,64 +2116,15 @@ if (loading) {
   ))}
 </div>
 
-{/* ⚡ Scanner Status / Refresh Dashboard */}
-<div className="mb-4 rounded-2xl border border-slate-700/80 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 shadow-xl overflow-hidden">
-  <div className="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <div className="text-xs uppercase tracking-[0.18em] text-slate-400 font-semibold">Scanner Control Center</div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></span>
-        <span className="text-white font-bold">{loading ? 'Initializing market database…' : 'Live scanner active'}</span>
-      </div>
-    </div>
-    <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs">
-      <span className="text-slate-400">Timeframe</span>
-      <span className="font-bold text-cyan-300">{timeframe.toUpperCase()}</span>
-      <span className="text-slate-600">•</span>
-      <span className="text-slate-400">Local clock</span>
-      <span className="font-mono text-slate-200">{new Date(uiNow).toLocaleTimeString()}</span>
-    </div>
-  </div>
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-800">
-    <div className="bg-slate-950/90 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">Market Database</div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-200">{lastBatchRefreshAt ? `Updated ${formatAge(lastBatchRefreshAt)}` : 'Waiting for first batch'}</span>
-        <span className="text-emerald-400">●</span>
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500">Completed scanner batch.</div>
-    </div>
-    <div className="bg-slate-950/90 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">Next Scanner Refresh</div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-cyan-300">{formatCountdown(nextBatchRefreshAt)}</span>
-        <span className="text-cyan-400">↻</span>
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500">UI countdown only — no extra API calls.</div>
-    </div>
-    <div className="bg-slate-950/90 p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">24h Ticker Cache</div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-amber-300">
-          {tickerRefreshAt ? `${formatAge(tickerRefreshAt)} · ${Math.max(0, 60 - Math.floor((uiNow - tickerRefreshAt) / 1000))}s cache` : 'Waiting'}
-        </span>
-        <span className="text-amber-400">◷</span>
-      </div>
-      <div className="mt-1 text-[11px] text-slate-500">Reused for 60 seconds.</div>
-    </div>
-  </div>
-</div>
-
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
   {/* 🟢 Filter Controls Section */}
   <div className="flex flex-col gap-4 text-sm">
 
     {/* 🔷 Trend Filters Section */}
 <div>
-  <div className="mb-2 flex items-center justify-between gap-2">
-  <p className="text-slate-200 font-bold">📊 Trend Filters</p>
-  <span className="text-[10px] uppercase tracking-wider text-slate-500">Structure & direction</span>
-</div>
+  <p className="text-gray-400 mb-2 font-semibold">
+    📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
+  </p>
   <div className="flex flex-wrap gap-2">
     {[
       {
@@ -2308,35 +2214,6 @@ if (loading) {
   </div>
 </div>
 
-    {/* 🧭 RSI14 Filters Section */}
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-  <p className="text-slate-200 font-bold">🧭 RSI14 Filters</p>
-  <span className="text-[10px] uppercase tracking-wider text-slate-500">50-line bias</span>
-</div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setRsiFilter(rsiFilter === 'below50' ? null : 'below50')}
-          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-            rsiFilter === 'below50' ? 'bg-red-500/20 text-red-300 border border-red-500/60' : 'bg-slate-800 text-slate-200 border border-slate-700'
-          }`}
-        >
-          <span>RSI14 Below 50 (Bearish)</span>
-          <span className="text-xs font-bold text-red-200">{rsiBelow50Count}</span>
-        </button>
-
-        <button
-          onClick={() => setRsiFilter(rsiFilter === 'above50' ? null : 'above50')}
-          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-            rsiFilter === 'above50' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60' : 'bg-slate-800 text-slate-200 border border-slate-700'
-          }`}
-        >
-          <span>RSI14 Above 50 (Bullish)</span>
-          <span className="text-xs font-bold text-green-200">{rsiAbove50Count}</span>
-        </button>
-      </div>
-    </div>
-
     {/* ✅ Signal Filters Section */}
     <div>
       <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
@@ -2403,10 +2280,9 @@ if (loading) {
           setSearch('');
           setTrendFilter(null);
           setSignalFilter(null);
-          setRsiFilter(null);
           setShowOnlyFavorites(false);
         }}
-        className="px-4 py-2 rounded-lg bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 transition-colors font-semibold"
+        className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
       >
         Clear All Filters
       </button>
