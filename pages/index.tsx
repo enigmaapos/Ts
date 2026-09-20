@@ -2338,7 +2338,21 @@ if (loading) {
   className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	  
+</th>	
+
+	  <th className="px-1 py-0.5 text-center">Breakout Fail</th>
+
+
+	  {/* Touched EMA200 Today */}
+    <th
+      onClick={() => {
+        setSortField('touchedEMA200Today');
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      }}
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
+    >
+      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+    </th>	  
 	  
 <th className="px-1 py-0.5 bg-gray-800 text-center">
   Drop 🚨
@@ -2449,16 +2463,7 @@ if (loading) {
   EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
 	  
-{/* Touched EMA200 Today */}
-    <th
-      onClick={() => {
-        setSortField('touchedEMA200Today');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>	  
+
 	  
    {/* More Static Columns */}
     <th className="p-2 text-center">EMA14 Bounce</th>
@@ -2478,7 +2483,6 @@ if (loading) {
 	  	  
     <th className="px-1 py-0.5 text-center">Tested High</th>
     <th className="px-1 py-0.5 text-center">Tested Low</th>
-    <th className="px-1 py-0.5 text-center">Breakout Fail</th>
     <th className="px-1 py-0.5 text-center">Top Pattern</th>
     <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
  
@@ -2609,7 +2613,16 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : s.latestRSI > 50
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
-</td>		   
+</td>	
+
+			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+    {s.breakoutFailure ? 'Yes' : '-'}
+  </td>
+
+			   {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>	   			   
 
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
@@ -2913,10 +2926,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.ema200Bounce ? 'Yes' : 'No'}
   </td> 
 		   
-  {/* Touched EMA200 */}
-  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>	   			   
 
 {/* EMA Bounces */}
   <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
@@ -2944,9 +2953,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.testedPrevLow ? 'Yes' : '-'}
   </td>
 
-  <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
-    {s.breakoutFailure ? 'Yes' : '-'}
-  </td>
 
   <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
     {s.mainTrend === 'bullish'
