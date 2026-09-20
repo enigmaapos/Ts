@@ -2073,7 +2073,7 @@ latestRSI,
 
   return () => {
     isMounted = false;
-    if (cleanup) cleanup();
+    // The scanner now uses a sequential async loop instead of setInterval.\n    // Setting isMounted=false stops the loop and prevents state updates.\n
   };
 }, [timeframe]); // ✅ triggers on timeframe change
 
