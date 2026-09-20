@@ -771,30 +771,32 @@ const getSessions = (timeframe?: Timeframe) => {
   const now = new Date();
 
   if (!timeframe || timeframe === '1d') {
-    // Use custom 1d session logic (8:00 AM to next day 7:45 AM PH time)
+    // Exact daily trading session: 08:00 PH -> 08:00 PH next day.
+    // Binance timestamps are UTC, so PH (UTC+8) is converted to UTC.
+    // sessionEnd is EXCLUSIVE: the 07:45 candle is the final 15m candle;
+    // the next 08:00 candle starts the next session.
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();
     const date = now.getUTCDate();
 
-    const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
-      Date.UTC(y, m, d, hPH - 8, min); // UTC+8 to UTC
+    const getPHMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
+      Date.UTC(y, m, d, hPH - 8, min);
 
-    const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
-    const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+    const today8AM_UTC = getPHMillis(year, month, date, 8, 0);
 
-    let sessionStart: number, sessionEnd: number;
+    let sessionStart: number;
+    let sessionEnd: number;
+
     if (now.getTime() >= today8AM_UTC) {
       sessionStart = today8AM_UTC;
-      sessionEnd = tomorrow745AM_UTC;
+      sessionEnd = getPHMillis(year, month, date + 1, 8, 0);
     } else {
-      const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
-      const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
-      sessionStart = yesterday8AM_UTC;
-      sessionEnd = today745AM_UTC;
+      sessionStart = getPHMillis(year, month, date - 1, 8, 0);
+      sessionEnd = today8AM_UTC;
     }
 
-    const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
-    const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
+    const prevSessionStart = sessionStart - 24 * 60 * 60 * 1000;
+    const prevSessionEnd = sessionStart;
 
     return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
   } else {
@@ -880,8 +882,8 @@ const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
         
 
-        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
-        const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
+        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp < sessionEnd);
+        const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp < prevSessionEnd);
 
         const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
         const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
@@ -1077,10 +1079,19 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
 const ema14Bounce = nearEMA14 && lastClose > lastEMA14;         	      
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
-const touchedEMA200Today =
-  todaysHighestHigh! >= lastEMA200 &&
-  todaysLowestLow! <= lastEMA200 &&
-  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
+// TRUE EMA200 TOUCH — exact 08:00 -> 08:00 PH session.
+// Each 15m candle is tested against the EMA200 calculated for THAT candle.
+// A touch exists when the candle's actual price range intersects EMA200:
+//     candle.low <= candleEMA200 <= candle.high
+// No comparison against the latest EMA200 and no close-proximity approximation.
+const touchedEMA200Today = candlesToday.some((candle) => {
+  const candleIndex = candles.indexOf(candle);
+  const candleEMA200 = ema200[candleIndex];
+
+  return Number.isFinite(candleEMA200) &&
+    candle.low <= candleEMA200 &&
+    candle.high >= candleEMA200;
+});
 
 // === Extract highs and lows from each session ===
 const highsPrev = candlesPrev.map(c => c.high);
@@ -2351,7 +2362,7 @@ if (loading) {
       }}
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
-      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+      Touched EMA200 (08:00–08:00) {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>	
 
 	  <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
