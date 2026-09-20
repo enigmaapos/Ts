@@ -505,6 +505,7 @@ const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
+const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
 
 const searchTerm = search.trim().toLowerCase();
 
@@ -526,6 +527,7 @@ const getSortValue = (s: any, field: string): any => {
     case 'latestRSI': return typeof s.latestRSI === 'number' ? s.latestRSI : null;
     case 'breakoutFailure': return getBooleanValue(s.breakoutFailure);
     case 'touchedEMA200Today': return getBooleanValue(s.touchedEMA200Today);
+    case 'ema70200Cross': return s.ema70200Cross?.timestamp ?? null;
     case 'signal': return getSignalValue(s);
     case 'drop': return getBooleanValue(s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5));
     case 'recovery': return getBooleanValue(s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10));
@@ -612,6 +614,12 @@ const filteredSignals = signals.filter((s) => {
 
   if (breakoutFailFilter !== 'all' && (s.breakoutFailure ? 'yes' : 'no') !== breakoutFailFilter) return false;
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
+
+  if (ema70200CrossFilter !== 'all') {
+    const crossDirection = s.ema70200Cross?.direction ?? 'none';
+    const wanted = ema70200CrossFilter === 'no' ? 'none' : ema70200CrossFilter;
+    if (crossDirection !== wanted) return false;
+  }
 
   if (rsiPumpDumpFilter !== 'all') {
     const direction = getPumpDump(s)?.direction;
@@ -778,6 +786,44 @@ const timeframes = ['15m', '4h', '1d'] as const;
 
 // Derive Timeframe type from the array
 type Timeframe = typeof timeframes[number];
+
+// === EMA70/EMA200 session crossover — strict 08:00 PH -> 08:00 PH ===
+// Only crosses that occur inside the CURRENT 08:00–08:00 PH session count.
+// The first 08:00 candle may cross using the immediately preceding 07:45
+// candle as its comparison candle. If no cross occurs in the session, result is NO.
+function detectLatestEMA70200SessionCross(
+  candles: Array<{ timestamp: number }>,
+  ema70: number[],
+  ema200: number[],
+  sessionStart: number,
+  sessionEnd: number
+) {
+  let latest: {
+    direction: 'bullish' | 'bearish' | 'none';
+    timestamp: number | null;
+    candleIndex: number | null;
+  } = { direction: 'none', timestamp: null, candleIndex: null };
+
+  for (let i = 1; i < candles.length; i++) {
+    const ts = candles[i]?.timestamp;
+    if (!Number.isFinite(ts) || ts < sessionStart || ts >= sessionEnd) continue;
+
+    const prev70 = ema70[i - 1];
+    const prev200 = ema200[i - 1];
+    const curr70 = ema70[i];
+    const curr200 = ema200[i];
+
+    if (![prev70, prev200, curr70, curr200].every(Number.isFinite)) continue;
+
+    if (prev70 <= prev200 && curr70 > curr200) {
+      latest = { direction: 'bullish', timestamp: ts, candleIndex: i };
+    } else if (prev70 >= prev200 && curr70 < curr200) {
+      latest = { direction: 'bearish', timestamp: ts, candleIndex: i };
+    }
+  }
+
+  return latest;
+}
 
 // Unified getSessions function
 const getSessions = (timeframe?: Timeframe) => {
@@ -1115,6 +1161,9 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
 const ema14Bounce = nearEMA14 && lastClose > lastEMA14;         	      
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
+const { sessionStart: emaCrossSessionStart, sessionEnd: emaCrossSessionEnd } = getSessions('1d');
+const ema70200Cross = detectLatestEMA70200SessionCross(candles, ema70, ema200, emaCrossSessionStart, emaCrossSessionEnd);
+
 // TRUE EMA200 TOUCH — exact 08:00 -> 08:00 PH session.
 // Each 15m candle is tested against the EMA200 calculated for THAT candle.
 // A touch exists when the candle's actual price range intersects EMA200:
@@ -1945,6 +1994,7 @@ latestRSI,
 		ema70Bounce,
   ema200Bounce,
 		touchedEMA200Today,
+		ema70200Cross,
 		bearishDivergence,
 		bullishDivergence,
 		bearishVolumeDivergence,
@@ -2290,6 +2340,16 @@ if (loading) {
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>EMA70/200 Cross (08:00–08:00)</span>
+          <select value={ema70200CrossFilter} onChange={(e) => setEma70200CrossFilter(e.target.value as typeof ema70200CrossFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="bullish">Bullish Cross</option>
+            <option value="bearish">Bearish Cross</option>
+            <option value="no">No Cross</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Signal</span>
           <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -2325,6 +2385,7 @@ if (loading) {
           setRsi14Filter('all');
           setBreakoutFailFilter('all');
           setTouchedEMA200Filter('all');
+          setEma70200CrossFilter('all');
           setRsiPumpDumpFilter('all');
           setShowOnlyFavorites(false);
         }}
@@ -2429,6 +2490,7 @@ if (loading) {
         <SortableTh field="latestRSI">RSI14</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
+        <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
         <SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="drop">Drop 🚨</SortableTh>
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
@@ -2597,6 +2659,21 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.touchedEMA200Today ? 'Yes' : 'No'}
   </td>	  
+
+  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
+  <td className={`px-2 py-1 text-center font-semibold ${
+    s.ema70200Cross?.direction === 'bullish'
+      ? 'text-green-400'
+      : s.ema70200Cross?.direction === 'bearish'
+      ? 'text-red-400'
+      : 'text-gray-500'
+  }`}>
+    {s.ema70200Cross?.direction === 'bullish'
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : s.ema70200Cross?.direction === 'bearish'
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : 'No'}
+  </td>
 
 			   <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
