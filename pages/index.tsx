@@ -2352,7 +2352,9 @@ if (loading) {
       className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
       Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>	  
+    </th>	
+
+	  <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
 	  
 <th className="px-1 py-0.5 bg-gray-800 text-center">
   Drop 🚨
@@ -2392,8 +2394,7 @@ if (loading) {
 >
   Div From Lev {sortField === 'divergenceFromLevel' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
-	  
-	<th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>    	    
+	      	    
 
 {/* Bearish Divergence */}
     <th
@@ -2622,7 +2623,28 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 			   {/* Touched EMA200 */}
   <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>	   			   
+  </td>	  
+
+			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
+			   
 
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
@@ -2818,28 +2840,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                   >
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
                   </td>
-
-			      <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>			   
 		   
-
 
 {/* Divergences */}
 {/* Bearish Divergence */}
