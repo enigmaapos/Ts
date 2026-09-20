@@ -500,113 +500,72 @@ const toggleFavorite = (symbol: string) => {
   });
 };
 
+const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
+const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
+const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
+
 const searchTerm = search.trim().toLowerCase();
 
-const filteredSignals = signals.filter((s) => {
-  const symbol = s.symbol?.toLowerCase() || '';
-  const matchesSearch = !searchTerm || symbol.includes(searchTerm);
-  const isFavorite = favorites.has(s.symbol);
+const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
+const getPumpDumpStrength = (s: any) => {
+  const pd = getPumpDump(s);
+  if (!pd) return null;
+  return pd.direction === 'dump' ? pd.dumpStrength : pd.pumpStrength;
+};
+const getBooleanValue = (value: any) => value ? 1 : 0;
 
-  return matchesSearch && (!showOnlyFavorites || isFavorite);
-});
-
-// 🔹 Sorting logic
-const sortedSignals = signals.sort((a, b) => {
-  let valA: any = a[sortField];
-  let valB: any = b[sortField];
-
-if (sortField === 'touchedEMA200Today') {
-    valA = a.touchedEMA200Today ? 1 : 0;
-    valB = b.touchedEMA200Today ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
+const getSortValue = (s: any, field: string): any => {
+  switch (field) {
+    case 'symbol': return s.symbol ?? '';
+    case 'currentPrice': return Number(s.currentPrice);
+    case 'priceChangePercent': return Number(s.priceChangePercent);
+    case 'pumpDump': return getPumpDumpStrength(s);
+    case 'latestRSI': return typeof s.latestRSI === 'number' ? s.latestRSI : null;
+    case 'breakoutFailure': return getBooleanValue(s.breakoutFailure);
+    case 'touchedEMA200Today': return getBooleanValue(s.touchedEMA200Today);
+    case 'signal': return getSignalValue(s);
+    case 'drop': return getBooleanValue(s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5));
+    case 'recovery': return getBooleanValue(s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10));
+    case 'bullishBreakout': return getBooleanValue(s.bullishBreakout);
+    case 'bearishBreakout': return getBooleanValue(s.bearishBreakout);
+    case 'prevClose': return s.prevClosedGreen ? 1 : s.prevClosedRed ? -1 : 0;
+    case 'mainTrend': return s.mainTrend?.trend ?? '';
+    case 'bearishCollapse': return getBooleanValue(s.bearishCollapse?.signal);
+    case 'bullishSpike': return getBooleanValue(s.bullishSpike?.signal);
+    case 'bearishReversal': return getBooleanValue(s.bearishReversal?.signal);
+    case 'bullishReversal': return getBooleanValue(s.bullishReversal?.signal);
+    case 'divergenceFromLevel': return getBooleanValue(s.divergenceFromLevel === true || s.divergenceFromLevel === 'true');
+    case 'bearishDivergence': return getBooleanValue(s.bearishDivergence?.divergence);
+    case 'bullishDivergence': return getBooleanValue(s.bullishDivergence?.divergence);
+    case 'highestVolumeColorPrev': return s.highestVolumeColorPrev ?? '';
+    case 'bullishVolumeDivergence': return getBooleanValue(s.bullishVolumeDivergence?.divergence);
+    case 'isVolumeSpike': return getBooleanValue(s.isVolumeSpike);
+    case 'ema14InsideResults': return getBooleanValue(s.ema14InsideResults?.some((r: any) => r.inside));
+    case 'gap': return typeof s.gap === 'number' ? s.gap : null;
+    case 'gap1': return typeof s.gap1 === 'number' ? s.gap1 : null;
+    case 'gapFromLowToEMA200': return typeof s.gapFromLowToEMA200 === 'number' ? s.gapFromLowToEMA200 : null;
+    case 'gapFromHighToEMA200': return typeof s.gapFromHighToEMA200 === 'number' ? s.gapFromHighToEMA200 : null;
+    case 'ema200Bounce': return getBooleanValue(s.ema200Bounce);
+    case 'ema14Bounce': return getBooleanValue(s.ema14Bounce);
+    case 'ema70Bounce': return getBooleanValue(s.ema70Bounce);
+    case 'hasBullishEngulfing': return getBooleanValue(s.hasBullishEngulfing);
+    case 'hasBearishEngulfing': return getBooleanValue(s.hasBearishEngulfing);
+    case 'testedPrevHigh': return getBooleanValue(s.testedPrevHigh);
+    case 'testedPrevLow': return getBooleanValue(s.testedPrevLow);
+    case 'topPattern': return s.isDoubleTopFailure ? 3 : s.isDoubleTop ? 2 : s.isDescendingTop ? 1 : 0;
+    case 'bottomPattern': return s.isDoubleBottomFailure ? 3 : s.isDoubleBottom ? 2 : s.isAscendingBottom ? 1 : 0;
+    default: return s[field];
   }
-	
-if (sortField === 'ema14InsideResults') {
-  const valA = a.ema14InsideResults?.some(r => r.inside) ? 1 : 0;
-  const valB = b.ema14InsideResults?.some(r => r.inside) ? 1 : 0;
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
-	
-  if (sortField === 'ema70Bounce') {
-    valA = a.ema70Bounce ? 1 : 0;
-    valB = b.ema70Bounce ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
+};
 
-if (sortField === 'ema200Bounce') {
-    valA = a.ema200Bounce ? 1 : 0;
-    valB = b.ema200Bounce ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }	
-
-if (sortField === 'divergenceFromLevel') {
-    valA = a.divergenceFromLevel ? 1 : 0;
-    valB = b.divergenceFromLevel ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
-		     
-  if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
-    const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
-    const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
-    valA = sortField === 'pumpStrength' ? pumpDumpA?.pumpStrength : pumpDumpA?.dumpStrength;
-    valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
-  }
-
-  if (sortField === 'bearishDivergence' || sortField === 'bullishDivergence') {
-    valA = a[sortField]?.divergence ? 1 : 0;
-    valB = b[sortField]?.divergence ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'isVolumeSpike') {
-    valA = a.isVolumeSpike ? 1 : 0;
-    valB = b.isVolumeSpike ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'priceChangePercent') {
-    valA = Number(a.priceChangePercent);
-    valB = Number(b.priceChangePercent);
-    if (isNaN(valA)) return 1;
-    if (isNaN(valB)) return -1;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'latestRSI') {
-    valA = typeof a.latestRSI === 'number' ? a.latestRSI : -Infinity;
-    valB = typeof b.latestRSI === 'number' ? b.latestRSI : -Infinity;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'prevClose') {
-    const getCloseValue = (item: any) =>
-      item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0;
-    valA = getCloseValue(a);
-    valB = getCloseValue(b);
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (valA == null) return 1;
-  if (valB == null) return -1;
-
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-  }
-
-  if (typeof valA === 'number' && typeof valB === 'number') {
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  return 0;
-});
-
-// 🔹 Filter logic
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
   bearishMainTrend: 'bearish',
 };
 
-// 🔹 Other trend filter keys that map to boolean fields in the signal object
 const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishBreakout: 'bullishBreakout',
   bearishBreakout: 'bearishBreakout',
@@ -617,27 +576,81 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishReversal: 'bearishReversal',
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
-ema14InsideResults: 'ema14InsideResults',
-highestVolumeColorPrev: 'highestVolumeColorPrev',
-divergenceFromLevel: 'divergenceFromLevel'
-};	
+  ema14InsideResults: 'ema14InsideResults',
+  highestVolumeColorPrev: 'highestVolumeColorPrev',
+  divergenceFromLevel: 'divergenceFromLevel'
+};
 
-// 🟡 Apply trend & signal filters on top of the search/favorites filtered list
-const filteredAndSortedSignals = filteredSignals
-  .filter((s) => {
-    if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
-      if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
-    }
+const filteredSignals = signals.filter((s) => {
+  const symbol = s.symbol?.toLowerCase() || '';
+  const matchesSearch = !searchTerm || symbol.includes(searchTerm);
+  const isFavorite = favorites.has(s.symbol);
+  if (!matchesSearch || (showOnlyFavorites && !isFavorite)) return false;
 
-    if (trendFilter && trendKeyToBooleanField[trendFilter]) {
-      const field = trendKeyToBooleanField[trendFilter];
-      if (!s[field]) return false;
-    }
+  if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
+    if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
+  }
+  if (trendFilter && trendKeyToBooleanField[trendFilter]) {
+    const field = trendKeyToBooleanField[trendFilter];
+    const value = field === 'ema14InsideResults'
+      ? s.ema14InsideResults?.some((r: any) => r.inside)
+      : field === 'divergenceFromLevel'
+      ? (s.divergenceFromLevel === true || s.divergenceFromLevel === 'true')
+      : s[field];
+    if (!value) return false;
+  }
 
-    if (signalFilter && getSignal(s) !== signalFilter) return false;
+  if (signalFilter && getSignalValue(s) !== signalFilter) return false;
+  if (tableSignalFilter !== 'all' && getSignalValue(s) !== tableSignalFilter) return false;
 
-    return true;
-  })
+  if (rsi14Filter !== 'all') {
+    const rsi = typeof s.latestRSI === 'number' ? s.latestRSI : null;
+    if (rsi === null) return false;
+    if (rsi14Filter === 'above50' && rsi <= 50) return false;
+    if (rsi14Filter === 'below50' && rsi > 50) return false;
+  }
+
+  if (breakoutFailFilter !== 'all' && (s.breakoutFailure ? 'yes' : 'no') !== breakoutFailFilter) return false;
+  if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
+
+  if (rsiPumpDumpFilter !== 'all') {
+    const direction = getPumpDump(s)?.direction;
+    if (direction !== rsiPumpDumpFilter) return false;
+  }
+
+  return true;
+});
+
+// One uniform sorting pipeline: FILTER FIRST, then SORT. Never mutate React state.
+const filteredAndSortedSignals = [...filteredSignals].sort((a, b) => {
+  const aValue = getSortValue(a, sortField);
+  const bValue = getSortValue(b, sortField);
+  const aMissing = aValue === null || aValue === undefined || (typeof aValue === 'number' && !Number.isFinite(aValue));
+  const bMissing = bValue === null || bValue === undefined || (typeof bValue === 'number' && !Number.isFinite(bValue));
+
+  if (aMissing && bMissing) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+
+  let result = 0;
+  if (typeof aValue === 'number' && typeof bValue === 'number') {
+    result = aValue - bValue;
+  } else {
+    result = String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  if (result === 0) result = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+  return sortOrder === 'asc' ? result : -result;
+});
+
+const toggleSort = (field: string) => {
+  if (sortField === field) {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  } else {
+    setSortField(field);
+    setSortOrder('asc');
+  }
+};
 
 // 🔹 Count statistics
 const bullishMainTrendCount = filteredSignals.filter(
@@ -2056,6 +2069,16 @@ if (loading) {
   );
 }
 
+    const SortableTh = ({ field, children, className = '' }: { field: string; children: any; className?: string }) => (
+      <th
+        onClick={() => toggleSort(field)}
+        title={`Sort by ${typeof children === 'string' ? children : field}`}
+        className={`px-1 py-0.5 bg-gray-800 text-center cursor-pointer select-none whitespace-nowrap border border-gray-700 hover:bg-gray-700 ${className}`}
+      >
+        {children} {sortField === field ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+      </th>
+    );
+
     return (
 	    
   <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
@@ -2235,6 +2258,62 @@ if (loading) {
       </div>
     </div>
 
+    {/* 🔎 Uniform Table Filters */}
+    <div className="border border-gray-700 rounded-lg p-3 bg-gray-900">
+      <p className="text-gray-400 mb-2 font-semibold">🔎 Table Filters</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>RSI14</span>
+          <select value={rsi14Filter} onChange={(e) => setRsi14Filter(e.target.value as typeof rsi14Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="above50">Above 50</option>
+            <option value="below50">50 or below</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Breakout Fail</span>
+          <select value={breakoutFailFilter} onChange={(e) => setBreakoutFailFilter(e.target.value as typeof breakoutFailFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Touched EMA200 (08:00–08:00)</span>
+          <select value={touchedEMA200Filter} onChange={(e) => setTouchedEMA200Filter(e.target.value as typeof touchedEMA200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Signal</span>
+          <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="MAX ZONE PUMP">MAX ZONE PUMP</option>
+            <option value="MAX ZONE DUMP">MAX ZONE DUMP</option>
+            <option value="BALANCE ZONE PUMP">BALANCE ZONE PUMP</option>
+            <option value="BALANCE ZONE DUMP">BALANCE ZONE DUMP</option>
+            <option value="LOWEST ZONE PUMP">LOWEST ZONE PUMP</option>
+            <option value="LOWEST ZONE DUMP">LOWEST ZONE DUMP</option>
+            <option value="NO DATA">NO DATA</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>RSI Pump | Dump</span>
+          <select value={rsiPumpDumpFilter} onChange={(e) => setRsiPumpDumpFilter(e.target.value as typeof rsiPumpDumpFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="pump">Pump</option>
+            <option value="dump">Dump</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
     {/* 🔴 Clear Button */}
     <div>
       <button
@@ -2242,6 +2321,11 @@ if (loading) {
           setSearch('');
           setTrendFilter(null);
           setSignalFilter(null);
+          setTableSignalFilter('all');
+          setRsi14Filter('all');
+          setBreakoutFailFilter('all');
+          setTouchedEMA200Filter('all');
+          setRsiPumpDumpFilter('all');
           setShowOnlyFavorites(false);
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
@@ -2337,198 +2421,47 @@ if (loading) {
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-  <tr>
-    {/* Symbol */}
-    <th
-      onClick={() => {
-        setSortField('symbol');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
-    >
-      Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-	    <th className="px-2 py-1 border border-gray-700 text-right">Current Price</th>
-	   <th
-  onClick={() => {
-    setSortField('priceChangePercent');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-
-{/* RSI Pump | Dump */}
-    <th
-      onClick={() => {
-        setSortField('pumpStrength');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-	    <th
-  onClick={() => {
-    setSortField('latestRSI');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	
-
-	  <th className="px-1 py-0.5 text-center">Breakout Fail</th>
-
-
-	  {/* Touched EMA200 Today */}
-    <th
-      onClick={() => {
-        setSortField('touchedEMA200Today');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Touched EMA200 (08:00–08:00) {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>	
-
-	  <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
-	  
-<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Drop 🚨
-</th>
-<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Recovery 🟢
-</th>	  
-
-    {/* Static Columns */}
-    <th className="px-1 py-0.5 text-center">Bull BO</th>
-    <th className="px-1 py-0.5 text-center">Bear BO</th>
-	<th
-  onClick={() => {
-    setSortField('prevClose');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-	  
-      <th className="px-1 py-0.5 text-center">Trend (200)</th>
-	  
-<th className="px-1 py-0.5 text-center">Collapse</th>
-    <th className="px-1 py-0.5 text-center">Spike</th>
-<th className="px-1 py-0.5 text-center">Bear Rev</th>
-    <th className="px-1 py-0.5 text-center">Bull Rev</th>	
-
-<th
-  onClick={() => {
-    setSortField('divergenceFromLevel');
-    setSortOrder((prev) =>
-      sortField === 'divergenceFromLevel' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  Div From Lev {sortField === 'divergenceFromLevel' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-	      	    
-
-{/* Bearish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bearishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-    {/* Bullish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bullishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-{/* Volume */}
-    <th className="p-2 text-center">Volume</th>
-	<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Volume Divergence
-</th> 
-	 <th
-  onClick={() => {
-    setSortField('isVolumeSpike');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	  
-	  
-<th
-  onClick={() => {
-    setSortField('ema14InsideResults');
-    setSortOrder((prev) =>
-      sortField === 'ema14InsideResults' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-
-	  
- <th className="px-4 py-2 border border-gray-700">Ema14&70 Gap %</th>	  
-<th className="px-4 py-2 border border-gray-700">Ema70&200 Gap %</th>
-	  
-<th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
-<th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
-	  	  
-<th
-  onClick={() => {
-    setSortField('ema200Bounce');
-    setSortOrder((prev) =>
-      sortField === 'ema200Bounce' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-	  
-
-	  
-   {/* More Static Columns */}
-    <th className="p-2 text-center">EMA14 Bounce</th>
-    <th
-      onClick={() => {
-        setSortField('ema70Bounce');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-	  
-<th className="p-2 text-green-400">Bullish Engulfing</th>
-<th className="p-2 text-red-400">Bearish Engulfing</th>	  
-
-	  	  
-    <th className="px-1 py-0.5 text-center">Tested High</th>
-    <th className="px-1 py-0.5 text-center">Tested Low</th>
-    <th className="px-1 py-0.5 text-center">Top Pattern</th>
-    <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
- 
-  </tr>
-</thead>
+      <tr>
+        <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
+        <SortableTh field="currentPrice">Current Price</SortableTh>
+        <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+        <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
+        <SortableTh field="latestRSI">RSI14</SortableTh>
+        <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
+        <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
+        <SortableTh field="signal">Signal</SortableTh>
+        <SortableTh field="drop">Drop 🚨</SortableTh>
+        <SortableTh field="recovery">Recovery 🟢</SortableTh>
+        <SortableTh field="bullishBreakout">Bull BO</SortableTh>
+        <SortableTh field="bearishBreakout">Bear BO</SortableTh>
+        <SortableTh field="prevClose">Prev Close</SortableTh>
+        <SortableTh field="mainTrend">Trend (200)</SortableTh>
+        <SortableTh field="bearishCollapse">Collapse</SortableTh>
+        <SortableTh field="bullishSpike">Spike</SortableTh>
+        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
+        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
+        <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
+        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
+        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
+        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
+        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
+        <SortableTh field="ema14InsideResults">EMA14 Inside EMA70–200</SortableTh>
+        <SortableTh field="gap">Ema14&70 Gap %</SortableTh>
+        <SortableTh field="gap1">Ema70&200 Gap %</SortableTh>
+        <SortableTh field="gapFromLowToEMA200">Low→EMA200 (%)</SortableTh>
+        <SortableTh field="gapFromHighToEMA200">High→EMA200 (%)</SortableTh>
+        <SortableTh field="ema200Bounce">EMA200 Bounce</SortableTh>
+        <SortableTh field="ema14Bounce">EMA14 Bounce</SortableTh>
+        <SortableTh field="ema70Bounce">EMA70 Bounce</SortableTh>
+        <SortableTh field="hasBullishEngulfing">Bullish Engulfing</SortableTh>
+        <SortableTh field="hasBearishEngulfing">Bearish Engulfing</SortableTh>
+        <SortableTh field="testedPrevHigh">Tested High</SortableTh>
+        <SortableTh field="testedPrevLow">Tested Low</SortableTh>
+        <SortableTh field="topPattern">Top Pattern</SortableTh>
+        <SortableTh field="bottomPattern">Bottom Pattern</SortableTh>
+      </tr>
+    </thead>
     
     <tbody>
       {filteredAndSortedSignals.map((s) => {
@@ -2546,7 +2479,7 @@ const validPump = pump !== undefined && pump !== 0;
 const validDump = dump !== undefined && dump !== 0;
 
 // ✅ Early return: skip rendering if both are invalid or 0
-if (!validPump && !validDump) return null;
+if (!validPump && !validDump && tableSignalFilter !== 'NO DATA') return null;
 
 const pumpInRange_21_26 = inRange(pump, 21, 26);
 const dumpInRange_21_26 = inRange(dump, 21, 26);
