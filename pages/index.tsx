@@ -2387,6 +2387,8 @@ if (loading) {
   24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
 
+	  <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
+
 {/* RSI Pump | Dump */}
     <th
       onClick={() => {
@@ -2659,6 +2661,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   {signal.trim()}
 </td>			   
 
+
   {/* Pump / Dump */}
   <td
   className={`text-center font-bold ${
@@ -2681,6 +2684,22 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
   {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
 </td>
+
+			   <td
+  className={`px-2 py-1 text-center font-semibold ${
+    typeof s.latestRSI !== 'number'
+      ? 'text-gray-400'
+      : s.latestRSI > 50
+      ? 'text-green-400'
+      : 'text-red-400'
+  }`}
+>
+  {typeof s.latestRSI !== 'number'
+    ? 'N/A'
+    : s.latestRSI > 50
+    ? 'Above 50 (Bullish)'
+    : 'Below 50 (Bearish)'}
+</td>		   
 
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
@@ -2877,22 +2896,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
                   </td>
 		   
-
-	       <td
-  className={`px-2 py-1 text-center font-semibold ${
-    typeof s.latestRSI !== 'number'
-      ? 'text-gray-400'
-      : s.latestRSI > 50
-      ? 'text-green-400'
-      : 'text-red-400'
-  }`}
->
-  {typeof s.latestRSI !== 'number'
-    ? 'N/A'
-    : s.latestRSI > 50
-    ? 'Above 50 (Bullish)'
-    : 'Below 50 (Bearish)'}
-</td>		   
 
 {/* Divergences */}
 {/* Bearish Divergence */}
