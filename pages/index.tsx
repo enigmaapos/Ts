@@ -753,12 +753,21 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
-    const BATCH_SIZE = 5;        // scan 5 symbols at a time
-const INTERVAL_MS = 2000;    // run a batch every 2 seconds
-const MIN_DELAY_MS = 300;    // minimum 0.3 s between requests inside a batch
-const MAX_DELAY_MS = 600;    // maximum 0.6 s
+    // Binance-safe scanner pacing.
+    // IMPORTANT: do not use setInterval for the scan loop because a slow batch
+    // can overlap the next batch and multiply request pressure.
+    const BATCH_SIZE = 2;
+    const MIN_DELAY_MS = 800;
+    const MAX_DELAY_MS = 1400;
+    const BATCH_PAUSE_MS = 5000;
+    const KLINE_LIMIT = 300;          // enough for EMA200, lower request weight than 500
+    const TICKER_CACHE_MS = 60_000;   // one all-symbol 24h ticker request per minute
+    const MAX_SYMBOLS = 500;
     let currentIndex = 0;
     let symbols: string[] = [];
+    let ticker24hMap: Record<string, any> = {};
+    let tickerCacheAt = 0;
+    let rateLimitCooldownUntil = 0;
 
     // Define available timeframes
 const timeframes = ['15m', '4h', '1d'] as const;
@@ -815,11 +824,64 @@ const getSessions = (timeframe?: Timeframe) => {
   }
 };
 
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const getRetryAfterMs = (res: Response, fallbackMs: number) => {
+      const retryAfter = Number(res.headers.get("Retry-After"));
+      return Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : fallbackMs;
+    };
+
+    // Centralized Binance REST fetch. A 429/418 puts the whole scanner into
+    // cooldown instead of continuing to fire requests from other symbols.
+    const fetchJson = async (url: string) => {
+      const now = Date.now();
+      if (now < rateLimitCooldownUntil) {
+        await delay(rateLimitCooldownUntil - now);
+      }
+
+      const res = await fetch(url);
+      if (res.ok) return res.json();
+
+      if (res.status === 429) {
+        const waitMs = getRetryAfterMs(res, 60_000);
+        rateLimitCooldownUntil = Date.now() + waitMs;
+        console.warn(`⚠️ Binance 429. Scanner cooling down for ${Math.ceil(waitMs / 1000)}s.`);
+        await delay(waitMs);
+        throw new Error("BINANCE_RATE_LIMIT_429");
+      }
+
+      if (res.status === 418) {
+        const waitMs = getRetryAfterMs(res, 300_000);
+        rateLimitCooldownUntil = Date.now() + waitMs;
+        console.error(`🛑 Binance 418 IP ban response. Scanner stopped for ${Math.ceil(waitMs / 1000)}s.`);
+        await delay(waitMs);
+        throw new Error("BINANCE_IP_BANNED_418");
+      }
+
+      throw new Error(`Binance HTTP ${res.status}`);
+    };
+
+    const refresh24hTickerCache = async (force = false) => {
+      if (!force && Date.now() - tickerCacheAt < TICKER_CACHE_MS && Object.keys(ticker24hMap).length) {
+        return;
+      }
+
+      const tickerRows = await fetchJson("https://fapi.binance.com/fapi/v1/ticker/24hr");
+      const nextMap: Record<string, any> = {};
+      for (const row of tickerRows) {
+        if (row?.symbol) nextMap[row.symbol] = row;
+      }
+      ticker24hMap = nextMap;
+      tickerCacheAt = Date.now();
+    };
+
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
-    const raw = await fetch(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`
-    ).then((res) => res.json());
+    const raw = await fetchJson(
+      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${KLINE_LIMIT}`
+    );
 
         const candles = raw.map((c: any) => ({
           timestamp: c[0],
@@ -856,11 +918,7 @@ candles.forEach((c, i) => {
   // Volume is already assumed to be present as c.volume
 });
 
-    const ticker24h = await fetch(
-      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
-    ).then(res => res.json());
-
-
+    const ticker24h = ticker24hMap[symbol] || {};
 
     const currentPrice = parseFloat(ticker24h.lastPrice);
     const price24hAgo = parseFloat(ticker24h.openPrice);
@@ -1919,7 +1977,7 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
-      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+      const info = await fetchJson("https://fapi.binance.com/fapi/v1/exchangeInfo");
       symbols = info.symbols
   .filter(
     (s: any) =>
@@ -1927,71 +1985,91 @@ latestRSI,
       s.quoteAsset === "USDT" &&
       !blacklist.includes(s.symbol)
   )
-  .slice(0, 500)
+  .slice(0, MAX_SYMBOLS)
   .map((s: any) => s.symbol);
 	  };
 
-	  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const fetchBatch = async () => {
-  if (!symbols.length) return;
+    if (!symbols.length || !isMounted) return;
 
-  const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-  currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
-
-  const results: any[] = [];
-
-  for (const symbol of batch) {
-    try {
-      const result = await fetchAndAnalyze(symbol, timeframe);
-      if (result) results.push(result);
-    } catch (err: any) {
-      // 429 = rate-limit; back off longer
-      if (err.message?.includes("429")) {
-        console.warn("⚠️ Rate limit hit, pausing 10 s...");
-        await delay(10_000);
-      } else {
-        console.warn(`Error on ${symbol}:`, err.message);
-      }
+    if (Date.now() < rateLimitCooldownUntil) {
+      await delay(rateLimitCooldownUntil - Date.now());
+      if (!isMounted) return;
     }
 
-    // 🔹 small random delay between each request (300 – 600 ms)
-    const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
-    await delay(randomDelay);
-  }
+    // Refresh 24h ticker data once per minute for all symbols instead of making
+    // one ticker request per symbol. This removes hundreds of extra REST calls.
+    try {
+      await refresh24hTickerCache();
+    } catch (err: any) {
+      console.warn("Ticker refresh skipped:", err?.message || err);
+      return;
+    }
 
-  const cleanedResults = results.filter(r => r !== null);
+    const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
+    currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+    const results: any[] = [];
 
-  if (isMounted) {
-    setSignals(prev => {
-      const updated = [...prev];
-      const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-      for (const result of cleanedResults) {
-        const index = updated.findIndex(r => r.symbol === result.symbol);
-        if (index >= 0) updated[index] = result;
-        else updated.push(result);
-        updatedMap[result.symbol] = Date.now();
+    for (const symbol of batch) {
+      if (!isMounted) return;
+
+      try {
+        const result = await fetchAndAnalyze(symbol, timeframe);
+        if (result) results.push(result);
+      } catch (err: any) {
+        // Do not immediately retry 429/418. fetchJson already applied the
+        // global cooldown, which protects the entire browser/IP from a retry storm.
+        if (err?.message === "BINANCE_RATE_LIMIT_429" || err?.message === "BINANCE_IP_BANNED_418") {
+          console.warn(`Scanner cooldown after ${err.message}`);
+          return;
+        }
+        console.warn(`Error on ${symbol}:`, err?.message || err);
       }
-      setLastUpdatedMap(updatedMap);
-      return updated;
-    });
-  }
-};
 
-  const runBatches = async () => {
-    await fetchSymbols();
-    await fetchBatch();
-    setLoading(false);
+      const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
+      await delay(randomDelay);
+    }
 
-    const interval = setInterval(fetchBatch, INTERVAL_MS);
-    return () => clearInterval(interval);
+    const cleanedResults = results.filter(r => r !== null);
+
+    if (isMounted && cleanedResults.length) {
+      setSignals(prev => {
+        const updated = [...prev];
+        const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+        for (const result of cleanedResults) {
+          const index = updated.findIndex(r => r.symbol === result.symbol);
+          if (index >= 0) updated[index] = result;
+          else updated.push(result);
+          updatedMap[result.symbol] = Date.now();
+        }
+        setLastUpdatedMap(updatedMap);
+        return updated;
+      });
+    }
   };
 
-  let cleanup: () => void;
+  const runBatches = async () => {
+    try {
+      await fetchSymbols();
+      await refresh24hTickerCache(true);
+      await fetchBatch();
+      setLoading(false);
 
-  runBatches().then((stop) => {
-    cleanup = stop;
-  });
+      // Sequential loop: wait for the previous batch to finish before starting
+      // another one. This prevents overlapping requests and accidental bursts.
+      while (isMounted) {
+        await delay(BATCH_PAUSE_MS);
+        if (!isMounted) break;
+        await fetchBatch();
+      }
+    } catch (err) {
+      console.error("Scanner loop stopped:", err);
+      setLoading(false);
+    }
+  };
+
+  runBatches();
 
   return () => {
     isMounted = false;
