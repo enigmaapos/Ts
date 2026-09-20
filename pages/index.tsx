@@ -2570,26 +2570,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
 
-			   <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>			   
-
   {/* Pump / Dump */}
   <td
   className={`text-center font-bold ${
@@ -2823,6 +2803,26 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                   >
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
                   </td>
+
+			      <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
 		   
 
 
