@@ -2256,75 +2256,6 @@ if (loading) {
   </div>
 </div>
 	  
-{/* 📝 Strategy Note */}
-<div className="border border-gray-700 rounded-lg p-4 bg-gray-900 shadow-sm">
-  <div className="text-yellow-300 font-bold mb-2">⚠️ Strategy Note:</div>
-  <ul className="list-disc list-inside text-yellow-200 space-y-2">
-    
-    <li>
-  <span className="text-white">If the current day has a Max Zone Pump,</span> it often leads to a 
-  <span className="text-red-400 font-semibold"> Bearish candle</span> the next day. 
-  <span className="text-white"> This Bearish candle forms when volume is </span>
-  <span className="text-yellow-400 font-semibold">divergent</span>
-  <span className="text-white"> and tends to continue if the </span>
-  <span className="text-green-400 font-semibold">volume keeps increasing.</span>
-</li>
-
-	<li>
-  <span className="text-yellow-400 font-semibold">15-minute timeframe:</span>
-  <span className="text-white"> If there’s a </span>
-  <span className="text-red-400 font-semibold">Lowest Zone Dump</span>
-  <span className="text-white"> combined with a </span>
-  <span className="text-green-400 font-semibold">high 24-hour price change,</span>
-  <span className="text-white"> it often indicates a </span>
-  <span className="text-green-400 font-semibold">slow but strong bullish trend.</span>
-</li>
-
-<li>
-  <span className="text-yellow-400 font-semibold">15-minute timeframe with 1-minute confirmation:</span>
-  <span className="text-white"> If a </span>
-  <span className="text-green-400 font-semibold">Max Zone Pump</span>
-  <span className="text-white"> forms on the 15-minute chart and the </span>
-  <span className="text-blue-400 font-semibold">1-minute timeframe</span>
-  <span className="text-white"> touches the </span>
-  <span className="text-purple-400 font-semibold">EMA70</span>
-  <span className="text-white"> for the first time, that’s an early </span>
-  <span className="text-red-400 font-semibold">signal for a potential drop.</span>
-  <span className="text-white"> You can either sell near the top, or wait for a </span>
-  <span className="text-purple-400 font-semibold">second touch of EMA70</span>
-  <span className="text-white"> — this area often becomes the </span>
-  <span className="text-red-400 font-semibold">optimal selling zone</span>
-  <span className="text-white"> with a target around the </span>
-  <span className="text-purple-400 font-semibold">EMA200 in 1m time frame.</span>
-  <span className="text-white"> If the 15-minute candle continues dropping afterward, the </span>
-  <span className="text-purple-400 font-semibold">next target</span>
-  <span className="text-white"> is usually the </span>
-  <span className="text-purple-400 font-semibold">EMA200</span>
-  <span className="text-white"> in the same 15-minute timeframe.</span>
-</li>
-
-<li>
-  <span className="text-white">If a </span>
-  <span className="text-yellow-400 font-semibold">breakout fails today,</span>
-  <span className="text-white"> watch for a new breakout attempt the next day. It’s possible the </span>
-  <span className="text-green-400 font-semibold">trend continues</span>
-  <span className="text-white"> if the breakout succeeds, but if it </span>
-  <span className="text-red-400 font-semibold">fails again,</span>
-  <span className="text-white"> it often forms a </span>
-  <span className="text-purple-400 font-semibold">reversal candle.</span>
-  <span className="text-white"> For example, a </span>
-  <span className="text-green-400 font-semibold">green breakout failure</span>
-  <span className="text-white"> today may continue upward if resistance breaks tomorrow, but a </span>
-  <span className="text-red-400 font-semibold">red breakout failure</span>
-  <span className="text-white"> followed by another failure at support the next day often signals a </span>
-  <span className="text-purple-400 font-semibold">trend reversal.</span>
-</li>
-  </ul>
-</div>
- </div>
-  </div>
-</div>
-
 	
 <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
@@ -2682,6 +2613,22 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
 </td>
 
+			   <td
+  className={`px-2 py-1 text-center font-semibold ${
+    typeof s.latestRSI !== 'number'
+      ? 'text-gray-400'
+      : s.latestRSI > 50
+      ? 'text-green-400'
+      : 'text-red-400'
+  }`}
+>
+  {typeof s.latestRSI !== 'number'
+    ? 'N/A'
+    : s.latestRSI > 50
+    ? 'Above 50 (Bullish)'
+    : 'Below 50 (Bearish)'}
+</td>		   
+
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
     <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
@@ -2878,21 +2825,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                   </td>
 		   
 
-	       <td
-  className={`px-2 py-1 text-center font-semibold ${
-    typeof s.latestRSI !== 'number'
-      ? 'text-gray-400'
-      : s.latestRSI > 50
-      ? 'text-green-400'
-      : 'text-red-400'
-  }`}
->
-  {typeof s.latestRSI !== 'number'
-    ? 'N/A'
-    : s.latestRSI > 50
-    ? 'Above 50 (Bullish)'
-    : 'Below 50 (Bearish)'}
-</td>		   
 
 {/* Divergences */}
 {/* Bearish Divergence */}
