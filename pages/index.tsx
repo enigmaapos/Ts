@@ -824,12 +824,13 @@ const getSessions = (timeframe?: Timeframe) => {
     ).then((res) => res.json());
 
         const candles = raw.map((c: any) => ({
-          timestamp: c[0],
+          timestamp: +c[0],
           open: +c[1],
           high: +c[2],
           low: +c[3],
           close: +c[4],
           volume: +c[5],
+          closeTime: +c[6],
         }));
 
 const closes = candles.map(c => c.close);
@@ -882,8 +883,23 @@ const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
         
 
-        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp < sessionEnd);
-        const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp < prevSessionEnd);
+        // ONLY COMPLETED 15m CANDLES are eligible.
+        // Session boundaries are exact: 08:00 PH inclusive -> next-day 08:00 PH exclusive.
+        // Therefore the 07:45 candle is the final candle of the session and the
+        // next 08:00 candle belongs to the next session.
+        const nowMs = Date.now();
+        const candlesToday = candles.filter(c =>
+          c.timestamp >= sessionStart &&
+          c.timestamp < sessionEnd &&
+          Number.isFinite(c.closeTime) &&
+          c.closeTime <= nowMs
+        );
+        const candlesPrev = candles.filter(c =>
+          c.timestamp >= prevSessionStart &&
+          c.timestamp < prevSessionEnd &&
+          Number.isFinite(c.closeTime) &&
+          c.closeTime <= nowMs
+        );
 
         const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
         const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
@@ -892,7 +908,10 @@ const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessio
 
 	     // Filter all candles that fall within the previous session range
 const prevSessionCandles = candles.filter((candle) => {
-  return candle.timestamp >= prevSessionStart && candle.timestamp <= prevSessionEnd;
+  return candle.timestamp >= prevSessionStart &&
+    candle.timestamp < prevSessionEnd &&
+    Number.isFinite(candle.closeTime) &&
+    candle.closeTime <= nowMs;
 });
 
 let prevClosedGreen: boolean | null = null;
@@ -920,7 +939,11 @@ if (prevSessionCandles.length >= 2) {
     prevSessionLow !== null &&
     todaysLowestLow >= prevSessionLow;
 
-  const breakoutFailure = failedBullishBreak && failedBearishBreak;
+  // Combined Breakout Fail is YES only when BOTH boundaries failed.
+// Wicks count because session high/low are used; no close confirmation is required.
+const highBreakoutFail = failedBullishBreak;
+const lowBreakoutFail = failedBearishBreak;
+const breakoutFailure = highBreakoutFail && lowBreakoutFail;
 
   // Optional: Add test failure signal
   const getTestThreshold = (price: number): number => {
@@ -1885,6 +1908,10 @@ divergenceFromLevel,
 latestRSI,		
   testedPrevHigh,
   testedPrevLow,
+  previousSessionHigh: prevSessionHigh,
+  previousSessionLow: prevSessionLow,
+  currentSessionHigh: todaysHighestHigh,
+  currentSessionLow: todaysLowestLow,
      isDoubleTop,
   isDescendingTop,
   isDoubleTopFailure,
@@ -1893,6 +1920,8 @@ latestRSI,
   isDoubleBottomFailure,       
   breakoutTestSignal,
   breakoutFailure,
+  highBreakoutFail,
+  lowBreakoutFail,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
