@@ -2255,8 +2255,10 @@ if (loading) {
     <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
   </div>
 </div>
-	  
-	
+  </div>
+</div>
+</div>
+
 <div className="flex flex-wrap gap-4 mb-4 items-center">
   {/* 🔸 Favorites Toggle */}
   <label className="flex items-center gap-2 text-sm text-white">
