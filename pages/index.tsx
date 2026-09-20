@@ -465,9 +465,35 @@ const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
   const [rsiFilter, setRsiFilter] = useState<'below50' | 'above50' | null>(null);
-	  const [timeframe, setTimeframe] = useState('15m');
-  const [dashboardNow, setDashboardNow] = useState(Date.now());	  
+	  const [timeframe, setTimeframe] = useState('15m');	  
   const timeframes = ['15m', '4h', '1d'];
+
+  // UI-only clock and refresh telemetry. These timers do not call Binance.
+  const [uiNow, setUiNow] = useState(() => Date.now());
+  const [lastBatchRefreshAt, setLastBatchRefreshAt] = useState<number | null>(null);
+  const [nextBatchRefreshAt, setNextBatchRefreshAt] = useState<number | null>(null);
+  const [tickerRefreshAt, setTickerRefreshAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setUiNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const formatAge = (timestamp: number | null) => {
+    if (!timestamp) return '—';
+    const seconds = Math.max(0, Math.floor((uiNow - timestamp) / 1000));
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ${seconds % 60}s ago`;
+  };
+
+  const formatCountdown = (timestamp: number | null) => {
+    if (!timestamp) return '—';
+    const seconds = Math.max(0, Math.ceil((timestamp - uiNow) / 1000));
+    if (seconds <= 0) return 'refreshing…';
+    if (seconds < 60) return `in ${seconds}s`;
+    return `in ${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  };
 	
   
 
@@ -770,10 +796,10 @@ const signalCounts = useMemo(() => {
     // Binance-safe scanner pacing.
     // IMPORTANT: do not use setInterval for the scan loop because a slow batch
     // can overlap the next batch and multiply request pressure.
-    const BATCH_SIZE = 4;
-    const MIN_DELAY_MS = 450;
-    const MAX_DELAY_MS = 800;
-    const BATCH_PAUSE_MS = 2500;
+    const BATCH_SIZE = 2;
+    const MIN_DELAY_MS = 800;
+    const MAX_DELAY_MS = 1400;
+    const BATCH_PAUSE_MS = 5000;
     const KLINE_LIMIT = 300;          // enough for EMA200, lower request weight than 500
     const TICKER_CACHE_MS = 60_000;   // one all-symbol 24h ticker request per minute
     const MAX_SYMBOLS = 500;
@@ -889,6 +915,7 @@ const getSessions = (timeframe?: Timeframe) => {
       }
       ticker24hMap = nextMap;
       tickerCacheAt = Date.now();
+      setTickerRefreshAt(tickerCacheAt);
     };
 
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
@@ -2060,6 +2087,10 @@ latestRSI,
         setLastUpdatedMap(updatedMap);
         return updated;
       });
+
+      const completedAt = Date.now();
+      setLastBatchRefreshAt(completedAt);
+      setNextBatchRefreshAt(completedAt + BATCH_PAUSE_MS);
     }
   };
 
@@ -2097,135 +2128,377 @@ latestRSI,
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
 
-useEffect(() => {
-  const timer = window.setInterval(() => setDashboardNow(Date.now()), 1000);
-  return () => window.clearInterval(timer);
-}, []);
-
 if (loading) {
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 px-8 py-7 text-center shadow-2xl">
-        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400"></div>
-        <p className="text-lg font-semibold">Initializing market scanner</p>
-        <p className="mt-1 text-sm text-slate-400">Loading Binance market data safely…</p>
+    <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-yellow-400 border-opacity-50 mx-auto mb-4"></div>
+        <p className="text-lg">Loading data...</p>
       </div>
     </div>
   );
 }
 
-const latestDatabaseUpdate = Object.values(lastUpdatedMap).length
-  ? Math.max(...(Object.values(lastUpdatedMap) as number[]))
-  : 0;
-const formatAge = (timestamp: number) => {
-  if (!timestamp) return 'Waiting for data';
-  const seconds = Math.max(0, Math.floor((dashboardNow - timestamp) / 1000));
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m ago`;
-};
-const activeFilterCount = [trendFilter, signalFilter, rsiFilter, showOnlyFavorites ? 'favorites' : null].filter(Boolean).length;
+    return (
+	    
+  <div className="min-h-screen bg-gray-900 text-white p-4 overflow-auto">
+    <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
+  ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
+</h2>
 
-return (
-  <main className="min-h-screen bg-slate-950 text-slate-100">
-    <div className="mx-auto max-w-[2200px] px-3 py-4 sm:px-5 lg:px-7">
-      <header className="mb-4 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-4 shadow-2xl">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">● LIVE SCANNER</span>
-              <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300">15M · 4H · 1D</span>
-              <span className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs text-slate-300">{signals.length} loaded</span>
-            </div>
-            <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Market Structure Scanner</h1>
-            <p className="mt-1 text-sm text-slate-400">Trend, RSI14, EMA structure, breakout, volume and pattern intelligence.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Timeframe</div><div className="mt-1 text-lg font-black text-cyan-300">{timeframe.toUpperCase()}</div></div>
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Database</div><div className="mt-1 text-sm font-bold text-white">{formatAge(latestDatabaseUpdate)}</div></div>
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Active Filters</div><div className="mt-1 text-lg font-black text-amber-300">{activeFilterCount}</div></div>
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Local Clock</div><div className="mt-1 text-sm font-bold text-white">{new Date(dashboardNow).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}</div></div>
-          </div>
-        </div>
-      </header>
+    <div className="flex space-x-4 my-4">
+    {timeframes.map((tf) => (
+       <button
+            key={tf}
+            onClick={() => handleTimeframeSwitch(tf)}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md 
+              ${timeframe === tf
+                ? 'bg-yellow-400 text-black scale-105'
+                : 'bg-gray-800 text-white hover:bg-gray-700'}`}
+          >
+            {tf.toUpperCase()}
+          </button>
+  ))}
+</div>
 
-      <section className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.2fr_1fr_1fr]">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-bold">⏱ Scanner Controls</h2><p className="text-xs text-slate-500">Choose the analysis timeframe.</p></div><span className="text-xs font-semibold text-slate-500">{timeframe.toUpperCase()} active</span></div>
-          <div className="grid grid-cols-3 gap-2">
-            {timeframes.map((tf) => (
-              <button key={tf} onClick={() => handleTimeframeSwitch(tf)} className={`rounded-xl border px-4 py-3 text-sm font-black transition ${timeframe === tf ? 'border-cyan-400 bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/10' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:bg-slate-700'}`}>{tf.toUpperCase()}</button>
-            ))}
-          </div>
-        </div>
+{/* ⚡ Scanner Status / Refresh Dashboard */}
+<div className="mb-4 rounded-2xl border border-slate-700/80 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 shadow-xl overflow-hidden">
+  <div className="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div className="text-xs uppercase tracking-[0.18em] text-slate-400 font-semibold">Scanner Control Center</div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className={`h-2.5 w-2.5 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></span>
+        <span className="text-white font-bold">{loading ? 'Initializing market database…' : 'Live scanner active'}</span>
+      </div>
+    </div>
+    <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs">
+      <span className="text-slate-400">Timeframe</span>
+      <span className="font-bold text-cyan-300">{timeframe.toUpperCase()}</span>
+      <span className="text-slate-600">•</span>
+      <span className="text-slate-400">Local clock</span>
+      <span className="font-mono text-slate-200">{new Date(uiNow).toLocaleTimeString()}</span>
+    </div>
+  </div>
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-800">
+    <div className="bg-slate-950/90 p-3">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">Market Database</div>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-slate-200">{lastBatchRefreshAt ? `Updated ${formatAge(lastBatchRefreshAt)}` : 'Waiting for first batch'}</span>
+        <span className="text-emerald-400">●</span>
+      </div>
+      <div className="mt-1 text-[11px] text-slate-500">Completed scanner batch.</div>
+    </div>
+    <div className="bg-slate-950/90 p-3">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">Next Scanner Refresh</div>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-cyan-300">{formatCountdown(nextBatchRefreshAt)}</span>
+        <span className="text-cyan-400">↻</span>
+      </div>
+      <div className="mt-1 text-[11px] text-slate-500">UI countdown only — no extra API calls.</div>
+    </div>
+    <div className="bg-slate-950/90 p-3">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">24h Ticker Cache</div>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-amber-300">
+          {tickerRefreshAt ? `${formatAge(tickerRefreshAt)} · ${Math.max(0, 60 - Math.floor((uiNow - tickerRefreshAt) / 1000))}s cache` : 'Waiting'}
+        </span>
+        <span className="text-amber-400">◷</span>
+      </div>
+      <div className="mt-1 text-[11px] text-slate-500">Reused for 60 seconds.</div>
+    </div>
+  </div>
+</div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-bold">🔎 Market Search</h2><p className="text-xs text-slate-500">Filter symbols instantly.</p></div><span className="text-xs text-slate-500">{filteredAndSortedSignals.length} shown</span></div>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search symbol, e.g. BTCUSDT" className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400" />
-          <button onClick={() => setShowOnlyFavorites(v => !v)} className={`mt-2 w-full rounded-xl border px-3 py-2 text-sm font-bold transition ${showOnlyFavorites ? 'border-amber-400 bg-amber-400/10 text-amber-300' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>★ {showOnlyFavorites ? 'Showing Favorites Only' : 'Show Only Favorites'} · {favorites.size}</button>
-        </div>
+<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
+  {/* 🟢 Filter Controls Section */}
+  <div className="flex flex-col gap-4 text-sm">
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-bold">📡 Data Health</h2><p className="text-xs text-slate-500">Live freshness indicators.</p></div><span className="text-xs font-bold text-emerald-300">● ONLINE</span></div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between rounded-lg bg-slate-950/70 px-3 py-2"><span className="text-slate-400">Latest database update</span><b>{formatAge(latestDatabaseUpdate)}</b></div>
-            <div className="flex justify-between rounded-lg bg-slate-950/70 px-3 py-2"><span className="text-slate-400">Rows visible</span><b>{filteredAndSortedSignals.length}</b></div>
-            <div className="flex justify-between rounded-lg bg-slate-950/70 px-3 py-2"><span className="text-slate-400">Favorites saved</span><b className="text-amber-300">{favorites.size}</b></div>
-          </div>
-        </div>
-      </section>
+    {/* 🔷 Trend Filters Section */}
+<div>
+  <div className="mb-2 flex items-center justify-between gap-2">
+  <p className="text-slate-200 font-bold">📊 Trend Filters</p>
+  <span className="text-[10px] uppercase tracking-wider text-slate-500">Structure & direction</span>
+</div>
+  <div className="flex flex-wrap gap-2">
+    {[
+      {
+        label: 'Bullish Trend',
+        key: 'bullishMainTrend',
+        count: bullishMainTrendCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Trend',
+        key: 'bearishMainTrend',
+        count: bearishMainTrendCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish Reversal',
+        key: 'bullishReversal',
+        count: bullishReversalCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Reversal',
+        key: 'bearishReversal',
+        count: bearishReversalCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish Spike',
+        key: 'bullishSpike',
+        count: bullishSpikeCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Collapse',
+        key: 'bearishCollapse',
+        count: bearishCollapseCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Breakout Failure',
+        key: 'breakoutFailure',
+        count: breakoutFailureCount,
+        color: 'text-yellow-300',
+      },
+      {
+        label: 'Bullish Breakout',
+        key: 'bullishBreakout',
+        count: bullishBreakoutCount,
+        color: 'text-yellow-400',
+      },
+      {
+        label: 'Bearish Breakout',
+        key: 'bearishBreakout',
+        count: bearishBreakoutCount,
+        color: 'text-yellow-400',
+      },
+      {
+        label: 'Tested Prev High',
+        key: 'testedPrevHigh',
+        count: testedPrevHighCount,
+        color: 'text-blue-300',
+      },
+      {
+        label: 'Tested Prev Low',
+        key: 'testedPrevLow',
+        count: testedPrevLowCount,
+        color: 'text-blue-300',
+      },
+	{
+        label: 'Div from lev',
+        key: 'divergenceFromLevel',
+        count: divergenceFromLevelCount,
+        color: 'text-blue-300',
+      },
+    ].map(({ label, key, count, color }) => (
+      <button
+        key={key}
+        onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+        className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+          trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+        }`}
+      >
+        <span>{label}</span>
+        <span className={`text-xs font-bold ${color}`}>{count}</span>
+      </button>
+    ))}
+  </div>
+</div>
 
-      <section className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">📊 Trend Filters</h2><span className="text-[11px] text-slate-500">Tap to filter</span></div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {[
-              ['Bullish Trend','bullishMainTrend',bullishMainTrendCount,'emerald'],['Bearish Trend','bearishMainTrend',bearishMainTrendCount,'red'],['Bullish Reversal','bullishReversal',bullishReversalCount,'emerald'],['Bearish Reversal','bearishReversal',bearishReversalCount,'red'],['Bullish Spike','bullishSpike',bullishSpikeCount,'emerald'],['Bearish Collapse','bearishCollapse',bearishCollapseCount,'red'],['Breakout Failure','breakoutFailure',breakoutFailureCount,'amber'],['Bullish Breakout','bullishBreakout',bullishBreakoutCount,'emerald'],['Bearish Breakout','bearishBreakout',bearishBreakoutCount,'red'],['Tested Prev High','testedPrevHigh',testedPrevHighCount,'cyan'],['Tested Prev Low','testedPrevLow',testedPrevLowCount,'cyan'],['Div from Level','divergenceFromLevel',divergenceFromLevelCount,'cyan']
-            ].map(([label,key,count,tone]) => (
-              <button key={String(key)} onClick={() => setTrendFilter(trendFilter === key ? null : String(key))} className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-semibold transition ${trendFilter === key ? 'border-cyan-400 bg-cyan-400/10 text-white' : 'border-slate-700 bg-slate-950/60 text-slate-300 hover:border-slate-500'}`}>
-                <span>{label}</span><span className={tone === 'emerald' ? 'text-emerald-300' : tone === 'red' ? 'text-red-300' : tone === 'amber' ? 'text-amber-300' : 'text-cyan-300'}>{count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+    {/* 🧭 RSI14 Filters Section */}
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+  <p className="text-slate-200 font-bold">🧭 RSI14 Filters</p>
+  <span className="text-[10px] uppercase tracking-wider text-slate-500">50-line bias</span>
+</div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setRsiFilter(rsiFilter === 'below50' ? null : 'below50')}
+          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+            rsiFilter === 'below50' ? 'bg-red-500/20 text-red-300 border border-red-500/60' : 'bg-slate-800 text-slate-200 border border-slate-700'
+          }`}
+        >
+          <span>RSI14 Below 50 (Bearish)</span>
+          <span className="text-xs font-bold text-red-200">{rsiBelow50Count}</span>
+        </button>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">🧭 RSI14 Momentum</h2><span className="text-[11px] text-slate-500">50 midpoint</span></div>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setRsiFilter(rsiFilter === 'below50' ? null : 'below50')} className={`rounded-xl border p-4 text-left transition ${rsiFilter === 'below50' ? 'border-red-400 bg-red-500/10' : 'border-slate-700 bg-slate-950/60 hover:border-red-500/50'}`}><div className="text-xs font-bold uppercase tracking-wider text-red-300">Bearish</div><div className="mt-1 text-2xl font-black">{rsiBelow50Count}</div><div className="mt-1 text-xs text-slate-400">RSI14 below 50</div></button>
-            <button onClick={() => setRsiFilter(rsiFilter === 'above50' ? null : 'above50')} className={`rounded-xl border p-4 text-left transition ${rsiFilter === 'above50' ? 'border-emerald-400 bg-emerald-500/10' : 'border-slate-700 bg-slate-950/60 hover:border-emerald-500/50'}`}><div className="text-xs font-bold uppercase tracking-wider text-emerald-300">Bullish</div><div className="mt-1 text-2xl font-black">{rsiAbove50Count}</div><div className="mt-1 text-xs text-slate-400">RSI14 above 50</div></button>
-          </div>
-          <div className="mt-3 rounded-xl bg-slate-950 p-3 text-xs text-slate-400">RSI14 is momentum context; it is intentionally displayed separately from structural trend.</div>
-        </div>
+        <button
+          onClick={() => setRsiFilter(rsiFilter === 'above50' ? null : 'above50')}
+          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+            rsiFilter === 'above50' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60' : 'bg-slate-800 text-slate-200 border border-slate-700'
+          }`}
+        >
+          <span>RSI14 Above 50 (Bullish)</span>
+          <span className="text-xs font-bold text-green-200">{rsiAbove50Count}</span>
+        </button>
+      </div>
+    </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-          <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">📈 Signal Zones</h2><span className="text-[11px] text-slate-500">Momentum zones</span></div>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              ['MAX ZONE PUMP','MAX ZONE PUMP','maxZonePump','emerald'],['MAX ZONE DUMP','MAX ZONE DUMP','maxZoneDump','red'],['BALANCE ZONE PUMP','BALANCE ZONE PUMP','balanceZonePump','cyan'],['BALANCE ZONE DUMP','BALANCE ZONE DUMP','balanceZoneDump','red'],['LOWEST ZONE PUMP','LOWEST ZONE PUMP','lowestZonePump','amber'],['LOWEST ZONE DUMP','LOWEST ZONE DUMP','lowestZoneDump','amber']
-            ].map(([label,key,countKey,tone]) => (
-              <button key={String(key)} onClick={() => setSignalFilter(signalFilter === key ? null : String(key))} className={`flex justify-between rounded-xl border px-3 py-2 text-xs font-bold ${signalFilter === key ? 'border-cyan-400 bg-cyan-400/10 text-white' : 'border-slate-700 bg-slate-950/60 text-slate-300'}`}><span>{label}</span><span className={tone === 'emerald' ? 'text-emerald-300' : tone === 'red' ? 'text-red-300' : tone === 'amber' ? 'text-amber-300' : 'text-cyan-300'}>{signalCounts[countKey as keyof typeof signalCounts]}</span></button>
-            ))}
-          </div>
-          <button onClick={() => {setTrendFilter(null); setSignalFilter(null); setRsiFilter(null); setShowOnlyFavorites(false);}} className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700">Clear All Filters</button>
-        </div>
-      </section>
-
-      <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+    {/* ✅ Signal Filters Section */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
+      <div className="flex flex-wrap gap-2">
         {[
-          ['Bull Trend',bullishMainTrendCount,'text-emerald-300'],['Bear Trend',bearishMainTrendCount,'text-red-300'],['EMA14 Inside',ema14InsideResultsCount,'text-cyan-300'],['24h Green',greenPriceChangeCount,'text-emerald-300'],['24h Red',redPriceChangeCount,'text-red-300'],['Green Volume',greenVolumeCount,'text-emerald-300'],['Red Volume',redVolumeCount,'text-red-300'],['Favorites',favorites.size,'text-amber-300']
-        ].map(([label,count,cls]) => <div key={String(label)} className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-3"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</div><div className={`mt-1 text-xl font-black ${cls}`}>{count}</div></div>)}
-      </section>
+  {
+    label: 'MAX ZONE PUMP',
+    key: 'MAX ZONE PUMP',
+    count: signalCounts.maxZonePump,
+    color: 'text-yellow-300',
+  },
+  {
+    label: 'MAX ZONE DUMP',
+    key: 'MAX ZONE DUMP',
+    count: signalCounts.maxZoneDump,
+    color: 'text-yellow-400',
+  },
+  {
+    label: 'BALANCE ZONE PUMP',
+    key: 'BALANCE ZONE PUMP',
+    count: signalCounts.balanceZonePump,
+    color: 'text-purple-300',
+  },
+  {
+    label: 'BALANCE ZONE DUMP',
+    key: 'BALANCE ZONE DUMP',
+    count: signalCounts.balanceZoneDump,
+    color: 'text-purple-400',
+  },
+  {
+    label: 'LOWEST ZONE PUMP',
+    key: 'LOWEST ZONE PUMP',
+    count: signalCounts.lowestZonePump,
+    color: 'text-yellow-500',
+  },
+  {
+    label: 'LOWEST ZONE DUMP',
+    key: 'LOWEST ZONE DUMP',
+    count: signalCounts.lowestZoneDump,
+    color: 'text-yellow-600',
+  },
+	
+        ].map(({ label, key, count, color }) => (
+          <button
+            key={key}
+            onClick={() => setSignalFilter(signalFilter === key ? null : key)}
+            className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+              signalFilter === key
+                ? 'bg-green-500 text-black'
+                : 'bg-gray-700 text-white'
+            }`}
+          >
+            <span>{label}</span>
+            <span className={`text-xs font-bold ${color}`}>{count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
-        <div className="flex flex-col gap-3 border-b border-slate-800 bg-slate-900/95 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div><h2 className="text-lg font-black">Market Intelligence</h2><p className="text-xs text-slate-500">{filteredAndSortedSignals.length} instruments · latest database update {formatAge(latestDatabaseUpdate)}</p></div>
-          <div className="flex flex-wrap gap-2 text-[11px]"><span className="rounded-full bg-emerald-500/10 px-3 py-1 font-bold text-emerald-300">● Positive / Bullish</span><span className="rounded-full bg-red-500/10 px-3 py-1 font-bold text-red-300">● Negative / Bearish</span><span className="rounded-full bg-amber-500/10 px-3 py-1 font-bold text-amber-300">● Warning / Failure</span></div>
-        </div>
-        <div className="max-h-[75vh] overflow-auto"><table className="w-full min-w-[2400px] text-[11px] border-collapse">
-    <thead className="bg-slate-950/95 text-slate-200 sticky top-0 z-20 backdrop-blur">
+    {/* 🔴 Clear Button */}
+    <div>
+      <button
+        onClick={() => {
+          setSearch('');
+          setTrendFilter(null);
+          setSignalFilter(null);
+          setRsiFilter(null);
+          setShowOnlyFavorites(false);
+        }}
+        className="px-4 py-2 rounded-lg bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 transition-colors font-semibold"
+      >
+        Clear All Filters
+      </button>
+    </div>
+  </div>
+
+{/* 📊 Summary Panel */}
+<div className="sticky top-0 z-30 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-sm shadow-md">
+  <div className="flex flex-col gap-3">
+
+    {/* 📈 Trend Counts */}
+	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">  
+    <div className="flex items-center gap-2">
+      <span>📈 Bull Trend:</span>
+      <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <span>📉 Bear Trend:</span>
+      <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+    </div>
+	</div>	
+
+	{/* 📍 EMA14 Inside Range */}
+	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">  
+    <div className="flex items-center gap-1">
+      <span className="flex flex-col leading-tight">
+        <span className="text-sm">📍 EMA14 Inside</span>
+        <span className="text-sm">EMA70–200:</span>
+      </span>
+      <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+    </div>
+</div>
+		
+    {/* 🔹 24h Price Change Summary */}
+    <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+      <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
+      <div className="flex items-center gap-4 text-sm">
+        <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
+        <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>     
+      </div>
+	</div>    
+
+{/* 🔸 Volume Color Summary */}
+<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+  <div className="text-white text-sm mb-2 font-semibold">🔸 Volume Color Summary</div>
+  <div className="flex items-center gap-4 text-sm">
+    <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
+    <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
+  </div>
+</div>
+  </div>
+</div>
+</div>
+
+<div className="flex flex-wrap gap-4 mb-4 items-center">
+  {/* 🔸 Favorites Toggle */}
+  <label className="flex items-center gap-2 text-sm text-white">
+    <input
+      type="checkbox"
+      checked={showOnlyFavorites}
+      onChange={() => setShowOnlyFavorites(prev => !prev)}
+      className="accent-yellow-400"
+    />
+    Show only favorites
+  </label>
+
+  {/* 🔸 Search Input */}
+  <div className="relative">
+    <input
+      type="text"
+      placeholder="Search symbol..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="p-2 pr-20 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+    />
+    
+    {/* 🔸 Clear Button (only shows if there's input) */}
+    {search && (
+      <button
+        onClick={() => setSearch('')}
+        className="absolute right-1 top-1/2 -translate-y-1/2 text-xs px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-white"
+      >
+        Clear
+      </button>
+    )}
+  </div>
+</div>	
+	  
+
+<div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
+  <table className="w-full text-[11px] border-collapse">
+    <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
   <tr>
     {/* Symbol */}
     <th
@@ -2233,18 +2506,18 @@ return (
         setSortField('symbol');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-slate-950 sticky left-0 z-30 text-left align-middle cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
     >
       Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
-	    <th className="px-2 py-1 border border-slate-800 text-right">Current Price</th>
+	    <th className="px-2 py-1 border border-gray-700 text-right">Current Price</th>
 	   <th
   onClick={() => {
     setSortField('priceChangePercent');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
-  className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
   24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
@@ -2255,7 +2528,7 @@ return (
         setSortField('pumpStrength');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
       RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
@@ -2264,7 +2537,7 @@ return (
     setSortField('latestRSI');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
-  className="px-2 py-1 bg-slate-950 border border-slate-800 text-center cursor-pointer"
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>	
@@ -2278,17 +2551,17 @@ return (
         setSortField('touchedEMA200Today');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
       Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>	
 
 	  <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
 	  
-<th className="px-1 py-0.5 bg-slate-950 text-center">
+<th className="px-1 py-0.5 bg-gray-800 text-center">
   Drop 🚨
 </th>
-<th className="px-1 py-0.5 bg-slate-950 text-center">
+<th className="px-1 py-0.5 bg-gray-800 text-center">
   Recovery 🟢
 </th>	  
 
@@ -2300,7 +2573,7 @@ return (
     setSortField('prevClose');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
-  className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
   Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>
@@ -2319,7 +2592,7 @@ return (
       sortField === 'divergenceFromLevel' && prev === 'asc' ? 'desc' : 'asc'
     );
   }}
-  className="px-2 py-1 bg-slate-950 border border-slate-800 text-center cursor-pointer"
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   Div From Lev {sortField === 'divergenceFromLevel' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
@@ -2331,7 +2604,7 @@ return (
         setSortField('bearishDivergence');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
       Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
@@ -2342,14 +2615,14 @@ return (
         setSortField('bullishDivergence');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
       Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
 
 {/* Volume */}
     <th className="p-2 text-center">Volume</th>
-	<th className="px-1 py-0.5 bg-slate-950 text-center">
+	<th className="px-1 py-0.5 bg-gray-800 text-center">
   Volume Divergence
 </th> 
 	 <th
@@ -2357,7 +2630,7 @@ return (
     setSortField('isVolumeSpike');
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }}
-  className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
 >
   Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th>	  
@@ -2369,14 +2642,14 @@ return (
       sortField === 'ema14InsideResults' && prev === 'asc' ? 'desc' : 'asc'
     );
   }}
-  className="px-2 py-1 bg-slate-950 border border-slate-800 text-center cursor-pointer"
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
 
 	  
- <th className="px-4 py-2 border border-slate-800">Ema14&70 Gap %</th>	  
-<th className="px-4 py-2 border border-slate-800">Ema70&200 Gap %</th>
+ <th className="px-4 py-2 border border-gray-700">Ema14&70 Gap %</th>	  
+<th className="px-4 py-2 border border-gray-700">Ema70&200 Gap %</th>
 	  
 <th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
 <th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
@@ -2388,7 +2661,7 @@ return (
       sortField === 'ema200Bounce' && prev === 'asc' ? 'desc' : 'asc'
     );
   }}
-  className="px-2 py-1 bg-slate-950 border border-slate-800 text-center cursor-pointer"
+  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
 >
   EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
 </th> 
@@ -2402,7 +2675,7 @@ return (
         setSortField('ema70Bounce');
         setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       }}
-      className="px-1 py-0.5 bg-slate-950 text-center cursor-pointer"
+      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
     >
       EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
     </th>
@@ -2476,12 +2749,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
         return (
            <tr
   key={s.symbol}
-  className={`border-b border-slate-800 transition-all duration-300 hover:bg-slate-800/60 ${
+  className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
     updatedRecently ? 'bg-yellow-900/30' : ''
   }`}
 >
   {/* Symbol + Favorite */}
-  <td className="px-1 py-0.5 bg-slate-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
+  <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
     <div className="flex items-center justify-between">
       <span className="truncate">{s.symbol}</span>
       <button
@@ -2499,10 +2772,10 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     </div>
   </td>
 
-  <td className="px-2 py-1 border-b border-slate-800 text-right">
+  <td className="px-2 py-1 border-b border-gray-700 text-right">
   ${Number(s.currentPrice).toFixed(7)}
 </td>
-              <td className="px-2 py-1 border-b border-slate-800 text-center">
+              <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
 
@@ -2575,7 +2848,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 </td>			   
 			   
 
-	<td className="px-2 py-1 border-b border-slate-800 text-center text-sm">
+	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
     <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
   ) : (
@@ -2583,7 +2856,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 
-<td className="px-2 py-1 border-b border-slate-800 text-center text-sm">
+<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
   {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
     <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
   ) : (
@@ -2764,7 +3037,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                     className={`p-2 ${
                       s.divergenceFromLevel
                         ? 'bg-indigo-700 text-white'
-                        : 'bg-slate-950 text-gray-500'
+                        : 'bg-gray-800 text-gray-500'
                     }`}
                   >
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
@@ -2826,11 +3099,11 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : <span className="text-red-400">NO</span>}
 </td>	
 
-<td className={`px-4 py-2 border border-slate-800 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
+<td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
   {typeof s.gap === 'number' && !isNaN(s.gap) ? `${s.gap.toFixed(2)}%` : 'N/A'}
 </td>
 
-<td className={`px-4 py-2 border border-slate-800 ${s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+<td className={`px-4 py-2 border border-gray-700 ${s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
   {typeof s.gap1 === 'number' && !isNaN(s.gap1) ? `${s.gap1.toFixed(2)}%` : 'N/A'}
 </td>
 		   
@@ -2912,12 +3185,11 @@ else if (direction === 'pump' && pumpInRange_1_10) {
         );
       })}
     </tbody>
-  </table></div>
-      </section>
+  </table>
+</div>
 
-      <footer className="mt-3 flex flex-col gap-1 px-1 text-[11px] text-slate-600 sm:flex-row sm:justify-between"><span>Freshness is based on the scanner's existing per-symbol update timestamps.</span><span>UI clock: {new Date(dashboardNow).toLocaleTimeString()}</span></footer>
-    </div>
-  </main>
-);
+            
+    </div>                    
+  );
 }
   
