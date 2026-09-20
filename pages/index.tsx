@@ -464,6 +464,7 @@ const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilter, setTrendFilter] = useState<string | null>(null);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
+  const [rsiFilter, setRsiFilter] = useState<'below50' | 'above50' | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');	  
   const timeframes = ['15m', '4h', '1d'];
 	
@@ -509,6 +510,15 @@ const filteredSignals = signals.filter((s) => {
 
   return matchesSearch && (!showOnlyFavorites || isFavorite);
 });
+
+// RSI14 directional filter: below 50 = bearish, above 50 = bullish.
+// Exactly 50 is intentionally excluded from both filters.
+const rsiBelow50Count = filteredSignals.filter(
+  (s) => typeof s.latestRSI === 'number' && s.latestRSI < 50
+).length;
+const rsiAbove50Count = filteredSignals.filter(
+  (s) => typeof s.latestRSI === 'number' && s.latestRSI > 50
+).length;
 
 // 🔹 Sorting logic
 const sortedSignals = signals.sort((a, b) => {
@@ -635,6 +645,9 @@ const filteredAndSortedSignals = filteredSignals
     }
 
     if (signalFilter && getSignal(s) !== signalFilter) return false;
+
+    if (rsiFilter === 'below50' && !(typeof s.latestRSI === 'number' && s.latestRSI < 50)) return false;
+    if (rsiFilter === 'above50' && !(typeof s.latestRSI === 'number' && s.latestRSI > 50)) return false;
 
     return true;
   })
@@ -2214,6 +2227,34 @@ if (loading) {
   </div>
 </div>
 
+    {/* 🧭 RSI14 Filters Section */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">
+        🧭 RSI14 Filters — Above 50 = Bullish, Below 50 = Bearish:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setRsiFilter(rsiFilter === 'below50' ? null : 'below50')}
+          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+            rsiFilter === 'below50' ? 'bg-red-500 text-white' : 'bg-gray-700 text-white'
+          }`}
+        >
+          <span>RSI14 Below 50 (Bearish)</span>
+          <span className="text-xs font-bold text-red-200">{rsiBelow50Count}</span>
+        </button>
+
+        <button
+          onClick={() => setRsiFilter(rsiFilter === 'above50' ? null : 'above50')}
+          className={`px-3 py-1 rounded-full flex items-center gap-1 ${
+            rsiFilter === 'above50' ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'
+          }`}
+        >
+          <span>RSI14 Above 50 (Bullish)</span>
+          <span className="text-xs font-bold text-green-200">{rsiAbove50Count}</span>
+        </button>
+      </div>
+    </div>
+
     {/* ✅ Signal Filters Section */}
     <div>
       <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
@@ -2280,6 +2321,7 @@ if (loading) {
           setSearch('');
           setTrendFilter(null);
           setSignalFilter(null);
+          setRsiFilter(null);
           setShowOnlyFavorites(false);
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
