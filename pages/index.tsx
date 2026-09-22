@@ -457,7 +457,10 @@ export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [scannerStatus, setScannerStatus] = useState<'starting' | 'scanning' | 'waiting' | 'rate-limited' | 'error'> ('starting');
+  const [scannerProgress, setScannerProgress] = useState({ completed: 0, total: 0 });
+  const [nextScanAt, setNextScanAt] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [sortField, setSortField] = useState<string>('symbol');
@@ -774,6 +777,13 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
+    // The scanner is intentionally started in the background. The React UI
+    // must never wait for exchangeInfo or the first analysis batch to render.
+    setLoading(false);
+    setScannerStatus('starting');
+    setScannerProgress({ completed: 0, total: 0 });
+    setNextScanAt(null);
+
     // Binance-safe high-throughput scanner:
     // - 15 symbols are analysed per scan cycle.
     // - Only 3 symbols run concurrently, avoiding large request bursts.
@@ -826,6 +836,7 @@ const signalCounts = useMemo(() => {
           }
 
           if (response.ok) {
+            if (isMounted) setScannerStatus('scanning');
             return await response.json() as T;
           }
 
@@ -834,6 +845,7 @@ const signalCounts = useMemo(() => {
             const retryMs = getRetryAfterMs(response, exponential);
             ratePauseUntil = Math.max(ratePauseUntil, Date.now() + retryMs);
 
+            setScannerStatus('rate-limited');
             console.warn(
               `⚠️ ${label}: HTTP ${response.status}. Backing off ${Math.ceil(retryMs / 1000)}s.`
             );
@@ -2120,6 +2132,7 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
+      if (isMounted) setScannerStatus('starting');
       const info = await safeFetchJson<any>(
         "https://fapi.binance.com/fapi/v1/exchangeInfo",
         "exchangeInfo"
@@ -2133,10 +2146,18 @@ latestRSI,
   )
   .slice(0, 500)
   .map((s: any) => s.symbol);
+
+        if (isMounted) {
+          setScannerProgress({ completed: 0, total: symbols.length });
+          setScannerStatus('scanning');
+        }
 	  };
 
   const fetchBatch = async () => {
   if (!symbols.length || !isMounted) return;
+
+  setScannerStatus('scanning');
+  setNextScanAt(null);
 
   const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
   currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
@@ -2211,12 +2232,17 @@ latestRSI,
         usageRatio >= 0.80 ? 2500 :
         BETWEEN_CYCLE_DELAY_MS;
 
+      if (isMounted) {
+        setScannerStatus('waiting');
+        setNextScanAt(Date.now() + cycleDelay);
+      }
       await delay(cycleDelay);
     }
   };
 
   runBatches().catch((err) => {
     if (isMounted && err?.message !== 'Scanner stopped') {
+      setScannerStatus('error');
       console.error('Scanner loop stopped:', err);
     }
   });
@@ -2234,17 +2260,6 @@ latestRSI,
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
 
-if (loading) {
-  return (
-    <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-yellow-400 border-opacity-50 mx-auto mb-4"></div>
-        <p className="text-lg">Loading data...</p>
-      </div>
-    </div>
-  );
-}
-
     const SortableTh = ({ field, children, className = '' }: { field: string; children: any; className?: string }) => (
       <th
         onClick={() => toggleSort(field)}
@@ -2261,6 +2276,26 @@ if (loading) {
     <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
   ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
 </h2>
+
+    <div className="mb-3 rounded-lg border border-gray-700 bg-gray-800/70 px-3 py-2 text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span className={scannerStatus === 'error' ? 'text-red-400' : scannerStatus === 'rate-limited' ? 'text-yellow-400' : scannerStatus === 'scanning' ? 'text-green-400' : 'text-gray-300'}>
+          {scannerStatus === 'starting' && '🟡 SCANNER INITIALIZING'}
+          {scannerStatus === 'scanning' && '🟢 SCANNING IN BACKGROUND'}
+          {scannerStatus === 'waiting' && '🔵 WAITING FOR NEXT BATCH'}
+          {scannerStatus === 'rate-limited' && '🟠 BINANCE RATE-LIMIT BACKOFF'}
+          {scannerStatus === 'error' && '🔴 SCANNER ERROR'}
+        </span>
+        <span className="text-gray-300">
+          Progress: {scannerProgress.completed}/{scannerProgress.total || '—'}
+        </span>
+        {nextScanAt && scannerStatus === 'waiting' && (
+          <span className="text-gray-300">
+            Next batch: {new Date(nextScanAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+          </span>
+        )}
+      </div>
+    </div>
 
     <div className="flex space-x-4 my-4">
     {timeframes.map((tf) => (
