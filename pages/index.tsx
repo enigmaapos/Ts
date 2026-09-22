@@ -871,6 +871,18 @@ const timeframes = ['15m', '4h', '1d'] as const;
 // Derive Timeframe type from the array
 type Timeframe = typeof timeframes[number];
 
+type Candle = {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  closeTime: number;
+  rsi?: number;
+  volumeColor?: 'green' | 'red' | 'neutral';
+};
+
 // === EMA70/EMA200 session crossover — strict 08:00 PH -> 08:00 PH ===
 // Only crosses that occur inside the CURRENT 08:00–08:00 PH session count.
 // The first 08:00 candle may cross using the immediately preceding 07:45
@@ -967,7 +979,7 @@ const getSessions = (timeframe?: Timeframe) => {
       `${symbol} klines`
     );
 
-        const candles = raw.map((c: any) => ({
+        const candles: Candle[] = raw.map((c: any) => ({
           timestamp: +c[0],
           open: +c[1],
           high: +c[2],
