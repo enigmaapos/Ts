@@ -774,12 +774,96 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
-    const BATCH_SIZE = 5;        // scan 5 symbols at a time
-const INTERVAL_MS = 2000;    // run a batch every 2 seconds
-const MIN_DELAY_MS = 300;    // minimum 0.3 s between requests inside a batch
-const MAX_DELAY_MS = 600;    // maximum 0.6 s
+    // Binance-safe high-throughput scanner:
+    // - 15 symbols are analysed per scan cycle.
+    // - Only 3 symbols run concurrently, avoiding large request bursts.
+    // - Waves are spaced instead of using setInterval, so slow scans never overlap.
+    // - 429/418 responses honour Retry-After and use exponential backoff.
+    // - Binance's returned 1-minute request-weight header is monitored.
+    const BATCH_SIZE = 15;
+    const MAX_CONCURRENT = 3;
+    const WAVE_DELAY_MS = 650;
+    const BETWEEN_CYCLE_DELAY_MS = 1000;
+    const MAX_RETRIES = 3;
+    const RATE_LIMIT_WEIGHT = 2400;
+    const RATE_LIMIT_SOFT_CAP = 0.75;
     let currentIndex = 0;
     let symbols: string[] = [];
+    let lastUsedWeight1m = 0;
+    let ratePauseUntil = 0;
+
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const getRetryAfterMs = (response: Response, fallbackMs: number) => {
+      const retryAfter = response.headers.get('Retry-After');
+      const seconds = retryAfter ? Number(retryAfter) : NaN;
+      return Number.isFinite(seconds) && seconds > 0
+        ? Math.ceil(seconds * 1000)
+        : fallbackMs;
+    };
+
+    const safeFetchJson = async <T = any>(url: string, label = 'Binance request'): Promise<T> => {
+      let attempt = 0;
+
+      while (attempt <= MAX_RETRIES) {
+        if (!isMounted) throw new Error('Scanner stopped');
+
+        const now = Date.now();
+        if (ratePauseUntil > now) {
+          await delay(ratePauseUntil - now);
+        }
+
+        try {
+          const response = await fetch(url);
+
+          const usedWeightHeader =
+            response.headers.get('X-MBX-USED-WEIGHT-1M') ||
+            response.headers.get('x-mbx-used-weight-1m');
+
+          const usedWeight = Number(usedWeightHeader);
+          if (Number.isFinite(usedWeight)) {
+            lastUsedWeight1m = usedWeight;
+          }
+
+          if (response.ok) {
+            return await response.json() as T;
+          }
+
+          if (response.status === 429 || response.status === 418) {
+            const exponential = Math.min(30_000, 1000 * Math.pow(2, attempt));
+            const retryMs = getRetryAfterMs(response, exponential);
+            ratePauseUntil = Math.max(ratePauseUntil, Date.now() + retryMs);
+
+            console.warn(
+              `⚠️ ${label}: HTTP ${response.status}. Backing off ${Math.ceil(retryMs / 1000)}s.`
+            );
+
+            attempt++;
+            if (attempt > MAX_RETRIES) {
+              throw new Error(`${label} rate limited (${response.status})`);
+            }
+
+            await delay(retryMs);
+            continue;
+          }
+
+          const body = await response.text().catch(() => '');
+          throw new Error(`${label} HTTP ${response.status}${body ? `: ${body.slice(0, 180)}` : ''}`);
+        } catch (err: any) {
+          if (err?.name === 'AbortError' || err?.message === 'Scanner stopped') {
+            throw err;
+          }
+
+          attempt++;
+          if (attempt > MAX_RETRIES) throw err;
+
+          const retryMs = Math.min(10_000, 750 * Math.pow(2, attempt - 1));
+          await delay(retryMs);
+        }
+      }
+
+      throw new Error(`${label} failed`);
+    };
 
     // Define available timeframes
 const timeframes = ['15m', '4h', '1d'] as const;
@@ -878,9 +962,10 @@ const getSessions = (timeframe?: Timeframe) => {
 
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
-    const raw = await fetch(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`
-    ).then((res) => res.json());
+    const raw = await safeFetchJson<any[]>(
+      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
+      `${symbol} klines`
+    );
 
         const candles = raw.map((c: any) => ({
           timestamp: +c[0],
@@ -918,9 +1003,10 @@ candles.forEach((c, i) => {
   // Volume is already assumed to be present as c.volume
 });
 
-    const ticker24h = await fetch(
-      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
-    ).then(res => res.json());
+    const ticker24h = await safeFetchJson<any>(
+      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`,
+      `${symbol} 24h ticker`
+    );
 
 
 
@@ -2022,7 +2108,10 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
-      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+      const info = await safeFetchJson<any>(
+        "https://fapi.binance.com/fapi/v1/exchangeInfo",
+        "exchangeInfo"
+      );
       symbols = info.symbols
   .filter(
     (s: any) =>
@@ -2034,71 +2123,96 @@ latestRSI,
   .map((s: any) => s.symbol);
 	  };
 
-	  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   const fetchBatch = async () => {
-  if (!symbols.length) return;
+  if (!symbols.length || !isMounted) return;
 
   const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
   currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
   const results: any[] = [];
 
-  for (const symbol of batch) {
-    try {
-      const result = await fetchAndAnalyze(symbol, timeframe);
+  // Process a maximum of 3 symbols concurrently. This is substantially faster
+  // than the old fully-serial scanner while keeping request bursts bounded.
+  for (let offset = 0; offset < batch.length && isMounted; offset += MAX_CONCURRENT) {
+    const wave = batch.slice(offset, offset + MAX_CONCURRENT);
+
+    const waveResults = await Promise.all(
+      wave.map(async (symbol) => {
+        try {
+          return await fetchAndAnalyze(symbol, timeframe);
+        } catch (err: any) {
+          if (err?.message === 'Scanner stopped') return null;
+          console.warn(`Error on ${symbol}:`, err?.message || err);
+          return null;
+        }
+      })
+    );
+
+    for (const result of waveResults) {
       if (result) results.push(result);
-    } catch (err: any) {
-      // 429 = rate-limit; back off longer
-      if (err.message?.includes("429")) {
-        console.warn("⚠️ Rate limit hit, pausing 10 s...");
-        await delay(10_000);
-      } else {
-        console.warn(`Error on ${symbol}:`, err.message);
-      }
     }
 
-    // 🔹 small random delay between each request (300 – 600 ms)
-    const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
-    await delay(randomDelay);
-  }
+    if (!isMounted || offset + MAX_CONCURRENT >= batch.length) break;
 
-  const cleanedResults = results.filter(r => r !== null);
+    const usageRatio = lastUsedWeight1m / RATE_LIMIT_WEIGHT;
+    const adaptiveDelay =
+      usageRatio >= 0.90 ? 5000 :
+      usageRatio >= 0.80 ? 2500 :
+      usageRatio >= RATE_LIMIT_SOFT_CAP ? 1200 :
+      WAVE_DELAY_MS;
+
+    await delay(adaptiveDelay);
+  }
 
   if (isMounted) {
     setSignals(prev => {
       const updated = [...prev];
       const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-      for (const result of cleanedResults) {
+
+      for (const result of results) {
         const index = updated.findIndex(r => r.symbol === result.symbol);
         if (index >= 0) updated[index] = result;
         else updated.push(result);
         updatedMap[result.symbol] = Date.now();
       }
+
       setLastUpdatedMap(updatedMap);
       return updated;
     });
   }
 };
 
+  // A self-scheduling loop deliberately replaces setInterval. setInterval can
+  // start a second scan while the previous scan is still running, causing
+  // accidental Binance 429 bursts.
   const runBatches = async () => {
     await fetchSymbols();
-    await fetchBatch();
-    setLoading(false);
 
-    const interval = setInterval(fetchBatch, INTERVAL_MS);
-    return () => clearInterval(interval);
+    while (isMounted) {
+      await fetchBatch();
+
+      if (!isMounted) break;
+
+      const usageRatio = lastUsedWeight1m / RATE_LIMIT_WEIGHT;
+      const cycleDelay =
+        usageRatio >= 0.90 ? 5000 :
+        usageRatio >= 0.80 ? 2500 :
+        BETWEEN_CYCLE_DELAY_MS;
+
+      await delay(cycleDelay);
+    }
   };
 
-  let cleanup: () => void;
-
-  runBatches().then((stop) => {
-    cleanup = stop;
+  runBatches().catch((err) => {
+    if (isMounted && err?.message !== 'Scanner stopped') {
+      console.error('Scanner loop stopped:', err);
+    }
   });
 
   return () => {
+    // Stop the self-scheduling loop. Any in-flight request is allowed to
+    // finish, but no new Binance request will be started after unmount.
     isMounted = false;
-    if (cleanup) cleanup();
   };
 }, [timeframe]); // ✅ triggers on timeframe change
 
