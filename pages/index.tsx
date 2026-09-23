@@ -2798,6 +2798,7 @@ latestRSI,
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+		<SortableTh field="prevClose">Prev Close</SortableTh>
 		<SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
         <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
@@ -2810,7 +2811,6 @@ latestRSI,
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
-        <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
@@ -2923,6 +2923,14 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
+
+			   <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
 
 			   {/* Divergences */}
 {/* Bearish Divergence */}
@@ -3042,14 +3050,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
     {s.bearishBreakout ? 'Yes' : 'No'}
   </td>		   
-		   
-<td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
-  }`}
->
-  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
-</td>
 		   
 <td
   className={`px-1 py-0.5 text-center ${
