@@ -2798,6 +2798,8 @@ latestRSI,
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+		<SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
@@ -2815,8 +2817,6 @@ latestRSI,
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
         <SortableTh field="bullishReversal">Bull Rev</SortableTh>
         <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
-        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
-        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
         <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
         <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
         <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
@@ -2923,6 +2923,17 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
+
+			   {/* Divergences */}
+{/* Bearish Divergence */}
+<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+ {s.bearishDivergence?.divergence ? 'Yes' : '-'}
+</td>
+
+{/* Bullish Divergence */}
+<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+{s.bullishDivergence?.divergence ? 'Yes' : '-'}
+</td>	
 
   {/* Pump / Dump */}
   <td
@@ -3203,17 +3214,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
                   </td>
 		   
-
-{/* Divergences */}
-{/* Bearish Divergence */}
-<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
- {s.bearishDivergence?.divergence ? 'Yes' : '-'}
-</td>
-
-{/* Bullish Divergence */}
-<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-{s.bullishDivergence?.divergence ? 'Yes' : '-'}
-</td>	
 
   {/* Volume */}
   <td
