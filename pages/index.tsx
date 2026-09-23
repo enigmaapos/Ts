@@ -2750,16 +2750,16 @@ latestRSI,
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
+		<SortableTh field="mainTrend">Trend (200)</SortableTh>
+		<SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
         <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
-        <SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="drop">Drop 🚨</SortableTh>
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
         <SortableTh field="prevClose">Prev Close</SortableTh>
-        <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -2913,84 +2913,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : 'Below 50 (Bearish)'}
 </td>	
 
-			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
-    {s.breakoutFailure ? 'Yes' : '-'}
-  </td>
-
-			   {/* Touched EMA200 */}
-  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>	  
-
-  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
-  <td className={`px-2 py-1 text-center font-semibold ${
-    s.ema70200Cross?.direction === 'bullish'
-      ? 'text-green-400'
-      : s.ema70200Cross?.direction === 'bearish'
-      ? 'text-red-400'
-      : 'text-gray-500'
-  }`}>
-    {s.ema70200Cross?.direction === 'bullish'
-      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
-      : s.ema70200Cross?.direction === 'bearish'
-      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
-      : 'No'}
-  </td>
-
 			   <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>			   
-			   
-
-	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
-    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
-  ) : (
-    <span className="text-gray-500">–</span>
-  )}
-</td>
-
-<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
-    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
-  ) : (
-    <span className="text-gray-500">–</span>
-  )}
-</td>	   
-		   
-  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
-    {s.bullishBreakout ? 'Yes' : 'No'}
-  </td>	   
-
-  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
-    {s.bearishBreakout ? 'Yes' : 'No'}
-  </td>		   
-		   
-<td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
-  }`}
->
-  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
-</td>
-		   
-<td
   className={`px-1 py-0.5 text-center ${
     s.mainTrend?.trend === 'bullish'
       ? 'text-green-500'
@@ -3024,6 +2947,83 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     'N/A'
   )}
 </td>
+
+			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
+
+			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+    {s.breakoutFailure ? 'Yes' : '-'}
+  </td>
+
+			   {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>	  
+
+  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
+  <td className={`px-2 py-1 text-center font-semibold ${
+    s.ema70200Cross?.direction === 'bullish'
+      ? 'text-green-400'
+      : s.ema70200Cross?.direction === 'bearish'
+      ? 'text-red-400'
+      : 'text-gray-500'
+  }`}>
+    {s.ema70200Cross?.direction === 'bullish'
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : s.ema70200Cross?.direction === 'bearish'
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : 'No'}
+  </td>		   
+
+	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
+    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>
+
+<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
+    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>	   
+		   
+  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
+    {s.bullishBreakout ? 'Yes' : 'No'}
+  </td>	   
+
+  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
+    {s.bearishBreakout ? 'Yes' : 'No'}
+  </td>		   
+		   
+<td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
+
 		   
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div className={`font-semibold mb-1 ${
