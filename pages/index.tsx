@@ -569,6 +569,31 @@ const getSortValue = (s: any, field: string): any => {
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
   bearishMainTrend: 'bearish',
+  bullishNearSupport: 'bullish',
+  bearishNearResistance: 'bearish',
+  bullishBreakup: 'bullish',
+  bearishBreakdown: 'bearish',
+  bullishDojiAfterBreakout: 'bullish',
+  bearishDojiAfterBreakout: 'bearish',
+};
+
+const trend200ConditionMatches = (s: any, key: string): boolean => {
+  switch (key) {
+    case 'bullishNearSupport':
+      return s.mainTrend?.trend === 'bullish' && s.mainTrend?.isNear === true;
+    case 'bearishNearResistance':
+      return s.mainTrend?.trend === 'bearish' && s.mainTrend?.isNear === true;
+    case 'bullishBreakup':
+      return s.mainTrend?.trend === 'bullish' && s.mainTrend?.breakout === true;
+    case 'bearishBreakdown':
+      return s.mainTrend?.trend === 'bearish' && s.mainTrend?.breakout === true;
+    case 'bullishDojiAfterBreakout':
+      return s.mainTrend?.trend === 'bullish' && s.mainTrend?.isDojiAfterBreakout === true;
+    case 'bearishDojiAfterBreakout':
+      return s.mainTrend?.trend === 'bearish' && s.mainTrend?.isDojiAfterBreakout === true;
+    default:
+      return false;
+  }
 };
 
 const trendKeyToBooleanField: Record<string, keyof any> = {
@@ -595,6 +620,22 @@ const filteredSignals = signals.filter((s) => {
   if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
     if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
   }
+
+  // Trend (200) combined conditions. These are intentionally checked
+  // separately from the basic bullish/bearish trend state.
+  if (trendFilter && trend200ConditionMatches(s, trendFilter)) {
+    // condition matched; continue
+  } else if (trendFilter && [
+    'bullishNearSupport',
+    'bearishNearResistance',
+    'bullishBreakup',
+    'bearishBreakdown',
+    'bullishDojiAfterBreakout',
+    'bearishDojiAfterBreakout',
+  ].includes(trendFilter)) {
+    return false;
+  }
+
   if (trendFilter && trendKeyToBooleanField[trendFilter]) {
     const field = trendKeyToBooleanField[trendFilter];
     const value = field === 'ema14InsideResults'
@@ -670,6 +711,30 @@ const bullishMainTrendCount = filteredSignals.filter(
 
 const bearishMainTrendCount = filteredSignals.filter(
   (s) => s.mainTrend?.trend === 'bearish'
+).length;
+
+const bullishNearSupportCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bullishNearSupport')
+).length;
+
+const bearishNearResistanceCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bearishNearResistance')
+).length;
+
+const bullishBreakupCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bullishBreakup')
+).length;
+
+const bearishBreakdownCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bearishBreakdown')
+).length;
+
+const bullishDojiAfterBreakoutCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bullishDojiAfterBreakout')
+).length;
+
+const bearishDojiAfterBreakoutCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bearishDojiAfterBreakout')
 ).length;
 
 const bullishBreakoutCount = filteredSignals.filter(
@@ -2334,6 +2399,42 @@ latestRSI,
         key: 'bearishMainTrend',
         count: bearishMainTrendCount,
         color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Near Support',
+        key: 'bullishNearSupport',
+        count: bullishNearSupportCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish + Near Resistance',
+        key: 'bearishNearResistance',
+        count: bearishNearResistanceCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Breakup',
+        key: 'bullishBreakup',
+        count: bullishBreakupCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish + Breakdown',
+        key: 'bearishBreakdown',
+        count: bearishBreakdownCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Doji After Breakout',
+        key: 'bullishDojiAfterBreakout',
+        count: bullishDojiAfterBreakoutCount,
+        color: 'text-purple-300',
+      },
+      {
+        label: 'Bearish + Doji After Breakout',
+        key: 'bearishDojiAfterBreakout',
+        count: bearishDojiAfterBreakoutCount,
+        color: 'text-purple-300',
       },
       {
         label: 'Bullish Reversal',
