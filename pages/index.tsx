@@ -610,7 +610,9 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   highestVolumeColorPrev: 'highestVolumeColorPrev',
   divergenceFromLevel: 'divergenceFromLevel',
   bullishDivergence: 'bullishDivergence',
-  bearishDivergence: 'bearishDivergence'
+  bearishDivergence: 'bearishDivergence',
+  prevCloseGreen: 'prevClosedGreen',
+  prevCloseRed: 'prevClosedRed'
 };
 
 const trendFilterMatches = (s: any, key: string): boolean => {
@@ -649,6 +651,10 @@ const trendFilterMatches = (s: any, key: string): boolean => {
 
   if (field === 'bullishDivergence' || field === 'bearishDivergence') {
     return s[field]?.divergence === true;
+  }
+
+  if (field === 'prevClosedGreen' || field === 'prevClosedRed') {
+    return s[field] === true;
   }
 
   if (field === 'bullishBreakout' || field === 'bearishBreakout' ||
@@ -801,6 +807,14 @@ const bullishDivergenceCount = filteredSignals.filter(
 
 const bearishDivergenceCount = filteredSignals.filter(
   (s) => s.bearishDivergence?.divergence === true
+).length;
+
+const prevCloseGreenCount = filteredSignals.filter(
+  (s) => s.prevClosedGreen === true
+).length;
+
+const prevCloseRedCount = filteredSignals.filter(
+  (s) => s.prevClosedRed === true
 ).length;
 
 // For bullishSpike, check the .signal property inside the object
@@ -2499,6 +2513,18 @@ latestRSI,
         color: 'text-red-300',
       },
       {
+        label: 'Previous Close Green',
+        key: 'prevCloseGreen',
+        count: prevCloseGreenCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Previous Close Red',
+        key: 'prevCloseRed',
+        count: prevCloseRedCount,
+        color: 'text-red-300',
+      },
+      {
         label: 'Bullish Spike',
         key: 'bullishSpike',
         count: bullishSpikeCount,
@@ -2798,9 +2824,6 @@ latestRSI,
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
-		<SortableTh field="prevClose">Prev Close</SortableTh>
-		<SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
-        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
@@ -2811,12 +2834,15 @@ latestRSI,
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
+        <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
         <SortableTh field="bullishReversal">Bull Rev</SortableTh>
         <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
+        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
         <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
         <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
         <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
@@ -2923,25 +2949,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
-
-			   <td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
-  }`}
->
-  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
-</td>
-
-			   {/* Divergences */}
-{/* Bearish Divergence */}
-<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
- {s.bearishDivergence?.divergence ? 'Yes' : '-'}
-</td>
-
-{/* Bullish Divergence */}
-<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-{s.bullishDivergence?.divergence ? 'Yes' : '-'}
-</td>	
 
   {/* Pump / Dump */}
   <td
@@ -3050,6 +3057,14 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
     {s.bearishBreakout ? 'Yes' : 'No'}
   </td>		   
+		   
+<td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
 		   
 <td
   className={`px-1 py-0.5 text-center ${
@@ -3214,6 +3229,17 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                     {s.divergenceFromLevel ? 'Yes' : 'No'}
                   </td>
 		   
+
+{/* Divergences */}
+{/* Bearish Divergence */}
+<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+ {s.bearishDivergence?.divergence ? 'Yes' : '-'}
+</td>
+
+{/* Bullish Divergence */}
+<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+{s.bullishDivergence?.divergence ? 'Yes' : '-'}
+</td>	
 
   {/* Volume */}
   <td
