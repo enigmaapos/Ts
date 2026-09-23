@@ -465,7 +465,7 @@ const [signals, setSignals] = useState<any[]>([]);
 const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-const [trendFilter, setTrendFilter] = useState<string | null>(null);
+const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');	  
   const timeframes = ['15m', '4h', '1d'];
@@ -608,7 +608,59 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishCollapse: 'bearishCollapse',
   ema14InsideResults: 'ema14InsideResults',
   highestVolumeColorPrev: 'highestVolumeColorPrev',
-  divergenceFromLevel: 'divergenceFromLevel'
+  divergenceFromLevel: 'divergenceFromLevel',
+  bullishDivergence: 'bullishDivergence',
+  bearishDivergence: 'bearishDivergence'
+};
+
+const trendFilterMatches = (s: any, key: string): boolean => {
+  // Main Trend filters
+  if (key === 'bullishMainTrend') {
+    return s.mainTrend?.trend === 'bullish';
+  }
+
+  if (key === 'bearishMainTrend') {
+    return s.mainTrend?.trend === 'bearish';
+  }
+
+  // Trend (200) condition filters
+  if ([
+    'bullishNearSupport',
+    'bearishNearResistance',
+    'bullishBreakup',
+    'bearishBreakdown',
+    'bullishDojiAfterBreakout',
+    'bearishDojiAfterBreakout',
+  ].includes(key)) {
+    return trend200ConditionMatches(s, key);
+  }
+
+  // Boolean / signal filters
+  const field = trendKeyToBooleanField[key];
+  if (!field) return false;
+
+  if (field === 'ema14InsideResults') {
+    return s.ema14InsideResults?.some((r: any) => r.inside) === true;
+  }
+
+  if (field === 'divergenceFromLevel') {
+    return s.divergenceFromLevel === true || s.divergenceFromLevel === 'true';
+  }
+
+  if (field === 'bullishDivergence' || field === 'bearishDivergence') {
+    return s[field]?.divergence === true;
+  }
+
+  if (field === 'bullishBreakout' || field === 'bearishBreakout' ||
+      field === 'breakoutFailure' || field === 'testedPrevHigh' ||
+      field === 'testedPrevLow' || field === 'bullishReversal' ||
+      field === 'bearishReversal' || field === 'bullishSpike' ||
+      field === 'bearishCollapse') {
+    const value = s[field];
+    return value === true || value?.signal === true;
+  }
+
+  return Boolean(s[field]);
 };
 
 const filteredSignals = signals.filter((s) => {
@@ -617,33 +669,11 @@ const filteredSignals = signals.filter((s) => {
   const isFavorite = favorites.has(s.symbol);
   if (!matchesSearch || (showOnlyFavorites && !isFavorite)) return false;
 
-  if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
-    if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
-  }
-
-  // Trend (200) combined conditions. These are intentionally checked
-  // separately from the basic bullish/bearish trend state.
-  if (trendFilter && trend200ConditionMatches(s, trendFilter)) {
-    // condition matched; continue
-  } else if (trendFilter && [
-    'bullishNearSupport',
-    'bearishNearResistance',
-    'bullishBreakup',
-    'bearishBreakdown',
-    'bullishDojiAfterBreakout',
-    'bearishDojiAfterBreakout',
-  ].includes(trendFilter)) {
+  // Multiple Trend filters are combined with AND logic.
+  // Example: Bullish Trend + Bullish Divergence + Bullish Near Support
+  // means ALL THREE conditions must be true for the same symbol.
+  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key))) {
     return false;
-  }
-
-  if (trendFilter && trendKeyToBooleanField[trendFilter]) {
-    const field = trendKeyToBooleanField[trendFilter];
-    const value = field === 'ema14InsideResults'
-      ? s.ema14InsideResults?.some((r: any) => r.inside)
-      : field === 'divergenceFromLevel'
-      ? (s.divergenceFromLevel === true || s.divergenceFromLevel === 'true')
-      : s[field];
-    if (!value) return false;
   }
 
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
@@ -763,6 +793,14 @@ const bullishReversalCount = filteredSignals.filter(
 
 const bearishReversalCount = filteredSignals.filter(
   (s) => s.bearishReversal?.signal === true
+).length;
+
+const bullishDivergenceCount = filteredSignals.filter(
+  (s) => s.bullishDivergence?.divergence === true
+).length;
+
+const bearishDivergenceCount = filteredSignals.filter(
+  (s) => s.bearishDivergence?.divergence === true
 ).length;
 
 // For bullishSpike, check the .signal property inside the object
@@ -2449,6 +2487,18 @@ latestRSI,
         color: 'text-red-300',
       },
       {
+        label: 'Bullish Divergence',
+        key: 'bullishDivergence',
+        count: bullishDivergenceCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Divergence',
+        key: 'bearishDivergence',
+        count: bearishDivergenceCount,
+        color: 'text-red-300',
+      },
+      {
         label: 'Bullish Spike',
         key: 'bullishSpike',
         count: bullishSpikeCount,
@@ -2499,9 +2549,9 @@ latestRSI,
     ].map(({ label, key, count, color }) => (
       <button
         key={key}
-        onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+        onClick={() => setTrendFilters(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])}
         className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-          trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+          trendFilters.includes(key) ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
         }`}
       >
         <span>{label}</span>
@@ -2641,7 +2691,7 @@ latestRSI,
       <button
         onClick={() => {
           setSearch('');
-          setTrendFilter(null);
+          setTrendFilters([]);
           setSignalFilter(null);
           setTableSignalFilter('all');
           setRsi14Filter('all');
@@ -2750,16 +2800,16 @@ latestRSI,
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
-		<SortableTh field="mainTrend">Trend (200)</SortableTh>
-		<SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
         <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
+        <SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="drop">Drop 🚨</SortableTh>
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
         <SortableTh field="prevClose">Prev Close</SortableTh>
+        <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -2913,7 +2963,84 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : 'Below 50 (Bearish)'}
 </td>	
 
+			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+    {s.breakoutFailure ? 'Yes' : '-'}
+  </td>
+
+			   {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>	  
+
+  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
+  <td className={`px-2 py-1 text-center font-semibold ${
+    s.ema70200Cross?.direction === 'bullish'
+      ? 'text-green-400'
+      : s.ema70200Cross?.direction === 'bearish'
+      ? 'text-red-400'
+      : 'text-gray-500'
+  }`}>
+    {s.ema70200Cross?.direction === 'bullish'
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : s.ema70200Cross?.direction === 'bearish'
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : 'No'}
+  </td>
+
 			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
+			   
+
+	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
+    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>
+
+<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
+    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>	   
+		   
+  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
+    {s.bullishBreakout ? 'Yes' : 'No'}
+  </td>	   
+
+  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
+    {s.bearishBreakout ? 'Yes' : 'No'}
+  </td>		   
+		   
+<td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
+		   
+<td
   className={`px-1 py-0.5 text-center ${
     s.mainTrend?.trend === 'bullish'
       ? 'text-green-500'
@@ -2947,83 +3074,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     'N/A'
   )}
 </td>
-
-			   <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>			   
-
-			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
-    {s.breakoutFailure ? 'Yes' : '-'}
-  </td>
-
-			   {/* Touched EMA200 */}
-  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>	  
-
-  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
-  <td className={`px-2 py-1 text-center font-semibold ${
-    s.ema70200Cross?.direction === 'bullish'
-      ? 'text-green-400'
-      : s.ema70200Cross?.direction === 'bearish'
-      ? 'text-red-400'
-      : 'text-gray-500'
-  }`}>
-    {s.ema70200Cross?.direction === 'bullish'
-      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
-      : s.ema70200Cross?.direction === 'bearish'
-      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
-      : 'No'}
-  </td>		   
-
-	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
-    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
-  ) : (
-    <span className="text-gray-500">–</span>
-  )}
-</td>
-
-<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
-    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
-  ) : (
-    <span className="text-gray-500">–</span>
-  )}
-</td>	   
-		   
-  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
-    {s.bullishBreakout ? 'Yes' : 'No'}
-  </td>	   
-
-  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
-    {s.bearishBreakout ? 'Yes' : 'No'}
-  </td>		   
-		   
-<td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
-  }`}
->
-  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
-</td>
-
 		   
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div className={`font-semibold mb-1 ${
