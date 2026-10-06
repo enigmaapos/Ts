@@ -106,41 +106,86 @@ function calculateRSI(closes: number[], period = 3): number[] {
 /**
  * Detects a confirmed 3-point bearish price/RSI divergence on DAILY candles.
  *
- * Price must make three successive confirmed swing highs:
- *   H1 < H2 < H3
- * while RSI(14) at those exact swing-high candles makes:
- *   R1 > R2 > R3
- *
- * Only completed candles should be supplied. The most recent three confirmed
- * pivots are used, so the signal cannot be caused by the still-forming 1D bar.
+ * HARD RULES:
+ * - Only the previous 20 COMPLETED 1D candles are eligible.
+ * - Three confirmed swing highs are required inside that 20-candle window.
+ * - Price highs must ascend: H1 < H2 < H3.
+ * - RSI(14), sampled at those exact price pivots, must descend: R1 > R2 > R3.
+ * - The CLOSE of all three pivot candles must be above their corresponding EMA(14).
+ * - The currently forming daily candle is never eligible.
  */
 function detectThreePointBearishRSIDivergence(
-  candles: Array<{ timestamp: number; high: number }>,
+  candles: Array<{ timestamp: number; high: number; close: number }>,
   rsi14: number[],
+  ema14: number[],
+  windowSize = 20,
   pivotLeft = 2,
   pivotRight = 2
 ) {
-  const valid = Array.isArray(candles) && Array.isArray(rsi14) && candles.length === rsi14.length;
-  if (!valid || candles.length < pivotLeft + pivotRight + 3) {
+  const valid =
+    Array.isArray(candles) &&
+    Array.isArray(rsi14) &&
+    Array.isArray(ema14) &&
+    candles.length === rsi14.length &&
+    candles.length === ema14.length;
+
+  if (!valid || candles.length < 3) {
     return {
       divergence: false,
       status: 'NO DATA' as const,
       pivots: [] as any[],
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      windowSize,
       message: 'Not enough completed 1D candles'
     };
   }
 
-  const pivots: Array<{ index: number; timestamp: number; priceHigh: number; rsi: number }> = [];
+  // Hard boundary: only the latest 20 completed daily candles can participate.
+  const windowStart = Math.max(0, candles.length - windowSize);
+  const recentCandles = candles.slice(windowStart);
+  const recentRsi14 = rsi14.slice(windowStart);
+  const recentEma14 = ema14.slice(windowStart);
 
-  for (let i = pivotLeft; i < candles.length - pivotRight; i++) {
-    const priceHigh = candles[i].high;
-    const rsi = rsi14[i];
-    if (!Number.isFinite(priceHigh) || !Number.isFinite(rsi)) continue;
+  if (recentCandles.length < pivotLeft + pivotRight + 3) {
+    return {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [] as any[],
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      windowSize,
+      message: `Need at least ${pivotLeft + pivotRight + 3} completed candles inside the ${windowSize}-candle window`
+    };
+  }
+
+  const pivots: Array<{
+    index: number;
+    absoluteIndex: number;
+    timestamp: number;
+    priceHigh: number;
+    close: number;
+    ema14: number;
+    rsi: number;
+    aboveEma14: boolean;
+  }> = [];
+
+  for (let i = pivotLeft; i < recentCandles.length - pivotRight; i++) {
+    const candle = recentCandles[i];
+    const priceHigh = candle.high;
+    const close = candle.close;
+    const rsi = recentRsi14[i];
+    const ema = recentEma14[i];
+
+    if (!Number.isFinite(priceHigh) || !Number.isFinite(close) ||
+        !Number.isFinite(rsi) || !Number.isFinite(ema)) continue;
 
     let isPivotHigh = true;
     for (let j = i - pivotLeft; j <= i + pivotRight; j++) {
       if (j === i) continue;
-      if (!Number.isFinite(candles[j]?.high) || candles[j].high >= priceHigh) {
+      if (!Number.isFinite(recentCandles[j]?.high) || recentCandles[j].high >= priceHigh) {
         isPivotHigh = false;
         break;
       }
@@ -149,9 +194,13 @@ function detectThreePointBearishRSIDivergence(
     if (isPivotHigh) {
       pivots.push({
         index: i,
-        timestamp: candles[i].timestamp,
+        absoluteIndex: windowStart + i,
+        timestamp: candle.timestamp,
         priceHigh,
-        rsi
+        close,
+        ema14: ema,
+        rsi,
+        aboveEma14: close > ema
       });
     }
   }
@@ -159,9 +208,13 @@ function detectThreePointBearishRSIDivergence(
   if (pivots.length < 3) {
     return {
       divergence: false,
-      status: 'NO DATA' as const,
+      status: 'NO' as const,
       pivots: pivots.slice(-3),
-      message: 'Fewer than 3 confirmed daily swing highs'
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      windowSize,
+      message: `Fewer than 3 confirmed daily swing highs inside the previous ${windowSize} completed candles`
     };
   }
 
@@ -169,7 +222,8 @@ function detectThreePointBearishRSIDivergence(
   const [p1, p2, p3] = lastThree;
   const priceAscending = p1.priceHigh < p2.priceHigh && p2.priceHigh < p3.priceHigh;
   const rsiDescending = p1.rsi > p2.rsi && p2.rsi > p3.rsi;
-  const divergence = priceAscending && rsiDescending;
+  const ema14Confirmed = p1.aboveEma14 && p2.aboveEma14 && p3.aboveEma14;
+  const divergence = priceAscending && rsiDescending && ema14Confirmed;
 
   return {
     divergence,
@@ -177,9 +231,13 @@ function detectThreePointBearishRSIDivergence(
     pivots: lastThree,
     priceAscending,
     rsiDescending,
+    ema14Confirmed,
+    windowSize,
     message: divergence
-      ? '3 ascending daily highs with 3 descending RSI(14) highs'
-      : 'Latest 3 confirmed daily swing highs do not form bearish divergence'
+      ? `3 ascending daily highs + 3 descending RSI(14) highs + all 3 closes above EMA14, within previous ${windowSize} completed 1D candles`
+      : !ema14Confirmed
+      ? 'Three-point divergence failed: at least one pivot candle closed at or below EMA14'
+      : 'Latest 3 confirmed daily swing highs do not form the required bearish divergence'
   };
 }
 
@@ -1362,10 +1420,13 @@ const completedDailyCandlesForDivergence = candles.filter((candle) =>
 );
 const completedDailyClosesForDivergence = completedDailyCandlesForDivergence.map(c => c.close);
 const completedDailyRsi14ForDivergence = calculateRSI(completedDailyClosesForDivergence, 14);
+const completedDailyEma14ForDivergence = calculateEMA(completedDailyClosesForDivergence, 14);
 const oneDayThreePointBearishDivergence = interval === '1d'
   ? detectThreePointBearishRSIDivergence(
       completedDailyCandlesForDivergence,
       completedDailyRsi14ForDivergence,
+      completedDailyEma14ForDivergence,
+      20,
       2,
       2
     )
@@ -1375,6 +1436,8 @@ const oneDayThreePointBearishDivergence = interval === '1d'
       pivots: [],
       priceAscending: false,
       rsiDescending: false,
+      ema14Confirmed: false,
+      windowSize: 20,
       message: '1D timeframe only'
     };
        
