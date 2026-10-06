@@ -102,6 +102,87 @@ function calculateRSI(closes: number[], period = 3): number[] {
   return rsi;
 }
 
+
+/**
+ * Detects a confirmed 3-point bearish price/RSI divergence on DAILY candles.
+ *
+ * Price must make three successive confirmed swing highs:
+ *   H1 < H2 < H3
+ * while RSI(14) at those exact swing-high candles makes:
+ *   R1 > R2 > R3
+ *
+ * Only completed candles should be supplied. The most recent three confirmed
+ * pivots are used, so the signal cannot be caused by the still-forming 1D bar.
+ */
+function detectThreePointBearishRSIDivergence(
+  candles: Array<{ timestamp: number; high: number }>,
+  rsi14: number[],
+  pivotLeft = 2,
+  pivotRight = 2
+) {
+  const valid = Array.isArray(candles) && Array.isArray(rsi14) && candles.length === rsi14.length;
+  if (!valid || candles.length < pivotLeft + pivotRight + 3) {
+    return {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [] as any[],
+      message: 'Not enough completed 1D candles'
+    };
+  }
+
+  const pivots: Array<{ index: number; timestamp: number; priceHigh: number; rsi: number }> = [];
+
+  for (let i = pivotLeft; i < candles.length - pivotRight; i++) {
+    const priceHigh = candles[i].high;
+    const rsi = rsi14[i];
+    if (!Number.isFinite(priceHigh) || !Number.isFinite(rsi)) continue;
+
+    let isPivotHigh = true;
+    for (let j = i - pivotLeft; j <= i + pivotRight; j++) {
+      if (j === i) continue;
+      if (!Number.isFinite(candles[j]?.high) || candles[j].high >= priceHigh) {
+        isPivotHigh = false;
+        break;
+      }
+    }
+
+    if (isPivotHigh) {
+      pivots.push({
+        index: i,
+        timestamp: candles[i].timestamp,
+        priceHigh,
+        rsi
+      });
+    }
+  }
+
+  if (pivots.length < 3) {
+    return {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: pivots.slice(-3),
+      message: 'Fewer than 3 confirmed daily swing highs'
+    };
+  }
+
+  const lastThree = pivots.slice(-3);
+  const [p1, p2, p3] = lastThree;
+  const priceAscending = p1.priceHigh < p2.priceHigh && p2.priceHigh < p3.priceHigh;
+  const rsiDescending = p1.rsi > p2.rsi && p2.rsi > p3.rsi;
+  const divergence = priceAscending && rsiDescending;
+
+  return {
+    divergence,
+    status: divergence ? 'CONFIRMED' as const : 'NO' as const,
+    pivots: lastThree,
+    priceAscending,
+    rsiDescending,
+    message: divergence
+      ? '3 ascending daily highs with 3 descending RSI(14) highs'
+      : 'Latest 3 confirmed daily swing highs do not form bearish divergence'
+  };
+}
+
 type TrendResult = {
   trend: 'bullish' | 'bearish';
   type: 'support' | 'resistance';
@@ -535,6 +616,7 @@ const getSortValue = (s: any, field: string): any => {
     case 'bearishBreakout': return getBooleanValue(s.bearishBreakout);
     case 'prevClose': return s.prevClosedGreen ? 1 : s.prevClosedRed ? -1 : 0;
     case 'oneDayTwoRedCloses': return s.oneDayTwoPreviousRedCloses === true ? 1 : s.oneDayTwoPreviousRedCloses === false ? 0 : null;
+    case 'oneDayThreePointBearishDivergence': return getBooleanValue(s.oneDayThreePointBearishDivergence?.divergence);
     case 'mainTrend': return s.mainTrend?.trend ?? '';
     case 'bearishCollapse': return getBooleanValue(s.bearishCollapse?.signal);
     case 'bullishSpike': return getBooleanValue(s.bullishSpike?.signal);
@@ -634,6 +716,12 @@ const trendFilterMatches = (s: any, key: string): boolean => {
     'bearishDojiAfterBreakout',
   ].includes(key)) {
     return trend200ConditionMatches(s, key);
+  }
+
+  // 1D three-point bearish price/RSI divergence. The result itself is only
+  // true when the selected scan timeframe is 1D and the detector is confirmed.
+  if (key === 'oneDayThreePointBearishDivergence') {
+    return s.oneDayThreePointBearishDivergence?.divergence === true;
   }
 
   // Boolean / signal filters
@@ -844,6 +932,10 @@ const prevCloseRedCount = filteredSignals.filter(
 
 const oneDayTwoRedClosesCount = filteredSignals.filter(
   (s) => s.oneDayTwoPreviousRedCloses === true
+).length;
+
+const oneDayThreePointBearishDivergenceCount = filteredSignals.filter(
+  (s) => s.oneDayThreePointBearishDivergence?.divergence === true
 ).length;
 
 // For bullishSpike, check the .signal property inside the object
@@ -1260,6 +1352,31 @@ if (interval === '1d') {
   oneDayTwoPreviousRedCloses =
     previousDailyCandles.length === 2 && oneDayPreviousRedCloseCount === 2;
 }
+
+
+// === 1D THREE-POINT PRICE / RSI(14) BEARISH DIVERGENCE ===
+// Use only COMPLETED daily candles. This prevents today's unfinished high
+// from becoming the third point and then disappearing/reversing intraday.
+const completedDailyCandlesForDivergence = candles.filter((candle) =>
+  Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
+);
+const completedDailyClosesForDivergence = completedDailyCandlesForDivergence.map(c => c.close);
+const completedDailyRsi14ForDivergence = calculateRSI(completedDailyClosesForDivergence, 14);
+const oneDayThreePointBearishDivergence = interval === '1d'
+  ? detectThreePointBearishRSIDivergence(
+      completedDailyCandlesForDivergence,
+      completedDailyRsi14ForDivergence,
+      2,
+      2
+    )
+  : {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [],
+      priceAscending: false,
+      rsiDescending: false,
+      message: '1D timeframe only'
+    };
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
@@ -2238,6 +2355,7 @@ prevClosedGreen,
 prevClosedRed,
   oneDayTwoPreviousRedCloses,
   oneDayPreviousRedCloseCount,
+  oneDayThreePointBearishDivergence,
   oneDayBearishRsiPumpEmaFilterMatch: interval === '1d' &&
     mainTrend?.trend === 'bearish' &&
     typeof latestRSI === 'number' && latestRSI > 50 &&
@@ -2594,6 +2712,12 @@ latestRSI,
         color: 'text-red-300',
       },
       {
+        label: '1D • 3-Point Bearish RSI Divergence',
+        key: 'oneDayThreePointBearishDivergence',
+        count: oneDayThreePointBearishDivergenceCount,
+        color: 'text-orange-300',
+      },
+      {
         label: 'Bullish Spike',
         key: 'bullishSpike',
         count: bullishSpikeCount,
@@ -2924,6 +3048,7 @@ latestRSI,
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
         <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
+        <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
         <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
@@ -3159,6 +3284,16 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       ? '🔴 YES (2/2)'
       : s.oneDayTwoPreviousRedCloses === false
       ? `No (${s.oneDayPreviousRedCloseCount}/2)`
+      : 'N/A — 1D only'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center font-semibold ${
+    s.oneDayThreePointBearishDivergence?.divergence ? 'text-orange-400' : 'text-gray-500'
+  }`} title={s.oneDayThreePointBearishDivergence?.message || '1D only'}>
+    {s.oneDayThreePointBearishDivergence?.divergence
+      ? '🔴 CONFIRMED'
+      : s.oneDayThreePointBearishDivergence?.status === 'NO'
+      ? 'No'
       : 'N/A — 1D only'}
   </td>
 		   
