@@ -504,6 +504,7 @@ const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | '
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
+const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
 
 const searchTerm = search.trim().toLowerCase();
 
@@ -532,6 +533,7 @@ const getSortValue = (s: any, field: string): any => {
     case 'bullishBreakout': return getBooleanValue(s.bullishBreakout);
     case 'bearishBreakout': return getBooleanValue(s.bearishBreakout);
     case 'prevClose': return s.prevClosedGreen ? 1 : s.prevClosedRed ? -1 : 0;
+    case 'oneDayTwoRedCloses': return s.oneDayTwoPreviousRedCloses === true ? 1 : s.oneDayTwoPreviousRedCloses === false ? 0 : null;
     case 'mainTrend': return s.mainTrend?.trend ?? '';
     case 'bearishCollapse': return getBooleanValue(s.bearishCollapse?.signal);
     case 'bullishSpike': return getBooleanValue(s.bullishSpike?.signal);
@@ -607,7 +609,8 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishDivergence: 'bullishDivergence',
   bearishDivergence: 'bearishDivergence',
   prevCloseGreen: 'prevClosedGreen',
-  prevCloseRed: 'prevClosedRed'
+  prevCloseRed: 'prevClosedRed',
+  oneDayTwoRedCloses: 'oneDayTwoPreviousRedCloses'
 };
 
 const trendFilterMatches = (s: any, key: string): boolean => {
@@ -688,6 +691,12 @@ const filteredSignals = signals.filter((s) => {
   }
 
   if (breakoutFailFilter !== 'all' && (s.breakoutFailure ? 'yes' : 'no') !== breakoutFailFilter) return false;
+
+  if (oneDayTwoRedClosesFilter !== 'all') {
+    const value = s.oneDayTwoPreviousRedCloses;
+    if (value === null || value === undefined) return false;
+    if ((value ? 'yes' : 'no') !== oneDayTwoRedClosesFilter) return false;
+  }
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
@@ -810,6 +819,10 @@ const prevCloseGreenCount = filteredSignals.filter(
 
 const prevCloseRedCount = filteredSignals.filter(
   (s) => s.prevClosedRed === true
+).length;
+
+const oneDayTwoRedClosesCount = filteredSignals.filter(
+  (s) => s.oneDayTwoPreviousRedCloses === true
 ).length;
 
 // For bullishSpike, check the .signal property inside the object
@@ -1204,6 +1217,27 @@ if (prevSessionCandles.length >= 2) {
 
   prevClosedGreen = lastCandle.close > firstCandle.open;
   prevClosedRed = lastCandle.close < firstCandle.open;
+}
+
+// === 1D TWO PREVIOUS RED CLOSES ===
+// Only the two most recent COMPLETED Binance 1D candles are evaluated.
+// The current/forming 1D candle is deliberately excluded so the signal
+// cannot flip while today's candle is still open.
+let oneDayTwoPreviousRedCloses: boolean | null = null;
+let oneDayPreviousRedCloseCount = 0;
+
+if (interval === '1d') {
+  const completedDailyCandles = candles.filter((candle) =>
+    Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
+  );
+
+  const previousDailyCandles = completedDailyCandles.slice(-2);
+  oneDayPreviousRedCloseCount = previousDailyCandles.filter(
+    (candle) => candle.close < candle.open
+  ).length;
+
+  oneDayTwoPreviousRedCloses =
+    previousDailyCandles.length === 2 && oneDayPreviousRedCloseCount === 2;
 }
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
@@ -2180,7 +2214,9 @@ mainTrend,
   bullishBreakout,
   bearishBreakout,
 prevClosedGreen,
-prevClosedRed,		
+prevClosedRed,
+  oneDayTwoPreviousRedCloses,
+  oneDayPreviousRedCloseCount,		
   bullishReversalCount,
   bearishReversalCount,
   bullishReversal,		
@@ -2520,6 +2556,12 @@ latestRSI,
         color: 'text-red-300',
       },
       {
+        label: '1D • 2 Previous Red Closes',
+        key: 'oneDayTwoRedCloses',
+        count: oneDayTwoRedClosesCount,
+        color: 'text-red-300',
+      },
+      {
         label: 'Bullish Spike',
         key: 'bullishSpike',
         count: bullishSpikeCount,
@@ -2664,6 +2706,15 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>1D Two Previous Red Closes</span>
+          <select value={oneDayTwoRedClosesFilter} onChange={(e) => setOneDayTwoRedClosesFilter(e.target.value as typeof oneDayTwoRedClosesFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — 2 red closes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Touched EMA200 (08:00–08:00)</span>
           <select value={touchedEMA200Filter} onChange={(e) => setTouchedEMA200Filter(e.target.value as typeof touchedEMA200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -2717,6 +2768,7 @@ latestRSI,
           setTableSignalFilter('all');
           setRsi14Filter('all');
           setBreakoutFailFilter('all');
+          setOneDayTwoRedClosesFilter('all');
           setTouchedEMA200Filter('all');
           setEma70200CrossFilter('all');
           setRsiPumpDumpFilter('all');
@@ -2830,6 +2882,7 @@ latestRSI,
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
         <SortableTh field="prevClose">Prev Close</SortableTh>
+        <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
         <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
@@ -3060,6 +3113,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 >
   {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
 </td>
+  <td className="px-1 py-0.5 text-center font-semibold">
+    {s.oneDayTwoPreviousRedCloses === true
+      ? '🔴 YES (2/2)'
+      : s.oneDayTwoPreviousRedCloses === false
+      ? `No (${s.oneDayPreviousRedCloseCount}/2)`
+      : 'N/A — 1D only'}
+  </td>
 		   
 <td
   className={`px-1 py-0.5 text-center ${
