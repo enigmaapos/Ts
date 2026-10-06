@@ -122,6 +122,26 @@ function detectThreePointBearishRSIDivergence(
   pivotLeft = 2,
   pivotRight = 2
 ) {
+  /*
+   * 1D THREE-POINT PRICE / RSI(14) BEARISH DIVERGENCE
+   *
+   * IMPORTANT:
+   * RSI DOES NOT need to form its own swing highs.
+   * RSI is sampled at the EXACT same three confirmed PRICE swing-high
+   * candles. Therefore a falling RSI sequence is valid even when RSI is
+   * already descending and has NOT made a new RSI high.
+   *
+   * HARD RULES:
+   * - Only the previous 20 COMPLETED 1D candles are eligible.
+   * - Three confirmed PRICE swing highs must exist inside that window.
+   * - Price highs must ascend: H1 < H2 < H3.
+   * - RSI(14) at those exact price points must descend: R1 > R2 > R3.
+   * - Close of all three price-pivot candles must be above EMA14.
+   * - Current/forming 1D candle is never eligible.
+   * - Any qualifying triple inside the 20-candle window is eligible;
+   *   the detector is not restricted to only the last three pivots.
+   */
+
   const valid =
     Array.isArray(candles) &&
     Array.isArray(rsi14) &&
@@ -142,7 +162,7 @@ function detectThreePointBearishRSIDivergence(
     };
   }
 
-  // Hard boundary: only the latest 20 completed daily candles can participate.
+  // HARD BOUNDARY: only the latest 20 completed daily candles participate.
   const windowStart = Math.max(0, candles.length - windowSize);
   const recentCandles = candles.slice(windowStart);
   const recentRsi14 = rsi14.slice(windowStart);
@@ -172,6 +192,8 @@ function detectThreePointBearishRSIDivergence(
     aboveEma14: boolean;
   }> = [];
 
+  // Find CONFIRMED PRICE swing highs only.
+  // RSI is deliberately NOT used to determine whether a pivot exists.
   for (let i = pivotLeft; i < recentCandles.length - pivotRight; i++) {
     const candle = recentCandles[i];
     const priceHigh = candle.high;
@@ -179,13 +201,26 @@ function detectThreePointBearishRSIDivergence(
     const rsi = recentRsi14[i];
     const ema = recentEma14[i];
 
-    if (!Number.isFinite(priceHigh) || !Number.isFinite(close) ||
-        !Number.isFinite(rsi) || !Number.isFinite(ema)) continue;
+    if (
+      !Number.isFinite(priceHigh) ||
+      !Number.isFinite(close) ||
+      !Number.isFinite(rsi) ||
+      !Number.isFinite(ema)
+    ) {
+      continue;
+    }
 
     let isPivotHigh = true;
+
     for (let j = i - pivotLeft; j <= i + pivotRight; j++) {
       if (j === i) continue;
-      if (!Number.isFinite(recentCandles[j]?.high) || recentCandles[j].high >= priceHigh) {
+
+      const neighborHigh = recentCandles[j]?.high;
+
+      if (
+        !Number.isFinite(neighborHigh) ||
+        neighborHigh >= priceHigh
+      ) {
         isPivotHigh = false;
         break;
       }
@@ -214,30 +249,135 @@ function detectThreePointBearishRSIDivergence(
       rsiDescending: false,
       ema14Confirmed: false,
       windowSize,
-      message: `Fewer than 3 confirmed daily swing highs inside the previous ${windowSize} completed candles`
+      message:
+        `Fewer than 3 confirmed daily PRICE swing highs inside the previous ${windowSize} completed candles`
     };
   }
 
-  const lastThree = pivots.slice(-3);
-  const [p1, p2, p3] = lastThree;
-  const priceAscending = p1.priceHigh < p2.priceHigh && p2.priceHigh < p3.priceHigh;
-  const rsiDescending = p1.rsi > p2.rsi && p2.rsi > p3.rsi;
-  const ema14Confirmed = p1.aboveEma14 && p2.aboveEma14 && p3.aboveEma14;
-  const divergence = priceAscending && rsiDescending && ema14Confirmed;
+  /*
+   * Test EVERY chronological combination of three price pivots.
+   * This prevents a valid 3-point divergence from being missed simply
+   * because a later unrelated pivot exists inside the 20-candle window.
+   *
+   * We keep the most recent qualifying triple.
+   */
+  let matched: typeof pivots | null = null;
+
+  for (let i = 0; i < pivots.length - 2; i++) {
+    for (let j = i + 1; j < pivots.length - 1; j++) {
+      for (let k = j + 1; k < pivots.length; k++) {
+        const p1 = pivots[i];
+        const p2 = pivots[j];
+        const p3 = pivots[k];
+
+        const priceAscending =
+          p1.priceHigh < p2.priceHigh &&
+          p2.priceHigh < p3.priceHigh;
+
+        /*
+         * This is the key rule:
+         * RSI is simply compared at the three PRICE pivot candles.
+         * It does NOT have to be a confirmed RSI swing high.
+         */
+        const rsiDescending =
+          p1.rsi > p2.rsi &&
+          p2.rsi > p3.rsi;
+
+        const ema14Confirmed =
+          p1.aboveEma14 &&
+          p2.aboveEma14 &&
+          p3.aboveEma14;
+
+        if (priceAscending && rsiDescending && ema14Confirmed) {
+          matched = [p1, p2, p3];
+        }
+      }
+    }
+  }
+
+  if (matched) {
+    const [p1, p2, p3] = matched;
+
+    return {
+      divergence: true,
+      status: 'CONFIRMED' as const,
+      pivots: matched,
+      priceAscending: true,
+      rsiDescending: true,
+      ema14Confirmed: true,
+      windowSize,
+      message:
+        `CONFIRMED: 3 ascending PRICE highs with descending RSI(14) at those exact points; all 3 closes above EMA14; previous ${windowSize} completed 1D candles only`
+    };
+  }
+
+  /*
+   * Diagnostic flags across the available pivot set. These are not used
+   * to create a false positive; they only explain why no complete signal
+   * was found.
+   */
+  let hasPriceAscendingTriple = false;
+  let hasRsiDescendingAfterPrice = false;
+  let hasEmaQualifiedTriple = false;
+
+  for (let i = 0; i < pivots.length - 2; i++) {
+    for (let j = i + 1; j < pivots.length - 1; j++) {
+      for (let k = j + 1; k < pivots.length; k++) {
+        const p1 = pivots[i];
+        const p2 = pivots[j];
+        const p3 = pivots[k];
+
+        const priceAscending =
+          p1.priceHigh < p2.priceHigh &&
+          p2.priceHigh < p3.priceHigh;
+
+        const rsiDescending =
+          p1.rsi > p2.rsi &&
+          p2.rsi > p3.rsi;
+
+        const emaQualified =
+          p1.aboveEma14 &&
+          p2.aboveEma14 &&
+          p3.aboveEma14;
+
+        if (priceAscending) {
+          hasPriceAscendingTriple = true;
+
+          if (rsiDescending) {
+            hasRsiDescendingAfterPrice = true;
+
+            if (emaQualified) {
+              hasEmaQualifiedTriple = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let message =
+    `No complete 3-point bearish divergence inside the previous ${windowSize} completed 1D candles`;
+
+  if (hasEmaQualifiedTriple) {
+    message =
+      'Price/RSI conditions were not simultaneously satisfied by the same three price pivots';
+  } else if (hasRsiDescendingAfterPrice) {
+    message =
+      '3 ascending price highs + descending RSI(14) found, but at least one of the three pivot closes was not above EMA14';
+  } else if (hasPriceAscendingTriple) {
+    message =
+      '3 ascending price highs found, but RSI(14) at those exact price points is not strictly descending';
+  }
 
   return {
-    divergence,
-    status: divergence ? 'CONFIRMED' as const : 'NO' as const,
-    pivots: lastThree,
-    priceAscending,
-    rsiDescending,
-    ema14Confirmed,
+    divergence: false,
+    status: 'NO' as const,
+    pivots: pivots.slice(-3),
+    priceAscending: hasPriceAscendingTriple,
+    rsiDescending: hasRsiDescendingAfterPrice,
+    ema14Confirmed: hasEmaQualifiedTriple,
     windowSize,
-    message: divergence
-      ? `3 ascending daily highs + 3 descending RSI(14) highs + all 3 closes above EMA14, within previous ${windowSize} completed 1D candles`
-      : !ema14Confirmed
-      ? 'Three-point divergence failed: at least one pivot candle closed at or below EMA14'
-      : 'Latest 3 confirmed daily swing highs do not form the required bearish divergence'
+    message
   };
 }
 
@@ -1418,6 +1558,10 @@ if (interval === '1d') {
 const completedDailyCandlesForDivergence = candles.filter((candle) =>
   Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
 );
+// Calculate RSI14 / EMA14 from the FULL completed 1D history first, then
+// let the detector apply the hard previous-20-candle boundary. This is
+// important because RSI14 needs its prior history to be valid at the first
+// candles inside the 20-candle detection window.
 const completedDailyClosesForDivergence = completedDailyCandlesForDivergence.map(c => c.close);
 const completedDailyRsi14ForDivergence = calculateRSI(completedDailyClosesForDivergence, 14);
 const completedDailyEma14ForDivergence = calculateEMA(completedDailyClosesForDivergence, 14);
