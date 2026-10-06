@@ -109,7 +109,7 @@ function calculateRSI(closes: number[], period = 3): number[] {
  * HARD RULES:
  * - Only the previous 20 COMPLETED 1D candles are eligible.
  * - Three confirmed swing highs are required inside that 20-candle window.
- * - Price highs must ascend: H1 < H2 < H3.
+ * - Each successive pivot candle must BREAK the prior pivot high: H2 > H1 and H3 > H2.
  * - RSI(14), sampled at those exact price pivots, must descend: R1 > R2 > R3.
  * - The CLOSE of all three pivot candles must be above their corresponding EMA(14).
  * - The currently forming daily candle is never eligible.
@@ -134,7 +134,7 @@ function detectThreePointBearishRSIDivergence(
    * HARD RULES:
    * - Only the previous 20 COMPLETED 1D candles are eligible.
    * - Three confirmed PRICE swing highs must exist inside that window.
-   * - Price highs must ascend: H1 < H2 < H3.
+   * - Each successive pivot candle must BREAK the prior pivot high: H2 > H1 and H3 > H2.
    * - RSI(14) at those exact price points must descend: R1 > R2 > R3.
    * - Close of all three price-pivot candles must be above EMA14.
    * - Current/forming 1D candle is never eligible.
@@ -270,9 +270,15 @@ function detectThreePointBearishRSIDivergence(
         const p2 = pivots[j];
         const p3 = pivots[k];
 
-        const priceAscending =
-          p1.priceHigh < p2.priceHigh &&
-          p2.priceHigh < p3.priceHigh;
+        // A valid 3-point sequence requires the actual pivot candle to
+        // break the previous pivot high with its HIGH (wick or body).
+        // This is deliberately NOT a close-above requirement unless the
+        // separate EMA14 rule is satisfied.
+        const breaksPreviousHigh =
+          p2.priceHigh > p1.priceHigh &&
+          p3.priceHigh > p2.priceHigh;
+
+        const priceAscending = breaksPreviousHigh;
 
         /*
          * This is the key rule:
@@ -288,7 +294,7 @@ function detectThreePointBearishRSIDivergence(
           p2.aboveEma14 &&
           p3.aboveEma14;
 
-        if (priceAscending && rsiDescending && ema14Confirmed) {
+        if (breaksPreviousHigh && rsiDescending && ema14Confirmed) {
           matched = [p1, p2, p3];
         }
       }
@@ -307,7 +313,7 @@ function detectThreePointBearishRSIDivergence(
       ema14Confirmed: true,
       windowSize,
       message:
-        `CONFIRMED: 3 ascending PRICE highs with descending RSI(14) at those exact points; all 3 closes above EMA14; previous ${windowSize} completed 1D candles only`
+        `CONFIRMED: each successive PRICE pivot candle breaks the prior high (H1 < H2 < H3), RSI(14) at those exact points descends (R1 > R2 > R3), all 3 closes are above EMA14; previous ${windowSize} completed 1D candles only`
     };
   }
 
@@ -327,9 +333,11 @@ function detectThreePointBearishRSIDivergence(
         const p2 = pivots[j];
         const p3 = pivots[k];
 
-        const priceAscending =
-          p1.priceHigh < p2.priceHigh &&
-          p2.priceHigh < p3.priceHigh;
+        const breaksPreviousHigh =
+          p2.priceHigh > p1.priceHigh &&
+          p3.priceHigh > p2.priceHigh;
+
+        const priceAscending = breaksPreviousHigh;
 
         const rsiDescending =
           p1.rsi > p2.rsi &&
