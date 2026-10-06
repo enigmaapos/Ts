@@ -505,6 +505,7 @@ const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dum
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
 const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [oneDayBearishRsiPumpEmaFilter, setOneDayBearishRsiPumpEmaFilter] = useState<'all' | 'yes' | 'no'>('all');
 
 const searchTerm = search.trim().toLowerCase();
 
@@ -697,6 +698,26 @@ const filteredSignals = signals.filter((s) => {
     if (value === null || value === undefined) return false;
     if ((value ? 'yes' : 'no') !== oneDayTwoRedClosesFilter) return false;
   }
+
+  // 1D composite filter: bearish trend + RSI14 > 50 + RSI pump 9–13 +
+  // EMA14 currently/recenly inside EMA70 and EMA200. This filter is only
+  // meaningful on the selected 1D dataset and does not affect other TFs.
+  if (oneDayBearishRsiPumpEmaFilter !== 'all') {
+    if (timeframe !== '1d') return false;
+    const pd = getPumpDump(s);
+    const ema14Inside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
+    const matches =
+      s.mainTrend?.trend === 'bearish' &&
+      typeof s.latestRSI === 'number' &&
+      s.latestRSI > 50 &&
+      pd?.direction === 'pump' &&
+      typeof pd.pumpStrength === 'number' &&
+      pd.pumpStrength >= 9 &&
+      pd.pumpStrength <= 13 &&
+      ema14Inside;
+    if ((matches ? 'yes' : 'no') !== oneDayBearishRsiPumpEmaFilter) return false;
+  }
+
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
@@ -2216,7 +2237,17 @@ mainTrend,
 prevClosedGreen,
 prevClosedRed,
   oneDayTwoPreviousRedCloses,
-  oneDayPreviousRedCloseCount,		
+  oneDayPreviousRedCloseCount,
+  oneDayBearishRsiPumpEmaFilterMatch: interval === '1d' &&
+    mainTrend?.trend === 'bearish' &&
+    typeof latestRSI === 'number' && latestRSI > 50 &&
+    (() => {
+      const pd = getRecentRSIDiff(rsi14, 14);
+      return pd?.direction === 'pump' &&
+        typeof pd.pumpStrength === 'number' &&
+        pd.pumpStrength >= 9 && pd.pumpStrength <= 13;
+    })() &&
+    ema14InsideResults.some((r: any) => r.inside === true),
   bullishReversalCount,
   bearishReversalCount,
   bullishReversal,		
@@ -2404,6 +2435,7 @@ latestRSI,
 
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
+    if (tf !== '1d') setOneDayBearishRsiPumpEmaFilter('all');
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
@@ -2711,6 +2743,15 @@ latestRSI,
             <option value="all">All</option>
             <option value="yes">Yes — 2 red closes</option>
             <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>1D Bearish + RSI&gt;50 + Pump 9–13 + EMA14 Inside</span>
+          <select value={oneDayBearishRsiPumpEmaFilter} onChange={(e) => setOneDayBearishRsiPumpEmaFilter(e.target.value as typeof oneDayBearishRsiPumpEmaFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — all conditions</option>
+            <option value="no">No — condition not met</option>
           </select>
         </label>
 
