@@ -699,6 +699,10 @@ const blacklist = [
 
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
+  // Complete Binance Futures symbol universe currently eligible for scanning.
+  // This is intentionally separate from `signals`: a symbol can be active on
+  // Binance before its technical analysis batch has completed.
+  const [activeFuturesSymbols, setActiveFuturesSymbols] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(false);
@@ -2607,17 +2611,25 @@ latestRSI,
         "https://fapi.binance.com/fapi/v1/exchangeInfo",
         "exchangeInfo"
       );
+      // IMPORTANT: Do NOT truncate this list. Binance can have more than
+      // 500 active USDⓈ-M perpetual contracts, and truncating here makes
+      // perfectly active Binance Futures symbols invisible to the UI.
+      // Keep only symbols that Binance currently reports as TRADING.
       symbols = info.symbols
   .filter(
     (s: any) =>
+      s.status === "TRADING" &&
       s.contractType === "PERPETUAL" &&
       s.quoteAsset === "USDT" &&
       !blacklist.includes(s.symbol)
   )
-  .slice(0, 500)
-  .map((s: any) => s.symbol);
+  .map((s: any) => s.symbol)
+  .filter((symbol: string) => Boolean(symbol));
 
         if (isMounted) {
+          // Publish the complete active-contract universe immediately.
+          // Analysis results arrive progressively afterwards.
+          setActiveFuturesSymbols([...symbols]);
           setScannerProgress({ completed: 0, total: symbols.length });
           setScannerStatus('scanning');
         }
@@ -2760,10 +2772,50 @@ latestRSI,
         <span className="text-gray-300">
           Progress: {scannerProgress.completed}/{scannerProgress.total || '—'}
         </span>
+        <span className="text-green-300">
+          Active Futures: {activeFuturesSymbols.length || '—'}
+        </span>
         {nextScanAt && scannerStatus === 'waiting' && (
           <span className="text-gray-300">
             Next batch: {new Date(nextScanAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
           </span>
+        )}
+      </div>
+    </div>
+
+    {/* 🟢 COMPLETE ACTIVE BINANCE FUTURES UNIVERSE
+        This list is independent of the scanner batches. It guarantees that
+        every currently TRADING USDT perpetual returned by Binance exchangeInfo
+        is visible immediately, even while technical analysis is still queued. */}
+    <div className="mb-4 rounded-lg border border-green-700 bg-gray-800/80 p-3">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <span className="font-bold text-green-400">🟢 ACTIVE BINANCE FUTURES</span>
+        <span className="text-gray-300">
+          {activeFuturesSymbols.length} active USDT perpetuals
+        </span>
+        <span className="text-gray-500 text-xs">
+          • Complete exchangeInfo list • analysis loads in batches
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
+        {activeFuturesSymbols.length > 0 ? activeFuturesSymbols.map((symbol) => (
+          <button
+            key={symbol}
+            type="button"
+            onClick={() => setSearch(symbol)}
+            className={`px-2 py-0.5 rounded text-[10px] border ${
+              signals.some((s) => s.symbol === symbol)
+                ? 'border-green-700 bg-gray-700 text-green-300'
+                : 'border-gray-700 bg-gray-900 text-gray-400'
+            }`}
+            title={signals.some((s) => s.symbol === symbol)
+              ? `${symbol}: analyzed`
+              : `${symbol}: waiting for analysis batch`}
+          >
+            {symbol}
+          </button>
+        )) : (
+          <span className="text-gray-500 text-xs">Loading active Binance Futures contracts…</span>
         )}
       </div>
     </div>
