@@ -108,17 +108,19 @@ function calculateRSI(closes: number[], period = 3): number[] {
  *
  * Detection order is intentional:
  * 1) Find THREE confirmed descending RSI(14) swing-high points first.
- * 2) At those exact RSI points, require the corresponding candle highs to
- *    be ascending and each selected candle to break the previous selected
- *    high.
+ * 2) At those exact RSI points, require the corresponding candles to be
+ *    GREEN, have ascending highs, and each selected candle to break the
+ *    immediately preceding candle high.
  * 3) All three selected candle closes must be above EMA14.
  * 4) Only the previous 20 COMPLETED 1D candles are eligible.
  *
  * RSI itself must make three confirmed lower highs. It is NOT enough for
  * RSI to merely be numerically lower at three arbitrary price pivots.
+ * The RSI swing-high candles are the anchors; price is evaluated only at
+ * those exact timestamps.
  */
 function detectThreePointBearishRSIDivergence(
-  candles: Array<{ timestamp: number; high: number; close: number }>,
+  candles: Array<{ timestamp: number; open: number; high: number; close: number }>,
   rsi14: number[],
   ema14: number[],
   windowSize = 20,
@@ -141,6 +143,7 @@ function detectThreePointBearishRSIDivergence(
       rsiDescending: false,
       ema14Confirmed: false,
       breakoutConfirmed: false,
+      greenCandlesConfirmed: false,
       windowSize,
       message: 'Not enough completed 1D candles'
     };
@@ -161,6 +164,7 @@ function detectThreePointBearishRSIDivergence(
       rsiDescending: false,
       ema14Confirmed: false,
       breakoutConfirmed: false,
+      greenCandlesConfirmed: false,
       windowSize,
       message: `Need at least ${pivotLeft + pivotRight + 3} completed candles inside the ${windowSize}-candle window`
     };
@@ -172,8 +176,10 @@ function detectThreePointBearishRSIDivergence(
     timestamp: number;
     rsi: number;
     priceHigh: number;
+    open: number;
     close: number;
     ema14: number;
+    greenCandle: boolean;
     aboveEma14: boolean;
     breaksPreviousCandleHigh: boolean;
   };
@@ -207,9 +213,11 @@ function detectThreePointBearishRSIDivergence(
         timestamp: candle.timestamp,
         rsi,
         priceHigh: candle.high,
+        open: candle.open,
         close: candle.close,
         ema14: ema,
         aboveEma14: candle.close > ema,
+        greenCandle: candle.close > candle.open,
         breaksPreviousCandleHigh:
           !!previousCandle && Number.isFinite(previousCandle.high) &&
           candle.high > previousCandle.high
@@ -226,6 +234,7 @@ function detectThreePointBearishRSIDivergence(
       rsiDescending: false,
       ema14Confirmed: false,
       breakoutConfirmed: false,
+      greenCandlesConfirmed: false,
       windowSize,
       message: `Fewer than 3 confirmed descending RSI(14) swing-high candidates inside the previous ${windowSize} completed candles`
     };
@@ -261,7 +270,11 @@ function detectThreePointBearishRSIDivergence(
         const ema14Confirmed =
           p1.aboveEma14 && p2.aboveEma14 && p3.aboveEma14;
 
-        if (priceAscending && breakoutConfirmed && ema14Confirmed) {
+        // The three RSI anchor candles must be GREEN candles.
+        const greenCandlesConfirmed =
+          p1.greenCandle && p2.greenCandle && p3.greenCandle;
+
+        if (priceAscending && breakoutConfirmed && ema14Confirmed && greenCandlesConfirmed) {
           matched = [p1, p2, p3];
         }
       }
@@ -277,6 +290,7 @@ function detectThreePointBearishRSIDivergence(
       rsiDescending: true,
       ema14Confirmed: true,
       breakoutConfirmed: true,
+      greenCandlesConfirmed: true,
       windowSize,
       message:
         `CONFIRMED: 3 descending RSI(14) swing highs first; corresponding candle highs ascend and each breaks its previous candle high; all 3 closes above EMA14; previous ${windowSize} completed 1D candles only`
@@ -288,6 +302,7 @@ function detectThreePointBearishRSIDivergence(
   let hasPriceTriple = false;
   let hasBreakoutTriple = false;
   let hasEmaTriple = false;
+  let hasGreenTriple = false;
 
   for (let i = 0; i < rsiHighs.length - 2; i++) {
     for (let j = i + 1; j < rsiHighs.length - 1; j++) {
@@ -300,17 +315,21 @@ function detectThreePointBearishRSIDivergence(
         const priceAscending = p1.priceHigh < p2.priceHigh && p2.priceHigh < p3.priceHigh;
         const breakout = p1.breaksPreviousCandleHigh && p2.breaksPreviousCandleHigh && p3.breaksPreviousCandleHigh;
         const ema = p1.aboveEma14 && p2.aboveEma14 && p3.aboveEma14;
+        const green = p1.greenCandle && p2.greenCandle && p3.greenCandle;
 
         if (priceAscending) hasPriceTriple = true;
         if (priceAscending && breakout) hasBreakoutTriple = true;
         if (priceAscending && breakout && ema) hasEmaTriple = true;
+        if (priceAscending && breakout && ema && green) hasGreenTriple = true;
       }
     }
   }
 
   let message = `No complete 3-point bearish divergence inside the previous ${windowSize} completed 1D candles`;
-  if (hasEmaTriple) {
-    message = 'RSI lower-high sequence and price structure matched, but the complete conditions were not simultaneously satisfied';
+  if (hasGreenTriple) {
+    message = 'RSI lower-high sequence, ascending breakout highs, EMA14 and green anchor candles matched, but another complete condition was not simultaneously satisfied';
+  } else if (hasEmaTriple) {
+    message = 'RSI lower-high sequence and price structure matched, but at least one selected candle was not green or another complete condition was not satisfied';
   } else if (hasBreakoutTriple) {
     message = '3 descending RSI(14) swing highs found with ascending price highs and candle breakouts, but at least one selected candle closed at/below EMA14';
   } else if (hasPriceTriple) {
