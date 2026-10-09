@@ -754,6 +754,7 @@ const toggleFavorite = (symbol: string) => {
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
@@ -780,6 +781,7 @@ const getSortValue = (s: any, field: string): any => {
     case 'latestRSI': return typeof s.latestRSI === 'number' ? s.latestRSI : null;
     case 'breakoutFailure': return getBooleanValue(s.breakoutFailure);
     case 'touchedEMA200Today': return getBooleanValue(s.touchedEMA200Today);
+    case 'touchedEMA100Today': return getBooleanValue(s.touchedEMA100Today);
     case 'ema70200Cross': return s.ema70200Cross?.timestamp ?? null;
     case 'signal': return getSignalValue(s);
     case 'drop': return getBooleanValue(s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5));
@@ -979,6 +981,7 @@ const filteredSignals = signals.filter((s) => {
   }
 
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
+  if (touchedEMA100Filter !== 'all' && (s.touchedEMA100Today ? 'yes' : 'no') !== touchedEMA100Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
     const crossDirection = s.ema70200Cross?.direction ?? 'none';
@@ -1420,6 +1423,7 @@ const opens = candles.map(c => c.open);
 	      
 const ema14 = calculateEMA(closes, 14);
 const ema70 = calculateEMA(closes, 70);
+const ema100 = calculateEMA(closes, 100);
 const ema200 = calculateEMA(closes, 200);
 const rsi14 = calculateRSI(closes, 14);
       	      
@@ -1747,6 +1751,19 @@ const touchedEMA200Today = candlesToday.some((candle) => {
   return Number.isFinite(candleEMA200) &&
     candle.low <= candleEMA200 &&
     candle.high >= candleEMA200;
+});
+
+// TRUE EMA100 TOUCH — same strict Philippines session as EMA200: 08:00 today
+// inclusive to 08:00 tomorrow exclusive. EMA100 is calculated independently
+// from this scan timeframe's own candle closes; each candle is checked against
+// its matching EMA100 value. Only completed candles in candlesToday count.
+const touchedEMA100Today = candlesToday.some((candle) => {
+  const candleIndex = candles.indexOf(candle);
+  const candleEMA100 = ema100[candleIndex];
+
+  return Number.isFinite(candleEMA100) &&
+    candle.low <= candleEMA100 &&
+    candle.high >= candleEMA100;
 });
 
 // === Extract highs and lows from each session ===
@@ -2577,8 +2594,9 @@ latestRSI,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
-		touchedEMA200Today,
-		ema70200Cross,
+			touchedEMA200Today,
+			touchedEMA100Today,
+			ema70200Cross,
 		bearishDivergence,
 		bullishDivergence,
 		bearishVolumeDivergence,
@@ -3105,6 +3123,15 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Touched EMA100 (08:00–08:00 PH)</span>
+          <select value={touchedEMA100Filter} onChange={(e) => setTouchedEMA100Filter(e.target.value as typeof touchedEMA100Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — touched this session</option>
+            <option value="no">No — not touched this session</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Touched EMA200 (08:00–08:00)</span>
           <select value={touchedEMA200Filter} onChange={(e) => setTouchedEMA200Filter(e.target.value as typeof touchedEMA200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -3160,6 +3187,7 @@ latestRSI,
           setBreakoutFailFilter('all');
           setOneDayTwoRedClosesFilter('all');
           setTouchedEMA200Filter('all');
+          setTouchedEMA100Filter('all');
           setEma70200CrossFilter('all');
           setRsiPumpDumpFilter('all');
           setShowOnlyFavorites(false);
@@ -3264,6 +3292,7 @@ latestRSI,
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
+        <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
         <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
         <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
         <SortableTh field="signal">Signal</SortableTh>
@@ -3432,7 +3461,12 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.breakoutFailure ? 'Yes' : '-'}
   </td>
 
-			   {/* Touched EMA200 */}
+			   {/* Touched EMA100 during the current 08:00–08:00 PH session */}
+  <td className={`p-2 ${s.touchedEMA100Today ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="EMA100 touch is based on each candle's high/low intersecting that candle's EMA100 value during the current PH session">
+    {s.touchedEMA100Today ? 'Yes' : 'No'}
+  </td>
+
+  {/* Touched EMA200 */}
   <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.touchedEMA200Today ? 'Yes' : 'No'}
   </td>	  
