@@ -1462,13 +1462,13 @@ const lastClose = candles.at(-1)?.close!;
 const lastEMA14 = ema14.at(-1)!;
 const lastEMA50 = ema50.at(-1)!;
 const lastEMA70 = ema70.at(-1)!;
-const latestCandle = candles.at(-1);
+const latestEmaZoneCandle = candles.at(-1);
 // Latest Binance kline is the currently forming candle when closeTime is still in the future.
 // Match the scanner's existing EMA calculation and define 'inside EMA50/EMA70' as its live close lying between both EMA values.
 const latestCandleInsideEMA50EMA70 = Boolean(
-  latestCandle && Number.isFinite(lastEMA50) && Number.isFinite(lastEMA70) &&
-  latestCandle.close >= Math.min(lastEMA50, lastEMA70) &&
-  latestCandle.close <= Math.max(lastEMA50, lastEMA70)
+  latestEmaZoneCandle && Number.isFinite(lastEMA50) && Number.isFinite(lastEMA70) &&
+  latestEmaZoneCandle.close >= Math.min(lastEMA50, lastEMA70) &&
+  latestEmaZoneCandle.close <= Math.max(lastEMA50, lastEMA70)
 );
 const lastEMA200 = ema200.at(-1)!;
 
@@ -2611,8 +2611,8 @@ latestRSI,
 			touchedEMA100Today,
       latestCandleInsideEMA50EMA70,
       latestCandleInsideEMA50EMA70Details: {
-        isForming: Boolean(latestCandle && latestCandle.closeTime > Date.now()),
-        candleClose: latestCandle?.close ?? null,
+        isForming: Boolean(latestEmaZoneCandle && latestEmaZoneCandle.closeTime > Date.now()),
+        candleClose: latestEmaZoneCandle?.close ?? null,
         ema50: Number.isFinite(lastEMA50) ? lastEMA50 : null,
         ema70: Number.isFinite(lastEMA70) ? lastEMA70 : null,
       },
