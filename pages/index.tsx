@@ -755,6 +755,7 @@ const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('a
 const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
@@ -782,6 +783,7 @@ const getSortValue = (s: any, field: string): any => {
     case 'breakoutFailure': return getBooleanValue(s.breakoutFailure);
     case 'touchedEMA200Today': return getBooleanValue(s.touchedEMA200Today);
     case 'touchedEMA100Today': return getBooleanValue(s.touchedEMA100Today);
+    case 'latestCandleInsideEMA50EMA70': return getBooleanValue(s.latestCandleInsideEMA50EMA70);
     case 'ema70200Cross': return s.ema70200Cross?.timestamp ?? null;
     case 'signal': return getSignalValue(s);
     case 'drop': return getBooleanValue(s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5));
@@ -982,6 +984,7 @@ const filteredSignals = signals.filter((s) => {
 
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
   if (touchedEMA100Filter !== 'all' && (s.touchedEMA100Today ? 'yes' : 'no') !== touchedEMA100Filter) return false;
+  if (latestCandleInsideEMA50EMA70Filter !== 'all' && (s.latestCandleInsideEMA50EMA70 ? 'yes' : 'no') !== latestCandleInsideEMA50EMA70Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
     const crossDirection = s.ema70200Cross?.direction ?? 'none';
@@ -1422,6 +1425,7 @@ const opens = candles.map(c => c.open);
 
 	      
 const ema14 = calculateEMA(closes, 14);
+const ema50 = calculateEMA(closes, 50);
 const ema70 = calculateEMA(closes, 70);
 const ema100 = calculateEMA(closes, 100);
 const ema200 = calculateEMA(closes, 200);
@@ -1456,7 +1460,16 @@ candles.forEach((c, i) => {
 const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
 const lastEMA14 = ema14.at(-1)!;
+const lastEMA50 = ema50.at(-1)!;
 const lastEMA70 = ema70.at(-1)!;
+const latestCandle = candles.at(-1);
+// Latest Binance kline is the currently forming candle when closeTime is still in the future.
+// Match the scanner's existing EMA calculation and define 'inside EMA50/EMA70' as its live close lying between both EMA values.
+const latestCandleInsideEMA50EMA70 = Boolean(
+  latestCandle && Number.isFinite(lastEMA50) && Number.isFinite(lastEMA70) &&
+  latestCandle.close >= Math.min(lastEMA50, lastEMA70) &&
+  latestCandle.close <= Math.max(lastEMA50, lastEMA70)
+);
 const lastEMA200 = ema200.at(-1)!;
 
 
@@ -2596,6 +2609,13 @@ latestRSI,
   ema200Bounce,
 			touchedEMA200Today,
 			touchedEMA100Today,
+      latestCandleInsideEMA50EMA70,
+      latestCandleInsideEMA50EMA70Details: {
+        isForming: Boolean(latestCandle && latestCandle.closeTime > Date.now()),
+        candleClose: latestCandle?.close ?? null,
+        ema50: Number.isFinite(lastEMA50) ? lastEMA50 : null,
+        ema70: Number.isFinite(lastEMA70) ? lastEMA70 : null,
+      },
 			ema70200Cross,
 		bearishDivergence,
 		bullishDivergence,
@@ -3132,6 +3152,15 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Latest Candle Inside EMA50–70</span>
+          <select value={latestCandleInsideEMA50EMA70Filter} onChange={(e) => setLatestCandleInsideEMA50EMA70Filter(e.target.value as typeof latestCandleInsideEMA50EMA70Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — Inside EMA50–70</option>
+            <option value="no">No — Outside EMA50–70</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Touched EMA200 (08:00–08:00)</span>
           <select value={touchedEMA200Filter} onChange={(e) => setTouchedEMA200Filter(e.target.value as typeof touchedEMA200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -3188,6 +3217,7 @@ latestRSI,
           setOneDayTwoRedClosesFilter('all');
           setTouchedEMA200Filter('all');
           setTouchedEMA100Filter('all');
+          setLatestCandleInsideEMA50EMA70Filter('all');
           setEma70200CrossFilter('all');
           setRsiPumpDumpFilter('all');
           setShowOnlyFavorites(false);
@@ -3293,6 +3323,7 @@ latestRSI,
         <SortableTh field="latestRSI">RSI14</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
+        <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
         <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
         <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
         <SortableTh field="signal">Signal</SortableTh>
@@ -3464,6 +3495,11 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 			   {/* Touched EMA100 during the current 08:00–08:00 PH session */}
   <td className={`p-2 ${s.touchedEMA100Today ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="EMA100 touch is based on each candle's high/low intersecting that candle's EMA100 value during the current PH session">
     {s.touchedEMA100Today ? 'Yes' : 'No'}
+  </td>
+
+  {/* Latest forming candle close between EMA50 and EMA70 on the selected scan timeframe */}
+  <td className={`px-2 py-1 text-center font-semibold ${s.latestCandleInsideEMA50EMA70 ? 'text-green-400' : 'text-gray-500'}`} title={`Latest candle ${s.latestCandleInsideEMA50EMA70Details?.isForming ? 'is forming' : 'may be closed'}; close: ${s.latestCandleInsideEMA50EMA70Details?.candleClose ?? 'N/A'}; EMA50: ${s.latestCandleInsideEMA50EMA70Details?.ema50 ?? 'N/A'}; EMA70: ${s.latestCandleInsideEMA50EMA70Details?.ema70 ?? 'N/A'}`}>
+    {s.latestCandleInsideEMA50EMA70 ? 'YES — INSIDE' : 'NO'}
   </td>
 
   {/* Touched EMA200 */}
