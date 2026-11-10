@@ -102,6 +102,255 @@ function calculateRSI(closes: number[], period = 3): number[] {
   return rsi;
 }
 
+
+/**
+ * Detects a confirmed 3-point bearish divergence on DAILY candles.
+ *
+ * Detection order is intentional:
+ * 1) Find THREE confirmed descending RSI(14) swing-high points first.
+ * 2) At those exact RSI points, require the corresponding candles to be
+ *    GREEN, have ascending highs, and each selected candle to break the
+ *    immediately preceding candle high.
+ * 3) All three selected candle closes must be above EMA14.
+ * 4) Only the previous 20 COMPLETED 1D candles are eligible.
+ *
+ * RSI itself must make three confirmed lower highs. It is NOT enough for
+ * RSI to merely be numerically lower at three arbitrary price pivots.
+ * The RSI swing-high candles are the anchors; price is evaluated only at
+ * those exact timestamps.
+ */
+function detectThreePointBearishRSIDivergence(
+  candles: Array<{ timestamp: number; open: number; high: number; close: number }>,
+  rsi14: number[],
+  ema14: number[],
+  windowSize = 20,
+  pivotLeft = 2,
+  pivotRight = 2
+) {
+  const valid =
+    Array.isArray(candles) &&
+    Array.isArray(rsi14) &&
+    Array.isArray(ema14) &&
+    candles.length === rsi14.length &&
+    candles.length === ema14.length;
+
+  if (!valid || candles.length < 3) {
+    return {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [] as any[],
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      breakoutConfirmed: false,
+      greenCandlesConfirmed: false,
+      windowSize,
+      message: 'Not enough completed 1D candles'
+    };
+  }
+
+  // Hard boundary: ONLY the latest 20 completed daily candles.
+  const windowStart = Math.max(0, candles.length - windowSize);
+  const recentCandles = candles.slice(windowStart);
+  const recentRsi14 = rsi14.slice(windowStart);
+  const recentEma14 = ema14.slice(windowStart);
+
+  if (recentCandles.length < pivotLeft + pivotRight + 3) {
+    return {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [] as any[],
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      breakoutConfirmed: false,
+      greenCandlesConfirmed: false,
+      windowSize,
+      message: `Need at least ${pivotLeft + pivotRight + 3} completed candles inside the ${windowSize}-candle window`
+    };
+  }
+
+  type Point = {
+    index: number;
+    absoluteIndex: number;
+    timestamp: number;
+    rsi: number;
+    priceHigh: number;
+    open: number;
+    close: number;
+    ema14: number;
+    greenCandle: boolean;
+    aboveEma14: boolean;
+    breaksPreviousCandleHigh: boolean;
+  };
+
+  const rsiHighs: Point[] = [];
+
+  // STEP 1: RSI(14) swing highs are the PRIMARY anchors.
+  for (let i = pivotLeft; i < recentCandles.length - pivotRight; i++) {
+    const rsi = recentRsi14[i];
+    const candle = recentCandles[i];
+    const ema = recentEma14[i];
+
+    if (!Number.isFinite(rsi) || !Number.isFinite(candle.high) ||
+        !Number.isFinite(candle.close) || !Number.isFinite(ema)) continue;
+
+    let isRsiSwingHigh = true;
+    for (let j = i - pivotLeft; j <= i + pivotRight; j++) {
+      if (j === i) continue;
+      const neighbourRsi = recentRsi14[j];
+      if (!Number.isFinite(neighbourRsi) || neighbourRsi >= rsi) {
+        isRsiSwingHigh = false;
+        break;
+      }
+    }
+
+    if (isRsiSwingHigh) {
+      const previousCandle = recentCandles[i - 1];
+      rsiHighs.push({
+        index: i,
+        absoluteIndex: windowStart + i,
+        timestamp: candle.timestamp,
+        rsi,
+        priceHigh: candle.high,
+        open: candle.open,
+        close: candle.close,
+        ema14: ema,
+        aboveEma14: candle.close > ema,
+        greenCandle: candle.close > candle.open,
+        breaksPreviousCandleHigh:
+          !!previousCandle && Number.isFinite(previousCandle.high) &&
+          candle.high > previousCandle.high
+      });
+    }
+  }
+
+  if (rsiHighs.length < 3) {
+    return {
+      divergence: false,
+      status: 'NO' as const,
+      pivots: rsiHighs.slice(-3),
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      breakoutConfirmed: false,
+      greenCandlesConfirmed: false,
+      windowSize,
+      message: `Fewer than 3 confirmed descending RSI(14) swing-high candidates inside the previous ${windowSize} completed candles`
+    };
+  }
+
+  // STEP 2: Find three RSI lower highs first, then validate price structure.
+  let matched: Point[] | null = null;
+
+  for (let i = 0; i < rsiHighs.length - 2; i++) {
+    for (let j = i + 1; j < rsiHighs.length - 1; j++) {
+      for (let k = j + 1; k < rsiHighs.length; k++) {
+        const p1 = rsiHighs[i];
+        const p2 = rsiHighs[j];
+        const p3 = rsiHighs[k];
+
+        // RSI must make three descending confirmed swing highs.
+        const rsiDescending = p1.rsi > p2.rsi && p2.rsi > p3.rsi;
+
+        if (!rsiDescending) continue;
+
+        // The corresponding candle highs must make three ascending highs.
+        const priceAscending =
+          p1.priceHigh < p2.priceHigh &&
+          p2.priceHigh < p3.priceHigh;
+
+        // Every selected candle must actually break the immediately
+        // preceding candle's high, not merely be higher than the prior pivot.
+        const breakoutConfirmed =
+          p1.breaksPreviousCandleHigh &&
+          p2.breaksPreviousCandleHigh &&
+          p3.breaksPreviousCandleHigh;
+
+        const ema14Confirmed =
+          p1.aboveEma14 && p2.aboveEma14 && p3.aboveEma14;
+
+        // The three RSI anchor candles must be GREEN candles.
+        const greenCandlesConfirmed =
+          p1.greenCandle && p2.greenCandle && p3.greenCandle;
+
+        if (priceAscending && breakoutConfirmed && ema14Confirmed && greenCandlesConfirmed) {
+          matched = [p1, p2, p3];
+        }
+      }
+    }
+  }
+
+  if (matched) {
+    return {
+      divergence: true,
+      status: 'CONFIRMED' as const,
+      pivots: matched,
+      priceAscending: true,
+      rsiDescending: true,
+      ema14Confirmed: true,
+      breakoutConfirmed: true,
+      greenCandlesConfirmed: true,
+      windowSize,
+      message:
+        `CONFIRMED: 3 descending RSI(14) swing highs first; corresponding candle highs ascend and each breaks its previous candle high; all 3 closes above EMA14; previous ${windowSize} completed 1D candles only`
+    };
+  }
+
+  // Diagnostics only — never create a signal.
+  let hasRsiTriple = false;
+  let hasPriceTriple = false;
+  let hasBreakoutTriple = false;
+  let hasEmaTriple = false;
+  let hasGreenTriple = false;
+
+  for (let i = 0; i < rsiHighs.length - 2; i++) {
+    for (let j = i + 1; j < rsiHighs.length - 1; j++) {
+      for (let k = j + 1; k < rsiHighs.length; k++) {
+        const p1 = rsiHighs[i], p2 = rsiHighs[j], p3 = rsiHighs[k];
+        const rsiDescending = p1.rsi > p2.rsi && p2.rsi > p3.rsi;
+        if (!rsiDescending) continue;
+        hasRsiTriple = true;
+
+        const priceAscending = p1.priceHigh < p2.priceHigh && p2.priceHigh < p3.priceHigh;
+        const breakout = p1.breaksPreviousCandleHigh && p2.breaksPreviousCandleHigh && p3.breaksPreviousCandleHigh;
+        const ema = p1.aboveEma14 && p2.aboveEma14 && p3.aboveEma14;
+        const green = p1.greenCandle && p2.greenCandle && p3.greenCandle;
+
+        if (priceAscending) hasPriceTriple = true;
+        if (priceAscending && breakout) hasBreakoutTriple = true;
+        if (priceAscending && breakout && ema) hasEmaTriple = true;
+        if (priceAscending && breakout && ema && green) hasGreenTriple = true;
+      }
+    }
+  }
+
+  let message = `No complete 3-point bearish divergence inside the previous ${windowSize} completed 1D candles`;
+  if (hasGreenTriple) {
+    message = 'RSI lower-high sequence, ascending breakout highs, EMA14 and green anchor candles matched, but another complete condition was not simultaneously satisfied';
+  } else if (hasEmaTriple) {
+    message = 'RSI lower-high sequence and price structure matched, but at least one selected candle was not green or another complete condition was not satisfied';
+  } else if (hasBreakoutTriple) {
+    message = '3 descending RSI(14) swing highs found with ascending price highs and candle breakouts, but at least one selected candle closed at/below EMA14';
+  } else if (hasPriceTriple) {
+    message = '3 descending RSI(14) swing highs found, but the corresponding candle highs did not all break upward in ascending order';
+  } else if (hasRsiTriple) {
+    message = '3 descending RSI(14) swing highs found, but the corresponding candle highs do not form the required ascending breakout sequence';
+  }
+
+  return {
+    divergence: false,
+    status: 'NO' as const,
+    pivots: rsiHighs.slice(-3),
+    priceAscending: hasPriceTriple,
+    rsiDescending: hasRsiTriple,
+    ema14Confirmed: hasEmaTriple,
+    breakoutConfirmed: hasBreakoutTriple,
+    windowSize,
+    message
+  };
+}
+
 type TrendResult = {
   trend: 'bullish' | 'bearish';
   type: 'support' | 'resistance';
@@ -445,24 +694,26 @@ function findRelevantLevel(
 
 
 const blacklist = [
-  "ALPACAUSDT", "BNXUSDT", "ALPHAUSDT", "OCEANUSDT", "DGBUSDT", "AGIXUSDT",
-  "LINAUSDT", "LOKAUSDT", "KEYUSDT", "MDTUSDT", "LOOMUSDT", "RENUSDT",
-  "OMNIUSDT", "SLERFUSDT", "STMXUSDT", "UXLINKUSDT", "BSWUSDT", "NEIROETHUSDT",
-  "VIDTUSDT", "TROYUSDT", "BAKEUSDT", "AMBUSDT", "MEMEFIUSDT", "NULSUSDT",
-  "HIFIUSDT", "LEVERUSDT", "XEMUSDT", "STRAXUSDT", "COMBOUSDT"
 ];
 
 
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
+  // Complete Binance Futures symbol universe currently eligible for scanning.
+  // This is intentionally separate from `signals`: a symbol can be active on
+  // Binance before its technical analysis batch has completed.
+  const [activeFuturesSymbols, setActiveFuturesSymbols] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [scannerStatus, setScannerStatus] = useState<'starting' | 'scanning' | 'waiting' | 'rate-limited' | 'error'> ('starting');
+  const [scannerProgress, setScannerProgress] = useState({ completed: 0, total: 0 });
+  const [nextScanAt, setNextScanAt] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-const [coinListView, setCoinListView] = useState<'all' | 'favorites' | 'not-favorites'>('not-favorites');
+const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' | 'all'>('not-favorites');
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-const [trendFilter, setTrendFilter] = useState<string | null>(null);
+const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');	  
   const timeframes = ['15m', '4h', '1d'];
@@ -500,117 +751,107 @@ const toggleFavorite = (symbol: string) => {
   });
 };
 
+const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
+const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
+const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
+const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
+const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [oneDayBearishRsiPumpEmaFilter, setOneDayBearishRsiPumpEmaFilter] = useState<'all' | 'yes' | 'no'>('all');
+
 const searchTerm = search.trim().toLowerCase();
 
-const filteredSignals = signals.filter((s) => {
-  const symbol = s.symbol?.toLowerCase() || '';
-  const matchesSearch = !searchTerm || symbol.includes(searchTerm);
-  const isFavorite = favorites.has(s.symbol);
-  const matchesFavoriteView =
-    coinListView === 'all' ||
-    (coinListView === 'favorites' && isFavorite) ||
-    (coinListView === 'not-favorites' && !isFavorite);
+const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
+const getPumpDumpStrength = (s: any) => {
+  const pd = getPumpDump(s);
+  if (!pd) return null;
+  return pd.direction === 'dump' ? pd.dumpStrength : pd.pumpStrength;
+};
+const getBooleanValue = (value: any) => value ? 1 : 0;
 
-  return matchesSearch && matchesFavoriteView;
-});
-
-// 🔹 Sorting logic
-const sortedSignals = signals.sort((a, b) => {
-  let valA: any = a[sortField];
-  let valB: any = b[sortField];
-
-if (sortField === 'touchedEMA200Today') {
-    valA = a.touchedEMA200Today ? 1 : 0;
-    valB = b.touchedEMA200Today ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
+const getSortValue = (s: any, field: string): any => {
+  switch (field) {
+    case 'symbol': return s.symbol ?? '';
+    case 'currentPrice': return Number(s.currentPrice);
+    case 'priceChangePercent': return Number(s.priceChangePercent);
+    case 'pumpDump': return getPumpDumpStrength(s);
+    case 'latestRSI': return typeof s.latestRSI === 'number' ? s.latestRSI : null;
+    case 'breakoutFailure': return getBooleanValue(s.breakoutFailure);
+    case 'touchedEMA200Today': return getBooleanValue(s.touchedEMA200Today);
+    case 'touchedEMA100Today': return getBooleanValue(s.touchedEMA100Today);
+    case 'latestCandleInsideEMA50EMA70': return getBooleanValue(s.latestCandleInsideEMA50EMA70);
+    case 'ema70200Cross': return s.ema70200Cross?.timestamp ?? null;
+    case 'signal': return getSignalValue(s);
+    case 'drop': return getBooleanValue(s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5));
+    case 'recovery': return getBooleanValue(s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10));
+    case 'bullishBreakout': return getBooleanValue(s.bullishBreakout);
+    case 'bearishBreakout': return getBooleanValue(s.bearishBreakout);
+    case 'prevClose': return s.prevClosedGreen ? 1 : s.prevClosedRed ? -1 : 0;
+    case 'oneDayTwoRedCloses': return s.oneDayTwoPreviousRedCloses === true ? 1 : s.oneDayTwoPreviousRedCloses === false ? 0 : null;
+    case 'oneDayThreePointBearishDivergence': return getBooleanValue(s.oneDayThreePointBearishDivergence?.divergence);
+    case 'mainTrend': return s.mainTrend?.trend ?? '';
+    case 'bearishCollapse': return getBooleanValue(s.bearishCollapse?.signal);
+    case 'bullishSpike': return getBooleanValue(s.bullishSpike?.signal);
+    case 'bearishReversal': return getBooleanValue(s.bearishReversal?.signal);
+    case 'bullishReversal': return getBooleanValue(s.bullishReversal?.signal);
+    case 'divergenceFromLevel': return getBooleanValue(s.divergenceFromLevel === true || s.divergenceFromLevel === 'true');
+    case 'bearishDivergence': return getBooleanValue(s.bearishDivergence?.divergence);
+    case 'bullishDivergence': return getBooleanValue(s.bullishDivergence?.divergence);
+    case 'highestVolumeColorPrev': return s.highestVolumeColorPrev ?? '';
+    case 'bullishVolumeDivergence': return getBooleanValue(s.bullishVolumeDivergence?.divergence);
+    case 'isVolumeSpike': return getBooleanValue(s.isVolumeSpike);
+    case 'ema14InsideResults': return getBooleanValue(s.ema14InsideResults?.some((r: any) => r.inside));
+    case 'gap': return typeof s.gap === 'number' ? s.gap : null;
+    case 'gap1': return typeof s.gap1 === 'number' ? s.gap1 : null;
+    case 'gapFromLowToEMA200': return typeof s.gapFromLowToEMA200 === 'number' ? s.gapFromLowToEMA200 : null;
+    case 'gapFromHighToEMA200': return typeof s.gapFromHighToEMA200 === 'number' ? s.gapFromHighToEMA200 : null;
+    case 'ema200Bounce': return getBooleanValue(s.ema200Bounce);
+    case 'ema14Bounce': return getBooleanValue(s.ema14Bounce);
+    case 'ema70Bounce': return getBooleanValue(s.ema70Bounce);
+    case 'hasBullishEngulfing': return getBooleanValue(s.hasBullishEngulfing);
+    case 'hasBearishEngulfing': return getBooleanValue(s.hasBearishEngulfing);
+    case 'testedPrevHigh': return getBooleanValue(s.testedPrevHigh);
+    case 'testedPrevLow': return getBooleanValue(s.testedPrevLow);
+    case 'topPattern': return s.isDoubleTopFailure ? 3 : s.isDoubleTop ? 2 : s.isDescendingTop ? 1 : 0;
+    case 'bottomPattern': return s.isDoubleBottomFailure ? 3 : s.isDoubleBottom ? 2 : s.isAscendingBottom ? 1 : 0;
+    default: return s[field];
   }
-	
-if (sortField === 'ema14InsideResults') {
-  const valA = a.ema14InsideResults?.some(r => r.inside) ? 1 : 0;
-  const valB = b.ema14InsideResults?.some(r => r.inside) ? 1 : 0;
-  return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
-	
-  if (sortField === 'ema70Bounce') {
-    valA = a.ema70Bounce ? 1 : 0;
-    valB = b.ema70Bounce ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
+};
 
-if (sortField === 'ema200Bounce') {
-    valA = a.ema200Bounce ? 1 : 0;
-    valB = b.ema200Bounce ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }	
-
-if (sortField === 'divergenceFromLevel') {
-    valA = a.divergenceFromLevel ? 1 : 0;
-    valB = b.divergenceFromLevel ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-}
-		     
-  if (sortField === 'pumpStrength' || sortField === 'dumpStrength') {
-    const pumpDumpA = a.rsi14 ? getRecentRSIDiff(a.rsi14, 14) : null;
-    const pumpDumpB = b.rsi14 ? getRecentRSIDiff(b.rsi14, 14) : null;
-    valA = sortField === 'pumpStrength' ? pumpDumpA?.pumpStrength : pumpDumpA?.dumpStrength;
-    valB = sortField === 'pumpStrength' ? pumpDumpB?.pumpStrength : pumpDumpB?.dumpStrength;
-  }
-
-  if (sortField === 'bearishDivergence' || sortField === 'bullishDivergence') {
-    valA = a[sortField]?.divergence ? 1 : 0;
-    valB = b[sortField]?.divergence ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'isVolumeSpike') {
-    valA = a.isVolumeSpike ? 1 : 0;
-    valB = b.isVolumeSpike ? 1 : 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'priceChangePercent') {
-    valA = Number(a.priceChangePercent);
-    valB = Number(b.priceChangePercent);
-    if (isNaN(valA)) return 1;
-    if (isNaN(valB)) return -1;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'latestRSI') {
-    valA = typeof a.latestRSI === 'number' ? a.latestRSI : -Infinity;
-    valB = typeof b.latestRSI === 'number' ? b.latestRSI : -Infinity;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (sortField === 'prevClose') {
-    const getCloseValue = (item: any) =>
-      item.prevClosedGreen ? 1 : item.prevClosedRed ? -1 : 0;
-    valA = getCloseValue(a);
-    valB = getCloseValue(b);
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  if (valA == null) return 1;
-  if (valB == null) return -1;
-
-  if (typeof valA === 'string' && typeof valB === 'string') {
-    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-  }
-
-  if (typeof valA === 'number' && typeof valB === 'number') {
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  }
-
-  return 0;
-});
-
-// 🔹 Filter logic
 const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
   bullishMainTrend: 'bullish',
   bearishMainTrend: 'bearish',
+  bullishNearSupport: 'bullish',
+  bearishNearResistance: 'bearish',
+  bullishBreakup: 'bullish',
+  bearishBreakdown: 'bearish',
+  bullishDojiAfterBreakout: 'bullish',
+  bearishDojiAfterBreakout: 'bearish',
 };
 
-// 🔹 Other trend filter keys that map to boolean fields in the signal object
+const trend200ConditionMatches = (s: any, key: string): boolean => {
+  switch (key) {
+    case 'bullishNearSupport':
+      return s.mainTrend?.trend === 'bullish' && s.mainTrend?.isNear === true;
+    case 'bearishNearResistance':
+      return s.mainTrend?.trend === 'bearish' && s.mainTrend?.isNear === true;
+    case 'bullishBreakup':
+      return s.mainTrend?.trend === 'bullish' && s.mainTrend?.breakout === true;
+    case 'bearishBreakdown':
+      return s.mainTrend?.trend === 'bearish' && s.mainTrend?.breakout === true;
+    case 'bullishDojiAfterBreakout':
+      return s.mainTrend?.trend === 'bullish' && s.mainTrend?.isDojiAfterBreakout === true;
+    case 'bearishDojiAfterBreakout':
+      return s.mainTrend?.trend === 'bearish' && s.mainTrend?.isDojiAfterBreakout === true;
+    default:
+      return false;
+  }
+};
+
 const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishBreakout: 'bullishBreakout',
   bearishBreakout: 'bearishBreakout',
@@ -621,27 +862,178 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   bearishReversal: 'bearishReversal',
   bullishSpike: 'bullishSpike',
   bearishCollapse: 'bearishCollapse',
-ema14InsideResults: 'ema14InsideResults',
-highestVolumeColorPrev: 'highestVolumeColorPrev',
-divergenceFromLevel: 'divergenceFromLevel'
-};	
+  ema14InsideResults: 'ema14InsideResults',
+  highestVolumeColorPrev: 'highestVolumeColorPrev',
+  divergenceFromLevel: 'divergenceFromLevel',
+  bullishDivergence: 'bullishDivergence',
+  bearishDivergence: 'bearishDivergence',
+  prevCloseGreen: 'prevClosedGreen',
+  prevCloseRed: 'prevClosedRed',
+  oneDayTwoRedCloses: 'oneDayTwoPreviousRedCloses'
+};
 
-// 🟡 Apply trend & signal filters on top of the search/favorites filtered list
-const filteredAndSortedSignals = filteredSignals
-  .filter((s) => {
-    if (trendFilter && trendKeyToMainTrendValue[trendFilter]) {
-      if (s.mainTrend?.trend !== trendKeyToMainTrendValue[trendFilter]) return false;
-    }
+const trendFilterMatches = (s: any, key: string): boolean => {
+  // Main Trend filters
+  if (key === 'bullishMainTrend') {
+    return s.mainTrend?.trend === 'bullish';
+  }
 
-    if (trendFilter && trendKeyToBooleanField[trendFilter]) {
-      const field = trendKeyToBooleanField[trendFilter];
-      if (!s[field]) return false;
-    }
+  if (key === 'bearishMainTrend') {
+    return s.mainTrend?.trend === 'bearish';
+  }
 
-    if (signalFilter && getSignal(s) !== signalFilter) return false;
+  // Trend (200) condition filters
+  if ([
+    'bullishNearSupport',
+    'bearishNearResistance',
+    'bullishBreakup',
+    'bearishBreakdown',
+    'bullishDojiAfterBreakout',
+    'bearishDojiAfterBreakout',
+  ].includes(key)) {
+    return trend200ConditionMatches(s, key);
+  }
 
-    return true;
-  })
+  // 1D three-point bearish price/RSI divergence. The result itself is only
+  // true when the selected scan timeframe is 1D and the detector is confirmed.
+  if (key === 'oneDayThreePointBearishDivergence') {
+    return s.oneDayThreePointBearishDivergence?.divergence === true;
+  }
+
+  // Boolean / signal filters
+  const field = trendKeyToBooleanField[key];
+  if (!field) return false;
+
+  if (field === 'ema14InsideResults') {
+    return s.ema14InsideResults?.some((r: any) => r.inside) === true;
+  }
+
+  if (field === 'divergenceFromLevel') {
+    return s.divergenceFromLevel === true || s.divergenceFromLevel === 'true';
+  }
+
+  if (field === 'bullishDivergence' || field === 'bearishDivergence') {
+    return s[field]?.divergence === true;
+  }
+
+  if (field === 'prevClosedGreen' || field === 'prevClosedRed') {
+    return s[field] === true;
+  }
+
+  if (field === 'bullishBreakout' || field === 'bearishBreakout' ||
+      field === 'breakoutFailure' || field === 'testedPrevHigh' ||
+      field === 'testedPrevLow' || field === 'bullishReversal' ||
+      field === 'bearishReversal' || field === 'bullishSpike' ||
+      field === 'bearishCollapse') {
+    const value = s[field];
+    return value === true || value?.signal === true;
+  }
+
+  return Boolean(s[field]);
+};
+
+const filteredSignals = signals.filter((s) => {
+  const symbol = s.symbol?.toLowerCase() || '';
+  const matchesSearch = !searchTerm || symbol.includes(searchTerm);
+  const isFavorite = favorites.has(s.symbol);
+  const matchesFavoriteView =
+    coinListView === 'all' ||
+    (coinListView === 'favorites' && isFavorite) ||
+    (coinListView === 'not-favorites' && !isFavorite);
+  if (!matchesSearch || !matchesFavoriteView) return false;
+
+  // Multiple Trend filters are combined with AND logic.
+  // Example: Bullish Trend + Bullish Divergence + Bullish Near Support
+  // means ALL THREE conditions must be true for the same symbol.
+  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key))) {
+    return false;
+  }
+
+  if (signalFilter && getSignalValue(s) !== signalFilter) return false;
+  if (tableSignalFilter !== 'all' && getSignalValue(s) !== tableSignalFilter) return false;
+
+  if (rsi14Filter !== 'all') {
+    const rsi = typeof s.latestRSI === 'number' ? s.latestRSI : null;
+    if (rsi === null) return false;
+    if (rsi14Filter === 'above50' && rsi <= 50) return false;
+    if (rsi14Filter === 'below50' && rsi > 50) return false;
+  }
+
+  if (breakoutFailFilter !== 'all' && (s.breakoutFailure ? 'yes' : 'no') !== breakoutFailFilter) return false;
+
+  if (oneDayTwoRedClosesFilter !== 'all') {
+    const value = s.oneDayTwoPreviousRedCloses;
+    if (value === null || value === undefined) return false;
+    if ((value ? 'yes' : 'no') !== oneDayTwoRedClosesFilter) return false;
+  }
+
+  // 1D composite filter: bearish trend + RSI14 > 50 + RSI pump 9–13 +
+  // EMA14 currently/recenly inside EMA70 and EMA200. This filter is only
+  // meaningful on the selected 1D dataset and does not affect other TFs.
+  if (oneDayBearishRsiPumpEmaFilter !== 'all') {
+    if (timeframe !== '1d') return false;
+    const pd = getPumpDump(s);
+    const ema14Inside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
+    const matches =
+      s.mainTrend?.trend === 'bearish' &&
+      typeof s.latestRSI === 'number' &&
+      s.latestRSI > 50 &&
+      pd?.direction === 'pump' &&
+      typeof pd.pumpStrength === 'number' &&
+      pd.pumpStrength >= 9 &&
+      pd.pumpStrength <= 13 &&
+      ema14Inside;
+    if ((matches ? 'yes' : 'no') !== oneDayBearishRsiPumpEmaFilter) return false;
+  }
+
+  if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
+  if (touchedEMA100Filter !== 'all' && (s.touchedEMA100Today ? 'yes' : 'no') !== touchedEMA100Filter) return false;
+  if (latestCandleInsideEMA50EMA70Filter !== 'all' && (s.latestCandleInsideEMA50EMA70 ? 'yes' : 'no') !== latestCandleInsideEMA50EMA70Filter) return false;
+
+  if (ema70200CrossFilter !== 'all') {
+    const crossDirection = s.ema70200Cross?.direction ?? 'none';
+    const wanted = ema70200CrossFilter === 'no' ? 'none' : ema70200CrossFilter;
+    if (crossDirection !== wanted) return false;
+  }
+
+  if (rsiPumpDumpFilter !== 'all') {
+    const direction = getPumpDump(s)?.direction;
+    if (direction !== rsiPumpDumpFilter) return false;
+  }
+
+  return true;
+});
+
+// One uniform sorting pipeline: FILTER FIRST, then SORT. Never mutate React state.
+const filteredAndSortedSignals = [...filteredSignals].sort((a, b) => {
+  const aValue = getSortValue(a, sortField);
+  const bValue = getSortValue(b, sortField);
+  const aMissing = aValue === null || aValue === undefined || (typeof aValue === 'number' && !Number.isFinite(aValue));
+  const bMissing = bValue === null || bValue === undefined || (typeof bValue === 'number' && !Number.isFinite(bValue));
+
+  if (aMissing && bMissing) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+
+  let result = 0;
+  if (typeof aValue === 'number' && typeof bValue === 'number') {
+    result = aValue - bValue;
+  } else {
+    result = String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  if (result === 0) result = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+  return sortOrder === 'asc' ? result : -result;
+});
+
+const toggleSort = (field: string) => {
+  if (sortField === field) {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  } else {
+    setSortField(field);
+    setSortOrder('asc');
+  }
+};
 
 // 🔹 Count statistics
 const bullishMainTrendCount = filteredSignals.filter(
@@ -650,6 +1042,30 @@ const bullishMainTrendCount = filteredSignals.filter(
 
 const bearishMainTrendCount = filteredSignals.filter(
   (s) => s.mainTrend?.trend === 'bearish'
+).length;
+
+const bullishNearSupportCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bullishNearSupport')
+).length;
+
+const bearishNearResistanceCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bearishNearResistance')
+).length;
+
+const bullishBreakupCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bullishBreakup')
+).length;
+
+const bearishBreakdownCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bearishBreakdown')
+).length;
+
+const bullishDojiAfterBreakoutCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bullishDojiAfterBreakout')
+).length;
+
+const bearishDojiAfterBreakoutCount = filteredSignals.filter(
+  (s) => trend200ConditionMatches(s, 'bearishDojiAfterBreakout')
 ).length;
 
 const bullishBreakoutCount = filteredSignals.filter(
@@ -678,6 +1094,30 @@ const bullishReversalCount = filteredSignals.filter(
 
 const bearishReversalCount = filteredSignals.filter(
   (s) => s.bearishReversal?.signal === true
+).length;
+
+const bullishDivergenceCount = filteredSignals.filter(
+  (s) => s.bullishDivergence?.divergence === true
+).length;
+
+const bearishDivergenceCount = filteredSignals.filter(
+  (s) => s.bearishDivergence?.divergence === true
+).length;
+
+const prevCloseGreenCount = filteredSignals.filter(
+  (s) => s.prevClosedGreen === true
+).length;
+
+const prevCloseRedCount = filteredSignals.filter(
+  (s) => s.prevClosedRed === true
+).length;
+
+const oneDayTwoRedClosesCount = filteredSignals.filter(
+  (s) => s.oneDayTwoPreviousRedCloses === true
+).length;
+
+const oneDayThreePointBearishDivergenceCount = filteredSignals.filter(
+  (s) => s.oneDayThreePointBearishDivergence?.divergence === true
 ).length;
 
 // For bullishSpike, check the .signal property inside the object
@@ -757,12 +1197,105 @@ const signalCounts = useMemo(() => {
   useEffect(() => {
     let isMounted = true;
 
-    const BATCH_SIZE = 5;        // scan 5 symbols at a time
-const INTERVAL_MS = 2000;    // run a batch every 2 seconds
-const MIN_DELAY_MS = 300;    // minimum 0.3 s between requests inside a batch
-const MAX_DELAY_MS = 600;    // maximum 0.6 s
+    // The scanner is intentionally started in the background. The React UI
+    // must never wait for exchangeInfo or the first analysis batch to render.
+    setLoading(false);
+    setScannerStatus('starting');
+    setScannerProgress({ completed: 0, total: 0 });
+    setNextScanAt(null);
+
+    // Binance-safe high-throughput scanner:
+    // - 15 symbols are analysed per scan cycle.
+    // - Only 3 symbols run concurrently, avoiding large request bursts.
+    // - Waves are spaced instead of using setInterval, so slow scans never overlap.
+    // - 429/418 responses honour Retry-After and use exponential backoff.
+    // - Binance's returned 1-minute request-weight header is monitored.
+    const BATCH_SIZE = 15;
+    const MAX_CONCURRENT = 3;
+    const WAVE_DELAY_MS = 650;
+    const BETWEEN_CYCLE_DELAY_MS = 1000;
+    const MAX_RETRIES = 3;
+    const RATE_LIMIT_WEIGHT = 2400;
+    const RATE_LIMIT_SOFT_CAP = 0.75;
     let currentIndex = 0;
     let symbols: string[] = [];
+    let lastUsedWeight1m = 0;
+    let ratePauseUntil = 0;
+
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const getRetryAfterMs = (response: Response, fallbackMs: number) => {
+      const retryAfter = response.headers.get('Retry-After');
+      const seconds = retryAfter ? Number(retryAfter) : NaN;
+      return Number.isFinite(seconds) && seconds > 0
+        ? Math.ceil(seconds * 1000)
+        : fallbackMs;
+    };
+
+    const safeFetchJson = async <T = any>(url: string, label = 'Binance request'): Promise<T> => {
+      let attempt = 0;
+
+      while (attempt <= MAX_RETRIES) {
+        if (!isMounted) throw new Error('Scanner stopped');
+
+        const now = Date.now();
+        if (ratePauseUntil > now) {
+          await delay(ratePauseUntil - now);
+        }
+
+        try {
+          const response = await fetch(url);
+
+          const usedWeightHeader =
+            response.headers.get('X-MBX-USED-WEIGHT-1M') ||
+            response.headers.get('x-mbx-used-weight-1m');
+
+          const usedWeight = Number(usedWeightHeader);
+          if (Number.isFinite(usedWeight)) {
+            lastUsedWeight1m = usedWeight;
+          }
+
+          if (response.ok) {
+            if (isMounted) setScannerStatus('scanning');
+            return await response.json() as T;
+          }
+
+          if (response.status === 429 || response.status === 418) {
+            const exponential = Math.min(30_000, 1000 * Math.pow(2, attempt));
+            const retryMs = getRetryAfterMs(response, exponential);
+            ratePauseUntil = Math.max(ratePauseUntil, Date.now() + retryMs);
+
+            setScannerStatus('rate-limited');
+            console.warn(
+              `⚠️ ${label}: HTTP ${response.status}. Backing off ${Math.ceil(retryMs / 1000)}s.`
+            );
+
+            attempt++;
+            if (attempt > MAX_RETRIES) {
+              throw new Error(`${label} rate limited (${response.status})`);
+            }
+
+            await delay(retryMs);
+            continue;
+          }
+
+          const body = await response.text().catch(() => '');
+          throw new Error(`${label} HTTP ${response.status}${body ? `: ${body.slice(0, 180)}` : ''}`);
+        } catch (err: any) {
+          if (err?.name === 'AbortError' || err?.message === 'Scanner stopped') {
+            throw err;
+          }
+
+          attempt++;
+          if (attempt > MAX_RETRIES) throw err;
+
+          const retryMs = Math.min(10_000, 750 * Math.pow(2, attempt - 1));
+          await delay(retryMs);
+        }
+      }
+
+      throw new Error(`${label} failed`);
+    };
 
     // Define available timeframes
 const timeframes = ['15m', '4h', '1d'] as const;
@@ -770,35 +1303,87 @@ const timeframes = ['15m', '4h', '1d'] as const;
 // Derive Timeframe type from the array
 type Timeframe = typeof timeframes[number];
 
+type Candle = {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  closeTime: number;
+  rsi?: number;
+  volumeColor?: 'green' | 'red' | 'neutral';
+};
+
+// === EMA70/EMA200 session crossover — strict 08:00 PH -> 08:00 PH ===
+// Only crosses that occur inside the CURRENT 08:00–08:00 PH session count.
+// The first 08:00 candle may cross using the immediately preceding 07:45
+// candle as its comparison candle. If no cross occurs in the session, result is NO.
+function detectLatestEMA70200SessionCross(
+  candles: Array<{ timestamp: number }>,
+  ema70: number[],
+  ema200: number[],
+  sessionStart: number,
+  sessionEnd: number
+) {
+  let latest: {
+    direction: 'bullish' | 'bearish' | 'none';
+    timestamp: number | null;
+    candleIndex: number | null;
+  } = { direction: 'none', timestamp: null, candleIndex: null };
+
+  for (let i = 1; i < candles.length; i++) {
+    const ts = candles[i]?.timestamp;
+    if (!Number.isFinite(ts) || ts < sessionStart || ts >= sessionEnd) continue;
+
+    const prev70 = ema70[i - 1];
+    const prev200 = ema200[i - 1];
+    const curr70 = ema70[i];
+    const curr200 = ema200[i];
+
+    if (![prev70, prev200, curr70, curr200].every(Number.isFinite)) continue;
+
+    if (prev70 <= prev200 && curr70 > curr200) {
+      latest = { direction: 'bullish', timestamp: ts, candleIndex: i };
+    } else if (prev70 >= prev200 && curr70 < curr200) {
+      latest = { direction: 'bearish', timestamp: ts, candleIndex: i };
+    }
+  }
+
+  return latest;
+}
+
 // Unified getSessions function
 const getSessions = (timeframe?: Timeframe) => {
   const now = new Date();
 
   if (!timeframe || timeframe === '1d') {
-    // Use custom 1d session logic (8:00 AM to next day 7:45 AM PH time)
+    // Exact daily trading session: 08:00 PH -> 08:00 PH next day.
+    // Binance timestamps are UTC, so PH (UTC+8) is converted to UTC.
+    // sessionEnd is EXCLUSIVE: the 07:45 candle is the final 15m candle;
+    // the next 08:00 candle starts the next session.
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();
     const date = now.getUTCDate();
 
-    const getUTCMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
-      Date.UTC(y, m, d, hPH - 8, min); // UTC+8 to UTC
+    const getPHMillis = (y: number, m: number, d: number, hPH: number, min: number) =>
+      Date.UTC(y, m, d, hPH - 8, min);
 
-    const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
-    const tomorrow745AM_UTC = getUTCMillis(year, month, date + 1, 7, 45);
+    const today8AM_UTC = getPHMillis(year, month, date, 8, 0);
 
-    let sessionStart: number, sessionEnd: number;
+    let sessionStart: number;
+    let sessionEnd: number;
+
     if (now.getTime() >= today8AM_UTC) {
       sessionStart = today8AM_UTC;
-      sessionEnd = tomorrow745AM_UTC;
+      sessionEnd = getPHMillis(year, month, date + 1, 8, 0);
     } else {
-      const yesterday8AM_UTC = getUTCMillis(year, month, date - 1, 8, 0);
-      const today745AM_UTC = getUTCMillis(year, month, date, 7, 45);
-      sessionStart = yesterday8AM_UTC;
-      sessionEnd = today745AM_UTC;
+      sessionStart = getPHMillis(year, month, date - 1, 8, 0);
+      sessionEnd = today8AM_UTC;
     }
 
-    const prevSessionStart = getUTCMillis(year, month, date - 1, 8, 0);
-    const prevSessionEnd = getUTCMillis(year, month, date, 7, 45);
+    const prevSessionStart = sessionStart - 24 * 60 * 60 * 1000;
+    const prevSessionEnd = sessionStart;
 
     return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
   } else {
@@ -821,17 +1406,19 @@ const getSessions = (timeframe?: Timeframe) => {
 
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
-    const raw = await fetch(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`
-    ).then((res) => res.json());
+    const raw = await safeFetchJson<any[]>(
+      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
+      `${symbol} klines`
+    );
 
-        const candles = raw.map((c: any) => ({
-          timestamp: c[0],
+        const candles: Candle[] = raw.map((c: any) => ({
+          timestamp: +c[0],
           open: +c[1],
           high: +c[2],
           low: +c[3],
           close: +c[4],
           volume: +c[5],
+          closeTime: +c[6],
         }));
 
 const closes = candles.map(c => c.close);
@@ -842,7 +1429,9 @@ const opens = candles.map(c => c.open);
 
 	      
 const ema14 = calculateEMA(closes, 14);
+const ema50 = calculateEMA(closes, 50);
 const ema70 = calculateEMA(closes, 70);
+const ema100 = calculateEMA(closes, 100);
 const ema200 = calculateEMA(closes, 200);
 const rsi14 = calculateRSI(closes, 14);
       	      
@@ -860,9 +1449,10 @@ candles.forEach((c, i) => {
   // Volume is already assumed to be present as c.volume
 });
 
-    const ticker24h = await fetch(
-      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`
-    ).then(res => res.json());
+    const ticker24h = await safeFetchJson<any>(
+      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`,
+      `${symbol} 24h ticker`
+    );
 
 
 
@@ -874,7 +1464,16 @@ candles.forEach((c, i) => {
 const lastOpen = candles.at(-1)?.open!;
 const lastClose = candles.at(-1)?.close!;
 const lastEMA14 = ema14.at(-1)!;
+const lastEMA50 = ema50.at(-1)!;
 const lastEMA70 = ema70.at(-1)!;
+const latestEmaZoneCandle = candles.at(-1);
+// Latest Binance kline is the currently forming candle when closeTime is still in the future.
+// Match the scanner's existing EMA calculation and define 'inside EMA50/EMA70' as its live close lying between both EMA values.
+const latestCandleInsideEMA50EMA70 = Boolean(
+  latestEmaZoneCandle && Number.isFinite(lastEMA50) && Number.isFinite(lastEMA70) &&
+  latestEmaZoneCandle.close >= Math.min(lastEMA50, lastEMA70) &&
+  latestEmaZoneCandle.close <= Math.max(lastEMA50, lastEMA70)
+);
 const lastEMA200 = ema200.at(-1)!;
 
 
@@ -884,8 +1483,23 @@ const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
         
 
-        const candlesToday = candles.filter(c => c.timestamp >= sessionStart && c.timestamp <= sessionEnd);
-        const candlesPrev = candles.filter(c => c.timestamp >= prevSessionStart && c.timestamp <= prevSessionEnd);
+        // ONLY COMPLETED 15m CANDLES are eligible.
+        // Session boundaries are exact: 08:00 PH inclusive -> next-day 08:00 PH exclusive.
+        // Therefore the 07:45 candle is the final candle of the session and the
+        // next 08:00 candle belongs to the next session.
+        const nowMs = Date.now();
+        const candlesToday = candles.filter(c =>
+          c.timestamp >= sessionStart &&
+          c.timestamp < sessionEnd &&
+          Number.isFinite(c.closeTime) &&
+          c.closeTime <= nowMs
+        );
+        const candlesPrev = candles.filter(c =>
+          c.timestamp >= prevSessionStart &&
+          c.timestamp < prevSessionEnd &&
+          Number.isFinite(c.closeTime) &&
+          c.closeTime <= nowMs
+        );
 
         const todaysLowestLow = candlesToday.length > 0 ? Math.min(...candlesToday.map(c => c.low)) : null;
         const todaysHighestHigh = candlesToday.length > 0 ? Math.max(...candlesToday.map(c => c.high)) : null;
@@ -894,7 +1508,10 @@ const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessio
 
 	     // Filter all candles that fall within the previous session range
 const prevSessionCandles = candles.filter((candle) => {
-  return candle.timestamp >= prevSessionStart && candle.timestamp <= prevSessionEnd;
+  return candle.timestamp >= prevSessionStart &&
+    candle.timestamp < prevSessionEnd &&
+    Number.isFinite(candle.closeTime) &&
+    candle.closeTime <= nowMs;
 });
 
 let prevClosedGreen: boolean | null = null;
@@ -907,6 +1524,57 @@ if (prevSessionCandles.length >= 2) {
   prevClosedGreen = lastCandle.close > firstCandle.open;
   prevClosedRed = lastCandle.close < firstCandle.open;
 }
+
+// === 1D TWO PREVIOUS RED CLOSES ===
+// Only the two most recent COMPLETED Binance 1D candles are evaluated.
+// The current/forming 1D candle is deliberately excluded so the signal
+// cannot flip while today's candle is still open.
+let oneDayTwoPreviousRedCloses: boolean | null = null;
+let oneDayPreviousRedCloseCount = 0;
+
+if (interval === '1d') {
+  const completedDailyCandles = candles.filter((candle) =>
+    Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
+  );
+
+  const previousDailyCandles = completedDailyCandles.slice(-2);
+  oneDayPreviousRedCloseCount = previousDailyCandles.filter(
+    (candle) => candle.close < candle.open
+  ).length;
+
+  oneDayTwoPreviousRedCloses =
+    previousDailyCandles.length === 2 && oneDayPreviousRedCloseCount === 2;
+}
+
+
+// === 1D THREE-POINT PRICE / RSI(14) BEARISH DIVERGENCE ===
+// Use only COMPLETED daily candles. This prevents today's unfinished high
+// from becoming the third point and then disappearing/reversing intraday.
+const completedDailyCandlesForDivergence = candles.filter((candle) =>
+  Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
+);
+const completedDailyClosesForDivergence = completedDailyCandlesForDivergence.map(c => c.close);
+const completedDailyRsi14ForDivergence = calculateRSI(completedDailyClosesForDivergence, 14);
+const completedDailyEma14ForDivergence = calculateEMA(completedDailyClosesForDivergence, 14);
+const oneDayThreePointBearishDivergence = interval === '1d'
+  ? detectThreePointBearishRSIDivergence(
+      completedDailyCandlesForDivergence,
+      completedDailyRsi14ForDivergence,
+      completedDailyEma14ForDivergence,
+      20,
+      2,
+      2
+    )
+  : {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [],
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      windowSize: 20,
+      message: '1D timeframe only'
+    };
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
@@ -922,7 +1590,11 @@ if (prevSessionCandles.length >= 2) {
     prevSessionLow !== null &&
     todaysLowestLow >= prevSessionLow;
 
-  const breakoutFailure = failedBullishBreak && failedBearishBreak;
+  // Combined Breakout Fail is YES only when BOTH boundaries failed.
+// Wicks count because session high/low are used; no close confirmation is required.
+const highBreakoutFail = failedBullishBreak;
+const lowBreakoutFail = failedBearishBreak;
+const breakoutFailure = highBreakoutFail && lowBreakoutFail;
 
   // Optional: Add test failure signal
   const getTestThreshold = (price: number): number => {
@@ -1081,10 +1753,35 @@ const nearEMA200 = closes.slice(-3).some(c => Math.abs(c - lastEMA200) / c < 0.0
 const ema14Bounce = nearEMA14 && lastClose > lastEMA14;         	      
 const ema70Bounce = nearEMA70 && lastClose > lastEMA70;
 const ema200Bounce = nearEMA200 && lastClose > lastEMA200;
-const touchedEMA200Today =
-  todaysHighestHigh! >= lastEMA200 &&
-  todaysLowestLow! <= lastEMA200 &&
-  candlesToday.some(c => Math.abs(c.close - lastEMA200) / c.close < 0.002);	      
+const { sessionStart: emaCrossSessionStart, sessionEnd: emaCrossSessionEnd } = getSessions('1d');
+const ema70200Cross = detectLatestEMA70200SessionCross(candles, ema70, ema200, emaCrossSessionStart, emaCrossSessionEnd);
+
+// TRUE EMA200 TOUCH — exact 08:00 -> 08:00 PH session.
+// Each 15m candle is tested against the EMA200 calculated for THAT candle.
+// A touch exists when the candle's actual price range intersects EMA200:
+//     candle.low <= candleEMA200 <= candle.high
+// No comparison against the latest EMA200 and no close-proximity approximation.
+const touchedEMA200Today = candlesToday.some((candle) => {
+  const candleIndex = candles.indexOf(candle);
+  const candleEMA200 = ema200[candleIndex];
+
+  return Number.isFinite(candleEMA200) &&
+    candle.low <= candleEMA200 &&
+    candle.high >= candleEMA200;
+});
+
+// TRUE EMA100 TOUCH — same strict Philippines session as EMA200: 08:00 today
+// inclusive to 08:00 tomorrow exclusive. EMA100 is calculated independently
+// from this scan timeframe's own candle closes; each candle is checked against
+// its matching EMA100 value. Only completed candles in candlesToday count.
+const touchedEMA100Today = candlesToday.some((candle) => {
+  const candleIndex = candles.indexOf(candle);
+  const candleEMA100 = ema100[candleIndex];
+
+  return Number.isFinite(candleEMA100) &&
+    candle.low <= candleEMA100 &&
+    candle.high >= candleEMA100;
+});
 
 // === Extract highs and lows from each session ===
 const highsPrev = candlesPrev.map(c => c.high);
@@ -1866,7 +2563,20 @@ mainTrend,
   bullishBreakout,
   bearishBreakout,
 prevClosedGreen,
-prevClosedRed,		
+prevClosedRed,
+  oneDayTwoPreviousRedCloses,
+  oneDayPreviousRedCloseCount,
+  oneDayThreePointBearishDivergence,
+  oneDayBearishRsiPumpEmaFilterMatch: interval === '1d' &&
+    mainTrend?.trend === 'bearish' &&
+    typeof latestRSI === 'number' && latestRSI > 50 &&
+    (() => {
+      const pd = getRecentRSIDiff(rsi14, 14);
+      return pd?.direction === 'pump' &&
+        typeof pd.pumpStrength === 'number' &&
+        pd.pumpStrength >= 9 && pd.pumpStrength <= 13;
+    })() &&
+    ema14InsideResults.some((r: any) => r.inside === true),
   bullishReversalCount,
   bearishReversalCount,
   bullishReversal,		
@@ -1878,6 +2588,10 @@ divergenceFromLevel,
 latestRSI,		
   testedPrevHigh,
   testedPrevLow,
+  previousSessionHigh: prevSessionHigh,
+  previousSessionLow: prevSessionLow,
+  currentSessionHigh: todaysHighestHigh,
+  currentSessionLow: todaysLowestLow,
      isDoubleTop,
   isDescendingTop,
   isDoubleTopFailure,
@@ -1886,6 +2600,8 @@ latestRSI,
   isDoubleBottomFailure,       
   breakoutTestSignal,
   breakoutFailure,
+  highBreakoutFail,
+  lowBreakoutFail,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
@@ -1895,7 +2611,16 @@ latestRSI,
 		ema14Bounce,
 		ema70Bounce,
   ema200Bounce,
-		touchedEMA200Today,
+			touchedEMA200Today,
+			touchedEMA100Today,
+      latestCandleInsideEMA50EMA70,
+      latestCandleInsideEMA50EMA70Details: {
+        isForming: Boolean(latestEmaZoneCandle && latestEmaZoneCandle.closeTime > Date.now()),
+        candleClose: latestEmaZoneCandle?.close ?? null,
+        ema50: Number.isFinite(lastEMA50) ? lastEMA50 : null,
+        ema70: Number.isFinite(lastEMA70) ? lastEMA70 : null,
+      },
+			ema70200Cross,
 		bearishDivergence,
 		bullishDivergence,
 		bearishVolumeDivergence,
@@ -1923,102 +2648,152 @@ latestRSI,
 	  
 
       const fetchSymbols = async () => {
-      const info = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo").then(res => res.json());
+      if (isMounted) setScannerStatus('starting');
+      const info = await safeFetchJson<any>(
+        "https://fapi.binance.com/fapi/v1/exchangeInfo",
+        "exchangeInfo"
+      );
+      // IMPORTANT: Do NOT truncate this list. Binance can have more than
+      // 500 active USDⓈ-M perpetual contracts, and truncating here makes
+      // perfectly active Binance Futures symbols invisible to the UI.
+      // Keep only symbols that Binance currently reports as TRADING.
       symbols = info.symbols
   .filter(
     (s: any) =>
+      s.status === "TRADING" &&
       s.contractType === "PERPETUAL" &&
       s.quoteAsset === "USDT" &&
       !blacklist.includes(s.symbol)
   )
-  .slice(0, 500)
-  .map((s: any) => s.symbol);
+  .map((s: any) => s.symbol)
+  .filter((symbol: string) => Boolean(symbol));
+
+        if (isMounted) {
+          // Publish the complete active-contract universe immediately.
+          // Analysis results arrive progressively afterwards.
+          setActiveFuturesSymbols([...symbols]);
+          setScannerProgress({ completed: 0, total: symbols.length });
+          setScannerStatus('scanning');
+        }
 	  };
 
-	  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   const fetchBatch = async () => {
-  if (!symbols.length) return;
+  if (!symbols.length || !isMounted) return;
+
+  setScannerStatus('scanning');
+  setNextScanAt(null);
 
   const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
   currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
   const results: any[] = [];
 
-  for (const symbol of batch) {
-    try {
-      const result = await fetchAndAnalyze(symbol, timeframe);
+  // Process a maximum of 3 symbols concurrently. This is substantially faster
+  // than the old fully-serial scanner while keeping request bursts bounded.
+  for (let offset = 0; offset < batch.length && isMounted; offset += MAX_CONCURRENT) {
+    const wave = batch.slice(offset, offset + MAX_CONCURRENT);
+
+    const waveResults = await Promise.all(
+      wave.map(async (symbol) => {
+        try {
+          return await fetchAndAnalyze(symbol, timeframe);
+        } catch (err: any) {
+          if (err?.message === 'Scanner stopped') return null;
+          console.warn(`Error on ${symbol}:`, err?.message || err);
+          return null;
+        }
+      })
+    );
+
+    for (const result of waveResults) {
       if (result) results.push(result);
-    } catch (err: any) {
-      // 429 = rate-limit; back off longer
-      if (err.message?.includes("429")) {
-        console.warn("⚠️ Rate limit hit, pausing 10 s...");
-        await delay(10_000);
-      } else {
-        console.warn(`Error on ${symbol}:`, err.message);
-      }
     }
 
-    // 🔹 small random delay between each request (300 – 600 ms)
-    const randomDelay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
-    await delay(randomDelay);
-  }
+    if (!isMounted || offset + MAX_CONCURRENT >= batch.length) break;
 
-  const cleanedResults = results.filter(r => r !== null);
+    const usageRatio = lastUsedWeight1m / RATE_LIMIT_WEIGHT;
+    const adaptiveDelay =
+      usageRatio >= 0.90 ? 5000 :
+      usageRatio >= 0.80 ? 2500 :
+      usageRatio >= RATE_LIMIT_SOFT_CAP ? 1200 :
+      WAVE_DELAY_MS;
+
+    await delay(adaptiveDelay);
+  }
 
   if (isMounted) {
     setSignals(prev => {
       const updated = [...prev];
       const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-      for (const result of cleanedResults) {
+
+      for (const result of results) {
         const index = updated.findIndex(r => r.symbol === result.symbol);
         if (index >= 0) updated[index] = result;
         else updated.push(result);
         updatedMap[result.symbol] = Date.now();
       }
+
       setLastUpdatedMap(updatedMap);
       return updated;
     });
   }
 };
 
+  // A self-scheduling loop deliberately replaces setInterval. setInterval can
+  // start a second scan while the previous scan is still running, causing
+  // accidental Binance 429 bursts.
   const runBatches = async () => {
     await fetchSymbols();
-    await fetchBatch();
-    setLoading(false);
 
-    const interval = setInterval(fetchBatch, INTERVAL_MS);
-    return () => clearInterval(interval);
+    while (isMounted) {
+      await fetchBatch();
+
+      if (!isMounted) break;
+
+      const usageRatio = lastUsedWeight1m / RATE_LIMIT_WEIGHT;
+      const cycleDelay =
+        usageRatio >= 0.90 ? 5000 :
+        usageRatio >= 0.80 ? 2500 :
+        BETWEEN_CYCLE_DELAY_MS;
+
+      if (isMounted) {
+        setScannerStatus('waiting');
+        setNextScanAt(Date.now() + cycleDelay);
+      }
+      await delay(cycleDelay);
+    }
   };
 
-  let cleanup: () => void;
-
-  runBatches().then((stop) => {
-    cleanup = stop;
+  runBatches().catch((err) => {
+    if (isMounted && err?.message !== 'Scanner stopped') {
+      setScannerStatus('error');
+      console.error('Scanner loop stopped:', err);
+    }
   });
 
   return () => {
+    // Stop the self-scheduling loop. Any in-flight request is allowed to
+    // finish, but no new Binance request will be started after unmount.
     isMounted = false;
-    if (cleanup) cleanup();
   };
 }, [timeframe]); // ✅ triggers on timeframe change
 
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
+    if (tf !== '1d') setOneDayBearishRsiPumpEmaFilter('all');
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
 
-if (loading) {
-  return (
-    <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-yellow-400 border-opacity-50 mx-auto mb-4"></div>
-        <p className="text-lg">Loading data...</p>
-      </div>
-    </div>
-  );
-}
+    const SortableTh = ({ field, children, className = '' }: { field: string; children: any; className?: string }) => (
+      <th
+        onClick={() => toggleSort(field)}
+        title={`Sort by ${typeof children === 'string' ? children : field}`}
+        className={`px-1 py-0.5 bg-gray-800 text-center cursor-pointer select-none whitespace-nowrap border border-gray-700 hover:bg-gray-700 ${className}`}
+      >
+        {children} {sortField === field ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+      </th>
+    );
 
     return (
 	    
@@ -2026,6 +2801,66 @@ if (loading) {
     <h2 className="text-2xl font-bold text-yellow-400 mb-4 tracking-wide">
   ⏱ Current Timeframe: <span className="text-white">{timeframe.toUpperCase()}</span>
 </h2>
+
+    <div className="mb-3 rounded-lg border border-gray-700 bg-gray-800/70 px-3 py-2 text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span className={scannerStatus === 'error' ? 'text-red-400' : scannerStatus === 'rate-limited' ? 'text-yellow-400' : scannerStatus === 'scanning' ? 'text-green-400' : 'text-gray-300'}>
+          {scannerStatus === 'starting' && '🟡 SCANNER INITIALIZING'}
+          {scannerStatus === 'scanning' && '🟢 SCANNING IN BACKGROUND'}
+          {scannerStatus === 'waiting' && '🔵 WAITING FOR NEXT BATCH'}
+          {scannerStatus === 'rate-limited' && '🟠 BINANCE RATE-LIMIT BACKOFF'}
+          {scannerStatus === 'error' && '🔴 SCANNER ERROR'}
+        </span>
+        <span className="text-gray-300">
+          Progress: {scannerProgress.completed}/{scannerProgress.total || '—'}
+        </span>
+        <span className="text-green-300">
+          Active Futures: {activeFuturesSymbols.length || '—'}
+        </span>
+        {nextScanAt && scannerStatus === 'waiting' && (
+          <span className="text-gray-300">
+            Next batch: {new Date(nextScanAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+          </span>
+        )}
+      </div>
+    </div>
+
+    {/* 🟢 COMPLETE ACTIVE BINANCE FUTURES UNIVERSE
+        This list is independent of the scanner batches. It guarantees that
+        every currently TRADING USDT perpetual returned by Binance exchangeInfo
+        is visible immediately, even while technical analysis is still queued. */}
+    <div className="mb-4 rounded-lg border border-green-700 bg-gray-800/80 p-3">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <span className="font-bold text-green-400">🟢 ACTIVE BINANCE FUTURES</span>
+        <span className="text-gray-300">
+          {activeFuturesSymbols.length} active USDT perpetuals
+        </span>
+        <span className="text-gray-500 text-xs">
+          • Complete exchangeInfo list • analysis loads in batches
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
+        {activeFuturesSymbols.length > 0 ? activeFuturesSymbols.map((symbol) => (
+          <button
+            key={symbol}
+            type="button"
+            onClick={() => setSearch(symbol)}
+            className={`px-2 py-0.5 rounded text-[10px] border ${
+              signals.some((s) => s.symbol === symbol)
+                ? 'border-green-700 bg-gray-700 text-green-300'
+                : 'border-gray-700 bg-gray-900 text-gray-400'
+            }`}
+            title={signals.some((s) => s.symbol === symbol)
+              ? `${symbol}: analyzed`
+              : `${symbol}: waiting for analysis batch`}
+          >
+            {symbol}
+          </button>
+        )) : (
+          <span className="text-gray-500 text-xs">Loading active Binance Futures contracts…</span>
+        )}
+      </div>
+    </div>
 
     <div className="flex space-x-4 my-4">
     {timeframes.map((tf) => (
@@ -2066,6 +2901,42 @@ if (loading) {
         color: 'text-red-300',
       },
       {
+        label: 'Bullish + Near Support',
+        key: 'bullishNearSupport',
+        count: bullishNearSupportCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish + Near Resistance',
+        key: 'bearishNearResistance',
+        count: bearishNearResistanceCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Breakup',
+        key: 'bullishBreakup',
+        count: bullishBreakupCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish + Breakdown',
+        key: 'bearishBreakdown',
+        count: bearishBreakdownCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Doji After Breakout',
+        key: 'bullishDojiAfterBreakout',
+        count: bullishDojiAfterBreakoutCount,
+        color: 'text-purple-300',
+      },
+      {
+        label: 'Bearish + Doji After Breakout',
+        key: 'bearishDojiAfterBreakout',
+        count: bearishDojiAfterBreakoutCount,
+        color: 'text-purple-300',
+      },
+      {
         label: 'Bullish Reversal',
         key: 'bullishReversal',
         count: bullishReversalCount,
@@ -2076,6 +2947,42 @@ if (loading) {
         key: 'bearishReversal',
         count: bearishReversalCount,
         color: 'text-red-300',
+      },
+      {
+        label: 'Bullish Divergence',
+        key: 'bullishDivergence',
+        count: bullishDivergenceCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Divergence',
+        key: 'bearishDivergence',
+        count: bearishDivergenceCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Previous Close Green',
+        key: 'prevCloseGreen',
+        count: prevCloseGreenCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Previous Close Red',
+        key: 'prevCloseRed',
+        count: prevCloseRedCount,
+        color: 'text-red-300',
+      },
+      {
+        label: '1D • 2 Previous Red Closes',
+        key: 'oneDayTwoRedCloses',
+        count: oneDayTwoRedClosesCount,
+        color: 'text-red-300',
+      },
+      {
+        label: '1D • 3-Point Bearish RSI Divergence',
+        key: 'oneDayThreePointBearishDivergence',
+        count: oneDayThreePointBearishDivergenceCount,
+        color: 'text-orange-300',
       },
       {
         label: 'Bullish Spike',
@@ -2128,9 +3035,9 @@ if (loading) {
     ].map(({ label, key, count, color }) => (
       <button
         key={key}
-        onClick={() => setTrendFilter(trendFilter === key ? null : key)}
+        onClick={() => setTrendFilters(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])}
         className={`px-3 py-1 rounded-full flex items-center gap-1 ${
-          trendFilter === key ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+          trendFilters.includes(key) ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
         }`}
       >
         <span>{label}</span>
@@ -2199,13 +3106,124 @@ if (loading) {
       </div>
     </div>
 
+    {/* 🔎 Uniform Table Filters */}
+    <div className="border border-gray-700 rounded-lg p-3 bg-gray-900">
+      <p className="text-gray-400 mb-2 font-semibold">🔎 Table Filters</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>RSI14</span>
+          <select value={rsi14Filter} onChange={(e) => setRsi14Filter(e.target.value as typeof rsi14Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="above50">Above 50</option>
+            <option value="below50">50 or below</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Breakout Fail</span>
+          <select value={breakoutFailFilter} onChange={(e) => setBreakoutFailFilter(e.target.value as typeof breakoutFailFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>1D Two Previous Red Closes</span>
+          <select value={oneDayTwoRedClosesFilter} onChange={(e) => setOneDayTwoRedClosesFilter(e.target.value as typeof oneDayTwoRedClosesFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — 2 red closes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>1D Bearish + RSI&gt;50 + Pump 9–13 + EMA14 Inside</span>
+          <select value={oneDayBearishRsiPumpEmaFilter} onChange={(e) => setOneDayBearishRsiPumpEmaFilter(e.target.value as typeof oneDayBearishRsiPumpEmaFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — all conditions</option>
+            <option value="no">No — condition not met</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Touched EMA100 (08:00–08:00 PH)</span>
+          <select value={touchedEMA100Filter} onChange={(e) => setTouchedEMA100Filter(e.target.value as typeof touchedEMA100Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — touched this session</option>
+            <option value="no">No — not touched this session</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Latest Candle Inside EMA50–70</span>
+          <select value={latestCandleInsideEMA50EMA70Filter} onChange={(e) => setLatestCandleInsideEMA50EMA70Filter(e.target.value as typeof latestCandleInsideEMA50EMA70Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — Inside EMA50–70</option>
+            <option value="no">No — Outside EMA50–70</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Touched EMA200 (08:00–08:00)</span>
+          <select value={touchedEMA200Filter} onChange={(e) => setTouchedEMA200Filter(e.target.value as typeof touchedEMA200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>EMA70/200 Cross (08:00–08:00)</span>
+          <select value={ema70200CrossFilter} onChange={(e) => setEma70200CrossFilter(e.target.value as typeof ema70200CrossFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="bullish">Bullish Cross</option>
+            <option value="bearish">Bearish Cross</option>
+            <option value="no">No Cross</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Signal</span>
+          <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="MAX ZONE PUMP">MAX ZONE PUMP</option>
+            <option value="MAX ZONE DUMP">MAX ZONE DUMP</option>
+            <option value="BALANCE ZONE PUMP">BALANCE ZONE PUMP</option>
+            <option value="BALANCE ZONE DUMP">BALANCE ZONE DUMP</option>
+            <option value="LOWEST ZONE PUMP">LOWEST ZONE PUMP</option>
+            <option value="LOWEST ZONE DUMP">LOWEST ZONE DUMP</option>
+            <option value="NO DATA">NO DATA</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>RSI Pump | Dump</span>
+          <select value={rsiPumpDumpFilter} onChange={(e) => setRsiPumpDumpFilter(e.target.value as typeof rsiPumpDumpFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="pump">Pump</option>
+            <option value="dump">Dump</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
     {/* 🔴 Clear Button */}
     <div>
       <button
         onClick={() => {
           setSearch('');
-          setTrendFilter(null);
+          setTrendFilters([]);
           setSignalFilter(null);
+          setTableSignalFilter('all');
+          setRsi14Filter('all');
+          setBreakoutFailFilter('all');
+          setOneDayTwoRedClosesFilter('all');
+          setTouchedEMA200Filter('all');
+          setTouchedEMA100Filter('all');
+          setLatestCandleInsideEMA50EMA70Filter('all');
+          setEma70200CrossFilter('all');
+          setRsiPumpDumpFilter('all');
           setCoinListView('not-favorites');
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
@@ -2264,13 +3282,17 @@ if (loading) {
 </div>
 
 <div className="flex flex-wrap gap-4 mb-4 items-center">
-  {/* ⭐ Favorites separation: adds list views without changing the other filters */}
-  <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Coin list view">
+  {/* 🔸 Favorites Views — additive replacement for the old single toggle */}
+  <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Coin favorites views">
     <button
       type="button"
       onClick={() => setCoinListView('not-favorites')}
       aria-pressed={coinListView === 'not-favorites'}
-      className={`px-3 py-2 rounded-lg border ${coinListView === 'not-favorites' ? 'bg-yellow-500 text-black border-yellow-400 font-bold' : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'}`}
+      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+        coinListView === 'not-favorites'
+          ? 'bg-yellow-500 text-gray-950 border-yellow-400'
+          : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
+      }`}
     >
       ☆ Not Yet Favorited ({signals.filter((s) => !favorites.has(s.symbol)).length})
     </button>
@@ -2278,7 +3300,11 @@ if (loading) {
       type="button"
       onClick={() => setCoinListView('favorites')}
       aria-pressed={coinListView === 'favorites'}
-      className={`px-3 py-2 rounded-lg border ${coinListView === 'favorites' ? 'bg-yellow-500 text-black border-yellow-400 font-bold' : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'}`}
+      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+        coinListView === 'favorites'
+          ? 'bg-yellow-500 text-gray-950 border-yellow-400'
+          : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
+      }`}
     >
       ⭐ Favorites ({signals.filter((s) => favorites.has(s.symbol)).length})
     </button>
@@ -2286,7 +3312,11 @@ if (loading) {
       type="button"
       onClick={() => setCoinListView('all')}
       aria-pressed={coinListView === 'all'}
-      className={`px-3 py-2 rounded-lg border ${coinListView === 'all' ? 'bg-yellow-500 text-black border-yellow-400 font-bold' : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'}`}
+      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+        coinListView === 'all'
+          ? 'bg-yellow-500 text-gray-950 border-yellow-400'
+          : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
+      }`}
     >
       All Coins ({signals.length})
     </button>
@@ -2318,198 +3348,52 @@ if (loading) {
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
-  <tr>
-    {/* Symbol */}
-    <th
-      onClick={() => {
-        setSortField('symbol');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 sticky left-0 z-30 text-left align-middle cursor-pointer"
-    >
-      Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-	    <th className="px-2 py-1 border border-gray-700 text-right">Current Price</th>
-	   <th
-  onClick={() => {
-    setSortField('priceChangePercent');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  24h Change (%) {sortField === 'priceChangePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-
-{/* RSI Pump | Dump */}
-    <th
-      onClick={() => {
-        setSortField('pumpStrength');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      RSI Pump | Dump {sortField === 'pumpStrength' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-	    <th
-  onClick={() => {
-    setSortField('latestRSI');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  RSI14 {sortField === 'latestRSI' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	
-
-	  <th className="px-1 py-0.5 text-center">Breakout Fail</th>
-
-
-	  {/* Touched EMA200 Today */}
-    <th
-      onClick={() => {
-        setSortField('touchedEMA200Today');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Touched EMA200 Today {sortField === 'touchedEMA200Today' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>	
-
-	  <th className="px-1 py-0.5 min-w-[60px] text-center">Signal</th>
-	  
-<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Drop 🚨
-</th>
-<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Recovery 🟢
-</th>	  
-
-    {/* Static Columns */}
-    <th className="px-1 py-0.5 text-center">Bull BO</th>
-    <th className="px-1 py-0.5 text-center">Bear BO</th>
-	<th
-  onClick={() => {
-    setSortField('prevClose');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Prev Close {sortField === 'prevClose' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>
-	  
-      <th className="px-1 py-0.5 text-center">Trend (200)</th>
-	  
-<th className="px-1 py-0.5 text-center">Collapse</th>
-    <th className="px-1 py-0.5 text-center">Spike</th>
-<th className="px-1 py-0.5 text-center">Bear Rev</th>
-    <th className="px-1 py-0.5 text-center">Bull Rev</th>	
-
-<th
-  onClick={() => {
-    setSortField('divergenceFromLevel');
-    setSortOrder((prev) =>
-      sortField === 'divergenceFromLevel' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  Div From Lev {sortField === 'divergenceFromLevel' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-	      	    
-
-{/* Bearish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bearishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bearish Divergence {sortField === 'bearishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-    {/* Bullish Divergence */}
-    <th
-      onClick={() => {
-        setSortField('bullishDivergence');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      Bullish Divergence {sortField === 'bullishDivergence' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-
-{/* Volume */}
-    <th className="p-2 text-center">Volume</th>
-	<th className="px-1 py-0.5 bg-gray-800 text-center">
-  Volume Divergence
-</th> 
-	 <th
-  onClick={() => {
-    setSortField('isVolumeSpike');
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  }}
-  className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
->
-  Volume Spike {sortField === 'isVolumeSpike' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th>	  
-	  
-<th
-  onClick={() => {
-    setSortField('ema14InsideResults');
-    setSortOrder((prev) =>
-      sortField === 'ema14InsideResults' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  EMA14 Inside<br />EMA70–200 {sortField === 'ema14InsideResults' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-
-	  
- <th className="px-4 py-2 border border-gray-700">Ema14&70 Gap %</th>	  
-<th className="px-4 py-2 border border-gray-700">Ema70&200 Gap %</th>
-	  
-<th className="px-1 py-0.5 text-center">Low→EMA200 (%)</th>
-<th className="px-1 py-0.5 text-center">High→EMA200 (%)</th>	  
-	  	  
-<th
-  onClick={() => {
-    setSortField('ema200Bounce');
-    setSortOrder((prev) =>
-      sortField === 'ema200Bounce' && prev === 'asc' ? 'desc' : 'asc'
-    );
-  }}
-  className="px-2 py-1 bg-gray-800 border border-gray-700 text-center cursor-pointer"
->
-  EMA200 Bounce {sortField === 'ema200Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-</th> 
-	  
-
-	  
-   {/* More Static Columns */}
-    <th className="p-2 text-center">EMA14 Bounce</th>
-    <th
-      onClick={() => {
-        setSortField('ema70Bounce');
-        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      }}
-      className="px-1 py-0.5 bg-gray-800 text-center cursor-pointer"
-    >
-      EMA70 Bounce {sortField === 'ema70Bounce' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-    </th>
-	  
-<th className="p-2 text-green-400">Bullish Engulfing</th>
-<th className="p-2 text-red-400">Bearish Engulfing</th>	  
-
-	  	  
-    <th className="px-1 py-0.5 text-center">Tested High</th>
-    <th className="px-1 py-0.5 text-center">Tested Low</th>
-    <th className="px-1 py-0.5 text-center">Top Pattern</th>
-    <th className="px-1 py-0.5 text-center">Bottom Pattern</th>
- 
-  </tr>
-</thead>
+      <tr>
+        <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
+        <SortableTh field="currentPrice">Current Price</SortableTh>
+        <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+        <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
+        <SortableTh field="latestRSI">RSI14</SortableTh>
+        <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
+        <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
+        <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
+        <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
+        <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
+        <SortableTh field="signal">Signal</SortableTh>
+        <SortableTh field="drop">Drop 🚨</SortableTh>
+        <SortableTh field="recovery">Recovery 🟢</SortableTh>
+        <SortableTh field="bullishBreakout">Bull BO</SortableTh>
+        <SortableTh field="bearishBreakout">Bear BO</SortableTh>
+        <SortableTh field="prevClose">Prev Close</SortableTh>
+        <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
+        <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
+        <SortableTh field="mainTrend">Trend (200)</SortableTh>
+        <SortableTh field="bearishCollapse">Collapse</SortableTh>
+        <SortableTh field="bullishSpike">Spike</SortableTh>
+        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
+        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
+        <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
+        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
+        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
+        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
+        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
+        <SortableTh field="ema14InsideResults">EMA14 Inside EMA70–200</SortableTh>
+        <SortableTh field="gap">Ema14&70 Gap %</SortableTh>
+        <SortableTh field="gap1">Ema70&200 Gap %</SortableTh>
+        <SortableTh field="gapFromLowToEMA200">Low→EMA200 (%)</SortableTh>
+        <SortableTh field="gapFromHighToEMA200">High→EMA200 (%)</SortableTh>
+        <SortableTh field="ema200Bounce">EMA200 Bounce</SortableTh>
+        <SortableTh field="ema14Bounce">EMA14 Bounce</SortableTh>
+        <SortableTh field="ema70Bounce">EMA70 Bounce</SortableTh>
+        <SortableTh field="hasBullishEngulfing">Bullish Engulfing</SortableTh>
+        <SortableTh field="hasBearishEngulfing">Bearish Engulfing</SortableTh>
+        <SortableTh field="testedPrevHigh">Tested High</SortableTh>
+        <SortableTh field="testedPrevLow">Tested Low</SortableTh>
+        <SortableTh field="topPattern">Top Pattern</SortableTh>
+        <SortableTh field="bottomPattern">Bottom Pattern</SortableTh>
+      </tr>
+    </thead>
     
     <tbody>
       {filteredAndSortedSignals.map((s) => {
@@ -2527,7 +3411,7 @@ const validPump = pump !== undefined && pump !== 0;
 const validDump = dump !== undefined && dump !== 0;
 
 // ✅ Early return: skip rendering if both are invalid or 0
-if (!validPump && !validDump) return null;
+if (!validPump && !validDump && tableSignalFilter !== 'NO DATA') return null;
 
 const pumpInRange_21_26 = inRange(pump, 21, 26);
 const dumpInRange_21_26 = inRange(dump, 21, 26);
@@ -2641,10 +3525,35 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.breakoutFailure ? 'Yes' : '-'}
   </td>
 
-			   {/* Touched EMA200 */}
+			   {/* Touched EMA100 during the current 08:00–08:00 PH session */}
+  <td className={`p-2 ${s.touchedEMA100Today ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="EMA100 touch is based on each candle's high/low intersecting that candle's EMA100 value during the current PH session">
+    {s.touchedEMA100Today ? 'Yes' : 'No'}
+  </td>
+
+  {/* Latest forming candle close between EMA50 and EMA70 on the selected scan timeframe */}
+  <td className={`px-2 py-1 text-center font-semibold ${s.latestCandleInsideEMA50EMA70 ? 'text-green-400' : 'text-gray-500'}`} title={`Latest candle ${s.latestCandleInsideEMA50EMA70Details?.isForming ? 'is forming' : 'may be closed'}; close: ${s.latestCandleInsideEMA50EMA70Details?.candleClose ?? 'N/A'}; EMA50: ${s.latestCandleInsideEMA50EMA70Details?.ema50 ?? 'N/A'}; EMA70: ${s.latestCandleInsideEMA50EMA70Details?.ema70 ?? 'N/A'}`}>
+    {s.latestCandleInsideEMA50EMA70 ? 'YES — INSIDE' : 'NO'}
+  </td>
+
+  {/* Touched EMA200 */}
   <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
     {s.touchedEMA200Today ? 'Yes' : 'No'}
   </td>	  
+
+  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
+  <td className={`px-2 py-1 text-center font-semibold ${
+    s.ema70200Cross?.direction === 'bullish'
+      ? 'text-green-400'
+      : s.ema70200Cross?.direction === 'bearish'
+      ? 'text-red-400'
+      : 'text-gray-500'
+  }`}>
+    {s.ema70200Cross?.direction === 'bullish'
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : s.ema70200Cross?.direction === 'bearish'
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : 'No'}
+  </td>
 
 			   <td
   className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
@@ -2698,6 +3607,23 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 >
   {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
 </td>
+  <td className="px-1 py-0.5 text-center font-semibold">
+    {s.oneDayTwoPreviousRedCloses === true
+      ? '🔴 YES (2/2)'
+      : s.oneDayTwoPreviousRedCloses === false
+      ? `No (${s.oneDayPreviousRedCloseCount}/2)`
+      : 'N/A — 1D only'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center font-semibold ${
+    s.oneDayThreePointBearishDivergence?.divergence ? 'text-orange-400' : 'text-gray-500'
+  }`} title={s.oneDayThreePointBearishDivergence?.message || '1D only'}>
+    {s.oneDayThreePointBearishDivergence?.divergence
+      ? '🔴 CONFIRMED'
+      : s.oneDayThreePointBearishDivergence?.status === 'NO'
+      ? 'No'
+      : 'N/A — 1D only'}
+  </td>
 		   
 <td
   className={`px-1 py-0.5 text-center ${
