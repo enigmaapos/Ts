@@ -2264,38 +2264,29 @@ if (loading) {
 </div>
 
 <div className="flex flex-wrap gap-4 mb-4 items-center">
-  {/* ⭐ Coin List Views: separate saved favorites from coins not yet favorited */}
-  <div className="flex flex-wrap items-center gap-2 text-sm">
+  {/* ⭐ Favorites separation: adds list views without changing the other filters */}
+  <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Coin list view">
     <button
       type="button"
       onClick={() => setCoinListView('not-favorites')}
-      className={`px-3 py-2 rounded-lg border ${
-        coinListView === 'not-favorites'
-          ? 'bg-yellow-500 text-black border-yellow-400 font-bold'
-          : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'
-      }`}
+      aria-pressed={coinListView === 'not-favorites'}
+      className={`px-3 py-2 rounded-lg border ${coinListView === 'not-favorites' ? 'bg-yellow-500 text-black border-yellow-400 font-bold' : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'}`}
     >
       ☆ Not Yet Favorited ({signals.filter((s) => !favorites.has(s.symbol)).length})
     </button>
     <button
       type="button"
       onClick={() => setCoinListView('favorites')}
-      className={`px-3 py-2 rounded-lg border ${
-        coinListView === 'favorites'
-          ? 'bg-yellow-500 text-black border-yellow-400 font-bold'
-          : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'
-      }`}
+      aria-pressed={coinListView === 'favorites'}
+      className={`px-3 py-2 rounded-lg border ${coinListView === 'favorites' ? 'bg-yellow-500 text-black border-yellow-400 font-bold' : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'}`}
     >
       ⭐ Favorites ({signals.filter((s) => favorites.has(s.symbol)).length})
     </button>
     <button
       type="button"
       onClick={() => setCoinListView('all')}
-      className={`px-3 py-2 rounded-lg border ${
-        coinListView === 'all'
-          ? 'bg-yellow-500 text-black border-yellow-400 font-bold'
-          : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'
-      }`}
+      aria-pressed={coinListView === 'all'}
+      className={`px-3 py-2 rounded-lg border ${coinListView === 'all' ? 'bg-yellow-500 text-black border-yellow-400 font-bold' : 'bg-gray-800 text-white border-gray-600 hover:bg-gray-700'}`}
     >
       All Coins ({signals.length})
     </button>
