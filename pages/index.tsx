@@ -3800,6 +3800,11 @@ else if (direction === 'pump' && pumpInRange_1_10) {
           ? s.bearishDivergence.prevHigh.toFixed(8)
           : '—'}
       </span>
+      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
+        Prev RSI: {typeof s.bearishDivergence.prevRSI === 'number'
+          ? s.bearishDivergence.prevRSI.toFixed(2)
+          : '—'}
+      </span>
     </div>
   ) : '-'}
 </td>
@@ -3812,6 +3817,11 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
         Prev L: ${typeof s.bullishDivergence.prevLow === 'number'
           ? s.bullishDivergence.prevLow.toFixed(8)
+          : '—'}
+      </span>
+      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
+        Prev RSI: {typeof s.bullishDivergence.prevRSI === 'number'
+          ? s.bullishDivergence.prevRSI.toFixed(2)
           : '—'}
       </span>
     </div>
