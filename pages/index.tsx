@@ -3790,14 +3790,32 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 		   
 
 {/* Divergences */}
-{/* Bearish Divergence */}
+{/* Bearish Divergence — show the previous session high used as the reference */}
 <td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
- {s.bearishDivergence?.divergence ? 'Yes' : '-'}
+  {s.bearishDivergence?.divergence ? (
+    <div className="flex flex-col">
+      <span>Yes</span>
+      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
+        Prev H: ${typeof s.bearishDivergence.prevHigh === 'number'
+          ? s.bearishDivergence.prevHigh.toFixed(8)
+          : '—'}
+      </span>
+    </div>
+  ) : '-'}
 </td>
 
-{/* Bullish Divergence */}
+{/* Bullish Divergence — show the previous session low used as the reference */}
 <td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-{s.bullishDivergence?.divergence ? 'Yes' : '-'}
+  {s.bullishDivergence?.divergence ? (
+    <div className="flex flex-col">
+      <span>Yes</span>
+      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
+        Prev L: ${typeof s.bullishDivergence.prevLow === 'number'
+          ? s.bullishDivergence.prevLow.toFixed(8)
+          : '—'}
+      </span>
+    </div>
+  ) : '-'}
 </td>	
 
   {/* Volume */}
