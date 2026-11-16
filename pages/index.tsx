@@ -759,6 +759,7 @@ const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
+const [ema14InsideEMA70200Filter, setEma14InsideEMA70200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [oneDayBearishRsiPumpEmaFilter, setOneDayBearishRsiPumpEmaFilter] = useState<'all' | 'yes' | 'no'>('all');
 
@@ -994,6 +995,11 @@ const filteredSignals = signals.filter((s) => {
     const crossDirection = s.ema70200Cross?.direction ?? 'none';
     const wanted = ema70200CrossFilter === 'no' ? 'none' : ema70200CrossFilter;
     if (crossDirection !== wanted) return false;
+  }
+
+  if (ema14InsideEMA70200Filter !== 'all') {
+    const isInside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
+    if ((isInside ? 'yes' : 'no') !== ema14InsideEMA70200Filter) return false;
   }
 
   if (rsiPumpDumpFilter !== 'all') {
@@ -3184,6 +3190,15 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>EMA14 Inside EMA70–200</span>
+          <select value={ema14InsideEMA70200Filter} onChange={(e) => setEma14InsideEMA70200Filter(e.target.value as typeof ema14InsideEMA70200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — EMA14 inside EMA70–200</option>
+            <option value="no">No — EMA14 outside EMA70–200</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Signal</span>
           <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -3223,6 +3238,7 @@ latestRSI,
           setTouchedEMA100Filter('all');
           setLatestCandleInsideEMA50EMA70Filter('all');
           setEma70200CrossFilter('all');
+          setEma14InsideEMA70200Filter('all');
           setRsiPumpDumpFilter('all');
           setCoinListView('not-favorites');
         }}
