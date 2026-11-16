@@ -3542,15 +3542,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : 'Below 50 (Bearish)'}
 </td>	
 
-			           : s.highestVolumeColorPrev === 'red'
-        ? 'text-red-400'
-        : 'text-gray-400'
-    }`}
-  >
-    {typeof s.highestVolumeColorPrev === 'string'
-      ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
-      : '—'}
-  </td>	
 
  <td
   className={`px-1 py-0.5 text-center font-semibold ${
@@ -3874,7 +3865,15 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     className={`p-2 font-semibold ${
       s.highestVolumeColorPrev === 'green'
         ? 'text-green-400'
-
+        : s.highestVolumeColorPrev === 'red'
+        ? 'text-red-400'
+        : 'text-gray-400'
+    }`}
+  >
+    {typeof s.highestVolumeColorPrev === 'string'
+      ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
+      : '—'}
+  </td>
 
 <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
   {typeof s.gap === 'number' && !isNaN(s.gap) ? `${s.gap.toFixed(2)}%` : 'N/A'}
