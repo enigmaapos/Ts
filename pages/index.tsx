@@ -3353,20 +3353,13 @@ latestRSI,
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
-		  <SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
-		  <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
-        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
-        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
-        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
-        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
-        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
-        <SortableTh field="ema14InsideResults">EMA14 Inside EMA70–200</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
         <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
         <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
         <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
+        <SortableTh field="signal">Signal</SortableTh>
         <SortableTh field="drop">Drop 🚨</SortableTh>
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
@@ -3379,6 +3372,13 @@ latestRSI,
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
         <SortableTh field="bullishReversal">Bull Rev</SortableTh>
+        <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
+        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
+        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
+        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
+        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
+        <SortableTh field="ema14InsideResults">EMA14 Inside EMA70–200</SortableTh>
         <SortableTh field="gap">Ema14&70 Gap %</SortableTh>
         <SortableTh field="gap1">Ema70&200 Gap %</SortableTh>
         <SortableTh field="gapFromLowToEMA200">Low→EMA200 (%)</SortableTh>
@@ -3505,27 +3505,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
 </td>
 
-			      <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>			   
-			   
-
 			   <td
   className={`px-2 py-1 text-center font-semibold ${
     typeof s.latestRSI !== 'number'
@@ -3541,37 +3520,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     ? 'Above 50 (Bullish)'
     : 'Below 50 (Bearish)'}
 </td>	
-
-
- <td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.bullishVolumeDivergence?.divergence
-      ? s.bullishVolumeDivergence.type === 'bullish-volume'
-        ? 'text-green-400'
-        : 'text-red-400'
-      : 'text-gray-400'
-  }`}
->
-  {s.bullishVolumeDivergence?.divergence
-    ? s.bullishVolumeDivergence.type === 'bullish-volume'
-      ? 'Bullish'
-      : 'Bearish'
-    : '—'}
-</td>
-	 <td
-  className={`p-2 font-semibold ${
-    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
-  }`}
->
-  {s.isVolumeSpike ? 'Spike' : '—'}
-</td>	    	  
-		   
-<td className="px-1 py-0.5 text-center text-[10px]">
-  {s.ema14InsideResults.some(r => r.inside)
-    ? <span className="text-green-400 font-semibold">YES</span>
-    : <span className="text-red-400">NO</span>}
-</td>	
-	  
 
 			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
     {s.breakoutFailure ? 'Yes' : '-'}
@@ -3606,6 +3554,26 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
       : 'No'}
   </td>
+
+			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>			   
 			   
 
 	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
@@ -3873,7 +3841,36 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {typeof s.highestVolumeColorPrev === 'string'
       ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
       : '—'}
-  </td>
+  </td>	
+
+ <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.bullishVolumeDivergence?.divergence
+      ? s.bullishVolumeDivergence.type === 'bullish-volume'
+        ? 'text-green-400'
+        : 'text-red-400'
+      : 'text-gray-400'
+  }`}
+>
+  {s.bullishVolumeDivergence?.divergence
+    ? s.bullishVolumeDivergence.type === 'bullish-volume'
+      ? 'Bullish'
+      : 'Bearish'
+    : '—'}
+</td>
+	 <td
+  className={`p-2 font-semibold ${
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+  }`}
+>
+  {s.isVolumeSpike ? 'Spike' : '—'}
+</td>	    	  
+		   
+<td className="px-1 py-0.5 text-center text-[10px]">
+  {s.ema14InsideResults.some(r => r.inside)
+    ? <span className="text-green-400 font-semibold">YES</span>
+    : <span className="text-red-400">NO</span>}
+</td>	
 
 <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
   {typeof s.gap === 'number' && !isNaN(s.gap) ? `${s.gap.toFixed(2)}%` : 'N/A'}
