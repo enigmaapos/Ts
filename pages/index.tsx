@@ -671,7 +671,7 @@ function findRelevantLevel(
   highs: number[],
   lows: number[],
   trend: 'bullish' | 'bearish'
-): { level: number | null; type: 'support' | 'resistance' | null } {
+): { level: number | null; type: 'support' | 'resistance' | null; crossoverPrice: number | null } {
   for (let i = ema14.length - 2; i >= 1; i--) {
     const prev14 = ema14[i - 1];
     const prev70 = ema70[i - 1];
@@ -679,17 +679,17 @@ function findRelevantLevel(
     const curr70 = ema70[i];
 
     if (trend === 'bullish' && prev14 < prev70 && curr14 > curr70) {
-      return { level: closes[i], type: 'support' };
+      return { level: closes[i], type: 'support', crossoverPrice: closes[i] };
     }
 
     if (trend === 'bearish' && prev14 > prev70 && curr14 < curr70) {
-      return { level: closes[i], type: 'resistance' };
+      return { level: closes[i], type: 'resistance', crossoverPrice: closes[i] };
     }
   }
 
   const level = trend === 'bullish' ? Math.max(...highs) : Math.min(...lows);
   const type = trend === 'bullish' ? 'resistance' : 'support';
-  return { level, type };
+  return { level, type, crossoverPrice: null };
        }
 
 
@@ -1961,7 +1961,7 @@ const currentRSI = rsi14.at(-1);
           const prevHighRSI = prevHighIdx !== -1 ? rsi14[prevHighIdx] : null;
           const prevLowRSI = prevLowIdx !== -1 ? rsi14[prevLowIdx] : null;
 	  
-const { level, type } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
+const { level, type, crossoverPrice } = findRelevantLevel(ema14, ema70, closes, highs, lows, trend);
           const highestHigh = Math.max(...highs);
           const lowestLow = Math.min(...lows);
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
@@ -2587,7 +2587,10 @@ prevClosedRed,
   bearishReversalCount,
   bullishReversal,		
   bearishReversal,
-divergenceFromLevel,		
+divergenceFromLevel,
+  divergenceFromLevelPrice: crossoverPrice,
+  divergenceFromLevelLevelType: type,
+  divergenceFromLevelType,
   bullishSpike,
   bearishCollapse,	
   rsi14,
@@ -3801,7 +3804,19 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                         : 'bg-gray-800 text-gray-500'
                     }`}
                   >
-                    {s.divergenceFromLevel ? 'Yes' : 'No'}
+                    <div className="flex flex-col whitespace-nowrap">
+                      <span>{s.divergenceFromLevel ? 'Yes' : 'No'}</span>
+                      {typeof s.divergenceFromLevelPrice === 'number' && (
+                        <span className="text-[10px] font-normal text-cyan-300">
+                          {s.divergenceFromLevelLevelType === 'support' ? 'EMA Cross Support' : 'EMA Cross Resistance'}: ${s.divergenceFromLevelPrice.toFixed(7)}
+                        </span>
+                      )}
+                      {s.divergenceFromLevelType && (
+                        <span className="text-[10px] font-normal text-gray-300">
+                          {s.divergenceFromLevelType.toUpperCase()} DIV
+                        </span>
+                      )}
+                    </div>
                   </td>
 		   
 
