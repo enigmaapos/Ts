@@ -504,8 +504,12 @@ const getSignal = (s: any): string => {
   const pumpAbove30 = isAbove30(pump);
   const dumpAbove30 = isAbove30(dump);
 
+  const pumpInRange_27_29 = inRange(pump, 27, 29);
+  const dumpInRange_27_29 = inRange(dump, 27, 29);
   const pumpInRange_21_26 = inRange(pump, 21, 26);
   const dumpInRange_21_26 = inRange(dump, 21, 26);
+  const pumpInRange_11_20 = inRange(pump, 11, 20);
+  const dumpInRange_11_20 = inRange(dump, 11, 20);
 
   const pumpInRange_1_10 = inRange(pump, 1, 10);
   const dumpInRange_1_10 = inRange(dump, 1, 10);
@@ -528,10 +532,18 @@ const getSignal = (s: any): string => {
   if (direction === 'pump' && pumpAbove30) return 'MAX ZONE PUMP';  
   if (direction === 'dump' && dumpAbove30) return 'MAX ZONE DUMP';  
   
-  // ✅ BALANCE ZONE - Separate pump/dump  
-  if (pumpInRange_21_26 && direction === 'pump') return 'BALANCE ZONE PUMP';  
-  if (dumpInRange_21_26 && direction === 'dump') return 'BALANCE ZONE DUMP';  
-  
+  // ✅ UPPER-MIDDLE ZONE - Separate pump/dump
+  if (pumpInRange_27_29 && direction === 'pump') return 'UPPER-MIDDLE ZONE PUMP';
+  if (dumpInRange_27_29 && direction === 'dump') return 'UPPER-MIDDLE ZONE DUMP';
+
+  // ✅ BALANCE ZONE - Separate pump/dump
+  if (pumpInRange_21_26 && direction === 'pump') return 'BALANCE ZONE PUMP';
+  if (dumpInRange_21_26 && direction === 'dump') return 'BALANCE ZONE DUMP';
+
+  // ✅ LOWER-MIDDLE ZONE - Separate pump/dump
+  if (pumpInRange_11_20 && direction === 'pump') return 'LOWER-MIDDLE ZONE PUMP';
+  if (dumpInRange_11_20 && direction === 'dump') return 'LOWER-MIDDLE ZONE DUMP';
+
   // ✅ LOWEST ZONE - Separate pump/dump
   if (pumpInRange_1_10 && direction === 'pump') return 'LOWEST ZONE PUMP';
   if (dumpInRange_1_10 && direction === 'dump') return 'LOWEST ZONE DUMP';
@@ -1188,7 +1200,11 @@ const signalCounts = useMemo(() => {
   const counts = {
     maxZonePump: 0,
     maxZoneDump: 0,
+    upperMiddleZonePump: 0,
+    upperMiddleZoneDump: 0,
     balanceZonePump: 0,
+    lowerMiddleZonePump: 0,
+    lowerMiddleZoneDump: 0,
     balanceZoneDump: 0,
     lowestZonePump: 0,
     lowestZoneDump: 0,
@@ -1204,8 +1220,20 @@ const signalCounts = useMemo(() => {
       case 'MAX ZONE DUMP':
         counts.maxZoneDump++;
         break;
+      case 'UPPER-MIDDLE ZONE PUMP':
+        counts.upperMiddleZonePump++;
+        break;
+      case 'UPPER-MIDDLE ZONE DUMP':
+        counts.upperMiddleZoneDump++;
+        break;
       case 'BALANCE ZONE PUMP':
         counts.balanceZonePump++;
+        break;
+      case 'LOWER-MIDDLE ZONE PUMP':
+        counts.lowerMiddleZonePump++;
+        break;
+      case 'LOWER-MIDDLE ZONE DUMP':
+        counts.lowerMiddleZoneDump++;
         break;
       case 'BALANCE ZONE DUMP':
         counts.balanceZoneDump++;
@@ -3097,6 +3125,18 @@ latestRSI,
     color: 'text-yellow-400',
   },
   {
+    label: 'UPPER-MIDDLE ZONE PUMP',
+    key: 'UPPER-MIDDLE ZONE PUMP',
+    count: signalCounts.upperMiddleZonePump,
+    color: 'text-orange-300',
+  },
+  {
+    label: 'UPPER-MIDDLE ZONE DUMP',
+    key: 'UPPER-MIDDLE ZONE DUMP',
+    count: signalCounts.upperMiddleZoneDump,
+    color: 'text-orange-400',
+  },
+  {
     label: 'BALANCE ZONE PUMP',
     key: 'BALANCE ZONE PUMP',
     count: signalCounts.balanceZonePump,
@@ -3107,6 +3147,18 @@ latestRSI,
     key: 'BALANCE ZONE DUMP',
     count: signalCounts.balanceZoneDump,
     color: 'text-purple-400',
+  },
+  {
+    label: 'LOWER-MIDDLE ZONE PUMP',
+    key: 'LOWER-MIDDLE ZONE PUMP',
+    count: signalCounts.lowerMiddleZonePump,
+    color: 'text-cyan-300',
+  },
+  {
+    label: 'LOWER-MIDDLE ZONE DUMP',
+    key: 'LOWER-MIDDLE ZONE DUMP',
+    count: signalCounts.lowerMiddleZoneDump,
+    color: 'text-cyan-400',
   },
   {
     label: 'LOWEST ZONE PUMP',
@@ -3230,8 +3282,12 @@ latestRSI,
             <option value="all">All</option>
             <option value="MAX ZONE PUMP">MAX ZONE PUMP</option>
             <option value="MAX ZONE DUMP">MAX ZONE DUMP</option>
+            <option value="UPPER-MIDDLE ZONE PUMP">UPPER-MIDDLE ZONE PUMP</option>
+            <option value="UPPER-MIDDLE ZONE DUMP">UPPER-MIDDLE ZONE DUMP</option>
             <option value="BALANCE ZONE PUMP">BALANCE ZONE PUMP</option>
             <option value="BALANCE ZONE DUMP">BALANCE ZONE DUMP</option>
+            <option value="LOWER-MIDDLE ZONE PUMP">LOWER-MIDDLE ZONE PUMP</option>
+            <option value="LOWER-MIDDLE ZONE DUMP">LOWER-MIDDLE ZONE DUMP</option>
             <option value="LOWEST ZONE PUMP">LOWEST ZONE PUMP</option>
             <option value="LOWEST ZONE DUMP">LOWEST ZONE DUMP</option>
             <option value="NO DATA">NO DATA</option>
@@ -3455,8 +3511,12 @@ const validDump = dump !== undefined && dump !== 0;
 // ✅ Early return: skip rendering if both are invalid or 0
 if (!validPump && !validDump && tableSignalFilter !== 'NO DATA') return null;
 
+const pumpInRange_27_29 = inRange(pump, 27, 29);
+const dumpInRange_27_29 = inRange(dump, 27, 29);
 const pumpInRange_21_26 = inRange(pump, 21, 26);
 const dumpInRange_21_26 = inRange(dump, 21, 26);
+const pumpInRange_11_20 = inRange(pump, 11, 20);
+const dumpInRange_11_20 = inRange(dump, 11, 20);
 const pumpAbove30 = isAbove30(pump);
 const dumpAbove30 = isAbove30(dump);
 
@@ -3475,11 +3535,25 @@ if (direction === 'pump' && pumpAbove30) {
   signal = 'MAX ZONE DUMP';
 }
 
+// ✅ UPPER-MIDDLE ZONE
+else if (direction === 'pump' && pumpInRange_27_29) {
+  signal = 'UPPER-MIDDLE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_27_29) {
+  signal = 'UPPER-MIDDLE ZONE DUMP';
+}
+
 // ✅ BALANCE ZONE
 else if (direction === 'pump' && pumpInRange_21_26) {
   signal = 'BALANCE ZONE PUMP';
 } else if (direction === 'dump' && dumpInRange_21_26) {
   signal = 'BALANCE ZONE DUMP';
+}
+
+// ✅ LOWER-MIDDLE ZONE
+else if (direction === 'pump' && pumpInRange_11_20) {
+  signal = 'LOWER-MIDDLE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_11_20) {
+  signal = 'LOWER-MIDDLE ZONE DUMP';
 }
 
 // ✅ LOWEST ZONE
@@ -3668,6 +3742,14 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       ? 'text-purple-300 font-bold'
       : signal.trim() === 'BALANCE ZONE DUMP'
       ? 'text-purple-400 font-bold'
+      : signal.trim() === 'UPPER-MIDDLE ZONE PUMP'
+      ? 'text-orange-300 font-bold'
+      : signal.trim() === 'UPPER-MIDDLE ZONE DUMP'
+      ? 'text-orange-400 font-bold'
+      : signal.trim() === 'LOWER-MIDDLE ZONE PUMP'
+      ? 'text-cyan-300 font-bold'
+      : signal.trim() === 'LOWER-MIDDLE ZONE DUMP'
+      ? 'text-cyan-400 font-bold'
       : signal.trim() === 'LOWEST ZONE PUMP'
       ? 'text-green-400 font-bold'
       : signal.trim() === 'LOWEST ZONE DUMP'
