@@ -3457,6 +3457,11 @@ latestRSI,
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
         <SortableTh field="bullishReversal">Bull Rev</SortableTh>
+		<SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
+        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
+        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
+        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
         <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
@@ -3472,11 +3477,6 @@ latestRSI,
         <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
         <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
         <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
-        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
-        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
-        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
-        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
-        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
         <SortableTh field="gap">Ema14&70 Gap %</SortableTh>
         <SortableTh field="gap1">Ema70&200 Gap %</SortableTh>
         <SortableTh field="gapFromLowToEMA200">Low→EMA200 (%)</SortableTh>
@@ -3814,6 +3814,83 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     </>
   )}
 </td>
+
+			   {/* Divergences */}
+{/* Bearish Divergence — show the previous session high used as the reference */}
+<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+  {s.bearishDivergence?.divergence ? (
+    <div className="flex flex-col">
+      <span>Yes</span>
+      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
+        Prev H: ${typeof s.bearishDivergence.prevHigh === 'number'
+          ? s.bearishDivergence.prevHigh.toFixed(8)
+          : '—'}
+      </span>
+      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
+        Prev RSI: {typeof s.bearishDivergence.prevRSI === 'number'
+          ? s.bearishDivergence.prevRSI.toFixed(2)
+          : '—'}
+      </span>
+    </div>
+  ) : '-'}
+</td>
+
+{/* Bullish Divergence — show the previous session low used as the reference */}
+<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+  {s.bullishDivergence?.divergence ? (
+    <div className="flex flex-col">
+      <span>Yes</span>
+      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
+        Prev L: ${typeof s.bullishDivergence.prevLow === 'number'
+          ? s.bullishDivergence.prevLow.toFixed(8)
+          : '—'}
+      </span>
+      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
+        Prev RSI: {typeof s.bullishDivergence.prevRSI === 'number'
+          ? s.bullishDivergence.prevRSI.toFixed(2)
+          : '—'}
+      </span>
+    </div>
+  ) : '-'}
+</td>	
+
+  {/* Volume */}
+  <td
+    className={`p-2 font-semibold ${
+      s.highestVolumeColorPrev === 'green'
+        ? 'text-green-400'
+        : s.highestVolumeColorPrev === 'red'
+        ? 'text-red-400'
+        : 'text-gray-400'
+    }`}
+  >
+    {typeof s.highestVolumeColorPrev === 'string'
+      ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
+      : '—'}
+  </td>	
+
+ <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.bullishVolumeDivergence?.divergence
+      ? s.bullishVolumeDivergence.type === 'bullish-volume'
+        ? 'text-green-400'
+        : 'text-red-400'
+      : 'text-gray-400'
+  }`}
+>
+  {s.bullishVolumeDivergence?.divergence
+    ? s.bullishVolumeDivergence.type === 'bullish-volume'
+      ? 'Bullish'
+      : 'Bearish'
+    : '—'}
+</td>
+	 <td
+  className={`p-2 font-semibold ${
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+  }`}
+>
+  {s.isVolumeSpike ? 'Spike' : '—'}
+</td>	    	
 			   
 
 			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
@@ -3956,84 +4033,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                       )}
                     </div>
                   </td>
-		   
-
-{/* Divergences */}
-{/* Bearish Divergence — show the previous session high used as the reference */}
-<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
-  {s.bearishDivergence?.divergence ? (
-    <div className="flex flex-col">
-      <span>Yes</span>
-      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
-        Prev H: ${typeof s.bearishDivergence.prevHigh === 'number'
-          ? s.bearishDivergence.prevHigh.toFixed(8)
-          : '—'}
-      </span>
-      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
-        Prev RSI: {typeof s.bearishDivergence.prevRSI === 'number'
-          ? s.bearishDivergence.prevRSI.toFixed(2)
-          : '—'}
-      </span>
-    </div>
-  ) : '-'}
-</td>
-
-{/* Bullish Divergence — show the previous session low used as the reference */}
-<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
-  {s.bullishDivergence?.divergence ? (
-    <div className="flex flex-col">
-      <span>Yes</span>
-      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
-        Prev L: ${typeof s.bullishDivergence.prevLow === 'number'
-          ? s.bullishDivergence.prevLow.toFixed(8)
-          : '—'}
-      </span>
-      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
-        Prev RSI: {typeof s.bullishDivergence.prevRSI === 'number'
-          ? s.bullishDivergence.prevRSI.toFixed(2)
-          : '—'}
-      </span>
-    </div>
-  ) : '-'}
-</td>	
-
-  {/* Volume */}
-  <td
-    className={`p-2 font-semibold ${
-      s.highestVolumeColorPrev === 'green'
-        ? 'text-green-400'
-        : s.highestVolumeColorPrev === 'red'
-        ? 'text-red-400'
-        : 'text-gray-400'
-    }`}
-  >
-    {typeof s.highestVolumeColorPrev === 'string'
-      ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
-      : '—'}
-  </td>	
-
- <td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.bullishVolumeDivergence?.divergence
-      ? s.bullishVolumeDivergence.type === 'bullish-volume'
-        ? 'text-green-400'
-        : 'text-red-400'
-      : 'text-gray-400'
-  }`}
->
-  {s.bullishVolumeDivergence?.divergence
-    ? s.bullishVolumeDivergence.type === 'bullish-volume'
-      ? 'Bullish'
-      : 'Bearish'
-    : '—'}
-</td>
-	 <td
-  className={`p-2 font-semibold ${
-    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
-  }`}
->
-  {s.isVolumeSpike ? 'Spike' : '—'}
-</td>	    	  
 		   
 
 <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
