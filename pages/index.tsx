@@ -435,28 +435,50 @@ function getMainTrend(
 function getRecentRSIDiff(rsi: number[], lookback = 14) {
   if (rsi.length < lookback) return null;
 
+  const windowStartIndex = rsi.length - lookback;
   const recentRSI = rsi.slice(-lookback);
   let recentHigh = -Infinity;
   let recentLow = Infinity;
+  let highIndex = -1;
+  let lowIndex = -1;
 
-  for (const value of recentRSI) {
-    if (!isNaN(value)) {
-      if (value > recentHigh) recentHigh = value;
-      if (value < recentLow) recentLow = value;
+  for (let i = 0; i < recentRSI.length; i++) {
+    const value = recentRSI[i];
+    if (!Number.isFinite(value)) continue;
+
+    if (value > recentHigh) {
+      recentHigh = value;
+      highIndex = windowStartIndex + i;
+    }
+    if (value < recentLow) {
+      recentLow = value;
+      lowIndex = windowStartIndex + i;
     }
   }
+
+  if (highIndex === -1 || lowIndex === -1) return null;
 
   const pumpStrength = recentHigh - recentLow;
   const dumpStrength = Math.abs(recentLow - recentHigh);
 
   const startRSI = recentRSI[0];
   const endRSI = recentRSI[recentRSI.length - 1];
-  const direction = endRSI > startRSI ? 'pump' : endRSI < startRSI ? 'dump' : 'neutral';
-  const strength = Math.abs(endRSI - startRSI);
+  const direction =
+    !Number.isFinite(startRSI) || !Number.isFinite(endRSI)
+      ? 'neutral'
+      : endRSI > startRSI ? 'pump' : endRSI < startRSI ? 'dump' : 'neutral';
+  const strength = Number.isFinite(startRSI) && Number.isFinite(endRSI)
+    ? Math.abs(endRSI - startRSI)
+    : 0;
 
   return {
     recentHigh,
     recentLow,
+    highIndex,
+    lowIndex,
+    startRSI,
+    endRSI,
+    windowStartIndex,
     pumpStrength,
     dumpStrength,
     direction,
@@ -2594,6 +2616,7 @@ divergenceFromLevel,
   bullishSpike,
   bearishCollapse,	
   rsi14,
+  rsi14Timestamps: candles.map((c: any) => c.timestamp),
 latestRSI,		
   testedPrevHigh,
   testedPrevLow,
@@ -3501,28 +3524,53 @@ else if (direction === 'pump' && pumpInRange_1_10) {
                 <PriceChangePercent percent={s.priceChangePercent} />
               </td>
 
-  {/* Pump / Dump */}
+  {/* Pump / Dump — show the exact RSI values and candles used by the existing calculation */}
   <td
-  className={`text-center font-bold ${
-    direction === 'pump' && pump !== undefined && pump > 30
-      ? 'text-green-400'
-      : direction === 'dump' && dump !== undefined && dump > 30
-      ? 'text-red-400'
-      : direction === 'pump' && inRange(pump, 21, 26)
-      ? 'text-blue-400'
-      : direction === 'dump' && inRange(dump, 21, 26)
-      ? 'text-blue-400'
-      : direction === 'pump' && inRange(pump, 1, 10)
-      ? 'text-yellow-400'
-      : direction === 'dump' && inRange(dump, 1, 10)
-      ? 'text-yellow-400'
-      : 'text-gray-500'
-  }`}
->
-  {direction === 'pump' && pump !== undefined ? `Pump: ${pump.toFixed(2)}` : ''}
-  {direction === 'dump' && dump !== undefined ? `Dump: ${dump.toFixed(2)}` : ''}
-  {(!direction || (direction === 'pump' && !pump) || (direction === 'dump' && !dump)) && 'N/A'}
-</td>
+    className={`px-2 py-1 text-center ${
+      direction === 'pump' && pump !== undefined && pump > 30
+        ? 'text-green-400'
+        : direction === 'dump' && dump !== undefined && dump > 30
+        ? 'text-red-400'
+        : direction === 'pump' && inRange(pump, 21, 26)
+        ? 'text-blue-400'
+        : direction === 'dump' && inRange(dump, 21, 26)
+        ? 'text-blue-400'
+        : direction === 'pump' && inRange(pump, 1, 10)
+        ? 'text-yellow-400'
+        : direction === 'dump' && inRange(dump, 1, 10)
+        ? 'text-yellow-400'
+        : 'text-gray-400'
+    }`}
+    title={pumpDump
+      ? `14-RSI-candle window. Difference = highest RSI - lowest RSI. Direction = last RSI compared with first RSI.`
+      : 'RSI data unavailable'}
+  >
+    {pumpDump ? (
+      <div className="flex min-w-[150px] flex-col items-center gap-0.5 leading-tight">
+        <span className="font-bold">
+          {direction === 'pump' ? 'PUMP' : direction === 'dump' ? 'DUMP' : 'NEUTRAL'}
+          {' '}Δ {pumpDump.pumpStrength.toFixed(2)}
+        </span>
+        <span className="text-[10px] text-green-300">
+          H {pumpDump.recentHigh.toFixed(2)}
+          {Number.isFinite(s.rsi14Timestamps?.[pumpDump.highIndex])
+            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.highIndex]).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+            : ''}
+        </span>
+        <span className="text-[10px] text-red-300">
+          L {pumpDump.recentLow.toFixed(2)}
+          {Number.isFinite(s.rsi14Timestamps?.[pumpDump.lowIndex])
+            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.lowIndex]).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+            : ''}
+        </span>
+        <span className="text-[10px] text-gray-300">
+          Start {Number.isFinite(pumpDump.startRSI) ? pumpDump.startRSI.toFixed(2) : 'N/A'}
+          {' → '}
+          End {Number.isFinite(pumpDump.endRSI) ? pumpDump.endRSI.toFixed(2) : 'N/A'}
+        </span>
+      </div>
+    ) : 'N/A'}
+  </td>
 
 			   <td
   className={`px-2 py-1 text-center font-semibold ${
