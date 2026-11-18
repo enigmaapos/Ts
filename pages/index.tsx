@@ -3373,6 +3373,7 @@ latestRSI,
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
+		<SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
         <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
@@ -3387,7 +3388,6 @@ latestRSI,
         <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
         <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
-        <SortableTh field="mainTrend">Trend (200)</SortableTh>
         <SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -3540,6 +3540,42 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : 'Below 50 (Bearish)'}
 </td>	
 
+			   <td
+  className={`px-1 py-0.5 text-center ${
+    s.mainTrend?.trend === 'bullish'
+      ? 'text-green-500'
+      : s.mainTrend?.trend === 'bearish'
+      ? 'text-red-500'
+      : 'text-gray-400'
+  }`}
+>
+  {s.mainTrend ? (
+    <>
+      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(7)} `}
+      {s.mainTrend.breakout === true ? (
+        s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
+      ) : s.mainTrend.breakout === false ? (
+        s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price'
+      ) : (
+        ''
+      )}
+      {s.mainTrend.isNear && (
+        <span className="ml-1 text-yellow-400 font-semibold">
+          ⏳ Near {s.mainTrend.type}
+        </span>
+      )}
+      {s.mainTrend.isDojiAfterBreakout && (
+        <span className="ml-1 text-purple-400 font-bold">
+          🕯️ Doji After Breakout
+        </span>
+      )}
+    </>
+  ) : (
+    'N/A'
+  )}
+</td>
+			   
+
 			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
     {s.breakoutFailure ? 'Yes' : '-'}
   </td>
@@ -3650,40 +3686,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       : 'N/A — 1D only'}
   </td>
 		   
-<td
-  className={`px-1 py-0.5 text-center ${
-    s.mainTrend?.trend === 'bullish'
-      ? 'text-green-500'
-      : s.mainTrend?.trend === 'bearish'
-      ? 'text-red-500'
-      : 'text-gray-400'
-  }`}
->
-  {s.mainTrend ? (
-    <>
-      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(7)} `}
-      {s.mainTrend.breakout === true ? (
-        s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
-      ) : s.mainTrend.breakout === false ? (
-        s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price'
-      ) : (
-        ''
-      )}
-      {s.mainTrend.isNear && (
-        <span className="ml-1 text-yellow-400 font-semibold">
-          ⏳ Near {s.mainTrend.type}
-        </span>
-      )}
-      {s.mainTrend.isDojiAfterBreakout && (
-        <span className="ml-1 text-purple-400 font-bold">
-          🕯️ Doji After Breakout
-        </span>
-      )}
-    </>
-  ) : (
-    'N/A'
-  )}
-</td>
 		   
 <td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div className={`font-semibold mb-1 ${
