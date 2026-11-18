@@ -3453,6 +3453,10 @@ latestRSI,
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
 		<SortableTh field="mainTrend">Trend (200)</SortableTh>
+		<SortableTh field="bearishCollapse">Collapse</SortableTh>
+        <SortableTh field="bullishSpike">Spike</SortableTh>
+        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
+        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
         <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
         <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
@@ -3467,10 +3471,6 @@ latestRSI,
         <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
         <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
-        <SortableTh field="bearishCollapse">Collapse</SortableTh>
-        <SortableTh field="bullishSpike">Spike</SortableTh>
-        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
-        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
         <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
         <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
         <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
@@ -3696,6 +3696,124 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     'N/A'
   )}
 </td>
+
+			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'
+  }`}>
+    {s.bearishCollapse?.signal ? 'Yes 🚨' : 'No Signal'}
+  </div>
+
+  {s.bearishCollapse?.signal && (
+    <>
+      <div>
+        <span className="text-red-400 font-semibold">Entry:</span>{' '}
+        ${s.bearishCollapse.entry.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bearishCollapse.stopLoss.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bearishCollapse.tp1.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bearishCollapse.tp2.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'
+  }`}>
+    {s.bullishSpike?.signal ? 'Yes ✅' : 'No Signal'}
+  </div>
+
+  {s.bullishSpike?.signal && (
+    <>
+      <div>
+        <span className="text-green-400 font-semibold">Entry:</span>{' '}
+        ${s.bullishSpike.entry.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bullishSpike.stopLoss.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bullishSpike.tp1.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bullishSpike.tp2.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bearishReversal?.signal ? 'text-green-400' : 'text-gray-500'
+  }`}>
+    {s.bearishReversal?.signal ? 'Yes ✅' : 'No Signal'}
+  </div>
+
+  {s.bearishReversal?.signal && (
+    <>
+      <div>
+        <span className="text-green-400 font-semibold">Entry:</span>{' '}
+        ${s.bearishReversal.entry?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-red-400 font-semibold">SL:</span>{' '}
+        ${s.bearishReversal.stopLoss?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bearishReversal.tp1?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bearishReversal.tp2?.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+  <td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div
+    className={`font-semibold mb-1 ${
+      s.bullishReversal?.signal ? 'text-red-400' : 'text-gray-500'
+    }`}
+  >
+    {s.bullishReversal?.signal ? 'Yes ❌' : 'No Signal'}
+  </div>
+
+  {s.bullishReversal?.signal && (
+    <>
+      <div>
+        <span className="text-red-400 font-semibold">Entry:</span>{' '}
+        ${s.bullishReversal.entry?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bullishReversal.stopLoss?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bullishReversal.tp1?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bullishReversal.tp2?.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
 			   
 
 			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
@@ -3816,124 +3934,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       : 'N/A — 1D only'}
   </td>
 		   
-		   
-<td className="px-2 py-1 text-sm text-left leading-snug text-white">
-  <div className={`font-semibold mb-1 ${
-    s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'
-  }`}>
-    {s.bearishCollapse?.signal ? 'Yes 🚨' : 'No Signal'}
-  </div>
-
-  {s.bearishCollapse?.signal && (
-    <>
-      <div>
-        <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.bearishCollapse.entry.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bearishCollapse.stopLoss.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bearishCollapse.tp1.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bearishCollapse.tp2.toFixed(7)}
-      </div>
-    </>
-  )}
-</td>
-
-<td className="px-2 py-1 text-sm text-left leading-snug text-white">
-  <div className={`font-semibold mb-1 ${
-    s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'
-  }`}>
-    {s.bullishSpike?.signal ? 'Yes ✅' : 'No Signal'}
-  </div>
-
-  {s.bullishSpike?.signal && (
-    <>
-      <div>
-        <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.bullishSpike.entry.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bullishSpike.stopLoss.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bullishSpike.tp1.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bullishSpike.tp2.toFixed(7)}
-      </div>
-    </>
-  )}
-</td>
-
-<td className="px-2 py-1 text-sm text-left leading-snug text-white">
-  <div className={`font-semibold mb-1 ${
-    s.bearishReversal?.signal ? 'text-green-400' : 'text-gray-500'
-  }`}>
-    {s.bearishReversal?.signal ? 'Yes ✅' : 'No Signal'}
-  </div>
-
-  {s.bearishReversal?.signal && (
-    <>
-      <div>
-        <span className="text-green-400 font-semibold">Entry:</span>{' '}
-        ${s.bearishReversal.entry?.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-red-400 font-semibold">SL:</span>{' '}
-        ${s.bearishReversal.stopLoss?.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bearishReversal.tp1?.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bearishReversal.tp2?.toFixed(7)}
-      </div>
-    </>
-  )}
-</td>
-
-  <td className="px-2 py-1 text-sm text-left leading-snug text-white">
-  <div
-    className={`font-semibold mb-1 ${
-      s.bullishReversal?.signal ? 'text-red-400' : 'text-gray-500'
-    }`}
-  >
-    {s.bullishReversal?.signal ? 'Yes ❌' : 'No Signal'}
-  </div>
-
-  {s.bullishReversal?.signal && (
-    <>
-      <div>
-        <span className="text-red-400 font-semibold">Entry:</span>{' '}
-        ${s.bullishReversal.entry?.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
-        ${s.bullishReversal.stopLoss?.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-300 font-semibold">TP1:</span>{' '}
-        ${s.bullishReversal.tp1?.toFixed(7)}
-      </div>
-      <div>
-        <span className="text-green-500 font-semibold">TP2:</span>{' '}
-        ${s.bullishReversal.tp2?.toFixed(7)}
-      </div>
-    </>
-  )}
-</td>
 
 		   <td
                     className={`p-2 ${
