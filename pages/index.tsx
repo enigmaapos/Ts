@@ -789,6 +789,8 @@ const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('a
 const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [touchedEMA200PrevSessionFilter, setTouchedEMA200PrevSessionFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [touchedEMA100PrevSessionFilter, setTouchedEMA100PrevSessionFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
 const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
@@ -818,6 +820,8 @@ const getSortValue = (s: any, field: string): any => {
     case 'breakoutFailure': return getBooleanValue(s.breakoutFailure);
     case 'touchedEMA200Today': return getBooleanValue(s.touchedEMA200Today);
     case 'touchedEMA100Today': return getBooleanValue(s.touchedEMA100Today);
+    case 'touchedEMA200PrevSession': return getBooleanValue(s.touchedEMA200PrevSession);
+    case 'touchedEMA100PrevSession': return getBooleanValue(s.touchedEMA100PrevSession);
     case 'latestCandleInsideEMA50EMA70': return getBooleanValue(s.latestCandleInsideEMA50EMA70);
     case 'ema70200Cross': return s.ema70200Cross?.timestamp ?? null;
     case 'signal': return getSignalValue(s);
@@ -1023,6 +1027,8 @@ const filteredSignals = signals.filter((s) => {
 
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
   if (touchedEMA100Filter !== 'all' && (s.touchedEMA100Today ? 'yes' : 'no') !== touchedEMA100Filter) return false;
+  if (touchedEMA200PrevSessionFilter !== 'all' && (s.touchedEMA200PrevSession ? 'yes' : 'no') !== touchedEMA200PrevSessionFilter) return false;
+  if (touchedEMA100PrevSessionFilter !== 'all' && (s.touchedEMA100PrevSession ? 'yes' : 'no') !== touchedEMA100PrevSessionFilter) return false;
   if (latestCandleInsideEMA50EMA70Filter !== 'all' && (s.latestCandleInsideEMA50EMA70 ? 'yes' : 'no') !== latestCandleInsideEMA50EMA70Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
@@ -1831,6 +1837,27 @@ const touchedEMA200Today = candlesToday.some((candle) => {
 // from this scan timeframe's own candle closes; each candle is checked against
 // its matching EMA100 value. Only completed candles in candlesToday count.
 const touchedEMA100Today = candlesToday.some((candle) => {
+  const candleIndex = candles.indexOf(candle);
+  const candleEMA100 = ema100[candleIndex];
+
+  return Number.isFinite(candleEMA100) &&
+    candle.low <= candleEMA100 &&
+    candle.high >= candleEMA100;
+});
+
+// PREVIOUS SESSION EMA200 TOUCH — same exact 08:00–08:00 PH session.
+// Each completed previous-session candle is checked against its matching EMA200.
+const touchedEMA200PrevSession = candlesPrev.some((candle) => {
+  const candleIndex = candles.indexOf(candle);
+  const candleEMA200 = ema200[candleIndex];
+
+  return Number.isFinite(candleEMA200) &&
+    candle.low <= candleEMA200 &&
+    candle.high >= candleEMA200;
+});
+
+// PREVIOUS SESSION EMA100 TOUCH — each candle is checked against its own EMA100.
+const touchedEMA100PrevSession = candlesPrev.some((candle) => {
   const candleIndex = candles.indexOf(candle);
   const candleEMA100 = ema100[candleIndex];
 
@@ -2673,6 +2700,8 @@ latestRSI,
   ema200Bounce,
 			touchedEMA200Today,
 			touchedEMA100Today,
+            touchedEMA200PrevSession,
+            touchedEMA100PrevSession,
       latestCandleInsideEMA50EMA70,
       latestCandleInsideEMA50EMA70Details: {
         isForming: Boolean(latestEmaZoneCandle && latestEmaZoneCandle.closeTime > Date.now()),
@@ -3240,6 +3269,15 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Touched EMA100 (Previous Session)</span>
+          <select value={touchedEMA100PrevSessionFilter} onChange={(e) => setTouchedEMA100PrevSessionFilter(e.target.value as typeof touchedEMA100PrevSessionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — touched previous session</option>
+            <option value="no">No — not touched previous session</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Latest Candle Inside EMA50–70</span>
           <select value={latestCandleInsideEMA50EMA70Filter} onChange={(e) => setLatestCandleInsideEMA50EMA70Filter(e.target.value as typeof latestCandleInsideEMA50EMA70Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -3254,6 +3292,15 @@ latestRSI,
             <option value="all">All</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Touched EMA200 (Previous Session)</span>
+          <select value={touchedEMA200PrevSessionFilter} onChange={(e) => setTouchedEMA200PrevSessionFilter(e.target.value as typeof touchedEMA200PrevSessionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — touched previous session</option>
+            <option value="no">No — not touched previous session</option>
           </select>
         </label>
 
@@ -3453,19 +3500,12 @@ latestRSI,
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
 		<SortableTh field="mainTrend">Trend (200)</SortableTh>
-		<SortableTh field="bearishCollapse">Collapse</SortableTh>
-        <SortableTh field="bullishSpike">Spike</SortableTh>
-        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
-        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
-		<SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
-        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
-        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
-        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
-        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
         <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
-        <SortableTh field="touchedEMA100Today">Touched EMA100 (08:00–08:00 PH)</SortableTh>
+          <SortableTh field="touchedEMA100Today">Touched EMA100 (Current Session)</SortableTh>
+        <SortableTh field="touchedEMA100PrevSession">Touched EMA100 (Previous Session)</SortableTh>
         <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
-        <SortableTh field="touchedEMA200Today">Touched EMA200 (08:00–08:00)</SortableTh>
+        <SortableTh field="touchedEMA200Today">Touched EMA200 (Current Session)</SortableTh>
+        <SortableTh field="touchedEMA200PrevSession">Touched EMA200 (Previous Session)</SortableTh>
         <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
         <SortableTh field="signal">Signal</SortableTh>
 		<SortableTh field="ema14InsideResults">EMA14 Inside EMA70–200</SortableTh>
@@ -3476,7 +3516,16 @@ latestRSI,
         <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
         <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
+        <SortableTh field="bearishCollapse">Collapse</SortableTh>
+        <SortableTh field="bullishSpike">Spike</SortableTh>
+        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
+        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
         <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
+        <SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
+        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
+        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
+        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
         <SortableTh field="gap">Ema14&70 Gap %</SortableTh>
         <SortableTh field="gap1">Ema70&200 Gap %</SortableTh>
         <SortableTh field="gapFromLowToEMA200">Low→EMA200 (%)</SortableTh>
@@ -3696,8 +3745,134 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     'N/A'
   )}
 </td>
+			   
 
-			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
+			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+    {s.breakoutFailure ? 'Yes' : '-'}
+  </td>
+
+			   {/* Touched EMA100 during the current 08:00–08:00 PH session */}
+  <td className={`p-2 ${s.touchedEMA100Today ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="EMA100 touch is based on each candle's high/low intersecting that candle's EMA100 value during the current PH session">
+    {s.touchedEMA100Today ? 'Yes' : 'No'}
+  </td>
+  <td className={`p-2 ${s.touchedEMA100PrevSession ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="Previous PH session: each completed candle's high/low is checked against its matching EMA100 value">
+    {s.touchedEMA100PrevSession ? 'Yes' : 'No'}
+  </td>
+
+  {/* Latest forming candle close between EMA50 and EMA70 on the selected scan timeframe */}
+  <td className={`px-2 py-1 text-center font-semibold ${s.latestCandleInsideEMA50EMA70 ? 'text-green-400' : 'text-gray-500'}`} title={`Latest candle ${s.latestCandleInsideEMA50EMA70Details?.isForming ? 'is forming' : 'may be closed'}; close: ${s.latestCandleInsideEMA50EMA70Details?.candleClose ?? 'N/A'}; EMA50: ${s.latestCandleInsideEMA50EMA70Details?.ema50 ?? 'N/A'}; EMA70: ${s.latestCandleInsideEMA50EMA70Details?.ema70 ?? 'N/A'}`}>
+    {s.latestCandleInsideEMA50EMA70 ? 'YES — INSIDE' : 'NO'}
+  </td>
+
+  {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>
+  <td className={`p-2 ${s.touchedEMA200PrevSession ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`} title="Previous PH session: each completed candle's high/low is checked against its matching EMA200 value">
+    {s.touchedEMA200PrevSession ? 'Yes' : 'No'}
+  </td>	  
+
+  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
+  <td className={`px-2 py-1 text-center font-semibold ${
+    s.ema70200Cross?.direction === 'bullish'
+      ? 'text-green-400'
+      : s.ema70200Cross?.direction === 'bearish'
+      ? 'text-red-400'
+      : 'text-gray-500'
+  }`}>
+    {s.ema70200Cross?.direction === 'bullish'
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : s.ema70200Cross?.direction === 'bearish'
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : 'No'}
+  </td>
+
+			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'UPPER-MIDDLE ZONE PUMP'
+      ? 'text-orange-300 font-bold'
+      : signal.trim() === 'UPPER-MIDDLE ZONE DUMP'
+      ? 'text-orange-400 font-bold'
+      : signal.trim() === 'LOWER-MIDDLE ZONE PUMP'
+      ? 'text-cyan-300 font-bold'
+      : signal.trim() === 'LOWER-MIDDLE ZONE DUMP'
+      ? 'text-cyan-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>	
+
+			   <td className="px-1 py-0.5 text-center text-[10px]">
+  {s.ema14InsideResults.some(r => r.inside)
+    ? <span className="text-green-400 font-semibold">YES</span>
+    : <span className="text-red-400">NO</span>}
+</td>	
+			   
+
+	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
+    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>
+
+<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
+    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>	   
+		   
+  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
+    {s.bullishBreakout ? 'Yes' : 'No'}
+  </td>	   
+
+  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
+    {s.bearishBreakout ? 'Yes' : 'No'}
+  </td>		   
+		   
+<td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
+  <td className="px-1 py-0.5 text-center font-semibold">
+    {s.oneDayTwoPreviousRedCloses === true
+      ? '🔴 YES (2/2)'
+      : s.oneDayTwoPreviousRedCloses === false
+      ? `No (${s.oneDayPreviousRedCloseCount}/2)`
+      : 'N/A — 1D only'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center font-semibold ${
+    s.oneDayThreePointBearishDivergence?.divergence ? 'text-orange-400' : 'text-gray-500'
+  }`} title={s.oneDayThreePointBearishDivergence?.message || '1D only'}>
+    {s.oneDayThreePointBearishDivergence?.divergence
+      ? '🔴 CONFIRMED'
+      : s.oneDayThreePointBearishDivergence?.status === 'NO'
+      ? 'No'
+      : 'N/A — 1D only'}
+  </td>
+		   
+		   
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
   <div className={`font-semibold mb-1 ${
     s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'
   }`}>
@@ -3815,7 +3990,30 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   )}
 </td>
 
-			   {/* Divergences */}
+		   <td
+                    className={`p-2 ${
+                      s.divergenceFromLevel
+                        ? 'bg-indigo-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    <div className="flex flex-col whitespace-nowrap">
+                      <span>{s.divergenceFromLevel ? 'Yes' : 'No'}</span>
+                      {typeof s.divergenceFromLevelPrice === 'number' && (
+                        <span className="text-[10px] font-normal text-cyan-300">
+                          {s.divergenceFromLevelLevelType === 'support' ? 'EMA Cross Support' : 'EMA Cross Resistance'}: ${s.divergenceFromLevelPrice.toFixed(7)}
+                        </span>
+                      )}
+                      {s.divergenceFromLevelType && (
+                        <span className="text-[10px] font-normal text-gray-300">
+                          {s.divergenceFromLevelType.toUpperCase()} DIV
+                        </span>
+                      )}
+                    </div>
+                  </td>
+		   
+
+{/* Divergences */}
 {/* Bearish Divergence — show the previous session high used as the reference */}
 <td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
   {s.bearishDivergence?.divergence ? (
@@ -3890,149 +4088,7 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   }`}
 >
   {s.isVolumeSpike ? 'Spike' : '—'}
-</td>	    	
-			   
-
-			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
-    {s.breakoutFailure ? 'Yes' : '-'}
-  </td>
-
-			   {/* Touched EMA100 during the current 08:00–08:00 PH session */}
-  <td className={`p-2 ${s.touchedEMA100Today ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="EMA100 touch is based on each candle's high/low intersecting that candle's EMA100 value during the current PH session">
-    {s.touchedEMA100Today ? 'Yes' : 'No'}
-  </td>
-
-  {/* Latest forming candle close between EMA50 and EMA70 on the selected scan timeframe */}
-  <td className={`px-2 py-1 text-center font-semibold ${s.latestCandleInsideEMA50EMA70 ? 'text-green-400' : 'text-gray-500'}`} title={`Latest candle ${s.latestCandleInsideEMA50EMA70Details?.isForming ? 'is forming' : 'may be closed'}; close: ${s.latestCandleInsideEMA50EMA70Details?.candleClose ?? 'N/A'}; EMA50: ${s.latestCandleInsideEMA50EMA70Details?.ema50 ?? 'N/A'}; EMA70: ${s.latestCandleInsideEMA50EMA70Details?.ema70 ?? 'N/A'}`}>
-    {s.latestCandleInsideEMA50EMA70 ? 'YES — INSIDE' : 'NO'}
-  </td>
-
-  {/* Touched EMA200 */}
-  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
-    {s.touchedEMA200Today ? 'Yes' : 'No'}
-  </td>	  
-
-  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
-  <td className={`px-2 py-1 text-center font-semibold ${
-    s.ema70200Cross?.direction === 'bullish'
-      ? 'text-green-400'
-      : s.ema70200Cross?.direction === 'bearish'
-      ? 'text-red-400'
-      : 'text-gray-500'
-  }`}>
-    {s.ema70200Cross?.direction === 'bullish'
-      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
-      : s.ema70200Cross?.direction === 'bearish'
-      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
-      : 'No'}
-  </td>
-
-			   <td
-  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
-    signal.trim() === 'MAX ZONE PUMP'
-      ? 'text-yellow-300'
-      : signal.trim() === 'MAX ZONE DUMP'
-      ? 'text-yellow-400'
-      : signal.trim() === 'BALANCE ZONE PUMP'
-      ? 'text-purple-300 font-bold'
-      : signal.trim() === 'BALANCE ZONE DUMP'
-      ? 'text-purple-400 font-bold'
-      : signal.trim() === 'UPPER-MIDDLE ZONE PUMP'
-      ? 'text-orange-300 font-bold'
-      : signal.trim() === 'UPPER-MIDDLE ZONE DUMP'
-      ? 'text-orange-400 font-bold'
-      : signal.trim() === 'LOWER-MIDDLE ZONE PUMP'
-      ? 'text-cyan-300 font-bold'
-      : signal.trim() === 'LOWER-MIDDLE ZONE DUMP'
-      ? 'text-cyan-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE PUMP'
-      ? 'text-green-400 font-bold'
-      : signal.trim() === 'LOWEST ZONE DUMP'
-      ? 'text-green-500 font-bold'
-      : 'text-gray-500'
-  }`}
->
-  {signal.trim()}
-</td>	
-
-			   <td className="px-1 py-0.5 text-center text-[10px]">
-  {s.ema14InsideResults.some(r => r.inside)
-    ? <span className="text-green-400 font-semibold">YES</span>
-    : <span className="text-red-400">NO</span>}
-</td>	
-			   
-
-	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
-    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
-  ) : (
-    <span className="text-gray-500">–</span>
-  )}
-</td>
-
-<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
-  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
-    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
-  ) : (
-    <span className="text-gray-500">–</span>
-  )}
-</td>	   
-		   
-  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
-    {s.bullishBreakout ? 'Yes' : 'No'}
-  </td>	   
-
-  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
-    {s.bearishBreakout ? 'Yes' : 'No'}
-  </td>		   
-		   
-<td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
-  }`}
->
-  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
-</td>
-  <td className="px-1 py-0.5 text-center font-semibold">
-    {s.oneDayTwoPreviousRedCloses === true
-      ? '🔴 YES (2/2)'
-      : s.oneDayTwoPreviousRedCloses === false
-      ? `No (${s.oneDayPreviousRedCloseCount}/2)`
-      : 'N/A — 1D only'}
-  </td>
-
-  <td className={`px-1 py-0.5 text-center font-semibold ${
-    s.oneDayThreePointBearishDivergence?.divergence ? 'text-orange-400' : 'text-gray-500'
-  }`} title={s.oneDayThreePointBearishDivergence?.message || '1D only'}>
-    {s.oneDayThreePointBearishDivergence?.divergence
-      ? '🔴 CONFIRMED'
-      : s.oneDayThreePointBearishDivergence?.status === 'NO'
-      ? 'No'
-      : 'N/A — 1D only'}
-  </td>
-		   
-
-		   <td
-                    className={`p-2 ${
-                      s.divergenceFromLevel
-                        ? 'bg-indigo-700 text-white'
-                        : 'bg-gray-800 text-gray-500'
-                    }`}
-                  >
-                    <div className="flex flex-col whitespace-nowrap">
-                      <span>{s.divergenceFromLevel ? 'Yes' : 'No'}</span>
-                      {typeof s.divergenceFromLevelPrice === 'number' && (
-                        <span className="text-[10px] font-normal text-cyan-300">
-                          {s.divergenceFromLevelLevelType === 'support' ? 'EMA Cross Support' : 'EMA Cross Resistance'}: ${s.divergenceFromLevelPrice.toFixed(7)}
-                        </span>
-                      )}
-                      {s.divergenceFromLevelType && (
-                        <span className="text-[10px] font-normal text-gray-300">
-                          {s.divergenceFromLevelType.toUpperCase()} DIV
-                        </span>
-                      )}
-                    </div>
-                  </td>
+</td>	    	  
 		   
 
 <td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
