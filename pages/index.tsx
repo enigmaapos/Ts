@@ -3390,7 +3390,7 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>RSI Pump | Dump</span>
+          <span>RSI Direction</span>
           <select value={rsiPumpDumpFilter} onChange={(e) => setRsiPumpDumpFilter(e.target.value as typeof rsiPumpDumpFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
             <option value="pump">Pump</option>
@@ -3570,7 +3570,7 @@ latestRSI,
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="fundingRate">Funding Rate (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
-        <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
+        <SortableTh field="pumpDump">RSI Direction / Distance (Δ)</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
 		<SortableTh field="mainTrend">Trend (200)</SortableTh>
 		<SortableTh field="bearishCollapse">Collapse</SortableTh>
@@ -3754,14 +3754,16 @@ else if (direction === 'pump' && pumpInRange_1_10) {
         : 'text-gray-400'
     }`}
     title={pumpDump
-      ? `14-RSI-candle window. Difference = highest RSI - lowest RSI. Direction = last RSI compared with first RSI.`
+      ? `RSI Direction: latest RSI compared with first RSI in the 14-reading window. RSI Distance (Δ): highest RSI minus lowest RSI in that same window. Distance is a range measurement, not directional momentum.`
       : 'RSI data unavailable'}
   >
     {pumpDump ? (
       <div className="flex min-w-[150px] flex-col items-center gap-0.5 leading-tight">
         <span className="font-bold">
-          {direction === 'pump' ? 'PUMP' : direction === 'dump' ? 'DUMP' : 'NEUTRAL'}
-          {' '}Δ {pumpDump.pumpStrength.toFixed(2)}
+          Direction: {direction === 'pump' ? 'PUMP' : direction === 'dump' ? 'DUMP' : 'NEUTRAL'}
+        </span>
+        <span className="text-[11px] font-semibold text-cyan-300">
+          Distance (Δ): {pumpDump.pumpStrength.toFixed(2)} RSI points
         </span>
         <span className="text-[10px] text-green-300">
           H {pumpDump.recentHigh.toFixed(2)}
