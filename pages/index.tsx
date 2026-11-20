@@ -733,6 +733,8 @@ const blacklist = [
 
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
+  // Latest all-symbol Binance USDⓈ-M funding-rate snapshot.
+  const [fundingRates, setFundingRates] = useState<Record<string, number>>({});
   // Complete Binance Futures symbol universe currently eligible for scanning.
   // This is intentionally separate from `signals`: a symbol can be active on
   // Binance before its technical analysis batch has completed.
@@ -786,6 +788,7 @@ const toggleFavorite = (symbol: string) => {
 };
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
+const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
@@ -814,6 +817,7 @@ const getSortValue = (s: any, field: string): any => {
   switch (field) {
     case 'symbol': return s.symbol ?? '';
     case 'currentPrice': return Number(s.currentPrice);
+    case 'fundingRate': return Number.isFinite(fundingRates[s.symbol]) ? fundingRates[s.symbol] : null;
     case 'priceChangePercent': return Number(s.priceChangePercent);
     case 'pumpDump': return getPumpDumpStrength(s);
     case 'latestRSI': return typeof s.latestRSI === 'number' ? s.latestRSI : null;
@@ -980,6 +984,14 @@ const filteredSignals = signals.filter((s) => {
     (coinListView === 'favorites' && isFavorite) ||
     (coinListView === 'not-favorites' && !isFavorite);
   if (!matchesSearch || !matchesFavoriteView) return false;
+
+  if (fundingRateFilter !== 'all') {
+    const rate = fundingRates[s.symbol];
+    if (!Number.isFinite(rate)) return false;
+    if (fundingRateFilter === 'positive' && rate <= 0) return false;
+    if (fundingRateFilter === 'negative' && rate >= 0) return false;
+    if (fundingRateFilter === 'neutral' && rate !== 0) return false;
+  }
 
   // Multiple Trend filters are combined with AND logic.
   // Example: Bullish Trend + Bullish Divergence + Bullish Near Support
@@ -1195,6 +1207,21 @@ const redPriceChangeCount = filteredSignals.filter(
 
 const redVolumeCount = filteredSignals.filter(
   (s) => s.highestVolumeColorPrev === 'red'
+).length;
+
+// Funding counts cover the complete active USDT-perpetual universe, not only
+// coins whose technical-analysis batch has already reached the table.
+const fundingRateUniverse = activeFuturesSymbols.length > 0
+  ? activeFuturesSymbols
+  : Object.keys(fundingRates);
+const positiveFundingCount = fundingRateUniverse.filter(
+  (symbol) => Number.isFinite(fundingRates[symbol]) && fundingRates[symbol] > 0
+).length;
+const negativeFundingCount = fundingRateUniverse.filter(
+  (symbol) => Number.isFinite(fundingRates[symbol]) && fundingRates[symbol] < 0
+).length;
+const neutralFundingCount = fundingRateUniverse.filter(
+  (symbol) => Number.isFinite(fundingRates[symbol]) && fundingRates[symbol] === 0
 ).length;
 
 	const divergenceFromLevelCount = filteredSignals.filter(
@@ -2772,6 +2799,27 @@ latestRSI,
   setScannerStatus('scanning');
   setNextScanAt(null);
 
+  // Refresh funding rates for the complete USDⓈ-M Futures universe once per
+  // batch, instead of adding one funding request per coin.
+  try {
+    const premiumIndex = await safeFetchJson<any[]>(
+      "https://fapi.binance.com/fapi/v1/premiumIndex",
+      "all-symbol funding rates"
+    );
+    const nextFundingRates: Record<string, number> = {};
+    for (const item of premiumIndex) {
+      const rate = Number(item?.lastFundingRate);
+      if (typeof item?.symbol === 'string' && Number.isFinite(rate)) {
+        nextFundingRates[item.symbol] = rate;
+      }
+    }
+    if (isMounted) setFundingRates(nextFundingRates);
+  } catch (fundingError: any) {
+    // Funding is an additional scanner feature; a funding endpoint failure
+    // must not stop the existing technical-analysis scan.
+    console.warn("Funding-rate refresh failed; retaining last successful snapshot:", fundingError?.message || fundingError);
+  }
+
   const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
   currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
 
@@ -3349,6 +3397,16 @@ latestRSI,
             <option value="dump">Dump</option>
           </select>
         </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Funding Rate</span>
+          <select value={fundingRateFilter} onChange={(e) => setFundingRateFilter(e.target.value as typeof fundingRateFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="positive">Positive — longs pay shorts</option>
+            <option value="negative">Negative — shorts pay longs</option>
+            <option value="neutral">Neutral — zero rate</option>
+          </select>
+        </label>
       </div>
     </div>
 
@@ -3371,6 +3429,7 @@ latestRSI,
           setEma70200CrossFilter('all');
           setEma14InsideEMA70200Filter('all');
           setRsiPumpDumpFilter('all');
+          setFundingRateFilter('all');
           setCoinListView('not-favorites');
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
@@ -3423,6 +3482,17 @@ latestRSI,
     <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
     <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
   </div>
+</div>
+
+{/* 💰 Funding Rate Summary */}
+<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
+  <div className="text-white text-sm mb-2 font-semibold">💰 Funding Rate Summary</div>
+  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+    <span className="text-green-400 font-semibold">🟢 Positive: {positiveFundingCount}</span>
+    <span className="text-red-400 font-semibold">🔴 Negative: {negativeFundingCount}</span>
+    <span className="text-gray-300 font-semibold">⚪ Neutral: {neutralFundingCount}</span>
+  </div>
+  <div className="text-[10px] text-gray-500 mt-1">Counts cover all active USDT perpetuals from the latest successful Binance funding snapshot.</div>
 </div>
   </div>
 </div>
@@ -3498,6 +3568,7 @@ latestRSI,
       <tr>
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
+        <SortableTh field="fundingRate">Funding Rate (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <SortableTh field="pumpDump">RSI Pump | Dump</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
@@ -3644,6 +3715,22 @@ else if (direction === 'pump' && pumpInRange_1_10) {
 
   <td className="px-2 py-1 border-b border-gray-700 text-right">
   ${Number(s.currentPrice).toFixed(7)}
+</td>
+<td
+  className={`px-2 py-1 border-b border-gray-700 text-center font-semibold ${
+    !Number.isFinite(fundingRates[s.symbol])
+      ? 'text-gray-500'
+      : fundingRates[s.symbol] > 0
+      ? 'text-green-400'
+      : fundingRates[s.symbol] < 0
+      ? 'text-red-400'
+      : 'text-gray-300'
+  }`}
+  title="Binance latest funding rate. API decimal is multiplied by 100 for percentage display."
+>
+  {Number.isFinite(fundingRates[s.symbol])
+    ? `${fundingRates[s.symbol] > 0 ? '+' : ''}${(fundingRates[s.symbol] * 100).toFixed(4)}%`
+    : 'N/A'}
 </td>
               <td className="px-2 py-1 border-b border-gray-700 text-center">
                 <PriceChangePercent percent={s.priceChangePercent} />
