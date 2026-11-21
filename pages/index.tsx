@@ -1717,21 +1717,22 @@ const getUTCMillis = (year: number, month: number, date: number, hour: number, m
   return Date.UTC(year, month, date, hour, minute);
 };
 
-// Get the start times for the last N sessions at 8AM UTC
+// Philippine trading session: 08:00 Asia/Manila = 00:00 UTC.
+// Use UTC timestamps only so device timezone settings cannot shift session boundaries.
 const getLastNSessionStartTimes = (n: number): number[] => {
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
   const date = now.getUTCDate();
 
-  const today8AM_UTC = getUTCMillis(year, month, date, 8, 0);
-  const isAfter8AM = now.getTime() >= today8AM_UTC;
-  const baseDate = isAfter8AM ? date : date - 1;
+  const todayPHSessionStartUTC = getUTCMillis(year, month, date, 0, 0);
+  const isAfterPHSessionStart = now.getTime() >= todayPHSessionStartUTC;
+  const baseDate = isAfterPHSessionStart ? date : date - 1;
 
   const sessionStarts: number[] = [];
   for (let i = n - 1; i >= 0; i--) {
     const sessionDate = baseDate - i;
-    sessionStarts.push(getUTCMillis(year, month, sessionDate, 8, 0));
+    sessionStarts.push(getUTCMillis(year, month, sessionDate, 0, 0));
   }
 
   return sessionStarts;
@@ -3046,7 +3047,7 @@ latestRSI,
         </span>
         {nextScanAt && scannerStatus === 'waiting' && (
           <span className="text-gray-300">
-            Next batch: {new Date(nextScanAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            Next batch: {new Date(nextScanAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
           </span>
         )}
       </div>
@@ -3882,13 +3883,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
         <span className="text-[10px] text-green-300">
           H {pumpDump.recentHigh.toFixed(2)}
           {Number.isFinite(s.rsi14Timestamps?.[pumpDump.highIndex])
-            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.highIndex]).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.highIndex]).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
             : ''}
         </span>
         <span className="text-[10px] text-red-300">
           L {pumpDump.recentLow.toFixed(2)}
           {Number.isFinite(s.rsi14Timestamps?.[pumpDump.lowIndex])
-            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.lowIndex]).toLocaleString('en-PH', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.lowIndex]).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
             : ''}
         </span>
         <span className="text-[10px] text-gray-300">
@@ -4185,9 +4186,9 @@ else if (direction === 'pump' && pumpInRange_1_10) {
       : 'text-gray-500'
   }`}>
     {s.ema70200Cross?.direction === 'bullish'
-      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false })}`
       : s.ema70200Cross?.direction === 'bearish'
-      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false })}`
       : 'No'}
   </td>
 
