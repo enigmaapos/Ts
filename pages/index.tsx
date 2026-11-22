@@ -3750,6 +3750,7 @@ latestRSI,
         <SortableTh field="latestRSI">RSI14</SortableTh>
 		<SortableTh field="mainTrend">Trend (200)</SortableTh>
 		<SortableTh field="prevClose">Prev Close</SortableTh>
+		<th className="px-2 py-1 text-center whitespace-nowrap">Position Signal</th>
 		<SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -4026,6 +4027,16 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   }`}
 >
   {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
+
+<td className={`px-2 py-1 text-center font-bold whitespace-nowrap ${
+  s.prevClosedGreen ? 'text-red-400' : s.prevClosedRed ? 'text-green-400' : 'text-gray-500'
+}`}>
+  {s.prevClosedGreen
+    ? 'SELL — Resistance Failure'
+    : s.prevClosedRed
+    ? 'BUY — Support Failure'
+    : '—'}
 </td>
 
 			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
