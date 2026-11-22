@@ -356,6 +356,7 @@ type TrendResult = {
   type: 'support' | 'resistance';
   crossoverPrice: number;
   breakout: boolean | null;
+  levelSource: 'crossover' | 'fallback';
   isNear?: boolean; // optional proximity flag
 };
 
@@ -396,6 +397,7 @@ function getMainTrend(
         trend: 'bullish',
         type: 'support',
         crossoverPrice,
+        levelSource: 'crossover',
         breakout: lastClose > ema200[len - 1],
         isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent),
         isDojiAfterBreakout: lastClose > ema200[len - 1] && isDoji
@@ -409,6 +411,7 @@ function getMainTrend(
         trend: 'bearish',
         type: 'resistance',
         crossoverPrice,
+        levelSource: 'crossover',
         breakout: lastClose < ema200[len - 1],
         isNear: isNearLevel(lastClose, crossoverPrice, tolerancePercent),
         isDojiAfterBreakout: lastClose < ema200[len - 1] && isDoji
@@ -426,6 +429,7 @@ function getMainTrend(
     trend: fallbackTrend,
     type: fallbackType,
     crossoverPrice: lastClose,
+    levelSource: 'fallback',
     breakout: null,
     isNear: true,
     isDojiAfterBreakout: false
@@ -3929,6 +3933,13 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   {s.mainTrend ? (
     <>
       {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(7)} `}
+      <span className={`ml-1 font-semibold ${
+        s.mainTrend.levelSource === 'crossover' ? 'text-cyan-400' : 'text-orange-400'
+      }`}>
+        {s.mainTrend.levelSource === 'crossover'
+          ? '〔HISTORICAL EMA70/200 CROSSOVER〕'
+          : '〔FALLBACK — NO CROSSOVER FOUND〕'}
+      </span>
       {s.mainTrend.breakout === true ? (
         s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
       ) : s.mainTrend.breakout === false ? (
