@@ -3751,6 +3751,7 @@ latestRSI,
 		<SortableTh field="mainTrend">Trend (200)</SortableTh>
 		<SortableTh field="prevClose">Prev Close</SortableTh>
 		<th className="px-2 py-1 text-center whitespace-nowrap">Position Signal</th>
+		<th className="px-2 py-1 text-center whitespace-nowrap">Trend Alignment</th>
 		<SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -4037,6 +4038,22 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : s.prevClosedRed
     ? 'BUY — Support Failure'
     : '—'}
+</td>
+
+<td className={`px-2 py-1 text-center font-bold whitespace-nowrap ${
+  !s.mainTrend?.trend || (!s.prevClosedGreen && !s.prevClosedRed)
+    ? 'text-gray-500'
+    : (s.mainTrend.trend === 'bullish' && s.prevClosedRed) || (s.mainTrend.trend === 'bearish' && s.prevClosedGreen)
+    ? 'text-green-400'
+    : 'text-yellow-400'
+}`}>
+  {!s.mainTrend?.trend || (!s.prevClosedGreen && !s.prevClosedRed)
+    ? 'MAIN TREND / SIGNAL N/A'
+    : (s.mainTrend.trend === 'bullish' && s.prevClosedRed) || (s.mainTrend.trend === 'bearish' && s.prevClosedGreen)
+    ? 'TREND ALIGNED'
+    : s.mainTrend.trend === 'bullish'
+    ? 'COUNTERTREND — WAIT FOR BULLISH SUPPORT'
+    : 'COUNTERTREND — WAIT FOR BEARISH RESISTANCE'}
 </td>
 
 			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
