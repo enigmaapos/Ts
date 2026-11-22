@@ -4052,8 +4052,8 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : (s.mainTrend.trend === 'bullish' && s.prevClosedRed) || (s.mainTrend.trend === 'bearish' && s.prevClosedGreen)
     ? 'TREND ALIGNED'
     : s.mainTrend.trend === 'bullish'
-    ? 'COUNTERTREND — WAIT FOR BULLISH SUPPORT'
-    : 'COUNTERTREND — WAIT FOR BEARISH RESISTANCE'}
+    ? 'COUNTERTREND — WAIT FOR FAILED SUPPORT'
+    : 'COUNTERTREND — WAIT FOR FAILED RESISTANCE'}
 </td>
 
 			     <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
