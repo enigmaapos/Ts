@@ -737,6 +737,7 @@ const blacklist = [
 
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
+  const analyzedSymbolSet = useMemo(() => new Set(signals.map((s: any) => s.symbol)), [signals]);
   // Latest all-symbol Binance USDⓈ-M funding-rate snapshot.
   const [fundingRates, setFundingRates] = useState<Record<string, number>>({});
   // Complete Binance Futures symbol universe currently eligible for scanning.
@@ -750,6 +751,10 @@ const [signals, setSignals] = useState<any[]>([]);
   const [scannerProgress, setScannerProgress] = useState({ completed: 0, total: 0 });
   const [nextScanAt, setNextScanAt] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const favoriteCounts = useMemo(() => ({
+    favorites: signals.filter((s: any) => favorites.has(s.symbol)).length,
+    notFavorites: signals.filter((s: any) => !favorites.has(s.symbol)).length
+  }), [signals, favorites]);
 const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' | 'all'>('not-favorites');
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -980,7 +985,7 @@ const trendFilterMatches = (s: any, key: string): boolean => {
   return Boolean(s[field]);
 };
 
-const filteredSignals = signals.filter((s) => {
+const filteredSignals = useMemo(() => signals.filter((s) => {
   const symbol = s.symbol?.toLowerCase() || '';
   const matchesSearch = !searchTerm || symbol.includes(searchTerm);
   const isFavorite = favorites.has(s.symbol);
@@ -1066,10 +1071,18 @@ const filteredSignals = signals.filter((s) => {
   }
 
   return true;
-});
+}), [
+  signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
+  fundingRateFilter, fundingRates, trendFilters, signalFilter, tableSignalFilter,
+  rsi14Filter, breakoutFailFilter, oneDayTwoRedClosesFilter,
+  oneDayBearishRsiPumpEmaFilter, timeframe, touchedEMA200Filter,
+  touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
+  latestCandleInsideEMA50EMA70Filter, ema70200CrossFilter,
+  ema14InsideEMA70200Filter, rsiPumpDumpFilter
+]);
 
 // One uniform sorting pipeline: FILTER FIRST, then SORT. Never mutate React state.
-const filteredAndSortedSignals = [...filteredSignals].sort((a, b) => {
+const filteredAndSortedSignals = useMemo(() => [...filteredSignals].sort((a, b) => {
   const aValue = getSortValue(a, sortField);
   const bValue = getSortValue(b, sortField);
   const aMissing = aValue === null || aValue === undefined || (typeof aValue === 'number' && !Number.isFinite(aValue));
@@ -1088,7 +1101,7 @@ const filteredAndSortedSignals = [...filteredSignals].sort((a, b) => {
 
   if (result === 0) result = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
   return sortOrder === 'asc' ? result : -result;
-});
+}), [filteredSignals, sortField, sortOrder]);
 
 const toggleSort = (field: string) => {
   if (sortField === field) {
@@ -1099,6 +1112,7 @@ const toggleSort = (field: string) => {
   }
 };
 
+const summaryCounts = useMemo(() => {
 // 🔹 Count statistics
 const bullishMainTrendCount = filteredSignals.filter(
   (s) => s.mainTrend?.trend === 'bullish'
@@ -1235,6 +1249,43 @@ const neutralFundingCount = fundingRateUniverse.filter(
 ).length;
 
 	
+return {
+  bullishMainTrendCount,
+  bearishMainTrendCount,
+  bullishNearSupportCount,
+  bearishNearResistanceCount,
+  bullishBreakupCount,
+  bearishBreakdownCount,
+  bullishDojiAfterBreakoutCount,
+  bearishDojiAfterBreakoutCount,
+  bullishBreakoutCount,
+  bearishBreakoutCount,
+  breakoutFailureCount,
+  testedPrevHighCount,
+  testedPrevLowCount,
+  bullishReversalCount,
+  bearishReversalCount,
+  bullishDivergenceCount,
+  bearishDivergenceCount,
+  prevCloseGreenCount,
+  prevCloseRedCount,
+  oneDayTwoRedClosesCount,
+  oneDayThreePointBearishDivergenceCount,
+  bullishSpikeCount,
+  bearishCollapseCount,
+  ema14InsideResultsCount,
+  greenPriceChangeCount,
+  redPriceChangeCount,
+  greenVolumeCount,
+  redVolumeCount,
+  fundingRateUniverse,
+  positiveFundingCount,
+  negativeFundingCount,
+  neutralFundingCount,
+  divergenceFromLevelCount
+};
+}, [filteredSignals, fundingRates, activeFuturesSymbols]);
+
 const signalCounts = useMemo(() => {
   const counts = {
     maxZonePump: 0,
@@ -1300,14 +1351,14 @@ const signalCounts = useMemo(() => {
     setNextScanAt(null);
 
     // Binance-safe high-throughput scanner:
-    // - 15 symbols are analysed per scan cycle.
-    // - Only 3 symbols run concurrently, avoiding large request bursts.
+    // - 30 symbols are analysed per scan cycle.
+    // - Only 5 symbols run concurrently, with adaptive Binance rate-limit backoff.
     // - Waves are spaced instead of using setInterval, so slow scans never overlap.
     // - 429/418 responses honour Retry-After and use exponential backoff.
     // - Binance's returned 1-minute request-weight header is monitored.
-    const BATCH_SIZE = 15;
-    const MAX_CONCURRENT = 3;
-    const WAVE_DELAY_MS = 650;
+    const BATCH_SIZE = 30;
+    const MAX_CONCURRENT = 5;
+    const WAVE_DELAY_MS = 350;
     const BETWEEN_CYCLE_DELAY_MS = 1000;
     const MAX_RETRIES = 3;
     const RATE_LIMIT_WEIGHT = 2400;
@@ -1316,6 +1367,8 @@ const signalCounts = useMemo(() => {
     let symbols: string[] = [];
     let lastUsedWeight1m = 0;
     let ratePauseUntil = 0;
+    let lastFundingRefreshAt = 0;
+    const FUNDING_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1501,10 +1554,16 @@ const getSessions = (timeframe?: Timeframe) => {
 
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
-    const raw = await safeFetchJson<any[]>(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
-      `${symbol} klines`
-    );
+    const [raw, ticker24h] = await Promise.all([
+      safeFetchJson<any[]>(
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
+        `${symbol} klines`
+      ),
+      safeFetchJson<any>(
+        `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`,
+        `${symbol} 24h ticker`
+      )
+    ]);
 
         const candles: Candle[] = raw.map((c: any) => ({
           timestamp: +c[0],
@@ -1543,13 +1602,6 @@ candles.forEach((c, i) => {
   
   // Volume is already assumed to be present as c.volume
 });
-
-    const ticker24h = await safeFetchJson<any>(
-      `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`,
-      `${symbol} 24h ticker`
-    );
-
-
 
     const currentPrice = parseFloat(ticker24h.lastPrice);
     const price24hAgo = parseFloat(ticker24h.openPrice);
@@ -2754,13 +2806,13 @@ opens,
         
         return {
   symbol,
-  bullishMainTrendCount,
-  bearishMainTrendCount,
-  bullishBreakoutCount,
-  bearishBreakoutCount,       
-  testedPrevHighCount,   // ✅ New
-  testedPrevLowCount,    // ✅ New
-  divergenceFromLevelCount,
+  bullishMainTrendCount: summaryCounts.bullishMainTrendCount,
+  bearishMainTrendCount: summaryCounts.bearishMainTrendCount,
+  bullishBreakoutCount: summaryCounts.bullishBreakoutCount,
+  bearishBreakoutCount: summaryCounts.bearishBreakoutCount,       
+  testedPrevHighCount: summaryCounts.testedPrevHighCount,   // ✅ New
+  testedPrevLowCount: summaryCounts.testedPrevLowCount,    // ✅ New
+  divergenceFromLevelCount: summaryCounts.divergenceFromLevelCount,
 mainTrend,
   breakout,
   bullishBreakout,
@@ -2780,8 +2832,8 @@ prevClosedRed,
         pd.pumpStrength >= 9 && pd.pumpStrength <= 13;
     })() &&
     ema14InsideResults.some((r: any) => r.inside === true),
-  bullishReversalCount,
-  bearishReversalCount,
+  bullishReversalCount: summaryCounts.bullishReversalCount,
+  bearishReversalCount: summaryCounts.bearishReversalCount,
   bullishReversal,		
   bearishReversal,
 divergenceFromLevel,
@@ -2812,7 +2864,7 @@ latestRSI,
   failedBearishBreak,
   failedBullishBreak,
 		ema14InsideResults,
-		ema14InsideResultsCount,
+		ema14InsideResultsCount: summaryCounts.ema14InsideResultsCount,
 		gap,
 		gap1,
 		ema14Bounce,
@@ -2836,8 +2888,8 @@ latestRSI,
 		bearishVolumeDivergence,
 		bullishVolumeDivergence,
 		highestVolumeColorPrev,
-		greenVolumeCount,
-		redVolumeCount,
+		greenVolumeCount: summaryCounts.greenVolumeCount,
+		redVolumeCount: summaryCounts.redVolumeCount,
 		isVolumeSpike,
 		hasBullishEngulfing,
 		hasBearishEngulfing,
@@ -2845,8 +2897,8 @@ latestRSI,
       price24hAgo,
       priceChangePercent,
       isUp,
-		greenPriceChangeCount, 
-		redPriceChangeCount,
+		greenPriceChangeCount: summaryCounts.greenPriceChangeCount, 
+		redPriceChangeCount: summaryCounts.redPriceChangeCount,
 		gapFromLowToEMA200,
 		gapFromHighToEMA200,
 };
@@ -2893,8 +2945,9 @@ latestRSI,
   setScannerStatus('scanning');
   setNextScanAt(null);
 
-  // Refresh funding rates for the complete USDⓈ-M Futures universe once per
-  // batch, instead of adding one funding request per coin.
+  // Funding changes less frequently than candle prices. Refresh the all-symbol
+  // snapshot every five minutes instead of downloading it for every batch.
+  if (Date.now() - lastFundingRefreshAt >= FUNDING_REFRESH_INTERVAL_MS) {
   try {
     const premiumIndex = await safeFetchJson<any[]>(
       "https://fapi.binance.com/fapi/v1/premiumIndex",
@@ -2907,20 +2960,24 @@ latestRSI,
         nextFundingRates[item.symbol] = rate;
       }
     }
-    if (isMounted) setFundingRates(nextFundingRates);
+    if (isMounted) {
+      setFundingRates(nextFundingRates);
+      lastFundingRefreshAt = Date.now();
+    }
   } catch (fundingError: any) {
-    // Funding is an additional scanner feature; a funding endpoint failure
-    // must not stop the existing technical-analysis scan.
+    // Funding is supplemental; retain the last successful snapshot on failure.
     console.warn("Funding-rate refresh failed; retaining last successful snapshot:", fundingError?.message || fundingError);
+  }
   }
 
   const batch = symbols.slice(currentIndex, currentIndex + BATCH_SIZE);
-  currentIndex = (currentIndex + BATCH_SIZE) % symbols.length;
+  currentIndex += batch.length;
+  if (currentIndex >= symbols.length) currentIndex = 0;
 
   const results: any[] = [];
 
-  // Process a maximum of 3 symbols concurrently. This is substantially faster
-  // than the old fully-serial scanner while keeping request bursts bounded.
+  // Process a maximum of 5 symbols concurrently. Each symbol's candle and
+  // ticker requests run together; adaptive backoff still protects Binance.
   for (let offset = 0; offset < batch.length && isMounted; offset += MAX_CONCURRENT) {
     const wave = batch.slice(offset, offset + MAX_CONCURRENT);
 
@@ -3078,11 +3135,11 @@ latestRSI,
             type="button"
             onClick={() => setSearch(symbol)}
             className={`px-2 py-0.5 rounded text-[10px] border ${
-              signals.some((s) => s.symbol === symbol)
+              analyzedSymbolSet.has(symbol)
                 ? 'border-green-700 bg-gray-700 text-green-300'
                 : 'border-gray-700 bg-gray-900 text-gray-400'
             }`}
-            title={signals.some((s) => s.symbol === symbol)
+            title={analyzedSymbolSet.has(symbol)
               ? `${symbol}: analyzed`
               : `${symbol}: waiting for analysis batch`}
           >
@@ -3123,145 +3180,145 @@ latestRSI,
       {
         label: 'Bullish Trend',
         key: 'bullishMainTrend',
-        count: bullishMainTrendCount,
+        count: summaryCounts.bullishMainTrendCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish Trend',
         key: 'bearishMainTrend',
-        count: bearishMainTrendCount,
+        count: summaryCounts.bearishMainTrendCount,
         color: 'text-red-300',
       },
       {
         label: 'Bullish + Near Support',
         key: 'bullishNearSupport',
-        count: bullishNearSupportCount,
+        count: summaryCounts.bullishNearSupportCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish + Near Resistance',
         key: 'bearishNearResistance',
-        count: bearishNearResistanceCount,
+        count: summaryCounts.bearishNearResistanceCount,
         color: 'text-red-300',
       },
       {
         label: 'Bullish + Breakup',
         key: 'bullishBreakup',
-        count: bullishBreakupCount,
+        count: summaryCounts.bullishBreakupCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish + Breakdown',
         key: 'bearishBreakdown',
-        count: bearishBreakdownCount,
+        count: summaryCounts.bearishBreakdownCount,
         color: 'text-red-300',
       },
       {
         label: 'Bullish + Doji After Breakout',
         key: 'bullishDojiAfterBreakout',
-        count: bullishDojiAfterBreakoutCount,
+        count: summaryCounts.bullishDojiAfterBreakoutCount,
         color: 'text-purple-300',
       },
       {
         label: 'Bearish + Doji After Breakout',
         key: 'bearishDojiAfterBreakout',
-        count: bearishDojiAfterBreakoutCount,
+        count: summaryCounts.bearishDojiAfterBreakoutCount,
         color: 'text-purple-300',
       },
       {
         label: 'Bullish Reversal',
         key: 'bullishReversal',
-        count: bullishReversalCount,
+        count: summaryCounts.bullishReversalCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish Reversal',
         key: 'bearishReversal',
-        count: bearishReversalCount,
+        count: summaryCounts.bearishReversalCount,
         color: 'text-red-300',
       },
       {
         label: 'Bullish Divergence',
         key: 'bullishDivergence',
-        count: bullishDivergenceCount,
+        count: summaryCounts.bullishDivergenceCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish Divergence',
         key: 'bearishDivergence',
-        count: bearishDivergenceCount,
+        count: summaryCounts.bearishDivergenceCount,
         color: 'text-red-300',
       },
       {
         label: 'Previous Close Green',
         key: 'prevCloseGreen',
-        count: prevCloseGreenCount,
+        count: summaryCounts.prevCloseGreenCount,
         color: 'text-green-300',
       },
       {
         label: 'Previous Close Red',
         key: 'prevCloseRed',
-        count: prevCloseRedCount,
+        count: summaryCounts.prevCloseRedCount,
         color: 'text-red-300',
       },
       {
         label: '1D • 2 Previous Red Closes',
         key: 'oneDayTwoRedCloses',
-        count: oneDayTwoRedClosesCount,
+        count: summaryCounts.oneDayTwoRedClosesCount,
         color: 'text-red-300',
       },
       {
         label: '1D • 3-Point Bearish RSI Divergence',
         key: 'oneDayThreePointBearishDivergence',
-        count: oneDayThreePointBearishDivergenceCount,
+        count: summaryCounts.oneDayThreePointBearishDivergenceCount,
         color: 'text-orange-300',
       },
       {
         label: 'Bullish Spike',
         key: 'bullishSpike',
-        count: bullishSpikeCount,
+        count: summaryCounts.bullishSpikeCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish Collapse',
         key: 'bearishCollapse',
-        count: bearishCollapseCount,
+        count: summaryCounts.bearishCollapseCount,
         color: 'text-red-300',
       },
       {
         label: 'Breakout Failure',
         key: 'breakoutFailure',
-        count: breakoutFailureCount,
+        count: summaryCounts.breakoutFailureCount,
         color: 'text-yellow-300',
       },
       {
         label: 'Bullish Breakout',
         key: 'bullishBreakout',
-        count: bullishBreakoutCount,
+        count: summaryCounts.bullishBreakoutCount,
         color: 'text-yellow-400',
       },
       {
         label: 'Bearish Breakout',
         key: 'bearishBreakout',
-        count: bearishBreakoutCount,
+        count: summaryCounts.bearishBreakoutCount,
         color: 'text-yellow-400',
       },
       {
         label: 'Tested Prev High',
         key: 'testedPrevHigh',
-        count: testedPrevHighCount,
+        count: summaryCounts.testedPrevHighCount,
         color: 'text-blue-300',
       },
       {
         label: 'Tested Prev Low',
         key: 'testedPrevLow',
-        count: testedPrevLowCount,
+        count: summaryCounts.testedPrevLowCount,
         color: 'text-blue-300',
       },
 	{
         label: 'Div from lev',
         key: 'divergenceFromLevel',
-        count: divergenceFromLevelCount,
+        count: summaryCounts.divergenceFromLevelCount,
         color: 'text-blue-300',
       },
     ].map(({ label, key, count, color }) => (
@@ -3542,11 +3599,11 @@ latestRSI,
 	<div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">  
     <div className="flex items-center gap-2">
       <span>📈 Bull Trend:</span>
-      <span className="text-green-400 font-bold">{bullishMainTrendCount}</span>
+      <span className="text-green-400 font-bold">{summaryCounts.bullishMainTrendCount}</span>
     </div>
     <div className="flex items-center gap-2">
       <span>📉 Bear Trend:</span>
-      <span className="text-red-400 font-bold">{bearishMainTrendCount}</span>
+      <span className="text-red-400 font-bold">{summaryCounts.bearishMainTrendCount}</span>
     </div>
 	</div>	
 
@@ -3557,7 +3614,7 @@ latestRSI,
         <span className="text-sm">📍 EMA14 Inside</span>
         <span className="text-sm">EMA70–200:</span>
       </span>
-      <span className="text-yellow-400 font-bold text-lg">{ema14InsideResultsCount}</span>
+      <span className="text-yellow-400 font-bold text-lg">{summaryCounts.ema14InsideResultsCount}</span>
     </div>
 </div>
 		
@@ -3565,8 +3622,8 @@ latestRSI,
     <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
       <div className="text-white text-sm mb-2 font-semibold">🔹 24h Price Change Summary</div>
       <div className="flex items-center gap-4 text-sm">
-        <span className="text-green-500 font-semibold">📈 Green: {greenPriceChangeCount}</span>
-        <span className="text-red-500 font-semibold">📉 Red: {redPriceChangeCount}</span>     
+        <span className="text-green-500 font-semibold">📈 Green: {summaryCounts.greenPriceChangeCount}</span>
+        <span className="text-red-500 font-semibold">📉 Red: {summaryCounts.redPriceChangeCount}</span>     
       </div>
 	</div>    
 
@@ -3574,8 +3631,8 @@ latestRSI,
 <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
   <div className="text-white text-sm mb-2 font-semibold">🔸 Volume Color Summary</div>
   <div className="flex items-center gap-4 text-sm">
-    <span className="text-green-400 font-semibold">🟢 Green Volume: {greenVolumeCount}</span>
-    <span className="text-red-400 font-semibold">🔴 Red Volume: {redVolumeCount}</span>
+    <span className="text-green-400 font-semibold">🟢 Green Volume: {summaryCounts.greenVolumeCount}</span>
+    <span className="text-red-400 font-semibold">🔴 Red Volume: {summaryCounts.redVolumeCount}</span>
   </div>
 </div>
 
@@ -3583,9 +3640,9 @@ latestRSI,
 <div className="border border-gray-700 rounded-lg p-3 bg-gray-900 shadow-sm">
   <div className="text-white text-sm mb-2 font-semibold">💰 Funding Rate Summary</div>
   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-    <span className="text-green-400 font-semibold">🟢 Positive: {positiveFundingCount}</span>
-    <span className="text-red-400 font-semibold">🔴 Negative: {negativeFundingCount}</span>
-    <span className="text-gray-300 font-semibold">⚪ Neutral: {neutralFundingCount}</span>
+    <span className="text-green-400 font-semibold">🟢 Positive: {summaryCounts.positiveFundingCount}</span>
+    <span className="text-red-400 font-semibold">🔴 Negative: {summaryCounts.negativeFundingCount}</span>
+    <span className="text-gray-300 font-semibold">⚪ Neutral: {summaryCounts.neutralFundingCount}</span>
   </div>
   <div className="text-[10px] text-gray-500 mt-1">Counts cover all active USDT perpetuals from the latest successful Binance funding snapshot.</div>
 </div>
@@ -3606,7 +3663,7 @@ latestRSI,
           : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
       }`}
     >
-      ☆ Not Yet Favorited ({signals.filter((s) => !favorites.has(s.symbol)).length})
+      ☆ Not Yet Favorited ({favoriteCounts.notFavorites})
     </button>
     <button
       type="button"
@@ -3618,7 +3675,7 @@ latestRSI,
           : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
       }`}
     >
-      ⭐ Favorites ({signals.filter((s) => favorites.has(s.symbol)).length})
+      ⭐ Favorites ({favoriteCounts.favorites})
     </button>
     <button
       type="button"
