@@ -3749,6 +3749,7 @@ latestRSI,
         <SortableTh field="pumpDump">RSI Direction / Distance (Δ)</SortableTh>
         <SortableTh field="latestRSI">RSI14</SortableTh>
 		<SortableTh field="mainTrend">Trend (200)</SortableTh>
+		<SortableTh field="prevClose">Prev Close</SortableTh>
 		<SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -3771,7 +3772,6 @@ latestRSI,
         <SortableTh field="recovery">Recovery 🟢</SortableTh>
         <SortableTh field="bullishBreakout">Bull BO</SortableTh>
         <SortableTh field="bearishBreakout">Bear BO</SortableTh>
-        <SortableTh field="prevClose">Prev Close</SortableTh>
         <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
         <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
         <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
@@ -4018,6 +4018,14 @@ else if (direction === 'pump' && pumpInRange_1_10) {
   ) : (
     'N/A'
   )}
+</td>
+
+			   <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
 </td>
 
 			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
@@ -4319,13 +4327,6 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     {s.bearishBreakout ? 'Yes' : 'No'}
   </td>		   
 		   
-<td
-  className={`px-1 py-0.5 text-center font-semibold ${
-    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
-  }`}
->
-  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
-</td>
   <td className="px-1 py-0.5 text-center font-semibold">
     {s.oneDayTwoPreviousRedCloses === true
       ? '🔴 YES (2/2)'
