@@ -755,7 +755,7 @@ const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' |
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('15m');
+	  const [timeframe, setTimeframe] = useState('4h');
   const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
   const timeframes = ['15m', '4h', '1d'];
 	
