@@ -760,7 +760,7 @@ const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' |
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('4h');
+	  const [timeframe, setTimeframe] = useState('15m');
   const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
   const timeframes = ['15m', '4h', '1d'];
 	
@@ -799,23 +799,25 @@ const toggleFavorite = (symbol: string) => {
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
-const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '3' | '2' | '1' | '0' | 'na'>('all');
+const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200PreviousFilter, setTouchedEMA200PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100PreviousFilter, setTouchedEMA100PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
-const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter] = useState<'all' | 'yes' | 'no'>('all');
-const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
-const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
-const [ema14InsideEMA70200Filter, setEma14InsideEMA70200Filter] = useState<'all' | 'yes' | 'no'>('all');
-const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
-const [oneDayBearishRsiPumpEmaFilter, setOneDayBearishRsiPumpEmaFilter] = useState<'all' | 'yes' | 'no'>('all');
 
 const searchTerm = search.trim().toLowerCase();
 
 const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
+const formatSignalExtremeTime = (timestamp: number | null | undefined) =>
+  Number.isFinite(timestamp)
+    ? new Date(timestamp as number).toLocaleString('en-PH', {
+        timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      })
+    : 'N/A';
 const getPumpDumpStrength = (s: any) => {
   const pd = getPumpDump(s);
   if (!pd) return null;
@@ -875,16 +877,6 @@ const getSortValue = (s: any, field: string): any => {
   }
 };
 
-const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
-  bullishMainTrend: 'bullish',
-  bearishMainTrend: 'bearish',
-  bullishNearSupport: 'bullish',
-  bearishNearResistance: 'bearish',
-  bullishBreakup: 'bullish',
-  bearishBreakdown: 'bearish',
-  bullishDojiAfterBreakout: 'bullish',
-  bearishDojiAfterBreakout: 'bearish',
-};
 
 const trend200ConditionMatches = (s: any, key: string): boolean => {
   switch (key) {
@@ -908,81 +900,21 @@ const trend200ConditionMatches = (s: any, key: string): boolean => {
 const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishBreakout: 'bullishBreakout',
   bearishBreakout: 'bearishBreakout',
-  breakoutFailure: 'breakoutFailure',
-  testedPrevHigh: 'testedPrevHigh',
-  testedPrevLow: 'testedPrevLow',
-  bullishReversal: 'bullishReversal',
-  bearishReversal: 'bearishReversal',
-  bullishSpike: 'bullishSpike',
-  bearishCollapse: 'bearishCollapse',
-  ema14InsideResults: 'ema14InsideResults',
-  highestVolumeColorPrev: 'highestVolumeColorPrev',
-  divergenceFromLevel: 'divergenceFromLevel',
-  bullishDivergence: 'bullishDivergence',
-  bearishDivergence: 'bearishDivergence',
   prevCloseGreen: 'prevClosedGreen',
   prevCloseRed: 'prevClosedRed',
-  oneDayTwoRedCloses: 'oneDayTwoPreviousRedCloses'
 };
 
-const trendFilterMatches = (s: any, key: string): boolean => {
-  // Main Trend filters
-  if (key === 'bullishMainTrend') {
-    return s.mainTrend?.trend === 'bullish';
-  }
+const trendFilterMatches = (s: any, key: string, selectedTimeframe: string): boolean => {
+  if (key === 'bullishDivergence') return s.multiTimeframeAlignment?.[selectedTimeframe]?.bullishDivergence?.divergence === true;
+  if (key === 'bearishDivergence') return s.multiTimeframeAlignment?.[selectedTimeframe]?.bearishDivergence?.divergence === true;
+  if (key === 'bullishMainTrend') return s.mainTrend?.trend === 'bullish';
+  if (key === 'bearishMainTrend') return s.mainTrend?.trend === 'bearish';
 
-  if (key === 'bearishMainTrend') {
-    return s.mainTrend?.trend === 'bearish';
-  }
-
-  // Trend (200) condition filters
-  if ([
-    'bullishNearSupport',
-    'bearishNearResistance',
-    'bullishBreakup',
-    'bearishBreakdown',
-    'bullishDojiAfterBreakout',
-    'bearishDojiAfterBreakout',
-  ].includes(key)) {
-    return trend200ConditionMatches(s, key);
-  }
-
-  // 1D three-point bearish price/RSI divergence. The result itself is only
-  // true when the selected scan timeframe is 1D and the detector is confirmed.
-  if (key === 'oneDayThreePointBearishDivergence') {
-    return s.oneDayThreePointBearishDivergence?.divergence === true;
-  }
-
-  // Boolean / signal filters
   const field = trendKeyToBooleanField[key];
   if (!field) return false;
-
-  if (field === 'ema14InsideResults') {
-    return s.ema14InsideResults?.some((r: any) => r.inside) === true;
-  }
-
-  if (field === 'divergenceFromLevel') {
-    return s.divergenceFromLevel === true || s.divergenceFromLevel === 'true';
-  }
-
-  if (field === 'bullishDivergence' || field === 'bearishDivergence') {
-    return s[field]?.divergence === true;
-  }
-
-  if (field === 'prevClosedGreen' || field === 'prevClosedRed') {
-    return s[field] === true;
-  }
-
-  if (field === 'bullishBreakout' || field === 'bearishBreakout' ||
-      field === 'breakoutFailure' || field === 'testedPrevHigh' ||
-      field === 'testedPrevLow' || field === 'bullishReversal' ||
-      field === 'bearishReversal' || field === 'bullishSpike' ||
-      field === 'bearishCollapse') {
-    const value = s[field];
-    return value === true || value?.signal === true;
-  }
-
-  return Boolean(s[field]);
+  if (field === 'prevClosedGreen' || field === 'prevClosedRed') return s[field] === true;
+  const value = s[field];
+  return value === true || value?.signal === true;
 };
 
 const filteredSignals = useMemo(() => signals.filter((s) => {
@@ -996,6 +928,36 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   if (!matchesSearch || !matchesFavoriteView) return false;
   if (ema200PullbackOnly && s.ema200PullbackSetup?.qualified !== true) return false;
 
+  // Multi-timeframe filters use each timeframe's own Main Trend and its own
+  // Position Signal alignment. Incomplete data is never counted as aligned.
+  const mtf = s.multiTimeframeAlignment;
+  const mtfItems = ['15m', '4h', '1d'].map((tf) => mtf?.[tf]);
+  const mtfDataComplete = mtfItems.every((item) => item && item.aligned !== null && item.aligned !== undefined);
+  const mtfAlignedCount = mtfItems.filter((item) => item?.aligned === true).length;
+
+  if (mtfAlignmentFilter !== 'all') {
+    if (mtfAlignmentFilter === 'na') {
+      if (mtfDataComplete) return false;
+    } else {
+      if (!mtfDataComplete || mtfAlignedCount !== Number(mtfAlignmentFilter)) return false;
+    }
+  }
+
+  if (mtfTrendDirectionFilter !== 'all') {
+    const trends = mtfItems.map((item) => item?.mainTrend);
+    const trendsComplete = trends.every((trend) => trend === 'bullish' || trend === 'bearish');
+    if (mtfTrendDirectionFilter === 'na') {
+      if (trendsComplete) return false;
+    } else {
+      if (!trendsComplete) return false;
+      const allBullish = trends.every((trend) => trend === 'bullish');
+      const allBearish = trends.every((trend) => trend === 'bearish');
+      if (mtfTrendDirectionFilter === 'bullish' && !allBullish) return false;
+      if (mtfTrendDirectionFilter === 'bearish' && !allBearish) return false;
+      if (mtfTrendDirectionFilter === 'mixed' && (allBullish || allBearish)) return false;
+    }
+  }
+
   if (fundingRateFilter !== 'all') {
     const rate = fundingRates[s.symbol];
     if (!Number.isFinite(rate)) return false;
@@ -1004,15 +966,12 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (fundingRateFilter === 'neutral' && rate !== 0) return false;
   }
 
-  // Multiple Trend filters are combined with AND logic.
-  // Example: Bullish Trend + Bullish Divergence + Bullish Near Support
-  // means ALL THREE conditions must be true for the same symbol.
-  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key))) {
+  // Selected Trend Filters are combined with AND logic.
+  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key, timeframe))) {
     return false;
   }
 
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
-  if (tableSignalFilter !== 'all' && getSignalValue(s) !== tableSignalFilter) return false;
 
   if (rsi14Filter !== 'all') {
     const rsi = typeof s.latestRSI === 'number' ? s.latestRSI : null;
@@ -1021,38 +980,10 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (rsi14Filter === 'below50' && rsi > 50) return false;
   }
 
-  if (breakoutFailFilter !== 'all' && (s.breakoutFailure ? 'yes' : 'no') !== breakoutFailFilter) return false;
-
-  if (oneDayTwoRedClosesFilter !== 'all') {
-    const value = s.oneDayTwoPreviousRedCloses;
-    if (value === null || value === undefined) return false;
-    if ((value ? 'yes' : 'no') !== oneDayTwoRedClosesFilter) return false;
-  }
-
-  // 1D composite filter: bearish trend + RSI14 > 50 + RSI pump 9–13 +
-  // EMA14 currently/recenly inside EMA70 and EMA200. This filter is only
-  // meaningful on the selected 1D dataset and does not affect other TFs.
-  if (oneDayBearishRsiPumpEmaFilter !== 'all') {
-    if (timeframe !== '1d') return false;
-    const pd = getPumpDump(s);
-    const ema14Inside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
-    const matches =
-      s.mainTrend?.trend === 'bearish' &&
-      typeof s.latestRSI === 'number' &&
-      s.latestRSI > 50 &&
-      pd?.direction === 'pump' &&
-      typeof pd.pumpStrength === 'number' &&
-      pd.pumpStrength >= 9 &&
-      pd.pumpStrength <= 13 &&
-      ema14Inside;
-    if ((matches ? 'yes' : 'no') !== oneDayBearishRsiPumpEmaFilter) return false;
-  }
-
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
   if (touchedEMA100Filter !== 'all' && (s.touchedEMA100Today ? 'yes' : 'no') !== touchedEMA100Filter) return false;
   if (touchedEMA200PreviousFilter !== 'all' && (s.touchedEMA200PreviousSession ? 'yes' : 'no') !== touchedEMA200PreviousFilter) return false;
   if (touchedEMA100PreviousFilter !== 'all' && (s.touchedEMA100PreviousSession ? 'yes' : 'no') !== touchedEMA100PreviousFilter) return false;
-  if (latestCandleInsideEMA50EMA70Filter !== 'all' && (s.latestCandleInsideEMA50EMA70 ? 'yes' : 'no') !== latestCandleInsideEMA50EMA70Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
     const crossDirection = s.ema70200Cross?.direction ?? 'none';
@@ -1060,25 +991,13 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (crossDirection !== wanted) return false;
   }
 
-  if (ema14InsideEMA70200Filter !== 'all') {
-    const isInside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
-    if ((isInside ? 'yes' : 'no') !== ema14InsideEMA70200Filter) return false;
-  }
-
-  if (rsiPumpDumpFilter !== 'all') {
-    const direction = getPumpDump(s)?.direction;
-    if (direction !== rsiPumpDumpFilter) return false;
-  }
-
   return true;
 }), [
   signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
-  fundingRateFilter, fundingRates, trendFilters, signalFilter, tableSignalFilter,
-  rsi14Filter, breakoutFailFilter, oneDayTwoRedClosesFilter,
-  oneDayBearishRsiPumpEmaFilter, timeframe, touchedEMA200Filter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter,
+  rsi14Filter, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
-  latestCandleInsideEMA50EMA70Filter, ema70200CrossFilter,
-  ema14InsideEMA70200Filter, rsiPumpDumpFilter
+  ema70200CrossFilter
 ]);
 
 // One uniform sorting pipeline: FILTER FIRST, then SORT. Never mutate React state.
@@ -1760,6 +1679,41 @@ for (const loaded of loadedTimeframes) {
     const currentSessionLow = currentSessionIndexed.length
       ? Math.min(...currentSessionIndexed.map(({ c }) => c.low)) : null;
 
+    // Active RSI price divergence for this timeframe, using completed candles
+    // and the exact Philippines 08:00–08:00 session.
+    const previousSessionLastIndex = previousSessionIndexed.length ? previousSessionIndexed[previousSessionIndexed.length - 1].index : -1;
+    const currentSessionLastIndex = currentSessionIndexed.length ? currentSessionIndexed[currentSessionIndexed.length - 1].index : -1;
+    const previousHighItem = previousSessionIndexed.length ? previousSessionIndexed.reduce((best, item) => item.c.high > best.c.high ? item : best) : null;
+    const currentHighItem = currentSessionIndexed.length ? currentSessionIndexed.reduce((best, item) => item.c.high > best.c.high ? item : best) : null;
+    const previousLowItem = previousSessionIndexed.length ? previousSessionIndexed.reduce((best, item) => item.c.low < best.c.low ? item : best) : null;
+    const currentLowItem = currentSessionIndexed.length ? currentSessionIndexed.reduce((best, item) => item.c.low < best.c.low ? item : best) : null;
+    const previousSessionRSI = previousSessionLastIndex >= 0 ? tfRSI14[previousSessionLastIndex] : NaN;
+    const currentSessionRSI = currentSessionLastIndex >= 0 ? tfRSI14[currentSessionLastIndex] : NaN;
+    const divergenceDataAvailable = Boolean(previousSessionIndexed.length && currentSessionIndexed.length &&
+      Number.isFinite(previousSessionRSI) && Number.isFinite(currentSessionRSI));
+    const bearishDivergence = {
+      available: divergenceDataAvailable,
+      divergence: divergenceDataAvailable && currentSessionHigh! > previousSessionHigh! && currentSessionRSI < previousSessionRSI,
+      type: 'bearish',
+      previousPrice: previousSessionHigh,
+      currentPrice: currentSessionHigh,
+      previousRSI: Number.isFinite(previousSessionRSI) ? previousSessionRSI : null,
+      currentRSI: Number.isFinite(currentSessionRSI) ? currentSessionRSI : null,
+      previousTimestamp: previousHighItem?.c.timestamp ?? null,
+      currentTimestamp: currentHighItem?.c.timestamp ?? null
+    };
+    const bullishDivergence = {
+      available: divergenceDataAvailable,
+      divergence: divergenceDataAvailable && currentSessionLow! < previousSessionLow! && currentSessionRSI > previousSessionRSI,
+      type: 'bullish',
+      previousPrice: previousSessionLow,
+      currentPrice: currentSessionLow,
+      previousRSI: Number.isFinite(previousSessionRSI) ? previousSessionRSI : null,
+      currentRSI: Number.isFinite(currentSessionRSI) ? currentSessionRSI : null,
+      previousTimestamp: previousLowItem?.c.timestamp ?? null,
+      currentTimestamp: currentLowItem?.c.timestamp ?? null
+    };
+
     const bullishBreakout = currentSessionHigh !== null && previousSessionHigh !== null
       ? currentSessionHigh > previousSessionHigh : null;
     const bearishBreakout = currentSessionLow !== null && previousSessionLow !== null
@@ -1821,7 +1775,9 @@ for (const loaded of loadedTimeframes) {
       ema100PreviousTouch,
       ema200CurrentTouch,
       ema200PreviousTouch,
-      latestCrossover
+      latestCrossover,
+      bearishDivergence,
+      bullishDivergence
     };
   } catch (err: any) {
     console.warn(`${symbol} ${tf} metrics unavailable:`, err?.message || err);
@@ -1830,7 +1786,9 @@ for (const loaded of loadedTimeframes) {
       alignment: 'N/A', aligned: null, bullishBreakout: null, bearishBreakout: null,
       latestRSI14: null, rsi14Zone: 'N/A',
       ema100CurrentTouch: null, ema100PreviousTouch: null,
-      ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null
+      ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null,
+      bearishDivergence: { available: false, divergence: false, type: 'bearish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
+      bullishDivergence: { available: false, divergence: false, type: 'bullish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null }
     };
   }
 }
@@ -1862,34 +1820,15 @@ if (interval === '1d') {
 }
 
 
-// === 1D THREE-POINT PRICE / RSI(14) BEARISH DIVERGENCE ===
-// Use only COMPLETED daily candles. This prevents today's unfinished high
-// from becoming the third point and then disappearing/reversing intraday.
-const completedDailyCandlesForDivergence = candles.filter((candle) =>
-  Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
-);
-const completedDailyClosesForDivergence = completedDailyCandlesForDivergence.map(c => c.close);
-const completedDailyRsi14ForDivergence = calculateRSI(completedDailyClosesForDivergence, 14);
-const completedDailyEma14ForDivergence = calculateEMA(completedDailyClosesForDivergence, 14);
-const oneDayThreePointBearishDivergence = interval === '1d'
-  ? detectThreePointBearishRSIDivergence(
-      completedDailyCandlesForDivergence,
-      completedDailyRsi14ForDivergence,
-      completedDailyEma14ForDivergence,
-      20,
-      2,
-      2
-    )
-  : {
-      divergence: false,
-      status: 'NO DATA' as const,
-      pivots: [],
-      priceAscending: false,
-      rsiDescending: false,
-      ema14Confirmed: false,
-      windowSize: 20,
-      message: '1D timeframe only'
-    };
+// PRESERVED FOR FUTURE USE — DISABLED.
+// The original 1D three-point RSI divergence implementation is retained in
+// the prior source ZIP. Its pivot scan is not run during normal scanning.
+const oneDayThreePointBearishDivergence = {
+  divergence: false, status: 'DISABLED' as const, pivots: [],
+  priceAscending: false, rsiDescending: false, ema14Confirmed: false,
+  windowSize: 20,
+  message: 'Disabled to reduce scanner workload; preserved for future use'
+};
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
@@ -2120,27 +2059,10 @@ const touchedEMA100PreviousSession = candlesPrev.some((candle) => {
     candle.high >= candleEMA100;
 });
 
-// === Extract highs and lows from each session ===
-const highsPrev = candlesPrev.map(c => c.high);
-const highsToday = candlesToday.map(c => c.high);
-const lowsPrev = candlesPrev.map(c => c.low);
-const lowsToday = candlesToday.map(c => c.low);
+// Legacy selected-timeframe divergence preparation is dormant. The reusable
+// detector functions remain above; active calculations now run once per
+// timeframe inside multiTimeframeAlignment using the already-loaded candles.
 
-// === Get last high/low of previous session and highest/lowest of today ===
-const prevHigh = Math.max(...highsPrev);
-const currHigh = Math.max(...highsToday);
-
-const prevLow = Math.min(...lowsPrev);
-const currLow = Math.min(...lowsToday);
-
-// === Align RSI data ===
-// Ensure rsi14 includes enough data to cover both sessions
-const rsiPrev = rsi14[rsi14.length - candlesToday.length - 1]; // Last RSI from prev session
-const rsiCurr = rsi14[rsi14.length - 1]; // Latest RSI from today
-
-// === Run divergence detection ===
-const bearishDivergence = detectBearishDivergence(prevHigh, currHigh, rsiPrev, rsiCurr);
-const bullishDivergence = detectBullishDivergence(prevLow, currLow, rsiPrev, rsiCurr);
 
 // === EMA200 PULLBACK SETUP (validated 15m bearish combination) ===
 // Rebuild the divergence comparison on the exact Philippines 08:00–08:00
@@ -2229,25 +2151,15 @@ const ema200PullbackSetup = {
 };
 
 // === Extract volumes from each session ===
-const volumesPrev = candlesPrev.map(c => c.volume);
-const volumesToday = candlesToday.map(c => c.volume);
-
-// === Get highest volume candle value from each session ===
-const volumePrev = Math.max(...volumesPrev);
-const volumeCurr = Math.max(...volumesToday);
+// Dormant legacy divergence preparation/logging removed from runtime.
 
 	      
-const bearishVolumeDivergence = detectBearishVolumeDivergence(prevHigh, currHigh, volumePrev, volumeCurr);
-const bullishVolumeDivergence = detectBullishVolumeDivergence(prevLow, currLow, volumePrev, volumeCurr);
+// PRESERVED FOR FUTURE USE — DISABLED: volume-divergence detector functions
+// remain in the source but are not executed during normal scanning.
+const bearishVolumeDivergence = { divergence: false };
+const bullishVolumeDivergence = { divergence: false };
 	      
-// === Log results ===
-if (bearishDivergence.divergence) {
-  console.log("🔻 Bearish Divergence Detected:", bearishDivergence);
-}
-
-if (bullishDivergence.divergence) {
-  console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
-}
+// Dormant legacy divergence preparation/logging removed from runtime.
 
 const prevVolumesWithColor = candlesPrev.map(candle => {
   const color = candle.close > candle.open
@@ -2384,7 +2296,26 @@ const { level, type, crossoverPrice } = findRelevantLevel(ema14, ema70, closes, 
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
           const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
-           let divergenceFromLevel = false;
+          // PRESERVED FOR FUTURE USE — DISABLED. This code is intentionally
+          // commented out because there is no current divergence-from-level output.
+          /*
+          let divergenceFromLevel = false;
+          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
+          if (type && level !== null) {
+            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
+            if (levelIdx !== -1) {
+              const pastRSI = rsi14[levelIdx];
+              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bearish';
+              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
+                divergenceFromLevel = true;
+                divergenceFromLevelType = 'bullish';
+              }
+            }
+          }
+          */
+          let divergenceFromLevel = false;
           let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 
           if (type && level !== null) {
@@ -2972,6 +2903,10 @@ opens,
 ); 
 	      
         
+        const selectedTimeframeDivergence = multiTimeframeAlignment[interval] ?? {};
+        const bearishDivergence = selectedTimeframeDivergence.bearishDivergence ?? { divergence: false };
+        const bullishDivergence = selectedTimeframeDivergence.bullishDivergence ?? { divergence: false };
+
         return {
   symbol,
   bullishMainTrendCount: summaryCounts.bullishMainTrendCount,
@@ -3239,7 +3174,6 @@ latestRSI,
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
     if (tf !== '15m') setEma200PullbackOnly(false);
-    if (tf !== '1d') setOneDayBearishRsiPumpEmaFilter('all');
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
@@ -3343,7 +3277,7 @@ latestRSI,
     {/* 🔷 Trend Filters Section */}
 <div>
   <p className="text-gray-400 mb-2 font-semibold">
-    📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
+    📊 Trend Filters — Filter by Main Trend, previous session close, or breakout results shown in the scanner:
   </p>
   <div className="flex flex-wrap gap-2">
     {[
@@ -3360,63 +3294,15 @@ latestRSI,
         color: 'text-red-300',
       },
       {
-        label: 'Bullish + Near Support',
-        key: 'bullishNearSupport',
-        count: summaryCounts.bullishNearSupportCount,
-        color: 'text-green-300',
-      },
-      {
-        label: 'Bearish + Near Resistance',
-        key: 'bearishNearResistance',
-        count: summaryCounts.bearishNearResistanceCount,
-        color: 'text-red-300',
-      },
-      {
-        label: 'Bullish + Breakup',
-        key: 'bullishBreakup',
-        count: summaryCounts.bullishBreakupCount,
-        color: 'text-green-300',
-      },
-      {
-        label: 'Bearish + Breakdown',
-        key: 'bearishBreakdown',
-        count: summaryCounts.bearishBreakdownCount,
-        color: 'text-red-300',
-      },
-      {
-        label: 'Bullish + Doji After Breakout',
-        key: 'bullishDojiAfterBreakout',
-        count: summaryCounts.bullishDojiAfterBreakoutCount,
-        color: 'text-purple-300',
-      },
-      {
-        label: 'Bearish + Doji After Breakout',
-        key: 'bearishDojiAfterBreakout',
-        count: summaryCounts.bearishDojiAfterBreakoutCount,
-        color: 'text-purple-300',
-      },
-      {
-        label: 'Bullish Reversal',
-        key: 'bullishReversal',
-        count: summaryCounts.bullishReversalCount,
-        color: 'text-green-300',
-      },
-      {
-        label: 'Bearish Reversal',
-        key: 'bearishReversal',
-        count: summaryCounts.bearishReversalCount,
-        color: 'text-red-300',
-      },
-      {
         label: 'Bullish Divergence',
         key: 'bullishDivergence',
-        count: summaryCounts.bullishDivergenceCount,
+        count: signals.filter((s) => s.multiTimeframeAlignment?.[timeframe]?.bullishDivergence?.divergence === true).length,
         color: 'text-green-300',
       },
       {
         label: 'Bearish Divergence',
         key: 'bearishDivergence',
-        count: summaryCounts.bearishDivergenceCount,
+        count: signals.filter((s) => s.multiTimeframeAlignment?.[timeframe]?.bearishDivergence?.divergence === true).length,
         color: 'text-red-300',
       },
       {
@@ -3432,36 +3318,6 @@ latestRSI,
         color: 'text-red-300',
       },
       {
-        label: '1D • 2 Previous Red Closes',
-        key: 'oneDayTwoRedCloses',
-        count: summaryCounts.oneDayTwoRedClosesCount,
-        color: 'text-red-300',
-      },
-      {
-        label: '1D • 3-Point Bearish RSI Divergence',
-        key: 'oneDayThreePointBearishDivergence',
-        count: summaryCounts.oneDayThreePointBearishDivergenceCount,
-        color: 'text-orange-300',
-      },
-      {
-        label: 'Bullish Spike',
-        key: 'bullishSpike',
-        count: summaryCounts.bullishSpikeCount,
-        color: 'text-green-300',
-      },
-      {
-        label: 'Bearish Collapse',
-        key: 'bearishCollapse',
-        count: summaryCounts.bearishCollapseCount,
-        color: 'text-red-300',
-      },
-      {
-        label: 'Breakout Failure',
-        key: 'breakoutFailure',
-        count: summaryCounts.breakoutFailureCount,
-        color: 'text-yellow-300',
-      },
-      {
         label: 'Bullish Breakout',
         key: 'bullishBreakout',
         count: summaryCounts.bullishBreakoutCount,
@@ -3472,24 +3328,6 @@ latestRSI,
         key: 'bearishBreakout',
         count: summaryCounts.bearishBreakoutCount,
         color: 'text-yellow-400',
-      },
-      {
-        label: 'Tested Prev High',
-        key: 'testedPrevHigh',
-        count: summaryCounts.testedPrevHighCount,
-        color: 'text-blue-300',
-      },
-      {
-        label: 'Tested Prev Low',
-        key: 'testedPrevLow',
-        count: summaryCounts.testedPrevLowCount,
-        color: 'text-blue-300',
-      },
-	{
-        label: 'Div from lev',
-        key: 'divergenceFromLevel',
-        count: summaryCounts.divergenceFromLevelCount,
-        color: 'text-blue-300',
       },
     ].map(({ label, key, count, color }) => (
       <button
@@ -3589,7 +3427,7 @@ latestRSI,
       </div>
     </div>
 
-    {/* 🔎 Uniform Table Filters */}
+    {/* 🔎 Scanner Output Filters */}
     <div className="border border-gray-700 rounded-lg p-3 bg-gray-900">
       <p className="text-gray-400 mb-2 font-semibold">🔎 Table Filters</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
@@ -3599,33 +3437,6 @@ latestRSI,
             <option value="all">All</option>
             <option value="above50">Above 50</option>
             <option value="below50">50 or below</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>Breakout Fail</span>
-          <select value={breakoutFailFilter} onChange={(e) => setBreakoutFailFilter(e.target.value as typeof breakoutFailFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>1D Two Previous Red Closes</span>
-          <select value={oneDayTwoRedClosesFilter} onChange={(e) => setOneDayTwoRedClosesFilter(e.target.value as typeof oneDayTwoRedClosesFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="yes">Yes — 2 red closes</option>
-            <option value="no">No</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>1D Bearish + RSI&gt;50 + Pump 9–13 + EMA14 Inside</span>
-          <select value={oneDayBearishRsiPumpEmaFilter} onChange={(e) => setOneDayBearishRsiPumpEmaFilter(e.target.value as typeof oneDayBearishRsiPumpEmaFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="yes">Yes — all conditions</option>
-            <option value="no">No — condition not met</option>
           </select>
         </label>
 
@@ -3644,15 +3455,6 @@ latestRSI,
             <option value="all">All</option>
             <option value="yes">Yes — touched previous session</option>
             <option value="no">No — not touched previous session</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>Latest Candle Inside EMA50–70</span>
-          <select value={latestCandleInsideEMA50EMA70Filter} onChange={(e) => setLatestCandleInsideEMA50EMA70Filter(e.target.value as typeof latestCandleInsideEMA50EMA70Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="yes">Yes — Inside EMA50–70</option>
-            <option value="no">No — Outside EMA50–70</option>
           </select>
         </label>
 
@@ -3685,38 +3487,25 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>EMA14 Inside EMA70–200</span>
-          <select value={ema14InsideEMA70200Filter} onChange={(e) => setEma14InsideEMA70200Filter(e.target.value as typeof ema14InsideEMA70200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="yes">Yes — EMA14 inside EMA70–200</option>
-            <option value="no">No — EMA14 outside EMA70–200</option>
+          <span>MTF Alignment (15m / 4H / 1D)</span>
+          <select value={mtfAlignmentFilter} onChange={(e) => setMtfAlignmentFilter(e.target.value as typeof mtfAlignmentFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All alignment results</option>
+            <option value="3">3/3 — All aligned</option>
+            <option value="2">2/3 — Two aligned</option>
+            <option value="1">1/3 — One aligned</option>
+            <option value="0">0/3 — None aligned</option>
+            <option value="na">N/A — Incomplete alignment data</option>
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>Signal</span>
-          <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="MAX ZONE PUMP">MAX ZONE PUMP</option>
-            <option value="MAX ZONE DUMP">MAX ZONE DUMP</option>
-            <option value="UPPER-MIDDLE ZONE PUMP">UPPER-MIDDLE ZONE PUMP</option>
-            <option value="UPPER-MIDDLE ZONE DUMP">UPPER-MIDDLE ZONE DUMP</option>
-            <option value="BALANCE ZONE PUMP">BALANCE ZONE PUMP</option>
-            <option value="BALANCE ZONE DUMP">BALANCE ZONE DUMP</option>
-            <option value="LOWER-MIDDLE ZONE PUMP">LOWER-MIDDLE ZONE PUMP</option>
-            <option value="LOWER-MIDDLE ZONE DUMP">LOWER-MIDDLE ZONE DUMP</option>
-            <option value="LOWEST ZONE PUMP">LOWEST ZONE PUMP</option>
-            <option value="LOWEST ZONE DUMP">LOWEST ZONE DUMP</option>
-            <option value="NO DATA">NO DATA</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>RSI Direction</span>
-          <select value={rsiPumpDumpFilter} onChange={(e) => setRsiPumpDumpFilter(e.target.value as typeof rsiPumpDumpFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="pump">Pump</option>
-            <option value="dump">Dump</option>
+          <span>MTF Main Trend Direction</span>
+          <select value={mtfTrendDirectionFilter} onChange={(e) => setMtfTrendDirectionFilter(e.target.value as typeof mtfTrendDirectionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All trend directions</option>
+            <option value="bullish">All Bullish (15m / 4H / 1D)</option>
+            <option value="bearish">All Bearish (15m / 4H / 1D)</option>
+            <option value="mixed">Mixed — Bullish and Bearish</option>
+            <option value="na">N/A — Incomplete trend data</option>
           </select>
         </label>
 
@@ -3739,19 +3528,15 @@ latestRSI,
           setSearch('');
           setTrendFilters([]);
           setSignalFilter(null);
-          setTableSignalFilter('all');
           setRsi14Filter('all');
-          setBreakoutFailFilter('all');
-          setOneDayTwoRedClosesFilter('all');
           setTouchedEMA200Filter('all');
           setTouchedEMA100Filter('all');
           setTouchedEMA200PreviousFilter('all');
           setTouchedEMA100PreviousFilter('all');
-          setLatestCandleInsideEMA50EMA70Filter('all');
           setEma70200CrossFilter('all');
-          setEma14InsideEMA70200Filter('all');
-          setRsiPumpDumpFilter('all');
           setFundingRateFilter('all');
+          setMtfAlignmentFilter('all');
+          setMtfTrendDirectionFilter('all');
           setCoinListView('not-favorites');
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
@@ -3916,6 +3701,7 @@ latestRSI,
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+        <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">1D — PH Session</th>
@@ -3968,6 +3754,34 @@ latestRSI,
                 <div className="flex justify-between gap-2">
                   <span className="text-gray-400">Position Signal</span>
                   <strong className="text-white text-right">{item.positionSignal ?? 'N/A'}</strong>
+                </div>
+                <div className="border-t border-gray-700 pt-1 mt-0.5">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-400">Bearish Divergence</span>
+                    <strong className={item.bearishDivergence?.divergence ? 'text-red-400' : 'text-gray-500'}>
+                      {item.bearishDivergence?.available === false ? 'N/A' : item.bearishDivergence?.divergence ? 'YES' : 'NO'}
+                    </strong>
+                  </div>
+                  {item.bearishDivergence?.divergence && (
+                    <div className="text-[10px] text-gray-400">
+                      High: {Number(item.bearishDivergence.previousPrice).toFixed(7)} → {Number(item.bearishDivergence.currentPrice).toFixed(7)}
+                      {' | '}RSI: {Number(item.bearishDivergence.previousRSI).toFixed(2)} → {Number(item.bearishDivergence.currentRSI).toFixed(2)}
+                      <div>PH candle times: {formatSignalExtremeTime(item.bearishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bearishDivergence.currentTimestamp)}</div>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-400">Bullish Divergence</span>
+                    <strong className={item.bullishDivergence?.divergence ? 'text-green-400' : 'text-gray-500'}>
+                      {item.bullishDivergence?.available === false ? 'N/A' : item.bullishDivergence?.divergence ? 'YES' : 'NO'}
+                    </strong>
+                  </div>
+                  {item.bullishDivergence?.divergence && (
+                    <div className="text-[10px] text-gray-400">
+                      Low: {Number(item.bullishDivergence.previousPrice).toFixed(7)} → {Number(item.bullishDivergence.currentPrice).toFixed(7)}
+                      {' | '}RSI: {Number(item.bullishDivergence.previousRSI).toFixed(2)} → {Number(item.bullishDivergence.currentRSI).toFixed(2)}
+                      <div>PH candle times: {formatSignalExtremeTime(item.bullishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bullishDivergence.currentTimestamp)}</div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-gray-400">Trend Alignment</span>
@@ -4056,6 +3870,32 @@ latestRSI,
             </td>
             <td className="px-2 py-2 text-center whitespace-nowrap">
               <PriceChangePercent percent={s.priceChangePercent} />
+            </td>
+            <td className="px-2 py-2 text-center align-top min-w-[230px]">
+              {(() => {
+                const signal = getSignalValue(s);
+                const pd = getPumpDump(s);
+                const timestamps: number[] = Array.isArray(s.rsi14Timestamps) ? s.rsi14Timestamps : [];
+                const highTime = pd ? timestamps[pd.highIndex] : undefined;
+                const lowTime = pd ? timestamps[pd.lowIndex] : undefined;
+                const directionLabel = pd?.direction === 'pump' ? 'PUMP'
+                  : pd?.direction === 'dump' ? 'DUMP' : pd ? 'NEUTRAL' : 'N/A';
+                const directionClass = pd?.direction === 'pump' ? 'text-green-400'
+                  : pd?.direction === 'dump' ? 'text-red-400' : 'text-gray-400';
+                return (
+                  <div className="flex flex-col gap-1 leading-tight text-[10px]">
+                    <strong className={`text-xs ${directionClass}`}>{directionLabel} — {signal}</strong>
+                    {pd ? (
+                      <>
+                        <div className="text-white">Δ {pd.pumpStrength.toFixed(2)} <span className="text-gray-500">(RSI High − Low)</span></div>
+                        <div className="text-gray-300">H: {pd.recentHigh.toFixed(2)} <span className="text-gray-500">@ {formatSignalExtremeTime(highTime)}</span></div>
+                        <div className="text-gray-300">L: {pd.recentLow.toFixed(2)} <span className="text-gray-500">@ {formatSignalExtremeTime(lowTime)}</span></div>
+                        <div className="text-gray-400">Start → End: {pd.startRSI.toFixed(2)} → {pd.endRSI.toFixed(2)}</div>
+                      </>
+                    ) : <span className="text-gray-500">RSI data unavailable</span>}
+                  </div>
+                );
+              })()}
             </td>
             {renderTimeframe('15m')}
             {renderTimeframe('4h')}
