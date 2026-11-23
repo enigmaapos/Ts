@@ -760,7 +760,7 @@ const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' |
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('4h');
+	  const [timeframe, setTimeframe] = useState('15m');
   const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
   const timeframes = ['15m', '4h', '1d'];
 	
@@ -904,7 +904,9 @@ const trendKeyToBooleanField: Record<string, keyof any> = {
   prevCloseRed: 'prevClosedRed',
 };
 
-const trendFilterMatches = (s: any, key: string): boolean => {
+const trendFilterMatches = (s: any, key: string, selectedTimeframe: string): boolean => {
+  if (key === 'bullishDivergence') return s.multiTimeframeAlignment?.[selectedTimeframe]?.bullishDivergence?.divergence === true;
+  if (key === 'bearishDivergence') return s.multiTimeframeAlignment?.[selectedTimeframe]?.bearishDivergence?.divergence === true;
   if (key === 'bullishMainTrend') return s.mainTrend?.trend === 'bullish';
   if (key === 'bearishMainTrend') return s.mainTrend?.trend === 'bearish';
 
@@ -965,7 +967,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   }
 
   // Selected Trend Filters are combined with AND logic.
-  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key))) {
+  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key, timeframe))) {
     return false;
   }
 
@@ -3289,6 +3291,18 @@ latestRSI,
         label: 'Bearish Trend',
         key: 'bearishMainTrend',
         count: summaryCounts.bearishMainTrendCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish Divergence',
+        key: 'bullishDivergence',
+        count: signals.filter((s) => s.multiTimeframeAlignment?.[timeframe]?.bullishDivergence?.divergence === true).length,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Divergence',
+        key: 'bearishDivergence',
+        count: signals.filter((s) => s.multiTimeframeAlignment?.[timeframe]?.bearishDivergence?.divergence === true).length,
         color: 'text-red-300',
       },
       {
