@@ -808,7 +808,6 @@ const [touchedEMA200PreviousFilter, setTouchedEMA200PreviousFilter] = useState<'
 const [touchedEMA100PreviousFilter, setTouchedEMA100PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
-const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
 const [ema14InsideEMA70200Filter, setEma14InsideEMA70200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
@@ -1044,7 +1043,6 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   }
 
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
-  if (tableSignalFilter !== 'all' && getSignalValue(s) !== tableSignalFilter) return false;
 
   if (rsi14Filter !== 'all') {
     const rsi = typeof s.latestRSI === 'number' ? s.latestRSI : null;
@@ -1105,7 +1103,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   return true;
 }), [
   signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
-  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, tableSignalFilter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter,
   rsi14Filter, breakoutFailFilter, oneDayTwoRedClosesFilter,
   oneDayBearishRsiPumpEmaFilter, timeframe, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
@@ -3725,23 +3723,6 @@ latestRSI,
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>Signal</span>
-          <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All</option>
-            <option value="MAX ZONE PUMP">MAX ZONE PUMP</option>
-            <option value="MAX ZONE DUMP">MAX ZONE DUMP</option>
-            <option value="UPPER-MIDDLE ZONE PUMP">UPPER-MIDDLE ZONE PUMP</option>
-            <option value="UPPER-MIDDLE ZONE DUMP">UPPER-MIDDLE ZONE DUMP</option>
-            <option value="BALANCE ZONE PUMP">BALANCE ZONE PUMP</option>
-            <option value="BALANCE ZONE DUMP">BALANCE ZONE DUMP</option>
-            <option value="LOWER-MIDDLE ZONE PUMP">LOWER-MIDDLE ZONE PUMP</option>
-            <option value="LOWER-MIDDLE ZONE DUMP">LOWER-MIDDLE ZONE DUMP</option>
-            <option value="LOWEST ZONE PUMP">LOWEST ZONE PUMP</option>
-            <option value="LOWEST ZONE DUMP">LOWEST ZONE DUMP</option>
-            <option value="NO DATA">NO DATA</option>
-          </select>
-        </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>RSI Direction</span>
@@ -3794,10 +3775,10 @@ latestRSI,
           setSearch('');
           setTrendFilters([]);
           setSignalFilter(null);
-          setTableSignalFilter('all');
           setRsi14Filter('all');
           setBreakoutFailFilter('all');
           setOneDayTwoRedClosesFilter('all');
+          setOneDayBearishRsiPumpEmaFilter('all');
           setTouchedEMA200Filter('all');
           setTouchedEMA100Filter('all');
           setTouchedEMA200PreviousFilter('all');
