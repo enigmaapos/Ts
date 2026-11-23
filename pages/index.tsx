@@ -811,6 +811,13 @@ const searchTerm = search.trim().toLowerCase();
 
 const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
+const formatSignalExtremeTime = (timestamp: number | undefined) =>
+  Number.isFinite(timestamp)
+    ? new Date(timestamp as number).toLocaleString('en-PH', {
+        timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      })
+    : 'N/A';
 const getPumpDumpStrength = (s: any) => {
   const pd = getPumpDump(s);
   if (!pd) return null;
@@ -3806,12 +3813,31 @@ latestRSI,
             <td className="px-2 py-2 text-center whitespace-nowrap">
               <PriceChangePercent percent={s.priceChangePercent} />
             </td>
-            <td className={`px-2 py-2 text-center font-semibold whitespace-nowrap ${
-              getSignalValue(s).includes('PUMP') ? 'text-green-400' :
-              getSignalValue(s).includes('DUMP') ? 'text-red-400' :
-              getSignalValue(s) === 'NO DATA' ? 'text-gray-500' : 'text-yellow-300'
-            }`}>
-              {getSignalValue(s)}
+            <td className="px-2 py-2 text-center align-top min-w-[230px]">
+              {(() => {
+                const signal = getSignalValue(s);
+                const pd = getPumpDump(s);
+                const timestamps: number[] = Array.isArray(s.rsi14Timestamps) ? s.rsi14Timestamps : [];
+                const highTime = pd ? timestamps[pd.highIndex] : undefined;
+                const lowTime = pd ? timestamps[pd.lowIndex] : undefined;
+                const directionLabel = pd?.direction === 'pump' ? 'PUMP'
+                  : pd?.direction === 'dump' ? 'DUMP' : pd ? 'NEUTRAL' : 'N/A';
+                const directionClass = pd?.direction === 'pump' ? 'text-green-400'
+                  : pd?.direction === 'dump' ? 'text-red-400' : 'text-gray-400';
+                return (
+                  <div className="flex flex-col gap-1 leading-tight text-[10px]">
+                    <strong className={`text-xs ${directionClass}`}>{directionLabel} — {signal}</strong>
+                    {pd ? (
+                      <>
+                        <div className="text-white">Δ {pd.pumpStrength.toFixed(2)} <span className="text-gray-500">(RSI High − Low)</span></div>
+                        <div className="text-gray-300">H: {pd.recentHigh.toFixed(2)} <span className="text-gray-500">@ {formatSignalExtremeTime(highTime)}</span></div>
+                        <div className="text-gray-300">L: {pd.recentLow.toFixed(2)} <span className="text-gray-500">@ {formatSignalExtremeTime(lowTime)}</span></div>
+                        <div className="text-gray-400">Start → End: {pd.startRSI.toFixed(2)} → {pd.endRSI.toFixed(2)}</div>
+                      </>
+                    ) : <span className="text-gray-500">RSI data unavailable</span>}
+                  </div>
+                );
+              })()}
             </td>
             {renderTimeframe('15m')}
             {renderTimeframe('4h')}
