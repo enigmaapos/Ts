@@ -760,7 +760,7 @@ const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' |
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
-	  const [timeframe, setTimeframe] = useState('15m');
+	  const [timeframe, setTimeframe] = useState('4h');
   const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
   const timeframes = ['15m', '4h', '1d'];
 	
@@ -799,25 +799,23 @@ const toggleFavorite = (symbol: string) => {
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
-const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '3' | '2' | '1' | '0' | 'na'>('all');
-const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
+const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200PreviousFilter, setTouchedEMA200PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100PreviousFilter, setTouchedEMA100PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [latestCandleInsideEMA50EMA70Filter, setLatestCandleInsideEMA50EMA70Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [rsiPumpDumpFilter, setRsiPumpDumpFilter] = useState<'all' | 'pump' | 'dump'>('all');
+const [tableSignalFilter, setTableSignalFilter] = useState<string>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
+const [ema14InsideEMA70200Filter, setEma14InsideEMA70200Filter] = useState<'all' | 'yes' | 'no'>('all');
+const [oneDayTwoRedClosesFilter, setOneDayTwoRedClosesFilter] = useState<'all' | 'yes' | 'no'>('all');
+const [oneDayBearishRsiPumpEmaFilter, setOneDayBearishRsiPumpEmaFilter] = useState<'all' | 'yes' | 'no'>('all');
 
 const searchTerm = search.trim().toLowerCase();
 
 const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
-const formatSignalExtremeTime = (timestamp: number | null | undefined) =>
-  Number.isFinite(timestamp)
-    ? new Date(timestamp as number).toLocaleString('en-PH', {
-        timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: false
-      })
-    : 'N/A';
 const getPumpDumpStrength = (s: any) => {
   const pd = getPumpDump(s);
   if (!pd) return null;
@@ -877,6 +875,16 @@ const getSortValue = (s: any, field: string): any => {
   }
 };
 
+const trendKeyToMainTrendValue: Record<string, 'bullish' | 'bearish'> = {
+  bullishMainTrend: 'bullish',
+  bearishMainTrend: 'bearish',
+  bullishNearSupport: 'bullish',
+  bearishNearResistance: 'bearish',
+  bullishBreakup: 'bullish',
+  bearishBreakdown: 'bearish',
+  bullishDojiAfterBreakout: 'bullish',
+  bearishDojiAfterBreakout: 'bearish',
+};
 
 const trend200ConditionMatches = (s: any, key: string): boolean => {
   switch (key) {
@@ -900,21 +908,81 @@ const trend200ConditionMatches = (s: any, key: string): boolean => {
 const trendKeyToBooleanField: Record<string, keyof any> = {
   bullishBreakout: 'bullishBreakout',
   bearishBreakout: 'bearishBreakout',
+  breakoutFailure: 'breakoutFailure',
+  testedPrevHigh: 'testedPrevHigh',
+  testedPrevLow: 'testedPrevLow',
+  bullishReversal: 'bullishReversal',
+  bearishReversal: 'bearishReversal',
+  bullishSpike: 'bullishSpike',
+  bearishCollapse: 'bearishCollapse',
+  ema14InsideResults: 'ema14InsideResults',
+  highestVolumeColorPrev: 'highestVolumeColorPrev',
+  divergenceFromLevel: 'divergenceFromLevel',
+  bullishDivergence: 'bullishDivergence',
+  bearishDivergence: 'bearishDivergence',
   prevCloseGreen: 'prevClosedGreen',
   prevCloseRed: 'prevClosedRed',
+  oneDayTwoRedCloses: 'oneDayTwoPreviousRedCloses'
 };
 
-const trendFilterMatches = (s: any, key: string, selectedTimeframe: string): boolean => {
-  if (key === 'bullishDivergence') return s.multiTimeframeAlignment?.[selectedTimeframe]?.bullishDivergence?.divergence === true;
-  if (key === 'bearishDivergence') return s.multiTimeframeAlignment?.[selectedTimeframe]?.bearishDivergence?.divergence === true;
-  if (key === 'bullishMainTrend') return s.mainTrend?.trend === 'bullish';
-  if (key === 'bearishMainTrend') return s.mainTrend?.trend === 'bearish';
+const trendFilterMatches = (s: any, key: string): boolean => {
+  // Main Trend filters
+  if (key === 'bullishMainTrend') {
+    return s.mainTrend?.trend === 'bullish';
+  }
 
+  if (key === 'bearishMainTrend') {
+    return s.mainTrend?.trend === 'bearish';
+  }
+
+  // Trend (200) condition filters
+  if ([
+    'bullishNearSupport',
+    'bearishNearResistance',
+    'bullishBreakup',
+    'bearishBreakdown',
+    'bullishDojiAfterBreakout',
+    'bearishDojiAfterBreakout',
+  ].includes(key)) {
+    return trend200ConditionMatches(s, key);
+  }
+
+  // 1D three-point bearish price/RSI divergence. The result itself is only
+  // true when the selected scan timeframe is 1D and the detector is confirmed.
+  if (key === 'oneDayThreePointBearishDivergence') {
+    return s.oneDayThreePointBearishDivergence?.divergence === true;
+  }
+
+  // Boolean / signal filters
   const field = trendKeyToBooleanField[key];
   if (!field) return false;
-  if (field === 'prevClosedGreen' || field === 'prevClosedRed') return s[field] === true;
-  const value = s[field];
-  return value === true || value?.signal === true;
+
+  if (field === 'ema14InsideResults') {
+    return s.ema14InsideResults?.some((r: any) => r.inside) === true;
+  }
+
+  if (field === 'divergenceFromLevel') {
+    return s.divergenceFromLevel === true || s.divergenceFromLevel === 'true';
+  }
+
+  if (field === 'bullishDivergence' || field === 'bearishDivergence') {
+    return s[field]?.divergence === true;
+  }
+
+  if (field === 'prevClosedGreen' || field === 'prevClosedRed') {
+    return s[field] === true;
+  }
+
+  if (field === 'bullishBreakout' || field === 'bearishBreakout' ||
+      field === 'breakoutFailure' || field === 'testedPrevHigh' ||
+      field === 'testedPrevLow' || field === 'bullishReversal' ||
+      field === 'bearishReversal' || field === 'bullishSpike' ||
+      field === 'bearishCollapse') {
+    const value = s[field];
+    return value === true || value?.signal === true;
+  }
+
+  return Boolean(s[field]);
 };
 
 const filteredSignals = useMemo(() => signals.filter((s) => {
@@ -928,36 +996,6 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   if (!matchesSearch || !matchesFavoriteView) return false;
   if (ema200PullbackOnly && s.ema200PullbackSetup?.qualified !== true) return false;
 
-  // Multi-timeframe filters use each timeframe's own Main Trend and its own
-  // Position Signal alignment. Incomplete data is never counted as aligned.
-  const mtf = s.multiTimeframeAlignment;
-  const mtfItems = ['15m', '4h', '1d'].map((tf) => mtf?.[tf]);
-  const mtfDataComplete = mtfItems.every((item) => item && item.aligned !== null && item.aligned !== undefined);
-  const mtfAlignedCount = mtfItems.filter((item) => item?.aligned === true).length;
-
-  if (mtfAlignmentFilter !== 'all') {
-    if (mtfAlignmentFilter === 'na') {
-      if (mtfDataComplete) return false;
-    } else {
-      if (!mtfDataComplete || mtfAlignedCount !== Number(mtfAlignmentFilter)) return false;
-    }
-  }
-
-  if (mtfTrendDirectionFilter !== 'all') {
-    const trends = mtfItems.map((item) => item?.mainTrend);
-    const trendsComplete = trends.every((trend) => trend === 'bullish' || trend === 'bearish');
-    if (mtfTrendDirectionFilter === 'na') {
-      if (trendsComplete) return false;
-    } else {
-      if (!trendsComplete) return false;
-      const allBullish = trends.every((trend) => trend === 'bullish');
-      const allBearish = trends.every((trend) => trend === 'bearish');
-      if (mtfTrendDirectionFilter === 'bullish' && !allBullish) return false;
-      if (mtfTrendDirectionFilter === 'bearish' && !allBearish) return false;
-      if (mtfTrendDirectionFilter === 'mixed' && (allBullish || allBearish)) return false;
-    }
-  }
-
   if (fundingRateFilter !== 'all') {
     const rate = fundingRates[s.symbol];
     if (!Number.isFinite(rate)) return false;
@@ -966,12 +1004,15 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (fundingRateFilter === 'neutral' && rate !== 0) return false;
   }
 
-  // Selected Trend Filters are combined with AND logic.
-  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key, timeframe))) {
+  // Multiple Trend filters are combined with AND logic.
+  // Example: Bullish Trend + Bullish Divergence + Bullish Near Support
+  // means ALL THREE conditions must be true for the same symbol.
+  if (trendFilters.length > 0 && !trendFilters.every((key) => trendFilterMatches(s, key))) {
     return false;
   }
 
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
+  if (tableSignalFilter !== 'all' && getSignalValue(s) !== tableSignalFilter) return false;
 
   if (rsi14Filter !== 'all') {
     const rsi = typeof s.latestRSI === 'number' ? s.latestRSI : null;
@@ -980,10 +1021,38 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (rsi14Filter === 'below50' && rsi > 50) return false;
   }
 
+  if (breakoutFailFilter !== 'all' && (s.breakoutFailure ? 'yes' : 'no') !== breakoutFailFilter) return false;
+
+  if (oneDayTwoRedClosesFilter !== 'all') {
+    const value = s.oneDayTwoPreviousRedCloses;
+    if (value === null || value === undefined) return false;
+    if ((value ? 'yes' : 'no') !== oneDayTwoRedClosesFilter) return false;
+  }
+
+  // 1D composite filter: bearish trend + RSI14 > 50 + RSI pump 9–13 +
+  // EMA14 currently/recenly inside EMA70 and EMA200. This filter is only
+  // meaningful on the selected 1D dataset and does not affect other TFs.
+  if (oneDayBearishRsiPumpEmaFilter !== 'all') {
+    if (timeframe !== '1d') return false;
+    const pd = getPumpDump(s);
+    const ema14Inside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
+    const matches =
+      s.mainTrend?.trend === 'bearish' &&
+      typeof s.latestRSI === 'number' &&
+      s.latestRSI > 50 &&
+      pd?.direction === 'pump' &&
+      typeof pd.pumpStrength === 'number' &&
+      pd.pumpStrength >= 9 &&
+      pd.pumpStrength <= 13 &&
+      ema14Inside;
+    if ((matches ? 'yes' : 'no') !== oneDayBearishRsiPumpEmaFilter) return false;
+  }
+
   if (touchedEMA200Filter !== 'all' && (s.touchedEMA200Today ? 'yes' : 'no') !== touchedEMA200Filter) return false;
   if (touchedEMA100Filter !== 'all' && (s.touchedEMA100Today ? 'yes' : 'no') !== touchedEMA100Filter) return false;
   if (touchedEMA200PreviousFilter !== 'all' && (s.touchedEMA200PreviousSession ? 'yes' : 'no') !== touchedEMA200PreviousFilter) return false;
   if (touchedEMA100PreviousFilter !== 'all' && (s.touchedEMA100PreviousSession ? 'yes' : 'no') !== touchedEMA100PreviousFilter) return false;
+  if (latestCandleInsideEMA50EMA70Filter !== 'all' && (s.latestCandleInsideEMA50EMA70 ? 'yes' : 'no') !== latestCandleInsideEMA50EMA70Filter) return false;
 
   if (ema70200CrossFilter !== 'all') {
     const crossDirection = s.ema70200Cross?.direction ?? 'none';
@@ -991,13 +1060,25 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (crossDirection !== wanted) return false;
   }
 
+  if (ema14InsideEMA70200Filter !== 'all') {
+    const isInside = s.ema14InsideResults?.some((r: any) => r.inside === true) === true;
+    if ((isInside ? 'yes' : 'no') !== ema14InsideEMA70200Filter) return false;
+  }
+
+  if (rsiPumpDumpFilter !== 'all') {
+    const direction = getPumpDump(s)?.direction;
+    if (direction !== rsiPumpDumpFilter) return false;
+  }
+
   return true;
 }), [
   signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
-  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter,
-  rsi14Filter, touchedEMA200Filter,
+  fundingRateFilter, fundingRates, trendFilters, signalFilter, tableSignalFilter,
+  rsi14Filter, breakoutFailFilter, oneDayTwoRedClosesFilter,
+  oneDayBearishRsiPumpEmaFilter, timeframe, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
-  ema70200CrossFilter
+  latestCandleInsideEMA50EMA70Filter, ema70200CrossFilter,
+  ema14InsideEMA70200Filter, rsiPumpDumpFilter
 ]);
 
 // One uniform sorting pipeline: FILTER FIRST, then SORT. Never mutate React state.
@@ -1591,208 +1672,60 @@ if (prevSessionCandles.length >= 2) {
   prevClosedRed = lastCandle.close < firstCandle.open;
 }
 
-// Independent 15m / 4h / 1d metrics.
-// All session-based fields use the same exact PH session boundaries already
-// calculated above: 08:00 Asia/Manila inclusive -> next-day 08:00 exclusive.
-// Reuse the selected timeframe's candles/indicators; fetch the other two in parallel.
+// Independent multi-timeframe trend alignment: each TF uses its own EMA70/200
+// Main Trend and the color of its latest completed candle for its position signal.
 const alignmentTimeframes = ['15m', '4h', '1d'] as const;
-type AlignmentTimeframe = typeof alignmentTimeframes[number];
-
-const loadedTimeframes = await Promise.all(alignmentTimeframes.map(async (tf) => {
-  if (tf === interval) return { tf, tfCandles: candles, error: null as string | null };
-  try {
-    const tfRaw = await safeFetchJson<any[]>(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=500`,
-      `${symbol} ${tf} metrics klines`
-    );
-    const tfCandles: Candle[] = tfRaw.map((c: any) => ({
-      timestamp: +c[0], open: +c[1], high: +c[2], low: +c[3],
-      close: +c[4], volume: +c[5], closeTime: +c[6]
-    }));
-    return { tf, tfCandles, error: null as string | null };
-  } catch (err: any) {
-    return { tf, tfCandles: [] as Candle[], error: err?.message || 'Data unavailable' };
-  }
-}));
-
+const getCompletedCandlePosition = (tfCandles: Candle[]) => {
+  const completed = tfCandles.filter(c => Number.isFinite(c.closeTime) && c.closeTime <= Date.now());
+  if (!completed.length) return { previousClose: null as string | null, positionSignal: null as string | null };
+  const candle = completed[completed.length - 1];
+  const previousClose = candle.close > candle.open ? 'green' : candle.close < candle.open ? 'red' : null;
+  return {
+    previousClose,
+    positionSignal: previousClose === 'green' ? 'SELL — Resistance Failure' :
+      previousClose === 'red' ? 'BUY — Support Failure' : null
+  };
+};
 const multiTimeframeAlignment: Record<string, any> = {};
-for (const loaded of loadedTimeframes) {
-  const tf = loaded.tf;
+for (const tf of alignmentTimeframes) {
   try {
-    if (loaded.error || loaded.tfCandles.length < 200) {
-      throw new Error(loaded.error || 'Insufficient candle history');
-    }
-
-    const tfCandles = loaded.tfCandles;
-    const tfCloses = tfCandles.map(c => c.close);
-    const tfOpens = tfCandles.map(c => c.open);
-    const tfHighs = tfCandles.map(c => c.high);
-    const tfLows = tfCandles.map(c => c.low);
-
-    // Reuse selected-timeframe indicator arrays instead of calculating them twice.
-    const tfEMA70 = tf === interval ? ema70 : calculateEMA(tfCloses, 70);
-    const tfEMA100 = tf === interval ? ema100 : calculateEMA(tfCloses, 100);
-    const tfEMA200 = tf === interval ? ema200 : calculateEMA(tfCloses, 200);
-    const tfRSI14 = tf === interval ? rsi14 : calculateRSI(tfCloses, 14);
-    const tfMainTrend = tf === interval
-      ? mainTrend
-      : getMainTrend(tfEMA70, tfEMA200, tfCloses, tfOpens, tfHighs, tfLows);
-
-    const completedIndexed = tfCandles
-      .map((c, index) => ({ c, index }))
-      .filter(({ c }) => Number.isFinite(c.closeTime) && c.closeTime <= nowMs);
-
-    const currentSessionIndexed = completedIndexed.filter(({ c }) =>
-      c.timestamp >= sessionStart && c.timestamp < sessionEnd
-    );
-    const previousSessionIndexed = completedIndexed.filter(({ c }) =>
-      c.timestamp >= prevSessionStart && c.timestamp < prevSessionEnd
-    );
-
-    const previousSessionCandles = previousSessionIndexed.map(({ c }) => c);
-    const previousSessionOpen = previousSessionCandles.length >= 1
-      ? previousSessionCandles[0].open : null;
-    const previousSessionClose = previousSessionCandles.length >= 1
-      ? previousSessionCandles[previousSessionCandles.length - 1].close : null;
-    const previousClose = previousSessionOpen === null || previousSessionClose === null
-      ? null
-      : previousSessionClose > previousSessionOpen ? 'green'
-      : previousSessionClose < previousSessionOpen ? 'red' : 'neutral';
-
-    const positionSignal = previousClose === 'green'
-      ? 'SELL — Resistance Failure'
-      : previousClose === 'red'
-      ? 'BUY — Support Failure'
-      : null;
-
-    const aligned = positionSignal && tfMainTrend?.trend
-      ? ((tfMainTrend.trend === 'bullish' && previousClose === 'red') ||
-         (tfMainTrend.trend === 'bearish' && previousClose === 'green'))
-      : null;
-
-    const previousSessionHigh = previousSessionIndexed.length
-      ? Math.max(...previousSessionIndexed.map(({ c }) => c.high)) : null;
-    const previousSessionLow = previousSessionIndexed.length
-      ? Math.min(...previousSessionIndexed.map(({ c }) => c.low)) : null;
-    const currentSessionHigh = currentSessionIndexed.length
-      ? Math.max(...currentSessionIndexed.map(({ c }) => c.high)) : null;
-    const currentSessionLow = currentSessionIndexed.length
-      ? Math.min(...currentSessionIndexed.map(({ c }) => c.low)) : null;
-
-    // Active RSI price divergence for this timeframe, using completed candles
-    // and the exact Philippines 08:00–08:00 session.
-    const previousSessionLastIndex = previousSessionIndexed.length ? previousSessionIndexed[previousSessionIndexed.length - 1].index : -1;
-    const currentSessionLastIndex = currentSessionIndexed.length ? currentSessionIndexed[currentSessionIndexed.length - 1].index : -1;
-    const previousHighItem = previousSessionIndexed.length ? previousSessionIndexed.reduce((best, item) => item.c.high > best.c.high ? item : best) : null;
-    const currentHighItem = currentSessionIndexed.length ? currentSessionIndexed.reduce((best, item) => item.c.high > best.c.high ? item : best) : null;
-    const previousLowItem = previousSessionIndexed.length ? previousSessionIndexed.reduce((best, item) => item.c.low < best.c.low ? item : best) : null;
-    const currentLowItem = currentSessionIndexed.length ? currentSessionIndexed.reduce((best, item) => item.c.low < best.c.low ? item : best) : null;
-    const previousSessionRSI = previousSessionLastIndex >= 0 ? tfRSI14[previousSessionLastIndex] : NaN;
-    const currentSessionRSI = currentSessionLastIndex >= 0 ? tfRSI14[currentSessionLastIndex] : NaN;
-    const divergenceDataAvailable = Boolean(previousSessionIndexed.length && currentSessionIndexed.length &&
-      Number.isFinite(previousSessionRSI) && Number.isFinite(currentSessionRSI));
-    const bearishDivergence = {
-      available: divergenceDataAvailable,
-      divergence: divergenceDataAvailable && currentSessionHigh! > previousSessionHigh! && currentSessionRSI < previousSessionRSI,
-      type: 'bearish',
-      previousPrice: previousSessionHigh,
-      currentPrice: currentSessionHigh,
-      previousRSI: Number.isFinite(previousSessionRSI) ? previousSessionRSI : null,
-      currentRSI: Number.isFinite(currentSessionRSI) ? currentSessionRSI : null,
-      previousTimestamp: previousHighItem?.c.timestamp ?? null,
-      currentTimestamp: currentHighItem?.c.timestamp ?? null
-    };
-    const bullishDivergence = {
-      available: divergenceDataAvailable,
-      divergence: divergenceDataAvailable && currentSessionLow! < previousSessionLow! && currentSessionRSI > previousSessionRSI,
-      type: 'bullish',
-      previousPrice: previousSessionLow,
-      currentPrice: currentSessionLow,
-      previousRSI: Number.isFinite(previousSessionRSI) ? previousSessionRSI : null,
-      currentRSI: Number.isFinite(currentSessionRSI) ? currentSessionRSI : null,
-      previousTimestamp: previousLowItem?.c.timestamp ?? null,
-      currentTimestamp: currentLowItem?.c.timestamp ?? null
-    };
-
-    const bullishBreakout = currentSessionHigh !== null && previousSessionHigh !== null
-      ? currentSessionHigh > previousSessionHigh : null;
-    const bearishBreakout = currentSessionLow !== null && previousSessionLow !== null
-      ? currentSessionLow < previousSessionLow : null;
-
-    const latestCompletedIndex = completedIndexed.length
-      ? completedIndexed[completedIndexed.length - 1].index : -1;
-    const latestRSI14 = latestCompletedIndex >= 0
-      ? tfRSI14[latestCompletedIndex] : NaN;
-    const rsi14Zone = Number.isFinite(latestRSI14)
-      ? latestRSI14 > 50 ? 'ABOVE 50' : latestRSI14 < 50 ? 'BELOW 50' : 'AT 50'
-      : 'N/A';
-
-    const hasEMATouch = (items: { c: Candle; index: number }[], emaValues: number[]) =>
-      items.some(({ c, index }) =>
-        Number.isFinite(emaValues[index]) &&
-        c.low <= emaValues[index] && c.high >= emaValues[index]
+    let tfCandles: Candle[];
+    let tfMainTrend: TrendResult;
+    if (tf === interval) {
+      tfCandles = candles;
+      tfMainTrend = mainTrend;
+    } else {
+      const tfRaw = await safeFetchJson<any[]>(
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=500`,
+        `${symbol} ${tf} alignment klines`
       );
-
-    const ema100CurrentTouch = currentSessionIndexed.length
-      ? hasEMATouch(currentSessionIndexed, tfEMA100) : null;
-    const ema100PreviousTouch = previousSessionIndexed.length
-      ? hasEMATouch(previousSessionIndexed, tfEMA100) : null;
-    const ema200CurrentTouch = currentSessionIndexed.length
-      ? hasEMATouch(currentSessionIndexed, tfEMA200) : null;
-    const ema200PreviousTouch = previousSessionIndexed.length
-      ? hasEMATouch(previousSessionIndexed, tfEMA200) : null;
-
-    // Latest historical EMA70/EMA200 crossover on this timeframe.
-    let latestCrossover: any = null;
-    for (let i = tfCandles.length - 2; i >= 0; i--) {
-      const previous70 = tfEMA70[i];
-      const previous200 = tfEMA200[i];
-      const current70 = tfEMA70[i + 1];
-      const current200 = tfEMA200[i + 1];
-      if (![previous70, previous200, current70, current200].every(Number.isFinite)) continue;
-      if ((previous70 <= previous200 && current70 > current200) ||
-          (previous70 >= previous200 && current70 < current200)) {
-        latestCrossover = {
-          direction: current70 > current200 ? 'BULLISH' : 'BEARISH',
-          price: tfCandles[i + 1].close,
-          timestamp: tfCandles[i + 1].timestamp
-        };
-        break;
-      }
+      tfCandles = tfRaw.map((c: any) => ({
+        timestamp: +c[0], open: +c[1], high: +c[2], low: +c[3],
+        close: +c[4], volume: +c[5], closeTime: +c[6]
+      }));
+      const tfCloses = tfCandles.map(c => c.close);
+      tfMainTrend = getMainTrend(
+        calculateEMA(tfCloses, 70), calculateEMA(tfCloses, 200), tfCloses,
+        tfCandles.map(c => c.open), tfCandles.map(c => c.high), tfCandles.map(c => c.low)
+      );
     }
-
+    const position = getCompletedCandlePosition(tfCandles);
+    const aligned = position.positionSignal && tfMainTrend?.trend
+      ? ((tfMainTrend.trend === 'bullish' && position.previousClose === 'red') ||
+         (tfMainTrend.trend === 'bearish' && position.previousClose === 'green'))
+      : null;
     multiTimeframeAlignment[tf] = {
       mainTrend: tfMainTrend?.trend ?? null,
-      positionSignal,
-      previousClose,
+      positionSignal: position.positionSignal,
+      previousClose: position.previousClose,
       alignment: aligned === null ? 'N/A' : aligned ? 'TREND ALIGNED' : 'COUNTERTREND',
-      aligned,
-      bullishBreakout,
-      bearishBreakout,
-      latestRSI14: Number.isFinite(latestRSI14) ? latestRSI14 : null,
-      rsi14Zone,
-      ema100CurrentTouch,
-      ema100PreviousTouch,
-      ema200CurrentTouch,
-      ema200PreviousTouch,
-      latestCrossover,
-      bearishDivergence,
-      bullishDivergence
+      aligned
     };
   } catch (err: any) {
-    console.warn(`${symbol} ${tf} metrics unavailable:`, err?.message || err);
-    multiTimeframeAlignment[tf] = {
-      mainTrend: null, positionSignal: null, previousClose: null,
-      alignment: 'N/A', aligned: null, bullishBreakout: null, bearishBreakout: null,
-      latestRSI14: null, rsi14Zone: 'N/A',
-      ema100CurrentTouch: null, ema100PreviousTouch: null,
-      ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null,
-      bearishDivergence: { available: false, divergence: false, type: 'bearish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
-      bullishDivergence: { available: false, divergence: false, type: 'bullish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null }
-    };
+    console.warn(`${symbol} ${tf} alignment unavailable:`, err?.message || err);
+    multiTimeframeAlignment[tf] = { mainTrend: null, positionSignal: null, previousClose: null, alignment: 'N/A', aligned: null };
   }
 }
-
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
 const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
 const overallMultiTimeframeAlignment = availableAlignmentCount
@@ -1820,15 +1753,34 @@ if (interval === '1d') {
 }
 
 
-// PRESERVED FOR FUTURE USE — DISABLED.
-// The original 1D three-point RSI divergence implementation is retained in
-// the prior source ZIP. Its pivot scan is not run during normal scanning.
-const oneDayThreePointBearishDivergence = {
-  divergence: false, status: 'DISABLED' as const, pivots: [],
-  priceAscending: false, rsiDescending: false, ema14Confirmed: false,
-  windowSize: 20,
-  message: 'Disabled to reduce scanner workload; preserved for future use'
-};
+// === 1D THREE-POINT PRICE / RSI(14) BEARISH DIVERGENCE ===
+// Use only COMPLETED daily candles. This prevents today's unfinished high
+// from becoming the third point and then disappearing/reversing intraday.
+const completedDailyCandlesForDivergence = candles.filter((candle) =>
+  Number.isFinite(candle.closeTime) && candle.closeTime <= nowMs
+);
+const completedDailyClosesForDivergence = completedDailyCandlesForDivergence.map(c => c.close);
+const completedDailyRsi14ForDivergence = calculateRSI(completedDailyClosesForDivergence, 14);
+const completedDailyEma14ForDivergence = calculateEMA(completedDailyClosesForDivergence, 14);
+const oneDayThreePointBearishDivergence = interval === '1d'
+  ? detectThreePointBearishRSIDivergence(
+      completedDailyCandlesForDivergence,
+      completedDailyRsi14ForDivergence,
+      completedDailyEma14ForDivergence,
+      20,
+      2,
+      2
+    )
+  : {
+      divergence: false,
+      status: 'NO DATA' as const,
+      pivots: [],
+      priceAscending: false,
+      rsiDescending: false,
+      ema14Confirmed: false,
+      windowSize: 20,
+      message: '1D timeframe only'
+    };
        
 	const bullishBreakout = todaysHighestHigh !== null && prevSessionHigh !== null && todaysHighestHigh > prevSessionHigh;
         const bearishBreakout = todaysLowestLow !== null && prevSessionLow !== null && todaysLowestLow < prevSessionLow;
@@ -2059,10 +2011,27 @@ const touchedEMA100PreviousSession = candlesPrev.some((candle) => {
     candle.high >= candleEMA100;
 });
 
-// Legacy selected-timeframe divergence preparation is dormant. The reusable
-// detector functions remain above; active calculations now run once per
-// timeframe inside multiTimeframeAlignment using the already-loaded candles.
+// === Extract highs and lows from each session ===
+const highsPrev = candlesPrev.map(c => c.high);
+const highsToday = candlesToday.map(c => c.high);
+const lowsPrev = candlesPrev.map(c => c.low);
+const lowsToday = candlesToday.map(c => c.low);
 
+// === Get last high/low of previous session and highest/lowest of today ===
+const prevHigh = Math.max(...highsPrev);
+const currHigh = Math.max(...highsToday);
+
+const prevLow = Math.min(...lowsPrev);
+const currLow = Math.min(...lowsToday);
+
+// === Align RSI data ===
+// Ensure rsi14 includes enough data to cover both sessions
+const rsiPrev = rsi14[rsi14.length - candlesToday.length - 1]; // Last RSI from prev session
+const rsiCurr = rsi14[rsi14.length - 1]; // Latest RSI from today
+
+// === Run divergence detection ===
+const bearishDivergence = detectBearishDivergence(prevHigh, currHigh, rsiPrev, rsiCurr);
+const bullishDivergence = detectBullishDivergence(prevLow, currLow, rsiPrev, rsiCurr);
 
 // === EMA200 PULLBACK SETUP (validated 15m bearish combination) ===
 // Rebuild the divergence comparison on the exact Philippines 08:00–08:00
@@ -2151,15 +2120,25 @@ const ema200PullbackSetup = {
 };
 
 // === Extract volumes from each session ===
-// Dormant legacy divergence preparation/logging removed from runtime.
+const volumesPrev = candlesPrev.map(c => c.volume);
+const volumesToday = candlesToday.map(c => c.volume);
+
+// === Get highest volume candle value from each session ===
+const volumePrev = Math.max(...volumesPrev);
+const volumeCurr = Math.max(...volumesToday);
 
 	      
-// PRESERVED FOR FUTURE USE — DISABLED: volume-divergence detector functions
-// remain in the source but are not executed during normal scanning.
-const bearishVolumeDivergence = { divergence: false };
-const bullishVolumeDivergence = { divergence: false };
+const bearishVolumeDivergence = detectBearishVolumeDivergence(prevHigh, currHigh, volumePrev, volumeCurr);
+const bullishVolumeDivergence = detectBullishVolumeDivergence(prevLow, currLow, volumePrev, volumeCurr);
 	      
-// Dormant legacy divergence preparation/logging removed from runtime.
+// === Log results ===
+if (bearishDivergence.divergence) {
+  console.log("🔻 Bearish Divergence Detected:", bearishDivergence);
+}
+
+if (bullishDivergence.divergence) {
+  console.log("🔼 Bullish Divergence Detected:", bullishDivergence);
+}
 
 const prevVolumesWithColor = candlesPrev.map(candle => {
   const color = candle.close > candle.open
@@ -2296,26 +2275,7 @@ const { level, type, crossoverPrice } = findRelevantLevel(ema14, ema70, closes, 
           const inferredLevel = trend === 'bullish' ? highestHigh : lowestLow;
           const inferredLevelType = trend === 'bullish' ? 'resistance' : 'support';
 
-          // PRESERVED FOR FUTURE USE — DISABLED. This code is intentionally
-          // commented out because there is no current divergence-from-level output.
-          /*
-          let divergenceFromLevel = false;
-          let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
-          if (type && level !== null) {
-            const levelIdx = closes.findIndex(c => Math.abs(c - level) / c < 0.002);
-            if (levelIdx !== -1) {
-              const pastRSI = rsi14[levelIdx];
-              if (type === 'resistance' && lastClose > level && currentRSI! < pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bearish';
-              } else if (type === 'support' && lastClose < level && currentRSI! > pastRSI) {
-                divergenceFromLevel = true;
-                divergenceFromLevelType = 'bullish';
-              }
-            }
-          }
-          */
-          let divergenceFromLevel = false;
+           let divergenceFromLevel = false;
           let divergenceFromLevelType: 'bullish' | 'bearish' | null = null;
 
           if (type && level !== null) {
@@ -2903,10 +2863,6 @@ opens,
 ); 
 	      
         
-        const selectedTimeframeDivergence = multiTimeframeAlignment[interval] ?? {};
-        const bearishDivergence = selectedTimeframeDivergence.bearishDivergence ?? { divergence: false };
-        const bullishDivergence = selectedTimeframeDivergence.bullishDivergence ?? { divergence: false };
-
         return {
   symbol,
   bullishMainTrendCount: summaryCounts.bullishMainTrendCount,
@@ -3174,6 +3130,7 @@ latestRSI,
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
     if (tf !== '15m') setEma200PullbackOnly(false);
+    if (tf !== '1d') setOneDayBearishRsiPumpEmaFilter('all');
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
@@ -3277,7 +3234,7 @@ latestRSI,
     {/* 🔷 Trend Filters Section */}
 <div>
   <p className="text-gray-400 mb-2 font-semibold">
-    📊 Trend Filters — Filter by Main Trend, previous session close, or breakout results shown in the scanner:
+    📊 Trend Filters — Tap to filter data based on trend-related patterns (e.g. breakouts, reversals):
   </p>
   <div className="flex flex-wrap gap-2">
     {[
@@ -3294,15 +3251,63 @@ latestRSI,
         color: 'text-red-300',
       },
       {
+        label: 'Bullish + Near Support',
+        key: 'bullishNearSupport',
+        count: summaryCounts.bullishNearSupportCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish + Near Resistance',
+        key: 'bearishNearResistance',
+        count: summaryCounts.bearishNearResistanceCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Breakup',
+        key: 'bullishBreakup',
+        count: summaryCounts.bullishBreakupCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish + Breakdown',
+        key: 'bearishBreakdown',
+        count: summaryCounts.bearishBreakdownCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Bullish + Doji After Breakout',
+        key: 'bullishDojiAfterBreakout',
+        count: summaryCounts.bullishDojiAfterBreakoutCount,
+        color: 'text-purple-300',
+      },
+      {
+        label: 'Bearish + Doji After Breakout',
+        key: 'bearishDojiAfterBreakout',
+        count: summaryCounts.bearishDojiAfterBreakoutCount,
+        color: 'text-purple-300',
+      },
+      {
+        label: 'Bullish Reversal',
+        key: 'bullishReversal',
+        count: summaryCounts.bullishReversalCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Reversal',
+        key: 'bearishReversal',
+        count: summaryCounts.bearishReversalCount,
+        color: 'text-red-300',
+      },
+      {
         label: 'Bullish Divergence',
         key: 'bullishDivergence',
-        count: signals.filter((s) => s.multiTimeframeAlignment?.[timeframe]?.bullishDivergence?.divergence === true).length,
+        count: summaryCounts.bullishDivergenceCount,
         color: 'text-green-300',
       },
       {
         label: 'Bearish Divergence',
         key: 'bearishDivergence',
-        count: signals.filter((s) => s.multiTimeframeAlignment?.[timeframe]?.bearishDivergence?.divergence === true).length,
+        count: summaryCounts.bearishDivergenceCount,
         color: 'text-red-300',
       },
       {
@@ -3318,6 +3323,36 @@ latestRSI,
         color: 'text-red-300',
       },
       {
+        label: '1D • 2 Previous Red Closes',
+        key: 'oneDayTwoRedCloses',
+        count: summaryCounts.oneDayTwoRedClosesCount,
+        color: 'text-red-300',
+      },
+      {
+        label: '1D • 3-Point Bearish RSI Divergence',
+        key: 'oneDayThreePointBearishDivergence',
+        count: summaryCounts.oneDayThreePointBearishDivergenceCount,
+        color: 'text-orange-300',
+      },
+      {
+        label: 'Bullish Spike',
+        key: 'bullishSpike',
+        count: summaryCounts.bullishSpikeCount,
+        color: 'text-green-300',
+      },
+      {
+        label: 'Bearish Collapse',
+        key: 'bearishCollapse',
+        count: summaryCounts.bearishCollapseCount,
+        color: 'text-red-300',
+      },
+      {
+        label: 'Breakout Failure',
+        key: 'breakoutFailure',
+        count: summaryCounts.breakoutFailureCount,
+        color: 'text-yellow-300',
+      },
+      {
         label: 'Bullish Breakout',
         key: 'bullishBreakout',
         count: summaryCounts.bullishBreakoutCount,
@@ -3328,6 +3363,24 @@ latestRSI,
         key: 'bearishBreakout',
         count: summaryCounts.bearishBreakoutCount,
         color: 'text-yellow-400',
+      },
+      {
+        label: 'Tested Prev High',
+        key: 'testedPrevHigh',
+        count: summaryCounts.testedPrevHighCount,
+        color: 'text-blue-300',
+      },
+      {
+        label: 'Tested Prev Low',
+        key: 'testedPrevLow',
+        count: summaryCounts.testedPrevLowCount,
+        color: 'text-blue-300',
+      },
+	{
+        label: 'Div from lev',
+        key: 'divergenceFromLevel',
+        count: summaryCounts.divergenceFromLevelCount,
+        color: 'text-blue-300',
       },
     ].map(({ label, key, count, color }) => (
       <button
@@ -3427,7 +3480,7 @@ latestRSI,
       </div>
     </div>
 
-    {/* 🔎 Scanner Output Filters */}
+    {/* 🔎 Uniform Table Filters */}
     <div className="border border-gray-700 rounded-lg p-3 bg-gray-900">
       <p className="text-gray-400 mb-2 font-semibold">🔎 Table Filters</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
@@ -3437,6 +3490,33 @@ latestRSI,
             <option value="all">All</option>
             <option value="above50">Above 50</option>
             <option value="below50">50 or below</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Breakout Fail</span>
+          <select value={breakoutFailFilter} onChange={(e) => setBreakoutFailFilter(e.target.value as typeof breakoutFailFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>1D Two Previous Red Closes</span>
+          <select value={oneDayTwoRedClosesFilter} onChange={(e) => setOneDayTwoRedClosesFilter(e.target.value as typeof oneDayTwoRedClosesFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — 2 red closes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>1D Bearish + RSI&gt;50 + Pump 9–13 + EMA14 Inside</span>
+          <select value={oneDayBearishRsiPumpEmaFilter} onChange={(e) => setOneDayBearishRsiPumpEmaFilter(e.target.value as typeof oneDayBearishRsiPumpEmaFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — all conditions</option>
+            <option value="no">No — condition not met</option>
           </select>
         </label>
 
@@ -3455,6 +3535,15 @@ latestRSI,
             <option value="all">All</option>
             <option value="yes">Yes — touched previous session</option>
             <option value="no">No — not touched previous session</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>Latest Candle Inside EMA50–70</span>
+          <select value={latestCandleInsideEMA50EMA70Filter} onChange={(e) => setLatestCandleInsideEMA50EMA70Filter(e.target.value as typeof latestCandleInsideEMA50EMA70Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — Inside EMA50–70</option>
+            <option value="no">No — Outside EMA50–70</option>
           </select>
         </label>
 
@@ -3487,25 +3576,38 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>MTF Alignment (15m / 4H / 1D)</span>
-          <select value={mtfAlignmentFilter} onChange={(e) => setMtfAlignmentFilter(e.target.value as typeof mtfAlignmentFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All alignment results</option>
-            <option value="3">3/3 — All aligned</option>
-            <option value="2">2/3 — Two aligned</option>
-            <option value="1">1/3 — One aligned</option>
-            <option value="0">0/3 — None aligned</option>
-            <option value="na">N/A — Incomplete alignment data</option>
+          <span>EMA14 Inside EMA70–200</span>
+          <select value={ema14InsideEMA70200Filter} onChange={(e) => setEma14InsideEMA70200Filter(e.target.value as typeof ema14InsideEMA70200Filter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="yes">Yes — EMA14 inside EMA70–200</option>
+            <option value="no">No — EMA14 outside EMA70–200</option>
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>MTF Main Trend Direction</span>
-          <select value={mtfTrendDirectionFilter} onChange={(e) => setMtfTrendDirectionFilter(e.target.value as typeof mtfTrendDirectionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
-            <option value="all">All trend directions</option>
-            <option value="bullish">All Bullish (15m / 4H / 1D)</option>
-            <option value="bearish">All Bearish (15m / 4H / 1D)</option>
-            <option value="mixed">Mixed — Bullish and Bearish</option>
-            <option value="na">N/A — Incomplete trend data</option>
+          <span>Signal</span>
+          <select value={tableSignalFilter} onChange={(e) => setTableSignalFilter(e.target.value)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="MAX ZONE PUMP">MAX ZONE PUMP</option>
+            <option value="MAX ZONE DUMP">MAX ZONE DUMP</option>
+            <option value="UPPER-MIDDLE ZONE PUMP">UPPER-MIDDLE ZONE PUMP</option>
+            <option value="UPPER-MIDDLE ZONE DUMP">UPPER-MIDDLE ZONE DUMP</option>
+            <option value="BALANCE ZONE PUMP">BALANCE ZONE PUMP</option>
+            <option value="BALANCE ZONE DUMP">BALANCE ZONE DUMP</option>
+            <option value="LOWER-MIDDLE ZONE PUMP">LOWER-MIDDLE ZONE PUMP</option>
+            <option value="LOWER-MIDDLE ZONE DUMP">LOWER-MIDDLE ZONE DUMP</option>
+            <option value="LOWEST ZONE PUMP">LOWEST ZONE PUMP</option>
+            <option value="LOWEST ZONE DUMP">LOWEST ZONE DUMP</option>
+            <option value="NO DATA">NO DATA</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>RSI Direction</span>
+          <select value={rsiPumpDumpFilter} onChange={(e) => setRsiPumpDumpFilter(e.target.value as typeof rsiPumpDumpFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All</option>
+            <option value="pump">Pump</option>
+            <option value="dump">Dump</option>
           </select>
         </label>
 
@@ -3528,15 +3630,19 @@ latestRSI,
           setSearch('');
           setTrendFilters([]);
           setSignalFilter(null);
+          setTableSignalFilter('all');
           setRsi14Filter('all');
+          setBreakoutFailFilter('all');
+          setOneDayTwoRedClosesFilter('all');
           setTouchedEMA200Filter('all');
           setTouchedEMA100Filter('all');
           setTouchedEMA200PreviousFilter('all');
           setTouchedEMA100PreviousFilter('all');
+          setLatestCandleInsideEMA50EMA70Filter('all');
           setEma70200CrossFilter('all');
+          setEma14InsideEMA70200Filter('all');
+          setRsiPumpDumpFilter('all');
           setFundingRateFilter('all');
-          setMtfAlignmentFilter('all');
-          setMtfTrendDirectionFilter('all');
           setCoinListView('not-favorites');
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
@@ -3694,219 +3800,768 @@ latestRSI,
 	  
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-  <table className="w-full text-[11px] border-collapse min-w-[1100px]">
+  <table className="w-full text-[11px] border-collapse">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
-        <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
+        <SortableTh field="fundingRate">Funding Rate (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
-        <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">1D — PH Session</th>
-        <th className="px-2 py-2 text-center whitespace-nowrap">MTF Alignment</th>
+        <SortableTh field="pumpDump">RSI Direction / Distance (Δ)</SortableTh>
+        <SortableTh field="latestRSI">RSI14</SortableTh>
+		<SortableTh field="mainTrend">Trend (200)</SortableTh>
+		<SortableTh field="prevClose">Prev Close</SortableTh>
+		<th className="px-2 py-1 text-center whitespace-nowrap">Position Signal</th>
+		<th className="px-2 py-1 text-center whitespace-nowrap">Trend Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">15m Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">4H Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">1D Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">MTF Overall</th>
+		<SortableTh field="bearishCollapse">Collapse</SortableTh>
+        <SortableTh field="bullishSpike">Spike</SortableTh>
+        <SortableTh field="bearishReversal">Bear Rev</SortableTh>
+        <SortableTh field="bullishReversal">Bull Rev</SortableTh>
+		<SortableTh field="bearishDivergence">Bearish Divergence</SortableTh>
+        <SortableTh field="bullishDivergence">Bullish Divergence</SortableTh>
+        <SortableTh field="highestVolumeColorPrev">Volume</SortableTh>
+        <SortableTh field="bullishVolumeDivergence">Volume Divergence</SortableTh>
+        <SortableTh field="isVolumeSpike">Volume Spike</SortableTh>
+        <SortableTh field="breakoutFailure">Breakout Fail</SortableTh>
+        <SortableTh field="touchedEMA100Today">Touched EMA100 (Current Session)</SortableTh>
+        <SortableTh field="touchedEMA100PreviousSession">Touched EMA100 (Previous Session)</SortableTh>
+        <SortableTh field="latestCandleInsideEMA50EMA70">Latest Candle Inside EMA50–70</SortableTh>
+        <SortableTh field="touchedEMA200Today">Touched EMA200 (Current Session)</SortableTh>
+        <SortableTh field="touchedEMA200PreviousSession">Touched EMA200 (Previous Session)</SortableTh>
+        <SortableTh field="ema70200Cross">Latest EMA70/200 Cross (08:00–08:00)</SortableTh>
+        <SortableTh field="signal">Signal</SortableTh>
+		<SortableTh field="ema14InsideResults">EMA14 Inside EMA70–200</SortableTh>
+        <SortableTh field="drop">Drop 🚨</SortableTh>
+        <SortableTh field="recovery">Recovery 🟢</SortableTh>
+        <SortableTh field="bullishBreakout">Bull BO</SortableTh>
+        <SortableTh field="bearishBreakout">Bear BO</SortableTh>
+        <SortableTh field="oneDayTwoRedCloses">1D • 2 Red Closes</SortableTh>
+        <SortableTh field="oneDayThreePointBearishDivergence">1D • 3-Point Price/RSI Div</SortableTh>
+        <SortableTh field="divergenceFromLevel">Div From Lev</SortableTh>
+        <SortableTh field="gap">Ema14&70 Gap %</SortableTh>
+        <SortableTh field="gap1">Ema70&200 Gap %</SortableTh>
+        <SortableTh field="gapFromLowToEMA200">Low→EMA200 (%)</SortableTh>
+        <SortableTh field="gapFromHighToEMA200">High→EMA200 (%)</SortableTh>
+        <SortableTh field="ema200Bounce">EMA200 Bounce</SortableTh>
+        <SortableTh field="ema14Bounce">EMA14 Bounce</SortableTh>
+        <SortableTh field="ema70Bounce">EMA70 Bounce</SortableTh>
+        <SortableTh field="hasBullishEngulfing">Bullish Engulfing</SortableTh>
+        <SortableTh field="hasBearishEngulfing">Bearish Engulfing</SortableTh>
+        <SortableTh field="testedPrevHigh">Tested High</SortableTh>
+        <SortableTh field="testedPrevLow">Tested Low</SortableTh>
+        <SortableTh field="topPattern">Top Pattern</SortableTh>
+        <SortableTh field="bottomPattern">Bottom Pattern</SortableTh>
       </tr>
     </thead>
+    
     <tbody>
       {filteredAndSortedSignals.map((s) => {
-        const renderTimeframe = (tf: '15m' | '4h' | '1d') => {
-          const item = s.multiTimeframeAlignment?.[tf];
-          if (!item || item.alignment === 'N/A' && !item.mainTrend) {
-            return <td key={tf} className="px-3 py-2 text-center text-gray-500">N/A — timeframe data unavailable</td>;
-          }
+  const updatedRecently = Date.now() - (lastUpdatedMap[s.symbol] || 0) < 5000;
+  const pumpDump = s.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
+const pump = pumpDump?.pumpStrength;
+const dump = pumpDump?.dumpStrength;
+const direction = pumpDump?.direction;
+	
+const inRange = (val: number | undefined, min: number, max: number) =>
+  val !== undefined && val >= min && val <= max;
 
-          const touchLabel = (value: boolean | null | undefined) =>
-            value === true ? 'YES' : value === false ? 'NO' : 'N/A';
-          const alignmentClass = item.aligned === true ? 'text-green-400'
-            : item.aligned === false ? 'text-yellow-300' : 'text-gray-500';
-          const breakoutClass = (value: boolean | null) =>
-            value === true ? 'text-green-400' : value === false ? 'text-gray-500' : 'text-gray-500';
-          const crossover = item.latestCrossover;
-          const crossoverTime = crossover?.timestamp
-            ? new Date(crossover.timestamp).toLocaleString('en-PH', {
-                timeZone: 'Asia/Manila', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', hour12: false
-              })
-            : 'N/A';
+const isAbove30 = (val: number | undefined) => val !== undefined && val >= 30;
+const validPump = pump !== undefined && pump !== 0;
+const validDump = dump !== undefined && dump !== 0;
 
-          return (
-            <td key={tf} className="px-3 py-2 border-b border-gray-700 align-top min-w-[250px]">
-              <div className="flex flex-col gap-1.5 leading-tight">
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">Previous PH close</span>
-                  <strong className={
-                    item.previousClose === 'green' ? 'text-green-400' :
-                    item.previousClose === 'red' ? 'text-red-400' : 'text-gray-500'
-                  }>
-                    {item.previousClose ? item.previousClose.toUpperCase() : 'N/A'}
-                  </strong>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">Main Trend</span>
-                  <strong className={
-                    item.mainTrend === 'bullish' ? 'text-green-400' :
-                    item.mainTrend === 'bearish' ? 'text-red-400' : 'text-gray-500'
-                  }>
-                    {item.mainTrend?.toUpperCase() ?? 'N/A'}
-                  </strong>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">Position Signal</span>
-                  <strong className="text-white text-right">{item.positionSignal ?? 'N/A'}</strong>
-                </div>
-                <div className="border-t border-gray-700 pt-1 mt-0.5">
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400">Bearish Divergence</span>
-                    <strong className={item.bearishDivergence?.divergence ? 'text-red-400' : 'text-gray-500'}>
-                      {item.bearishDivergence?.available === false ? 'N/A' : item.bearishDivergence?.divergence ? 'YES' : 'NO'}
-                    </strong>
-                  </div>
-                  {item.bearishDivergence?.divergence && (
-                    <div className="text-[10px] text-gray-400">
-                      High: {Number(item.bearishDivergence.previousPrice).toFixed(7)} → {Number(item.bearishDivergence.currentPrice).toFixed(7)}
-                      {' | '}RSI: {Number(item.bearishDivergence.previousRSI).toFixed(2)} → {Number(item.bearishDivergence.currentRSI).toFixed(2)}
-                      <div>PH candle times: {formatSignalExtremeTime(item.bearishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bearishDivergence.currentTimestamp)}</div>
-                    </div>
-                  )}
-                  <div className="flex justify-between gap-2">
-                    <span className="text-gray-400">Bullish Divergence</span>
-                    <strong className={item.bullishDivergence?.divergence ? 'text-green-400' : 'text-gray-500'}>
-                      {item.bullishDivergence?.available === false ? 'N/A' : item.bullishDivergence?.divergence ? 'YES' : 'NO'}
-                    </strong>
-                  </div>
-                  {item.bullishDivergence?.divergence && (
-                    <div className="text-[10px] text-gray-400">
-                      Low: {Number(item.bullishDivergence.previousPrice).toFixed(7)} → {Number(item.bullishDivergence.currentPrice).toFixed(7)}
-                      {' | '}RSI: {Number(item.bullishDivergence.previousRSI).toFixed(2)} → {Number(item.bullishDivergence.currentRSI).toFixed(2)}
-                      <div>PH candle times: {formatSignalExtremeTime(item.bullishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bullishDivergence.currentTimestamp)}</div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">Trend Alignment</span>
-                  <strong className={alignmentClass}>{item.alignment}</strong>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">Bullish / Bearish Breakout</span>
-                  <span>
-                    <strong className={breakoutClass(item.bullishBreakout)}>
-                      {item.bullishBreakout === null ? 'N/A' : item.bullishBreakout ? 'YES' : 'NO'}
-                    </strong>
-                    <span className="text-gray-500"> / </span>
-                    <strong className={item.bearishBreakout === true ? 'text-red-400' : 'text-gray-500'}>
-                      {item.bearishBreakout === null ? 'N/A' : item.bearishBreakout ? 'YES' : 'NO'}
-                    </strong>
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">RSI14</span>
-                  <strong className={
-                    item.rsi14Zone === 'ABOVE 50' ? 'text-green-400' :
-                    item.rsi14Zone === 'BELOW 50' ? 'text-red-400' : 'text-gray-500'
-                  }>
-                    {item.latestRSI14 === null ? 'N/A' : `${item.latestRSI14.toFixed(2)} — ${item.rsi14Zone}`}
-                  </strong>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">EMA100 Touch (Current / Previous)</span>
-                  <strong className="text-yellow-300">
-                    {touchLabel(item.ema100CurrentTouch)} / {touchLabel(item.ema100PreviousTouch)}
-                  </strong>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">EMA200 Touch (Current / Previous)</span>
-                  <strong className="text-yellow-300">
-                    {touchLabel(item.ema200CurrentTouch)} / {touchLabel(item.ema200PreviousTouch)}
-                  </strong>
-                </div>
-                <div className="border-t border-gray-700 pt-1 mt-0.5">
-                  <div className="text-gray-400">Latest EMA70/200 Crossover</div>
-                  <strong className={
-                    crossover?.direction === 'BULLISH' ? 'text-green-400' :
-                    crossover?.direction === 'BEARISH' ? 'text-red-400' : 'text-gray-500'
-                  }>
-                    {crossover
-                      ? `${crossover.direction} @ ${Number(crossover.price).toFixed(7)}`
-                      : 'N/A — no historical crossover'}
-                  </strong>
-                  <div className="text-[10px] text-gray-500">{crossoverTime}</div>
-                </div>
-              </div>
-            </td>
-          );
-        };
+// ✅ Early return: skip rendering if both are invalid or 0
+if (!validPump && !validDump && tableSignalFilter !== 'NO DATA') return null;
+
+const pumpInRange_27_29 = inRange(pump, 27, 29);
+const dumpInRange_27_29 = inRange(dump, 27, 29);
+const pumpInRange_21_26 = inRange(pump, 21, 26);
+const dumpInRange_21_26 = inRange(dump, 21, 26);
+const pumpInRange_11_20 = inRange(pump, 11, 20);
+const dumpInRange_11_20 = inRange(dump, 11, 20);
+const pumpAbove30 = isAbove30(pump);
+const dumpAbove30 = isAbove30(dump);
+
+const pumpInRange_1_10 = inRange(pump, 1, 10);
+const dumpInRange_1_10 = inRange(dump, 1, 10);
+
+const pumpInRange_17_19 = inRange(pump, 17, 19);
+const dumpInRange_17_19 = inRange(dump, 17, 19);
+
+let signal = '';
+
+// ✅ MAX ZONE
+if (direction === 'pump' && pumpAbove30) {
+  signal = 'MAX ZONE PUMP';
+} else if (direction === 'dump' && dumpAbove30) {
+  signal = 'MAX ZONE DUMP';
+}
+
+// ✅ UPPER-MIDDLE ZONE
+else if (direction === 'pump' && pumpInRange_27_29) {
+  signal = 'UPPER-MIDDLE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_27_29) {
+  signal = 'UPPER-MIDDLE ZONE DUMP';
+}
+
+// ✅ BALANCE ZONE
+else if (direction === 'pump' && pumpInRange_21_26) {
+  signal = 'BALANCE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_21_26) {
+  signal = 'BALANCE ZONE DUMP';
+}
+
+// ✅ LOWER-MIDDLE ZONE
+else if (direction === 'pump' && pumpInRange_11_20) {
+  signal = 'LOWER-MIDDLE ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_11_20) {
+  signal = 'LOWER-MIDDLE ZONE DUMP';
+}
+
+// ✅ LOWEST ZONE
+else if (direction === 'pump' && pumpInRange_1_10) {
+  signal = 'LOWEST ZONE PUMP';
+} else if (direction === 'dump' && dumpInRange_1_10) {
+  signal = 'LOWEST ZONE DUMP';
+}
+
+	
 
         return (
-          <tr key={s.symbol} className="border-b border-gray-700 hover:bg-blue-800/20">
-            <td className="px-1 py-2 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[100px]">
-              <div className="flex items-center justify-between gap-1">
-                <span className="truncate">{s.symbol}</span>
-                <button
-                  className="ml-1 text-yellow-400 hover:text-yellow-300"
-                  onClick={() => {
-                    setFavorites((prev: Set<string>) => {
-                      const next = new Set(prev);
-                      next.has(s.symbol) ? next.delete(s.symbol) : next.add(s.symbol);
-                      return next;
-                    });
-                  }}
-                >
-                  {favorites.has(s.symbol) ? '★' : '☆'}
-                </button>
-              </div>
-            </td>
-            <td className="px-2 py-2 text-right whitespace-nowrap">
-              ${Number(s.currentPrice).toFixed(7)}
-            </td>
-            <td className={`px-2 py-2 text-center font-semibold whitespace-nowrap ${
-              !Number.isFinite(fundingRates[s.symbol]) ? 'text-gray-500' :
-              fundingRates[s.symbol] > 0 ? 'text-green-400' :
-              fundingRates[s.symbol] < 0 ? 'text-red-400' : 'text-gray-300'
-            }`}>
-              {Number.isFinite(fundingRates[s.symbol])
-                ? `${fundingRates[s.symbol] > 0 ? '+' : ''}${(fundingRates[s.symbol] * 100).toFixed(4)}%`
-                : 'N/A'}
-            </td>
-            <td className="px-2 py-2 text-center whitespace-nowrap">
-              <PriceChangePercent percent={s.priceChangePercent} />
-            </td>
-            <td className="px-2 py-2 text-center align-top min-w-[230px]">
-              {(() => {
-                const signal = getSignalValue(s);
-                const pd = getPumpDump(s);
-                const timestamps: number[] = Array.isArray(s.rsi14Timestamps) ? s.rsi14Timestamps : [];
-                const highTime = pd ? timestamps[pd.highIndex] : undefined;
-                const lowTime = pd ? timestamps[pd.lowIndex] : undefined;
-                const directionLabel = pd?.direction === 'pump' ? 'PUMP'
-                  : pd?.direction === 'dump' ? 'DUMP' : pd ? 'NEUTRAL' : 'N/A';
-                const directionClass = pd?.direction === 'pump' ? 'text-green-400'
-                  : pd?.direction === 'dump' ? 'text-red-400' : 'text-gray-400';
-                return (
-                  <div className="flex flex-col gap-1 leading-tight text-[10px]">
-                    <strong className={`text-xs ${directionClass}`}>{directionLabel} — {signal}</strong>
-                    {pd ? (
-                      <>
-                        <div className="text-white">Δ {pd.pumpStrength.toFixed(2)} <span className="text-gray-500">(RSI High − Low)</span></div>
-                        <div className="text-gray-300">H: {pd.recentHigh.toFixed(2)} <span className="text-gray-500">@ {formatSignalExtremeTime(highTime)}</span></div>
-                        <div className="text-gray-300">L: {pd.recentLow.toFixed(2)} <span className="text-gray-500">@ {formatSignalExtremeTime(lowTime)}</span></div>
-                        <div className="text-gray-400">Start → End: {pd.startRSI.toFixed(2)} → {pd.endRSI.toFixed(2)}</div>
-                      </>
-                    ) : <span className="text-gray-500">RSI data unavailable</span>}
-                  </div>
-                );
-              })()}
-            </td>
-            {renderTimeframe('15m')}
-            {renderTimeframe('4h')}
-            {renderTimeframe('1d')}
-            <td className={`px-2 py-2 text-center font-bold whitespace-nowrap ${
-              s.overallMultiTimeframeAlignment?.startsWith('3/') ? 'text-green-400' :
-              s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
-            }`}>
-              {s.overallMultiTimeframeAlignment ?? 'N/A'}
-            </td>
-          </tr>
+           <tr
+  key={s.symbol}
+  className={`border-b border-gray-700 transition-all duration-300 hover:bg-blue-800/20 ${
+    updatedRecently ? 'bg-yellow-900/30' : ''
+  }`}
+>
+  {/* Symbol + Favorite */}
+  <td className="px-1 py-0.5 bg-gray-900 sticky left-0 z-10 text-left truncate max-w-[90px]">
+    <div className="flex items-center justify-between">
+      <span className="truncate">{s.symbol}</span>
+      <button
+        className="ml-1 text-yellow-400 hover:text-yellow-300"
+        onClick={() => {
+          setFavorites((prev: Set<string>) => {
+            const newSet = new Set(prev);
+            newSet.has(s.symbol) ? newSet.delete(s.symbol) : newSet.add(s.symbol);
+            return newSet;
+          });
+        }}
+      >
+        {favorites.has(s.symbol) ? '★' : '☆'}
+      </button>
+    </div>
+  </td>
+
+  <td className="px-2 py-1 border-b border-gray-700 text-right">
+  ${Number(s.currentPrice).toFixed(7)}
+</td>
+<td
+  className={`px-2 py-1 border-b border-gray-700 text-center font-semibold ${
+    !Number.isFinite(fundingRates[s.symbol])
+      ? 'text-gray-500'
+      : fundingRates[s.symbol] > 0
+      ? 'text-green-400'
+      : fundingRates[s.symbol] < 0
+      ? 'text-red-400'
+      : 'text-gray-300'
+  }`}
+  title="Binance latest funding rate. API decimal is multiplied by 100 for percentage display."
+>
+  {Number.isFinite(fundingRates[s.symbol])
+    ? `${fundingRates[s.symbol] > 0 ? '+' : ''}${(fundingRates[s.symbol] * 100).toFixed(4)}%`
+    : 'N/A'}
+</td>
+              <td className="px-2 py-1 border-b border-gray-700 text-center">
+                <PriceChangePercent percent={s.priceChangePercent} />
+              </td>
+
+  {/* Pump / Dump — show the exact RSI values and candles used by the existing calculation */}
+  <td
+    className={`px-2 py-1 text-center ${
+      direction === 'pump' && pump !== undefined && pump > 30
+        ? 'text-green-400'
+        : direction === 'dump' && dump !== undefined && dump > 30
+        ? 'text-red-400'
+        : direction === 'pump' && inRange(pump, 21, 26)
+        ? 'text-blue-400'
+        : direction === 'dump' && inRange(dump, 21, 26)
+        ? 'text-blue-400'
+        : direction === 'pump' && inRange(pump, 1, 10)
+        ? 'text-yellow-400'
+        : direction === 'dump' && inRange(dump, 1, 10)
+        ? 'text-yellow-400'
+        : 'text-gray-400'
+    }`}
+    title={pumpDump
+      ? `RSI Direction: latest RSI compared with first RSI in the 14-reading window. RSI Distance (Δ): highest RSI minus lowest RSI in that same window. Distance is a range measurement, not directional momentum.`
+      : 'RSI data unavailable'}
+  >
+    {pumpDump ? (
+      <div className="flex min-w-[150px] flex-col items-center gap-0.5 leading-tight">
+        <span className="font-bold">
+          Direction: {direction === 'pump' ? 'PUMP' : direction === 'dump' ? 'DUMP' : 'NEUTRAL'}
+        </span>
+        <span className="text-[11px] font-semibold text-cyan-300">
+          Distance (Δ): {pumpDump.pumpStrength.toFixed(2)} RSI points
+        </span>
+        <span className="text-[10px] text-green-300">
+          H {pumpDump.recentHigh.toFixed(2)}
+          {Number.isFinite(s.rsi14Timestamps?.[pumpDump.highIndex])
+            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.highIndex]).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+            : ''}
+        </span>
+        <span className="text-[10px] text-red-300">
+          L {pumpDump.recentLow.toFixed(2)}
+          {Number.isFinite(s.rsi14Timestamps?.[pumpDump.lowIndex])
+            ? ` · ${new Date(s.rsi14Timestamps[pumpDump.lowIndex]).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+            : ''}
+        </span>
+        <span className="text-[10px] text-gray-300">
+          Start {Number.isFinite(pumpDump.startRSI) ? pumpDump.startRSI.toFixed(2) : 'N/A'}
+          {' → '}
+          End {Number.isFinite(pumpDump.endRSI) ? pumpDump.endRSI.toFixed(2) : 'N/A'}
+        </span>
+      </div>
+    ) : 'N/A'}
+  </td>
+
+			   <td
+  className={`px-2 py-1 text-center font-semibold ${
+    typeof s.latestRSI !== 'number'
+      ? 'text-gray-400'
+      : s.latestRSI > 50
+      ? 'text-green-400'
+      : 'text-red-400'
+  }`}
+>
+  {typeof s.latestRSI !== 'number'
+    ? 'N/A'
+    : s.latestRSI > 50
+    ? 'Above 50 (Bullish)'
+    : 'Below 50 (Bearish)'}
+</td>	
+
+			   <td
+  className={`px-1 py-0.5 text-center ${
+    s.mainTrend?.trend === 'bullish'
+      ? 'text-green-500'
+      : s.mainTrend?.trend === 'bearish'
+      ? 'text-red-500'
+      : 'text-gray-400'
+  }`}
+>
+  {s.mainTrend ? (
+    <>
+      {`${s.mainTrend.trend.toUpperCase()} (${s.mainTrend.type}) @ ${s.mainTrend.crossoverPrice.toFixed(7)} `}
+      <span className={`ml-1 font-semibold ${
+        s.mainTrend.levelSource === 'crossover' ? 'text-cyan-400' : 'text-orange-400'
+      }`}>
+        {s.mainTrend.levelSource === 'crossover'
+          ? '〔HISTORICAL EMA70/200 CROSSOVER〕'
+          : '〔FALLBACK — NO CROSSOVER FOUND〕'}
+      </span>
+      {s.mainTrend.breakout === true ? (
+        s.mainTrend.trend === 'bullish' ? '🚀 Breakup price' : '🔻 Breakdown price'
+      ) : s.mainTrend.breakout === false ? (
+        s.mainTrend.trend === 'bullish' ? '🔻 Breakdown price' : '🚀 Breakup price'
+      ) : (
+        ''
+      )}
+      {s.mainTrend.isNear && (
+        <span className="ml-1 text-yellow-400 font-semibold">
+          ⏳ Near {s.mainTrend.type}
+        </span>
+      )}
+      {s.mainTrend.isDojiAfterBreakout && (
+        <span className="ml-1 text-purple-400 font-bold">
+          🕯️ Doji After Breakout
+        </span>
+      )}
+    </>
+  ) : (
+    'N/A'
+  )}
+</td>
+
+			   <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.prevClosedGreen ? 'text-green-400' : s.prevClosedRed ? 'text-red-400' : 'text-gray-500'
+  }`}
+>
+  {s.prevClosedGreen ? 'Green' : s.prevClosedRed ? 'Red' : 'N/A'}
+</td>
+
+<td className={`px-2 py-1 text-center font-bold whitespace-nowrap ${
+  s.prevClosedGreen ? 'text-red-400' : s.prevClosedRed ? 'text-green-400' : 'text-gray-500'
+}`}>
+  {s.prevClosedGreen
+    ? 'SELL — Resistance Failure'
+    : s.prevClosedRed
+    ? 'BUY — Support Failure'
+    : '—'}
+</td>
+
+<td className={`px-2 py-1 text-center font-bold whitespace-nowrap ${
+  !s.mainTrend?.trend || (!s.prevClosedGreen && !s.prevClosedRed)
+    ? 'text-gray-500'
+    : (s.mainTrend.trend === 'bullish' && s.prevClosedRed) || (s.mainTrend.trend === 'bearish' && s.prevClosedGreen)
+    ? 'text-green-400'
+    : 'text-yellow-400'
+}`}>
+  {!s.mainTrend?.trend || (!s.prevClosedGreen && !s.prevClosedRed)
+    ? 'MAIN TREND / SIGNAL N/A'
+    : (s.mainTrend.trend === 'bullish' && s.prevClosedRed) || (s.mainTrend.trend === 'bearish' && s.prevClosedGreen)
+    ? 'TREND ALIGNED'
+    : s.mainTrend.trend === 'bullish'
+    ? 'COUNTERTREND — WAIT FOR BULLISH SUPPORT'
+    : 'COUNTERTREND — WAIT FOR BEARISH RESISTANCE'}
+</td>
+{(['15m', '4h', '1d'] as const).map((tf) => {
+  const item = s.multiTimeframeAlignment?.[tf];
+  const color = item?.aligned === true ? 'text-green-400' :
+    item?.aligned === false ? 'text-yellow-400' : 'text-gray-500';
+  return <td key={tf} className={`px-2 py-1 text-center font-bold whitespace-nowrap ${color}`}>
+    {item?.alignment ?? 'N/A'}
+    <div className="text-[9px] font-normal text-gray-400">
+      {item?.mainTrend ? item.mainTrend.toUpperCase() : 'TREND N/A'}
+    </div>
+  </td>;
+})}
+<td className={`px-2 py-1 text-center font-bold whitespace-nowrap ${
+  s.overallMultiTimeframeAlignment?.startsWith('3/') ? 'text-green-400' :
+  s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
+}`}>
+  {s.overallMultiTimeframeAlignment ?? 'N/A'}
+</td>
+
+			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bearishCollapse?.signal ? 'text-red-400' : 'text-gray-500'
+  }`}>
+    {s.bearishCollapse?.signal ? 'Yes 🚨' : 'No Signal'}
+  </div>
+
+  {s.bearishCollapse?.signal && (
+    <>
+      <div>
+        <span className="text-red-400 font-semibold">Entry:</span>{' '}
+        ${s.bearishCollapse.entry.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bearishCollapse.stopLoss.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bearishCollapse.tp1.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bearishCollapse.tp2.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bullishSpike?.signal ? 'text-green-400' : 'text-gray-500'
+  }`}>
+    {s.bullishSpike?.signal ? 'Yes ✅' : 'No Signal'}
+  </div>
+
+  {s.bullishSpike?.signal && (
+    <>
+      <div>
+        <span className="text-green-400 font-semibold">Entry:</span>{' '}
+        ${s.bullishSpike.entry.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bullishSpike.stopLoss.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bullishSpike.tp1.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bullishSpike.tp2.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+<td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div className={`font-semibold mb-1 ${
+    s.bearishReversal?.signal ? 'text-green-400' : 'text-gray-500'
+  }`}>
+    {s.bearishReversal?.signal ? 'Yes ✅' : 'No Signal'}
+  </div>
+
+  {s.bearishReversal?.signal && (
+    <>
+      <div>
+        <span className="text-green-400 font-semibold">Entry:</span>{' '}
+        ${s.bearishReversal.entry?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-red-400 font-semibold">SL:</span>{' '}
+        ${s.bearishReversal.stopLoss?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bearishReversal.tp1?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bearishReversal.tp2?.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+  <td className="px-2 py-1 text-sm text-left leading-snug text-white">
+  <div
+    className={`font-semibold mb-1 ${
+      s.bullishReversal?.signal ? 'text-red-400' : 'text-gray-500'
+    }`}
+  >
+    {s.bullishReversal?.signal ? 'Yes ❌' : 'No Signal'}
+  </div>
+
+  {s.bullishReversal?.signal && (
+    <>
+      <div>
+        <span className="text-red-400 font-semibold">Entry:</span>{' '}
+        ${s.bullishReversal.entry?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-yellow-400 font-semibold">SL:</span>{' '}
+        ${s.bullishReversal.stopLoss?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-300 font-semibold">TP1:</span>{' '}
+        ${s.bullishReversal.tp1?.toFixed(7)}
+      </div>
+      <div>
+        <span className="text-green-500 font-semibold">TP2:</span>{' '}
+        ${s.bullishReversal.tp2?.toFixed(7)}
+      </div>
+    </>
+  )}
+</td>
+
+			   {/* Divergences */}
+{/* Bearish Divergence — show the previous session high used as the reference */}
+<td className={`p-2 font-semibold ${s.bearishDivergence?.divergence ? 'text-red-500' : 'text-gray-400'}`}>
+  {s.bearishDivergence?.divergence ? (
+    <div className="flex flex-col">
+      <span>Yes</span>
+      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
+        Prev H: ${typeof s.bearishDivergence.prevHigh === 'number'
+          ? s.bearishDivergence.prevHigh.toFixed(8)
+          : '—'}
+      </span>
+      <span className="text-[10px] text-red-300 font-normal whitespace-nowrap">
+        Prev RSI: {typeof s.bearishDivergence.prevRSI === 'number'
+          ? s.bearishDivergence.prevRSI.toFixed(2)
+          : '—'}
+      </span>
+    </div>
+  ) : '-'}
+</td>
+
+{/* Bullish Divergence — show the previous session low used as the reference */}
+<td className={`p-2 font-semibold ${s.bullishDivergence?.divergence ? 'text-green-500' : 'text-gray-400'}`}>
+  {s.bullishDivergence?.divergence ? (
+    <div className="flex flex-col">
+      <span>Yes</span>
+      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
+        Prev L: ${typeof s.bullishDivergence.prevLow === 'number'
+          ? s.bullishDivergence.prevLow.toFixed(8)
+          : '—'}
+      </span>
+      <span className="text-[10px] text-green-300 font-normal whitespace-nowrap">
+        Prev RSI: {typeof s.bullishDivergence.prevRSI === 'number'
+          ? s.bullishDivergence.prevRSI.toFixed(2)
+          : '—'}
+      </span>
+    </div>
+  ) : '-'}
+</td>	
+
+  {/* Volume */}
+  <td
+    className={`p-2 font-semibold ${
+      s.highestVolumeColorPrev === 'green'
+        ? 'text-green-400'
+        : s.highestVolumeColorPrev === 'red'
+        ? 'text-red-400'
+        : 'text-gray-400'
+    }`}
+  >
+    {typeof s.highestVolumeColorPrev === 'string'
+      ? s.highestVolumeColorPrev.charAt(0).toUpperCase() + s.highestVolumeColorPrev.slice(1)
+      : '—'}
+  </td>	
+
+ <td
+  className={`px-1 py-0.5 text-center font-semibold ${
+    s.bullishVolumeDivergence?.divergence
+      ? s.bullishVolumeDivergence.type === 'bullish-volume'
+        ? 'text-green-400'
+        : 'text-red-400'
+      : 'text-gray-400'
+  }`}
+>
+  {s.bullishVolumeDivergence?.divergence
+    ? s.bullishVolumeDivergence.type === 'bullish-volume'
+      ? 'Bullish'
+      : 'Bearish'
+    : '—'}
+</td>
+	 <td
+  className={`p-2 font-semibold ${
+    s.isVolumeSpike ? 'text-yellow-400' : 'text-gray-400'
+  }`}
+>
+  {s.isVolumeSpike ? 'Spike' : '—'}
+</td>	    	
+			   
+
+			     <td className="px-1 py-0.5 text-center text-red-400 font-semibold">
+    {s.breakoutFailure ? 'Yes' : '-'}
+  </td>
+
+			   {/* Touched EMA100 during the current 08:00–08:00 PH session */}
+  <td className={`p-2 ${s.touchedEMA100Today ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="EMA100 touch is based on each candle's high/low intersecting that candle's EMA100 value during the current PH session">
+    {s.touchedEMA100Today ? 'Yes' : 'No'}
+  </td>
+
+  {/* Touched EMA100 during the previous completed 08:00–08:00 PH session */}
+  <td className={`p-2 ${s.touchedEMA100PreviousSession ? 'text-yellow-300 font-semibold' : 'text-gray-500'}`} title="Previous-session EMA100 touch: any completed candle from the previous PH 08:00–08:00 session intersected its own EMA100 value">
+    {s.touchedEMA100PreviousSession ? 'Yes' : 'No'}
+  </td>
+
+  {/* Latest forming candle close between EMA50 and EMA70 on the selected scan timeframe */}
+  <td className={`px-2 py-1 text-center font-semibold ${s.latestCandleInsideEMA50EMA70 ? 'text-green-400' : 'text-gray-500'}`} title={`Latest candle ${s.latestCandleInsideEMA50EMA70Details?.isForming ? 'is forming' : 'may be closed'}; close: ${s.latestCandleInsideEMA50EMA70Details?.candleClose ?? 'N/A'}; EMA50: ${s.latestCandleInsideEMA50EMA70Details?.ema50 ?? 'N/A'}; EMA70: ${s.latestCandleInsideEMA50EMA70Details?.ema70 ?? 'N/A'}`}>
+    {s.latestCandleInsideEMA50EMA70 ? 'YES — INSIDE' : 'NO'}
+  </td>
+
+  {/* Touched EMA200 */}
+  <td className={`p-2 ${s.touchedEMA200Today ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.touchedEMA200Today ? 'Yes' : 'No'}
+  </td>
+
+  {/* Touched EMA200 during the previous completed 08:00–08:00 PH session */}
+  <td className={`p-2 ${s.touchedEMA200PreviousSession ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`} title="Previous-session EMA200 touch: any completed candle from the previous PH 08:00–08:00 session intersected its own EMA200 value">
+    {s.touchedEMA200PreviousSession ? 'Yes' : 'No'}
+  </td>
+
+  {/* Latest EMA70/EMA200 cross in the current 08:00–08:00 PH session */}
+  <td className={`px-2 py-1 text-center font-semibold ${
+    s.ema70200Cross?.direction === 'bullish'
+      ? 'text-green-400'
+      : s.ema70200Cross?.direction === 'bearish'
+      ? 'text-red-400'
+      : 'text-gray-500'
+  }`}>
+    {s.ema70200Cross?.direction === 'bullish'
+      ? `🟢 Bullish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : s.ema70200Cross?.direction === 'bearish'
+      ? `🔴 Bearish — ${new Date(s.ema70200Cross.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false })}`
+      : 'No'}
+  </td>
+
+			   <td
+  className={`px-1 py-0.5 min-w-[40px] text-center font-semibold ${
+    signal.trim() === 'MAX ZONE PUMP'
+      ? 'text-yellow-300'
+      : signal.trim() === 'MAX ZONE DUMP'
+      ? 'text-yellow-400'
+      : signal.trim() === 'BALANCE ZONE PUMP'
+      ? 'text-purple-300 font-bold'
+      : signal.trim() === 'BALANCE ZONE DUMP'
+      ? 'text-purple-400 font-bold'
+      : signal.trim() === 'UPPER-MIDDLE ZONE PUMP'
+      ? 'text-orange-300 font-bold'
+      : signal.trim() === 'UPPER-MIDDLE ZONE DUMP'
+      ? 'text-orange-400 font-bold'
+      : signal.trim() === 'LOWER-MIDDLE ZONE PUMP'
+      ? 'text-cyan-300 font-bold'
+      : signal.trim() === 'LOWER-MIDDLE ZONE DUMP'
+      ? 'text-cyan-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE PUMP'
+      ? 'text-green-400 font-bold'
+      : signal.trim() === 'LOWEST ZONE DUMP'
+      ? 'text-green-500 font-bold'
+      : 'text-gray-500'
+  }`}
+>
+  {signal.trim()}
+</td>	
+
+			   <td className="px-1 py-0.5 text-center text-[10px]">
+  {s.ema14InsideResults.some(r => r.inside)
+    ? <span className="text-green-400 font-semibold">YES</span>
+    : <span className="text-red-400">NO</span>}
+</td>	
+			   
+
+	<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bullish' && didDropFromPeak(10, s.priceChangePercent, 5) ? (
+    <span className="text-yellow-400 font-semibold animate-pulse">🚨 Dropped</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>
+
+<td className="px-2 py-1 border-b border-gray-700 text-center text-sm">
+  {s.mainTrend?.trend === 'bearish' && didRecoverFromLow(-40, s.priceChangePercent, 10) ? (
+    <span className="text-green-400 font-semibold animate-pulse">🟢 Recovery</span>
+  ) : (
+    <span className="text-gray-500">–</span>
+  )}
+</td>	   
+		   
+  <td className={`px-1 py-0.5 text-center ${s.bullishBreakout ? 'text-green-400' : 'text-gray-500'}`}>
+    {s.bullishBreakout ? 'Yes' : 'No'}
+  </td>	   
+
+  <td className={`px-1 py-0.5 text-center ${s.bearishBreakout ? 'text-red-400' : 'text-gray-500'}`}>
+    {s.bearishBreakout ? 'Yes' : 'No'}
+  </td>		   
+		   
+  <td className="px-1 py-0.5 text-center font-semibold">
+    {s.oneDayTwoPreviousRedCloses === true
+      ? '🔴 YES (2/2)'
+      : s.oneDayTwoPreviousRedCloses === false
+      ? `No (${s.oneDayPreviousRedCloseCount}/2)`
+      : 'N/A — 1D only'}
+  </td>
+
+  <td className={`px-1 py-0.5 text-center font-semibold ${
+    s.oneDayThreePointBearishDivergence?.divergence ? 'text-orange-400' : 'text-gray-500'
+  }`} title={s.oneDayThreePointBearishDivergence?.message || '1D only'}>
+    {s.oneDayThreePointBearishDivergence?.divergence
+      ? '🔴 CONFIRMED'
+      : s.oneDayThreePointBearishDivergence?.status === 'NO'
+      ? 'No'
+      : 'N/A — 1D only'}
+  </td>
+		   
+
+		   <td
+                    className={`p-2 ${
+                      s.divergenceFromLevel
+                        ? 'bg-indigo-700 text-white'
+                        : 'bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    <div className="flex flex-col whitespace-nowrap">
+                      <span>{s.divergenceFromLevel ? 'Yes' : 'No'}</span>
+                      {typeof s.divergenceFromLevelPrice === 'number' && (
+                        <span className="text-[10px] font-normal text-cyan-300">
+                          {s.divergenceFromLevelLevelType === 'support' ? 'EMA Cross Support' : 'EMA Cross Resistance'}: ${s.divergenceFromLevelPrice.toFixed(7)}
+                        </span>
+                      )}
+                      {s.divergenceFromLevelType && (
+                        <span className="text-[10px] font-normal text-gray-300">
+                          {s.divergenceFromLevelType.toUpperCase()} DIV
+                        </span>
+                      )}
+                    </div>
+                  </td>
+		   
+
+<td className={`px-4 py-2 border border-gray-700 ${s.gap > 0 ? 'text-green-400' : 'text-red-400'}`}>
+  {typeof s.gap === 'number' && !isNaN(s.gap) ? `${s.gap.toFixed(2)}%` : 'N/A'}
+</td>
+
+<td className={`px-4 py-2 border border-gray-700 ${s.gap1 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+  {typeof s.gap1 === 'number' && !isNaN(s.gap1) ? `${s.gap1.toFixed(2)}%` : 'N/A'}
+</td>
+		   
+{/* Low → EMA200: Only for bearish trend */}
+<td className="px-1 py-0.5 text-center">
+  {s.mainTrend?.trend === 'bearish' && s.gapFromLowToEMA200 !== null ? (
+    <span className={s.gapFromLowToEMA200 < 1 ? 'text-red-400' : 'text-yellow-400'}>
+      {s.gapFromLowToEMA200.toFixed(2)}%
+    </span>
+  ) : '—'}
+</td>
+
+{/* High → EMA200: Only for bullish trend */}
+<td className="px-1 py-0.5 text-center">
+  {s.mainTrend?.trend === 'bullish' && s.gapFromHighToEMA200 !== null ? (
+    <span className={s.gapFromHighToEMA200 > 5 ? 'text-green-400' : 'text-gray-300'}>
+      {s.gapFromHighToEMA200.toFixed(2)}%
+    </span>
+  ) : '—'}
+</td>
+		   
+		  <td className={`p-2 ${s.ema200Bounce ? 'text-yellow-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema200Bounce ? 'Yes' : 'No'}
+  </td> 
+		   
+
+{/* EMA Bounces */}
+  <td className={`p-2 ${s.ema14Bounce ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema14Bounce ? 'Yes' : 'No'}
+  </td>
+
+  <td className={`p-2 ${s.ema70Bounce ? 'text-pink-400 font-semibold' : 'text-gray-500'}`}>
+    {s.ema70Bounce ? 'Yes' : 'No'}
+  </td>	   
+		   		   
+<td className="p-2 text-center text-green-400 font-semibold">
+  {s.hasBullishEngulfing ? 'Yes' : '-'}
+</td>
+<td className="p-2 text-center text-red-400 font-semibold">
+  {s.hasBearishEngulfing ? 'Yes' : '-'}
+</td>		   	   
+		   	
+		   
+  {/* Support/Breakout Detection */}
+  <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
+    {s.testedPrevHigh ? 'Yes' : '-'}
+  </td>
+
+  <td className="px-1 py-0.5 text-center text-blue-300 font-semibold">
+    {s.testedPrevLow ? 'Yes' : '-'}
+  </td>
+
+
+  <td className="px-1 py-0.5 text-center text-yellow-400 font-semibold">
+    {s.mainTrend === 'bullish'
+      ? s.isDoubleTopFailure
+        ? 'Top Fail'
+        : s.isDoubleTop
+        ? 'Double Top'
+        : s.isDescendingTop
+        ? 'Descending Top'
+        : '-'
+      : '-'}
+  </td>
+
+  <td className="px-1 py-0.5 text-center text-green-400 font-semibold">
+    {s.mainTrend === 'bearish'
+      ? s.isDoubleBottomFailure
+        ? 'Bottom Fail'
+        : s.isDoubleBottom
+        ? 'Double Bottom'
+        : s.isAscendingBottom
+        ? 'Ascending Bottom'
+        : '-'
+      : '-'}
+  </td>
+  
+</tr>
         );
       })}
     </tbody>
