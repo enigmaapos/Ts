@@ -799,6 +799,8 @@ const toggleFavorite = (symbol: string) => {
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
+const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '3' | '2' | '1' | '0' | 'na'>('all');
+const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
 const [breakoutFailFilter, setBreakoutFailFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
@@ -996,6 +998,36 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   if (!matchesSearch || !matchesFavoriteView) return false;
   if (ema200PullbackOnly && s.ema200PullbackSetup?.qualified !== true) return false;
 
+  // Multi-timeframe filters use each timeframe's own Main Trend and its own
+  // Position Signal alignment. Incomplete data is never counted as aligned.
+  const mtf = s.multiTimeframeAlignment;
+  const mtfItems = ['15m', '4h', '1d'].map((tf) => mtf?.[tf]);
+  const mtfDataComplete = mtfItems.every((item) => item && item.aligned !== null && item.aligned !== undefined);
+  const mtfAlignedCount = mtfItems.filter((item) => item?.aligned === true).length;
+
+  if (mtfAlignmentFilter !== 'all') {
+    if (mtfAlignmentFilter === 'na') {
+      if (mtfDataComplete) return false;
+    } else {
+      if (!mtfDataComplete || mtfAlignedCount !== Number(mtfAlignmentFilter)) return false;
+    }
+  }
+
+  if (mtfTrendDirectionFilter !== 'all') {
+    const trends = mtfItems.map((item) => item?.mainTrend);
+    const trendsComplete = trends.every((trend) => trend === 'bullish' || trend === 'bearish');
+    if (mtfTrendDirectionFilter === 'na') {
+      if (trendsComplete) return false;
+    } else {
+      if (!trendsComplete) return false;
+      const allBullish = trends.every((trend) => trend === 'bullish');
+      const allBearish = trends.every((trend) => trend === 'bearish');
+      if (mtfTrendDirectionFilter === 'bullish' && !allBullish) return false;
+      if (mtfTrendDirectionFilter === 'bearish' && !allBearish) return false;
+      if (mtfTrendDirectionFilter === 'mixed' && (allBullish || allBearish)) return false;
+    }
+  }
+
   if (fundingRateFilter !== 'all') {
     const rate = fundingRates[s.symbol];
     if (!Number.isFinite(rate)) return false;
@@ -1073,7 +1105,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   return true;
 }), [
   signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
-  fundingRateFilter, fundingRates, trendFilters, signalFilter, tableSignalFilter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, tableSignalFilter,
   rsi14Filter, breakoutFailFilter, oneDayTwoRedClosesFilter,
   oneDayBearishRsiPumpEmaFilter, timeframe, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
@@ -3721,6 +3753,29 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>MTF Alignment (15m / 4H / 1D)</span>
+          <select value={mtfAlignmentFilter} onChange={(e) => setMtfAlignmentFilter(e.target.value as typeof mtfAlignmentFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All alignment results</option>
+            <option value="3">3/3 — All aligned</option>
+            <option value="2">2/3 — Two aligned</option>
+            <option value="1">1/3 — One aligned</option>
+            <option value="0">0/3 — None aligned</option>
+            <option value="na">N/A — Incomplete alignment data</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          <span>MTF Main Trend Direction</span>
+          <select value={mtfTrendDirectionFilter} onChange={(e) => setMtfTrendDirectionFilter(e.target.value as typeof mtfTrendDirectionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
+            <option value="all">All trend directions</option>
+            <option value="bullish">All Bullish (15m / 4H / 1D)</option>
+            <option value="bearish">All Bearish (15m / 4H / 1D)</option>
+            <option value="mixed">Mixed — Bullish and Bearish</option>
+            <option value="na">N/A — Incomplete trend data</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
           <span>Funding Rate</span>
           <select value={fundingRateFilter} onChange={(e) => setFundingRateFilter(e.target.value as typeof fundingRateFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All</option>
@@ -3752,6 +3807,8 @@ latestRSI,
           setEma14InsideEMA70200Filter('all');
           setRsiPumpDumpFilter('all');
           setFundingRateFilter('all');
+          setMtfAlignmentFilter('all');
+          setMtfTrendDirectionFilter('all');
           setCoinListView('not-favorites');
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
