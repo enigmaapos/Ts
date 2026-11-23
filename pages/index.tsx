@@ -3664,6 +3664,7 @@ latestRSI,
         <SortableTh field="currentPrice">Current Price</SortableTh>
         <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+        <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">1D — PH Session</th>
@@ -3804,6 +3805,13 @@ latestRSI,
             </td>
             <td className="px-2 py-2 text-center whitespace-nowrap">
               <PriceChangePercent percent={s.priceChangePercent} />
+            </td>
+            <td className={`px-2 py-2 text-center font-semibold whitespace-nowrap ${
+              getSignalValue(s).includes('PUMP') ? 'text-green-400' :
+              getSignalValue(s).includes('DUMP') ? 'text-red-400' :
+              getSignalValue(s) === 'NO DATA' ? 'text-gray-500' : 'text-yellow-300'
+            }`}>
+              {getSignalValue(s)}
             </td>
             {renderTimeframe('15m')}
             {renderTimeframe('4h')}
