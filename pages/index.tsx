@@ -1672,6 +1672,65 @@ if (prevSessionCandles.length >= 2) {
   prevClosedRed = lastCandle.close < firstCandle.open;
 }
 
+// Independent multi-timeframe trend alignment: each TF uses its own EMA70/200
+// Main Trend and the color of its latest completed candle for its position signal.
+const alignmentTimeframes = ['15m', '4h', '1d'] as const;
+const getCompletedCandlePosition = (tfCandles: Candle[]) => {
+  const completed = tfCandles.filter(c => Number.isFinite(c.closeTime) && c.closeTime <= Date.now());
+  if (!completed.length) return { previousClose: null as string | null, positionSignal: null as string | null };
+  const candle = completed[completed.length - 1];
+  const previousClose = candle.close > candle.open ? 'green' : candle.close < candle.open ? 'red' : null;
+  return {
+    previousClose,
+    positionSignal: previousClose === 'green' ? 'SELL — Resistance Failure' :
+      previousClose === 'red' ? 'BUY — Support Failure' : null
+  };
+};
+const multiTimeframeAlignment: Record<string, any> = {};
+for (const tf of alignmentTimeframes) {
+  try {
+    let tfCandles: Candle[];
+    let tfMainTrend: TrendResult;
+    if (tf === interval) {
+      tfCandles = candles;
+      tfMainTrend = mainTrend;
+    } else {
+      const tfRaw = await safeFetchJson<any[]>(
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=500`,
+        `${symbol} ${tf} alignment klines`
+      );
+      tfCandles = tfRaw.map((c: any) => ({
+        timestamp: +c[0], open: +c[1], high: +c[2], low: +c[3],
+        close: +c[4], volume: +c[5], closeTime: +c[6]
+      }));
+      const tfCloses = tfCandles.map(c => c.close);
+      tfMainTrend = getMainTrend(
+        calculateEMA(tfCloses, 70), calculateEMA(tfCloses, 200), tfCloses,
+        tfCandles.map(c => c.open), tfCandles.map(c => c.high), tfCandles.map(c => c.low)
+      );
+    }
+    const position = getCompletedCandlePosition(tfCandles);
+    const aligned = position.positionSignal && tfMainTrend?.trend
+      ? ((tfMainTrend.trend === 'bullish' && position.previousClose === 'red') ||
+         (tfMainTrend.trend === 'bearish' && position.previousClose === 'green'))
+      : null;
+    multiTimeframeAlignment[tf] = {
+      mainTrend: tfMainTrend?.trend ?? null,
+      positionSignal: position.positionSignal,
+      previousClose: position.previousClose,
+      alignment: aligned === null ? 'N/A' : aligned ? 'TREND ALIGNED' : 'COUNTERTREND',
+      aligned
+    };
+  } catch (err: any) {
+    console.warn(`${symbol} ${tf} alignment unavailable:`, err?.message || err);
+    multiTimeframeAlignment[tf] = { mainTrend: null, positionSignal: null, previousClose: null, alignment: 'N/A', aligned: null };
+  }
+}
+const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
+const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
+const overallMultiTimeframeAlignment = availableAlignmentCount
+  ? `${alignedTimeframeCount}/3 ALIGNED (${availableAlignmentCount}/3 DATA)` : 'N/A';
+
 // === 1D TWO PREVIOUS RED CLOSES ===
 // Only the two most recent COMPLETED Binance 1D candles are evaluated.
 // The current/forming 1D candle is deliberately excluded so the signal
@@ -2814,6 +2873,8 @@ opens,
   testedPrevLowCount: summaryCounts.testedPrevLowCount,    // ✅ New
   divergenceFromLevelCount: summaryCounts.divergenceFromLevelCount,
 mainTrend,
+  multiTimeframeAlignment,
+  overallMultiTimeframeAlignment,
   breakout,
   bullishBreakout,
   bearishBreakout,
@@ -3752,6 +3813,10 @@ latestRSI,
 		<SortableTh field="prevClose">Prev Close</SortableTh>
 		<th className="px-2 py-1 text-center whitespace-nowrap">Position Signal</th>
 		<th className="px-2 py-1 text-center whitespace-nowrap">Trend Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">15m Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">4H Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">1D Alignment</th>
+        <th className="px-2 py-1 text-center whitespace-nowrap">MTF Overall</th>
 		<SortableTh field="bearishCollapse">Collapse</SortableTh>
         <SortableTh field="bullishSpike">Spike</SortableTh>
         <SortableTh field="bearishReversal">Bear Rev</SortableTh>
@@ -4054,6 +4119,23 @@ else if (direction === 'pump' && pumpInRange_1_10) {
     : s.mainTrend.trend === 'bullish'
     ? 'COUNTERTREND — WAIT FOR BULLISH SUPPORT'
     : 'COUNTERTREND — WAIT FOR BEARISH RESISTANCE'}
+</td>
+{(['15m', '4h', '1d'] as const).map((tf) => {
+  const item = s.multiTimeframeAlignment?.[tf];
+  const color = item?.aligned === true ? 'text-green-400' :
+    item?.aligned === false ? 'text-yellow-400' : 'text-gray-500';
+  return <td key={tf} className={`px-2 py-1 text-center font-bold whitespace-nowrap ${color}`}>
+    {item?.alignment ?? 'N/A'}
+    <div className="text-[9px] font-normal text-gray-400">
+      {item?.mainTrend ? item.mainTrend.toUpperCase() : 'TREND N/A'}
+    </div>
+  </td>;
+})}
+<td className={`px-2 py-1 text-center font-bold whitespace-nowrap ${
+  s.overallMultiTimeframeAlignment?.startsWith('3/') ? 'text-green-400' :
+  s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
+}`}>
+  {s.overallMultiTimeframeAlignment ?? 'N/A'}
 </td>
 
 			   <td className="px-2 py-1 text-sm text-left leading-snug text-white">
