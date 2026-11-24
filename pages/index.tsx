@@ -762,7 +762,7 @@ const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');
   const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
-  const timeframes = ['15m', '4h', '1d'];
+  const timeframes = ['15m', '2h', '4h', '1d'];
 	
   
 
@@ -799,7 +799,7 @@ const toggleFavorite = (symbol: string) => {
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
-const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '3' | '2' | '1' | '0' | 'na'>('all');
+const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
@@ -931,7 +931,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   // Multi-timeframe filters use each timeframe's own Main Trend and its own
   // Position Signal alignment. Incomplete data is never counted as aligned.
   const mtf = s.multiTimeframeAlignment;
-  const mtfItems = ['15m', '4h', '1d'].map((tf) => mtf?.[tf]);
+  const mtfItems = ['15m', '2h', '4h', '1d'].map((tf) => mtf?.[tf]);
   const mtfDataComplete = mtfItems.every((item) => item && item.aligned !== null && item.aligned !== undefined);
   const mtfAlignedCount = mtfItems.filter((item) => item?.aligned === true).length;
 
@@ -1270,18 +1270,18 @@ const signalCounts = useMemo(() => {
     setNextScanAt(null);
 
     // Binance-safe high-throughput scanner:
-    // - 30 symbols are analysed per scan cycle.
-    // - Only 5 symbols run concurrently, with adaptive Binance rate-limit backoff.
+    // - 15 symbols are analysed per scan cycle.
+    // - Only 3 symbols run concurrently to offset the additional 2H kline request.
     // - Waves are spaced instead of using setInterval, so slow scans never overlap.
     // - 429/418 responses honour Retry-After and use exponential backoff.
     // - Binance's returned 1-minute request-weight header is monitored.
-    const BATCH_SIZE = 30;
-    const MAX_CONCURRENT = 5;
-    const WAVE_DELAY_MS = 350;
-    const BETWEEN_CYCLE_DELAY_MS = 1000;
+    const BATCH_SIZE = 15;
+    const MAX_CONCURRENT = 3;
+    const WAVE_DELAY_MS = 1000;
+    const BETWEEN_CYCLE_DELAY_MS = 1500;
     const MAX_RETRIES = 3;
     const RATE_LIMIT_WEIGHT = 2400;
-    const RATE_LIMIT_SOFT_CAP = 0.75;
+    const RATE_LIMIT_SOFT_CAP = 0.65;
     let currentIndex = 0;
     let symbols: string[] = [];
     let lastUsedWeight1m = 0;
@@ -1365,7 +1365,7 @@ const signalCounts = useMemo(() => {
     };
 
     // Define available timeframes
-const timeframes = ['15m', '4h', '1d'] as const;
+const timeframes = ['15m', '2h', '4h', '1d'] as const;
 
 // Derive Timeframe type from the array
 type Timeframe = typeof timeframes[number];
@@ -1458,6 +1458,7 @@ const getSessions = (timeframe?: Timeframe) => {
     const nowMillis = now.getTime();
     const MILLISECONDS: Record<Exclude<Timeframe, '1d'>, number> = {
       '15m': 15 * 60 * 1000,
+      '2h': 2 * 60 * 60 * 1000,
       '4h': 4 * 60 * 60 * 1000,
     };
 
@@ -1591,11 +1592,11 @@ if (prevSessionCandles.length >= 2) {
   prevClosedRed = lastCandle.close < firstCandle.open;
 }
 
-// Independent 15m / 4h / 1d metrics.
+// Independent 15m / 2h / 4h / 1d metrics.
 // All session-based fields use the same exact PH session boundaries already
 // calculated above: 08:00 Asia/Manila inclusive -> next-day 08:00 exclusive.
-// Reuse the selected timeframe's candles/indicators; fetch the other two in parallel.
-const alignmentTimeframes = ['15m', '4h', '1d'] as const;
+// Reuse the selected timeframe's candles/indicators; fetch the other three in parallel.
+const alignmentTimeframes = ['15m', '2h', '4h', '1d'] as const;
 type AlignmentTimeframe = typeof alignmentTimeframes[number];
 
 const loadedTimeframes = await Promise.all(alignmentTimeframes.map(async (tf) => {
@@ -1810,7 +1811,7 @@ for (const loaded of loadedTimeframes) {
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
 const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
 const overallMultiTimeframeAlignment = availableAlignmentCount
-  ? `${alignedTimeframeCount}/3 ALIGNED (${availableAlignmentCount}/3 DATA)` : 'N/A';
+  ? `${alignedTimeframeCount}/4 ALIGNED (${availableAlignmentCount}/4 DATA)` : 'N/A';
 
 // === 1D TWO PREVIOUS RED CLOSES ===
 // Only the two most recent COMPLETED Binance 1D candles are evaluated.
@@ -3095,7 +3096,7 @@ latestRSI,
 
   const results: any[] = [];
 
-  // Process a maximum of 5 symbols concurrently. Each symbol's candle and
+  // Process a maximum of 3 symbols concurrently. Each symbol's candle and
   // ticker requests run together; adaptive backoff still protects Binance.
   for (let offset = 0; offset < batch.length && isMounted; offset += MAX_CONCURRENT) {
     const wave = batch.slice(offset, offset + MAX_CONCURRENT);
@@ -3501,13 +3502,14 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>MTF Alignment (15m / 4H / 1D)</span>
+          <span>MTF Alignment (15m / 2H / 4H / 1D)</span>
           <select value={mtfAlignmentFilter} onChange={(e) => setMtfAlignmentFilter(e.target.value as typeof mtfAlignmentFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All alignment results</option>
-            <option value="3">3/3 — All aligned</option>
-            <option value="2">2/3 — Two aligned</option>
-            <option value="1">1/3 — One aligned</option>
-            <option value="0">0/3 — None aligned</option>
+            <option value="4">4/4 — All aligned</option>
+            <option value="3">3/4 — Three aligned</option>
+            <option value="2">2/4 — Two aligned</option>
+            <option value="1">1/4 — One aligned</option>
+            <option value="0">0/4 — None aligned</option>
             <option value="na">N/A — Incomplete alignment data</option>
           </select>
         </label>
@@ -3516,8 +3518,8 @@ latestRSI,
           <span>MTF Main Trend Direction</span>
           <select value={mtfTrendDirectionFilter} onChange={(e) => setMtfTrendDirectionFilter(e.target.value as typeof mtfTrendDirectionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All trend directions</option>
-            <option value="bullish">All Bullish (15m / 4H / 1D)</option>
-            <option value="bearish">All Bearish (15m / 4H / 1D)</option>
+            <option value="bullish">All Bullish (15m / 2H / 4H / 1D)</option>
+            <option value="bearish">All Bearish (15m / 2H / 4H / 1D)</option>
             <option value="mixed">Mixed — Bullish and Bearish</option>
             <option value="na">N/A — Incomplete trend data</option>
           </select>
@@ -3717,6 +3719,7 @@ latestRSI,
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
+        <th className="px-3 py-2 text-center whitespace-nowrap">2H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">1D — PH Session</th>
         <th className="px-2 py-2 text-center whitespace-nowrap">MTF Alignment</th>
@@ -3724,7 +3727,7 @@ latestRSI,
     </thead>
     <tbody>
       {filteredAndSortedSignals.map((s) => {
-        const renderTimeframe = (tf: '15m' | '4h' | '1d') => {
+        const renderTimeframe = (tf: '15m' | '2h' | '4h' | '1d') => {
           const item = s.multiTimeframeAlignment?.[tf];
           if (!item || item.alignment === 'N/A' && !item.mainTrend) {
             return <td key={tf} className="px-3 py-2 text-center text-gray-500">N/A — timeframe data unavailable</td>;
@@ -3920,11 +3923,12 @@ latestRSI,
               })()}
             </td>
             {renderTimeframe('15m')}
+            {renderTimeframe('2h')}
             {renderTimeframe('4h')}
             {renderTimeframe('1d')}
             <td className={`px-2 py-2 text-center font-bold whitespace-nowrap ${
-              s.overallMultiTimeframeAlignment?.startsWith('3/') ? 'text-green-400' :
-              s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
+              s.overallMultiTimeframeAlignment?.startsWith('4/') ? 'text-green-400' :
+              s.overallMultiTimeframeAlignment?.startsWith('3/') || s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
             }`}>
               {s.overallMultiTimeframeAlignment ?? 'N/A'}
             </td>
