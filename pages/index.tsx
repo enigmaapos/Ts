@@ -798,8 +798,8 @@ const toggleFavorite = (symbol: string) => {
 };
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
-const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
+const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
@@ -959,21 +959,20 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     }
   }
 
+  // 24H price-change color filter uses the existing Binance ticker field.
+  if (priceChange24hFilter !== 'all') {
+    const change = Number.parseFloat(String(s.priceChangePercent ?? ''));
+    if (!Number.isFinite(change)) return false;
+    if (priceChange24hFilter === 'green' && change <= 0) return false;
+    if (priceChange24hFilter === 'red' && change >= 0) return false;
+  }
+
   if (fundingRateFilter !== 'all') {
     const rate = fundingRates[s.symbol];
     if (!Number.isFinite(rate)) return false;
     if (fundingRateFilter === 'positive' && rate <= 0) return false;
     if (fundingRateFilter === 'negative' && rate >= 0) return false;
     if (fundingRateFilter === 'neutral' && rate !== 0) return false;
-  }
-
-  // 24H price direction uses Binance ticker priceChangePercent: green > 0, red < 0.
-  // Exactly 0% and missing values are excluded when either direction is selected.
-  if (priceChange24hFilter !== 'all') {
-    const change24h = Number(s.priceChangePercent);
-    if (!Number.isFinite(change24h)) return false;
-    if (priceChange24hFilter === 'green' && change24h <= 0) return false;
-    if (priceChange24hFilter === 'red' && change24h >= 0) return false;
   }
 
   // Selected Trend Filters are combined with AND logic.
@@ -1004,7 +1003,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   return true;
 }), [
   signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
-  fundingRateFilter, fundingRates, priceChange24hFilter, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter,
   rsi14Filter, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
   ema70200CrossFilter
@@ -3369,6 +3368,28 @@ latestRSI,
   </div>
 </div>
 
+    {/* 🟢🔴 24H Price Change Color Filter */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">24H Price Change — Green / Red:</p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setPriceChange24hFilter((current) => current === 'green' ? 'all' : 'green')}
+          className={`px-3 py-1.5 rounded border font-semibold transition-colors ${priceChange24hFilter === 'green' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}
+        >
+          🟢 Green ({summaryCounts.greenPriceChangeCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setPriceChange24hFilter((current) => current === 'red' ? 'all' : 'red')}
+          className={`px-3 py-1.5 rounded border font-semibold transition-colors ${priceChange24hFilter === 'red' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}
+        >
+          🔴 Red ({summaryCounts.redPriceChangeCount})
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 mt-1">Select Green or Red; tap the active filter again to show both.</p>
+    </div>
+
     {/* ✅ Signal Filters Section */}
     <div>
       <p className="text-gray-400 mb-2 font-semibold">📈 Signal Filters — Tap to show signals based on technical zones or momentum shifts:</p>
@@ -3544,28 +3565,6 @@ latestRSI,
             <option value="neutral">Neutral — zero rate</option>
           </select>
         </label>
-
-        <div className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>24H Price Change Color</span>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="24-hour price change color filter">
-            <button
-              type="button"
-              onClick={() => setPriceChange24hFilter((current) => current === 'green' ? 'all' : 'green')}
-              aria-pressed={priceChange24hFilter === 'green'}
-              className={`px-3 py-1.5 rounded border font-semibold transition-colors ${priceChange24hFilter === 'green' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}
-            >
-              🟢 Green ({greenPriceChangeCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setPriceChange24hFilter((current) => current === 'red' ? 'all' : 'red')}
-              aria-pressed={priceChange24hFilter === 'red'}
-              className={`px-3 py-1.5 rounded border font-semibold transition-colors ${priceChange24hFilter === 'red' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}
-            >
-              🔴 Red ({redPriceChangeCount})
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -3577,13 +3576,13 @@ latestRSI,
           setTrendFilters([]);
           setSignalFilter(null);
           setRsi14Filter('all');
+          setPriceChange24hFilter('all');
           setTouchedEMA200Filter('all');
           setTouchedEMA100Filter('all');
           setTouchedEMA200PreviousFilter('all');
           setTouchedEMA100PreviousFilter('all');
           setEma70200CrossFilter('all');
           setFundingRateFilter('all');
-          setPriceChange24hFilter('all');
           setMtfAlignmentFilter('all');
           setMtfTrendDirectionFilter('all');
           setCoinListView('not-favorites');
