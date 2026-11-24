@@ -1670,6 +1670,19 @@ for (const loaded of loadedTimeframes) {
          (tfMainTrend.trend === 'bearish' && previousClose === 'green'))
       : null;
 
+    // Classify the countertrend level independently for each timeframe.
+    // BUY against a bearish Main Trend is countertrend resistance.
+    // SELL against a bullish Main Trend is countertrend support.
+    const countertrendType = aligned === null
+      ? 'N/A'
+      : aligned
+      ? 'WITH MAIN TREND'
+      : positionSignal?.startsWith('BUY')
+      ? 'COUNTERTREND — RESISTANCE'
+      : positionSignal?.startsWith('SELL')
+      ? 'COUNTERTREND — SUPPORT'
+      : 'N/A';
+
     const previousSessionHigh = previousSessionIndexed.length
       ? Math.max(...previousSessionIndexed.map(({ c }) => c.high)) : null;
     const previousSessionLow = previousSessionIndexed.length
@@ -1764,6 +1777,7 @@ for (const loaded of loadedTimeframes) {
     multiTimeframeAlignment[tf] = {
       mainTrend: tfMainTrend?.trend ?? null,
       positionSignal,
+      countertrendType,
       previousClose,
       alignment: aligned === null ? 'N/A' : aligned ? 'TREND ALIGNED' : 'COUNTERTREND',
       aligned,
@@ -1782,7 +1796,7 @@ for (const loaded of loadedTimeframes) {
   } catch (err: any) {
     console.warn(`${symbol} ${tf} metrics unavailable:`, err?.message || err);
     multiTimeframeAlignment[tf] = {
-      mainTrend: null, positionSignal: null, previousClose: null,
+      mainTrend: null, positionSignal: null, countertrendType: 'N/A', previousClose: null,
       alignment: 'N/A', aligned: null, bullishBreakout: null, bearishBreakout: null,
       latestRSI14: null, rsi14Zone: 'N/A',
       ema100CurrentTouch: null, ema100PreviousTouch: null,
@@ -3754,6 +3768,14 @@ latestRSI,
                 <div className="flex justify-between gap-2">
                   <span className="text-gray-400">Position Signal</span>
                   <strong className="text-white text-right">{item.positionSignal ?? 'N/A'}</strong>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-gray-400">Countertrend Type</span>
+                  <strong className={
+                    item.countertrendType === 'COUNTERTREND — RESISTANCE' ? 'text-red-400 text-right' :
+                    item.countertrendType === 'COUNTERTREND — SUPPORT' ? 'text-green-400 text-right' :
+                    item.countertrendType === 'WITH MAIN TREND' ? 'text-blue-300 text-right' : 'text-gray-500 text-right'
+                  }>{item.countertrendType ?? 'N/A'}</strong>
                 </div>
                 <div className="border-t border-gray-700 pt-1 mt-0.5">
                   <div className="flex justify-between gap-2">
