@@ -762,7 +762,7 @@ const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');
   const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
-  const timeframes = ['15m', '2h', '4h', '1d'];
+  const timeframes = ['15m', '2h', '4h', '1d', '1M'];
 	
   
 
@@ -800,7 +800,7 @@ const toggleFavorite = (symbol: string) => {
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
-const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
+const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
 const [touchedEMA200Filter, setTouchedEMA200Filter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | 'no'>('all');
@@ -932,27 +932,29 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   // Multi-timeframe filters use each timeframe's own Main Trend and its own
   // Position Signal alignment. Incomplete data is never counted as aligned.
   const mtf = s.multiTimeframeAlignment;
-  const mtfItems = ['15m', '2h', '4h', '1d'].map((tf) => mtf?.[tf]);
-  const mtfDataComplete = mtfItems.every((item) => item && item.aligned !== null && item.aligned !== undefined);
+  const mtfItems = ['15m', '2h', '4h', '1d', '1M'].map((tf) => mtf?.[tf]);
+  const mtfAvailableCount = mtfItems.filter((item) => item && item.aligned !== null && item.aligned !== undefined).length;
+  const mtfDataComplete = mtfAvailableCount === mtfItems.length;
   const mtfAlignedCount = mtfItems.filter((item) => item?.aligned === true).length;
 
   if (mtfAlignmentFilter !== 'all') {
     if (mtfAlignmentFilter === 'na') {
       if (mtfDataComplete) return false;
     } else {
-      if (!mtfDataComplete || mtfAlignedCount !== Number(mtfAlignmentFilter)) return false;
+      if (mtfAlignedCount !== Number(mtfAlignmentFilter)) return false;
+      if (mtfAlignmentFilter === '5' && !mtfDataComplete) return false;
     }
   }
 
   if (mtfTrendDirectionFilter !== 'all') {
-    const trends = mtfItems.map((item) => item?.mainTrend);
-    const trendsComplete = trends.every((trend) => trend === 'bullish' || trend === 'bearish');
+    const availableTrends = mtfItems.map((item) => item?.mainTrend).filter((trend) => trend === 'bullish' || trend === 'bearish');
+    const trendsComplete = availableTrends.length === mtfItems.length;
     if (mtfTrendDirectionFilter === 'na') {
       if (trendsComplete) return false;
     } else {
-      if (!trendsComplete) return false;
-      const allBullish = trends.every((trend) => trend === 'bullish');
-      const allBearish = trends.every((trend) => trend === 'bearish');
+      if (availableTrends.length === 0) return false;
+      const allBullish = availableTrends.every((trend) => trend === 'bullish');
+      const allBearish = availableTrends.every((trend) => trend === 'bearish');
       if (mtfTrendDirectionFilter === 'bullish' && !allBullish) return false;
       if (mtfTrendDirectionFilter === 'bearish' && !allBearish) return false;
       if (mtfTrendDirectionFilter === 'mixed' && (allBullish || allBearish)) return false;
@@ -1280,7 +1282,8 @@ const signalCounts = useMemo(() => {
 
     // Binance-safe high-throughput scanner:
     // - 15 symbols are analysed per scan cycle.
-    // - Only 3 symbols run concurrently to offset the additional 2H kline request.
+    // - Only 3 symbols run concurrently to offset additional timeframe kline requests.
+    // - 1M candles are cached for 5 minutes because monthly analysis uses completed months.
     // - Waves are spaced instead of using setInterval, so slow scans never overlap.
     // - 429/418 responses honour Retry-After and use exponential backoff.
     // - Binance's returned 1-minute request-weight header is monitored.
@@ -1373,8 +1376,28 @@ const signalCounts = useMemo(() => {
       throw new Error(`${label} failed`);
     };
 
+    // Monthly candles change slowly and the monthly metrics use completed candles.
+    // Cache 1M klines for five minutes to limit the extra Binance request load.
+    const monthlyKlineCache = new Map<string, { expiresAt: number; raw: any[] }>();
+    const fetchKlines = async (symbol: string, interval: string, label: string) => {
+      if (interval === '1M') {
+        const cached = monthlyKlineCache.get(symbol);
+        if (cached && cached.expiresAt > Date.now()) return cached.raw;
+        const raw = await safeFetchJson<any[]>(
+          `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
+          label
+        );
+        monthlyKlineCache.set(symbol, { raw, expiresAt: Date.now() + 5 * 60 * 1000 });
+        return raw;
+      }
+      return safeFetchJson<any[]>(
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
+        label
+      );
+    };
+
     // Define available timeframes
-const timeframes = ['15m', '2h', '4h', '1d'] as const;
+const timeframes = ['15m', '2h', '4h', '1d', '1M'] as const;
 
 // Derive Timeframe type from the array
 type Timeframe = typeof timeframes[number];
@@ -1433,6 +1456,19 @@ function detectLatestEMA70200SessionCross(
 const getSessions = (timeframe?: Timeframe) => {
   const now = new Date();
 
+  if (timeframe === '1M') {
+    // Binance 1M candles are calendar-month candles keyed to UTC month starts.
+    // Monthly analysis uses completed monthly candles; lower timeframes retain
+    // the existing Philippine 08:00–08:00 session behavior unchanged.
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+    const sessionStart = Date.UTC(year, month, 1);
+    const sessionEnd = Date.UTC(year, month + 1, 1);
+    const prevSessionStart = Date.UTC(year, month - 1, 1);
+    const prevSessionEnd = sessionStart;
+    return { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd };
+  }
+
   if (!timeframe || timeframe === '1d') {
     // Exact daily trading session: 08:00 PH -> 08:00 PH next day.
     // Binance timestamps are UTC, so PH (UTC+8) is converted to UTC.
@@ -1465,7 +1501,7 @@ const getSessions = (timeframe?: Timeframe) => {
   } else {
     // Generic timeframe sessions (15m, 4h)
     const nowMillis = now.getTime();
-    const MILLISECONDS: Record<Exclude<Timeframe, '1d'>, number> = {
+    const MILLISECONDS: Record<Exclude<Timeframe, '1d' | '1M'>, number> = {
       '15m': 15 * 60 * 1000,
       '2h': 2 * 60 * 60 * 1000,
       '4h': 4 * 60 * 60 * 1000,
@@ -1484,10 +1520,7 @@ const getSessions = (timeframe?: Timeframe) => {
     const fetchAndAnalyze = async (symbol: string, interval: string) => {
   try {
     const [raw, ticker24h] = await Promise.all([
-      safeFetchJson<any[]>(
-        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
-        `${symbol} klines`
-      ),
+      fetchKlines(symbol, interval, `${symbol} klines`),
       safeFetchJson<any>(
         `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`,
         `${symbol} 24h ticker`
@@ -1553,10 +1586,15 @@ const latestCandleInsideEMA50EMA70 = Boolean(
 const lastEMA200 = ema200.at(-1)!;
 
 
-const mainTrend = getMainTrend(ema70, ema200, closes, opens, highs, lows);
+const mainTrend = Number.isFinite(ema70.at(-1)) && Number.isFinite(ema200.at(-1))
+  ? getMainTrend(ema70, ema200, closes, opens, highs, lows)
+  : null;
 const trend = lastEMA14 > lastEMA70 ? "bullish" : "bearish";
 
-const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions();
+const { sessionStart, sessionEnd, prevSessionStart, prevSessionEnd } = getSessions(interval === '1M' ? '1M' : undefined);
+// Always retain the existing PH 08:00–08:00 window for lower-timeframe MTF panels,
+// even when the selected scanner timeframe is 1M.
+const lowerTimeframePhSession = getSessions();
         
 
         // ONLY COMPLETED 15m CANDLES are eligible.
@@ -1593,7 +1631,7 @@ const prevSessionCandles = candles.filter((candle) => {
 let prevClosedGreen: boolean | null = null;
 let prevClosedRed: boolean | null = null;
 
-if (prevSessionCandles.length >= 2) {
+if (prevSessionCandles.length >= (interval === '1M' ? 1 : 2)) {
   const firstCandle = prevSessionCandles[0];
   const lastCandle = prevSessionCandles[prevSessionCandles.length - 1];
 
@@ -1601,20 +1639,17 @@ if (prevSessionCandles.length >= 2) {
   prevClosedRed = lastCandle.close < firstCandle.open;
 }
 
-// Independent 15m / 2h / 4h / 1d metrics.
-// All session-based fields use the same exact PH session boundaries already
-// calculated above: 08:00 Asia/Manila inclusive -> next-day 08:00 exclusive.
-// Reuse the selected timeframe's candles/indicators; fetch the other three in parallel.
-const alignmentTimeframes = ['15m', '2h', '4h', '1d'] as const;
+// Independent 15m / 2h / 4h / 1d / 1M metrics.
+// Existing lower-timeframe session calculations retain the PH 08:00–08:00
+// boundaries. The 1M timeframe uses UTC calendar-month candle boundaries.
+// Reuse selected-timeframe candles/indicators and fetch other intervals in parallel.
+const alignmentTimeframes = ['15m', '2h', '4h', '1d', '1M'] as const;
 type AlignmentTimeframe = typeof alignmentTimeframes[number];
 
 const loadedTimeframes = await Promise.all(alignmentTimeframes.map(async (tf) => {
   if (tf === interval) return { tf, tfCandles: candles, error: null as string | null };
   try {
-    const tfRaw = await safeFetchJson<any[]>(
-      `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=500`,
-      `${symbol} ${tf} metrics klines`
-    );
+    const tfRaw = await fetchKlines(symbol, tf, `${symbol} ${tf} metrics klines`);
     const tfCandles: Candle[] = tfRaw.map((c: any) => ({
       timestamp: +c[0], open: +c[1], high: +c[2], low: +c[3],
       close: +c[4], volume: +c[5], closeTime: +c[6]
@@ -1629,8 +1664,9 @@ const multiTimeframeAlignment: Record<string, any> = {};
 for (const loaded of loadedTimeframes) {
   const tf = loaded.tf;
   try {
-    if (loaded.error || loaded.tfCandles.length < 200) {
-      throw new Error(loaded.error || 'Insufficient candle history');
+    const minimumCandles = tf === '1M' ? 15 : 200;
+    if (loaded.error || loaded.tfCandles.length < minimumCandles) {
+      throw new Error(loaded.error || `Insufficient candle history (need ${minimumCandles})`);
     }
 
     const tfCandles = loaded.tfCandles;
@@ -1646,17 +1682,23 @@ for (const loaded of loadedTimeframes) {
     const tfRSI14 = tf === interval ? rsi14 : calculateRSI(tfCloses, 14);
     const tfMainTrend = tf === interval
       ? mainTrend
-      : getMainTrend(tfEMA70, tfEMA200, tfCloses, tfOpens, tfHighs, tfLows);
+      : Number.isFinite(tfEMA70.at(-1)) && Number.isFinite(tfEMA200.at(-1))
+      ? getMainTrend(tfEMA70, tfEMA200, tfCloses, tfOpens, tfHighs, tfLows)
+      : null;
+
+    // Monthly candles are evaluated against their own calendar month. All
+    // existing 15m/2h/4h/1d session calculations keep their previous PH window.
+    const tfSession = tf === '1M' ? getSessions('1M') : lowerTimeframePhSession;
 
     const completedIndexed = tfCandles
       .map((c, index) => ({ c, index }))
       .filter(({ c }) => Number.isFinite(c.closeTime) && c.closeTime <= nowMs);
 
     const currentSessionIndexed = completedIndexed.filter(({ c }) =>
-      c.timestamp >= sessionStart && c.timestamp < sessionEnd
+      c.timestamp >= tfSession.sessionStart && c.timestamp < tfSession.sessionEnd
     );
     const previousSessionIndexed = completedIndexed.filter(({ c }) =>
-      c.timestamp >= prevSessionStart && c.timestamp < prevSessionEnd
+      c.timestamp >= tfSession.prevSessionStart && c.timestamp < tfSession.prevSessionEnd
     );
 
     const previousSessionCandles = previousSessionIndexed.map(({ c }) => c);
@@ -1756,13 +1798,15 @@ for (const loaded of loadedTimeframes) {
         c.low <= emaValues[index] && c.high >= emaValues[index]
       );
 
-    const ema100CurrentTouch = currentSessionIndexed.length
+    const ema100Available = Number.isFinite(tfEMA100.at(-1));
+    const ema200Available = Number.isFinite(tfEMA200.at(-1));
+    const ema100CurrentTouch = currentSessionIndexed.length && ema100Available
       ? hasEMATouch(currentSessionIndexed, tfEMA100) : null;
-    const ema100PreviousTouch = previousSessionIndexed.length
+    const ema100PreviousTouch = previousSessionIndexed.length && ema100Available
       ? hasEMATouch(previousSessionIndexed, tfEMA100) : null;
-    const ema200CurrentTouch = currentSessionIndexed.length
+    const ema200CurrentTouch = currentSessionIndexed.length && ema200Available
       ? hasEMATouch(currentSessionIndexed, tfEMA200) : null;
-    const ema200PreviousTouch = previousSessionIndexed.length
+    const ema200PreviousTouch = previousSessionIndexed.length && ema200Available
       ? hasEMATouch(previousSessionIndexed, tfEMA200) : null;
 
     // Latest historical EMA70/EMA200 crossover on this timeframe.
@@ -1820,7 +1864,7 @@ for (const loaded of loadedTimeframes) {
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
 const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
 const overallMultiTimeframeAlignment = availableAlignmentCount
-  ? `${alignedTimeframeCount}/4 ALIGNED (${availableAlignmentCount}/4 DATA)` : 'N/A';
+  ? `${alignedTimeframeCount}/5 ALIGNED (${availableAlignmentCount}/5 DATA)` : 'N/A';
 
 // === 1D TWO PREVIOUS RED CLOSES ===
 // Only the two most recent COMPLETED Binance 1D candles are evaluated.
@@ -2596,7 +2640,7 @@ const detectBearishToBullish = (
 
     
 // Usage
-  const bullishReversal = detectBullishToBearish(
+  const bullishReversal = Number.isFinite(ema200.at(-1)) ? detectBullishToBearish(
   ema14,
   ema70,
 ema200,	  
@@ -2605,10 +2649,10 @@ ema200,
   highs,
   closes,
 opens,	  
-);
+) : null;
 
 
-const bearishReversal = detectBearishToBullish(
+const bearishReversal = Number.isFinite(ema200.at(-1)) ? detectBearishToBullish(
   ema14,
   ema70,
 ema200,	
@@ -2617,7 +2661,7 @@ ema200,
   lows,
   closes,
 opens,	
-);
+) : null;
 
 
         
@@ -2898,7 +2942,7 @@ if (!isBearishTrend) return null;
 
         
       // ✅ Usage
-const bullishSpike = detectBullishSpike(
+const bullishSpike = Number.isFinite(ema200.at(-1)) ? detectBullishSpike(
   ema14,
   ema70,
   ema200,
@@ -2909,11 +2953,11 @@ const bullishSpike = detectBullishSpike(
 opens,	
   bullishBreakout,
   bearishBreakout
-); 
+) : null; 
 
 
 // ✅ Usage
-const bearishCollapse = detectBearishCollapse(
+const bearishCollapse = Number.isFinite(ema200.at(-1)) ? detectBearishCollapse(
   ema14,
   ema70,
   ema200,
@@ -2924,7 +2968,7 @@ const bearishCollapse = detectBearishCollapse(
 opens,	
   bullishBreakout,
   bearishBreakout
-); 
+) : null; 
 	      
         
         const selectedTimeframeDivergence = multiTimeframeAlignment[interval] ?? {};
@@ -3293,6 +3337,7 @@ latestRSI,
           </button>
   ))}
 </div>
+<p className="text-[11px] text-gray-500 -mt-2 mb-3">1M uses Binance calendar-month candles. EMA70/EMA100/EMA200 and Main Trend show N/A when the symbol does not have enough monthly history; no trend is inferred from insufficient data.</p>
 
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
   {/* 🟢 Filter Controls Section */}
@@ -3533,14 +3578,15 @@ latestRSI,
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-gray-300">
-          <span>MTF Alignment (15m / 2H / 4H / 1D)</span>
+          <span>MTF Alignment (15m / 2H / 4H / 1D / 1M)</span>
           <select value={mtfAlignmentFilter} onChange={(e) => setMtfAlignmentFilter(e.target.value as typeof mtfAlignmentFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All alignment results</option>
-            <option value="4">4/4 — All aligned</option>
-            <option value="3">3/4 — Three aligned</option>
-            <option value="2">2/4 — Two aligned</option>
-            <option value="1">1/4 — One aligned</option>
-            <option value="0">0/4 — None aligned</option>
+            <option value="5">5/5 — All five aligned</option>
+            <option value="4">4 aligned — available data</option>
+            <option value="3">3 aligned — available data</option>
+            <option value="2">2 aligned — available data</option>
+            <option value="1">1 aligned — available data</option>
+            <option value="0">0 aligned — available data</option>
             <option value="na">N/A — Incomplete alignment data</option>
           </select>
         </label>
@@ -3549,8 +3595,8 @@ latestRSI,
           <span>MTF Main Trend Direction</span>
           <select value={mtfTrendDirectionFilter} onChange={(e) => setMtfTrendDirectionFilter(e.target.value as typeof mtfTrendDirectionFilter)} className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white">
             <option value="all">All trend directions</option>
-            <option value="bullish">All Bullish (15m / 2H / 4H / 1D)</option>
-            <option value="bearish">All Bearish (15m / 2H / 4H / 1D)</option>
+            <option value="bullish">All available timeframes Bullish</option>
+            <option value="bearish">All available timeframes Bearish</option>
             <option value="mixed">Mixed — Bullish and Bearish</option>
             <option value="na">N/A — Incomplete trend data</option>
           </select>
@@ -3754,14 +3800,15 @@ latestRSI,
         <th className="px-3 py-2 text-center whitespace-nowrap">2H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">1D — PH Session</th>
+        <th className="px-3 py-2 text-center whitespace-nowrap">1M — Monthly</th>
         <th className="px-2 py-2 text-center whitespace-nowrap">MTF Alignment</th>
       </tr>
     </thead>
     <tbody>
       {filteredAndSortedSignals.map((s) => {
-        const renderTimeframe = (tf: '15m' | '2h' | '4h' | '1d') => {
+        const renderTimeframe = (tf: '15m' | '2h' | '4h' | '1d' | '1M') => {
           const item = s.multiTimeframeAlignment?.[tf];
-          if (!item || item.alignment === 'N/A' && !item.mainTrend) {
+          if (!item) {
             return <td key={tf} className="px-3 py-2 text-center text-gray-500">N/A — timeframe data unavailable</td>;
           }
 
@@ -3783,7 +3830,7 @@ latestRSI,
             <td key={tf} className="px-3 py-2 border-b border-gray-700 align-top min-w-[250px]">
               <div className="flex flex-col gap-1.5 leading-tight">
                 <div className="flex justify-between gap-2">
-                  <span className="text-gray-400">Previous PH close</span>
+                  <span className="text-gray-400">{tf === '1M' ? 'Previous month close' : 'Previous PH close'}</span>
                   <strong className={
                     item.previousClose === 'green' ? 'text-green-400' :
                     item.previousClose === 'red' ? 'text-red-400' : 'text-gray-500'
@@ -3823,7 +3870,7 @@ latestRSI,
                     <div className="text-[10px] text-gray-400">
                       High: {Number(item.bearishDivergence.previousPrice).toFixed(7)} → {Number(item.bearishDivergence.currentPrice).toFixed(7)}
                       {' | '}RSI: {Number(item.bearishDivergence.previousRSI).toFixed(2)} → {Number(item.bearishDivergence.currentRSI).toFixed(2)}
-                      <div>PH candle times: {formatSignalExtremeTime(item.bearishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bearishDivergence.currentTimestamp)}</div>
+                      <div>{tf === '1M' ? 'Candle times' : 'PH candle times'}: {formatSignalExtremeTime(item.bearishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bearishDivergence.currentTimestamp)}</div>
                     </div>
                   )}
                   <div className="flex justify-between gap-2">
@@ -3836,7 +3883,7 @@ latestRSI,
                     <div className="text-[10px] text-gray-400">
                       Low: {Number(item.bullishDivergence.previousPrice).toFixed(7)} → {Number(item.bullishDivergence.currentPrice).toFixed(7)}
                       {' | '}RSI: {Number(item.bullishDivergence.previousRSI).toFixed(2)} → {Number(item.bullishDivergence.currentRSI).toFixed(2)}
-                      <div>PH candle times: {formatSignalExtremeTime(item.bullishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bullishDivergence.currentTimestamp)}</div>
+                      <div>{tf === '1M' ? 'Candle times' : 'PH candle times'}: {formatSignalExtremeTime(item.bullishDivergence.previousTimestamp)} → {formatSignalExtremeTime(item.bullishDivergence.currentTimestamp)}</div>
                     </div>
                   )}
                 </div>
@@ -3958,9 +4005,10 @@ latestRSI,
             {renderTimeframe('2h')}
             {renderTimeframe('4h')}
             {renderTimeframe('1d')}
+            {renderTimeframe('1M')}
             <td className={`px-2 py-2 text-center font-bold whitespace-nowrap ${
-              s.overallMultiTimeframeAlignment?.startsWith('4/') ? 'text-green-400' :
-              s.overallMultiTimeframeAlignment?.startsWith('3/') || s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
+              s.overallMultiTimeframeAlignment?.startsWith('5/') ? 'text-green-400' :
+              s.overallMultiTimeframeAlignment?.startsWith('4/') || s.overallMultiTimeframeAlignment?.startsWith('3/') || s.overallMultiTimeframeAlignment?.startsWith('2/') ? 'text-yellow-300' : 'text-gray-400'
             }`}>
               {s.overallMultiTimeframeAlignment ?? 'N/A'}
             </td>
