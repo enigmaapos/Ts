@@ -761,7 +761,6 @@ const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');
-  const [ema200PullbackOnly, setEma200PullbackOnly] = useState(false);
   const timeframes = ['15m', '2h', '4h', '1d', '1M'];
 	
   
@@ -927,7 +926,6 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     (coinListView === 'favorites' && isFavorite) ||
     (coinListView === 'not-favorites' && !isFavorite);
   if (!matchesSearch || !matchesFavoriteView) return false;
-  if (ema200PullbackOnly && s.ema200PullbackSetup?.qualified !== true) return false;
 
   // Multi-timeframe filters use each timeframe's own Main Trend and its own
   // Position Signal alignment. Incomplete data is never counted as aligned.
@@ -1004,7 +1002,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
 
   return true;
 }), [
-  signals, searchTerm, favorites, coinListView, ema200PullbackOnly,
+  signals, searchTerm, favorites, coinListView,
   fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter,
   rsi14Filter, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
@@ -2132,91 +2130,7 @@ const touchedEMA100PreviousSession = candlesPrev.some((candle) => {
 // timeframe inside multiTimeframeAlignment using the already-loaded candles.
 
 
-// === EMA200 PULLBACK SETUP (validated 15m bearish combination) ===
-// Rebuild the divergence comparison on the exact Philippines 08:00–08:00
-// sessions used by the historical backtest, regardless of the scanner's
-// currently selected timeframe. Use completed candles only to avoid repainting.
-const phSession = getSessions('1d');
-let latestCompletedIndex = -1;
-for (let i = candles.length - 1; i >= 0; i--) {
-  if (Number.isFinite(candles[i].closeTime) && candles[i].closeTime <= Date.now()) {
-    latestCompletedIndex = i;
-    break;
-  }
-}
-const completedCurrentPH = candles
-  .map((c, i) => ({ c, i }))
-  .filter(({ c }) => c.timestamp >= phSession.sessionStart &&
-    c.timestamp < phSession.sessionEnd && c.closeTime <= Date.now());
-const completedPreviousPH = candles
-  .map((c, i) => ({ c, i }))
-  .filter(({ c }) => c.timestamp >= phSession.prevSessionStart &&
-    c.timestamp < phSession.prevSessionEnd && c.closeTime <= Date.now());
-
-const pullbackCandle = latestCompletedIndex >= 0 ? candles[latestCompletedIndex] : null;
-const pullbackClose = pullbackCandle?.close ?? NaN;
-const pullbackEMA14 = latestCompletedIndex >= 0 ? ema14[latestCompletedIndex] : NaN;
-const pullbackEMA70 = latestCompletedIndex >= 0 ? ema70[latestCompletedIndex] : NaN;
-const pullbackEMA200 = latestCompletedIndex >= 0 ? ema200[latestCompletedIndex] : NaN;
-const pullbackRSI = latestCompletedIndex >= 0 ? rsi14[latestCompletedIndex] : NaN;
-const previousPHRsiIndex = completedPreviousPH.length
-  ? completedPreviousPH[completedPreviousPH.length - 1].i
-  : -1;
-const previousPHRSI = previousPHRsiIndex >= 0 ? rsi14[previousPHRsiIndex] : NaN;
-const currentPHHigh = completedCurrentPH.length
-  ? Math.max(...completedCurrentPH.map(({ c }) => c.high))
-  : NaN;
-const previousPHHigh = completedPreviousPH.length
-  ? Math.max(...completedPreviousPH.map(({ c }) => c.high))
-  : NaN;
-
-const rsiDirectionReference = latestCompletedIndex >= 14
-  ? rsi14[latestCompletedIndex - 14]
-  : NaN;
-const recentRSIWindow = latestCompletedIndex >= 13
-  ? rsi14.slice(latestCompletedIndex - 13, latestCompletedIndex + 1)
-  : [];
-const finiteRecentRSI = recentRSIWindow.filter(Number.isFinite);
-const recentRSIRange = finiteRecentRSI.length === 14
-  ? Math.max(...finiteRecentRSI) - Math.min(...finiteRecentRSI)
-  : NaN;
-const pullbackDistancePercent = Number.isFinite(pullbackClose) && Number.isFinite(pullbackEMA200) && pullbackEMA200 !== 0
-  ? Math.abs((pullbackClose - pullbackEMA200) / pullbackEMA200) * 100
-  : NaN;
-
-const pullbackConditions = {
-  timeframe: interval === '15m',
-  bearishDivergence: completedCurrentPH.length > 0 &&
-    completedPreviousPH.length > 0 &&
-    currentPHHigh > previousPHHigh &&
-    Number.isFinite(pullbackRSI) &&
-    Number.isFinite(previousPHRSI) &&
-    pullbackRSI < previousPHRSI &&
-    pullbackClose > pullbackEMA200,
-  emaAlignment: Number.isFinite(pullbackEMA14) &&
-    Number.isFinite(pullbackEMA70) &&
-    Number.isFinite(pullbackEMA200) &&
-    pullbackEMA14 > pullbackEMA70 &&
-    pullbackEMA70 > pullbackEMA200,
-  rsiDirection: Number.isFinite(pullbackRSI) &&
-    Number.isFinite(rsiDirectionReference) &&
-    pullbackRSI < rsiDirectionReference,
-  nearEMA200: Number.isFinite(pullbackDistancePercent) &&
-    pullbackDistancePercent <= 3,
-  wideRSIRange: Number.isFinite(recentRSIRange) &&
-    recentRSIRange >= 20,
-};
-const ema200PullbackSetup = {
-  qualified: Object.values(pullbackConditions).every(Boolean),
-  conditions: pullbackConditions,
-  price: Number.isFinite(pullbackClose) ? pullbackClose : null,
-  ema200: Number.isFinite(pullbackEMA200) ? pullbackEMA200 : null,
-  distancePercent: Number.isFinite(pullbackDistancePercent) ? pullbackDistancePercent : null,
-  rsi: Number.isFinite(pullbackRSI) ? pullbackRSI : null,
-  rsiRange: Number.isFinite(recentRSIRange) ? recentRSIRange : null,
-  currentSessionHigh: Number.isFinite(currentPHHigh) ? currentPHHigh : null,
-  previousSessionHigh: Number.isFinite(previousPHHigh) ? previousPHHigh : null,
-};
+// EMA200 pullback setup removed; standard EMA200 touch/crossover calculations remain active.
 
 // === Extract volumes from each session ===
 // Dormant legacy divergence preparation/logging removed from runtime.
@@ -3057,7 +2971,6 @@ latestRSI,
 			ema70200Cross,
 		bearishDivergence,
 		bullishDivergence,
-        ema200PullbackSetup,
 		bearishVolumeDivergence,
 		bullishVolumeDivergence,
 		highestVolumeColorPrev,
@@ -3241,7 +3154,6 @@ latestRSI,
 
   const handleTimeframeSwitch = (tf: string) => {
     setTimeframe(tf);
-    if (tf !== '15m') setEma200PullbackOnly(false);
     setSignals([]); // Clear old data
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };	
@@ -3739,30 +3651,6 @@ latestRSI,
       All Coins ({signals.length})
     </button>
   </div>
-
-  {/* One-click filter for the historically tested 15m bearish EMA200 pullback setup */}
-  <button
-    type="button"
-    onClick={() => {
-      if (timeframe === '15m') setEma200PullbackOnly((active) => !active);
-    }}
-    disabled={timeframe !== '15m'}
-    aria-pressed={ema200PullbackOnly}
-    title="15m bearish divergence + EMA14 > EMA70 > EMA200 + RSI dump + within 3% of EMA200 + 14-reading RSI range at least 20"
-    className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
-      ema200PullbackOnly
-        ? 'bg-cyan-400 text-gray-950 border-cyan-300'
-        : 'bg-gray-800 text-cyan-200 border-cyan-700 hover:bg-gray-700'
-    } disabled:opacity-40 disabled:cursor-not-allowed`}
-  >
-    🎯 EMA200 Pullback Setups ({signals.filter((s) => s.ema200PullbackSetup?.qualified === true).length})
-    {ema200PullbackOnly ? ' • ON' : ''}
-  </button>
-  {ema200PullbackOnly && (
-    <div className="w-full text-xs text-cyan-200 -mt-2">
-      Showing only qualifying 15m setups. Historical holdout: 64.49% retests (n=107), versus 41.67% control; historical result, not a live probability.
-    </div>
-  )}
 
   {/* 🔸 Search Input */}
   <div className="relative">
