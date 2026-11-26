@@ -751,10 +751,15 @@ const [signals, setSignals] = useState<any[]>([]);
   const [scannerProgress, setScannerProgress] = useState({ completed: 0, total: 0 });
   const [nextScanAt, setNextScanAt] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const favoriteCounts = useMemo(() => ({
-    favorites: signals.filter((s: any) => favorites.has(s.symbol)).length,
-    notFavorites: signals.filter((s: any) => !favorites.has(s.symbol)).length
-  }), [signals, favorites]);
+  const favoriteCounts = useMemo(() => {
+    let favoriteTotal = 0;
+    let otherTotal = 0;
+    for (const signal of signals) {
+      if (favorites.has(signal.symbol)) favoriteTotal++;
+      else otherTotal++;
+    }
+    return { favorites: favoriteTotal, notFavorites: otherTotal };
+  }, [signals, favorites]);
 const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' | 'all'>('not-favorites');
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -1051,7 +1056,9 @@ const filteredAndSortedSignals = useMemo(() => [...filteredSignals].sort((a, b) 
 
 // Dedicated reversal tables are sourced from the complete analyzed signal set,
 // so the main scanner's filters and pagination cannot hide their results.
-const possibleReversalTableSignals = useMemo(() => signals
+const possibleReversalTableSignals = useMemo(() => {
+  if (!possibleReversalExpanded) return [];
+  return signals
   .filter((s) => {
     const signal = s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal;
     return signal === 'BUY' || signal === 'SELL';
@@ -1067,10 +1074,12 @@ const possibleReversalTableSignals = useMemo(() => signals
     const diff = av - bv;
     return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
       : possibleReversalSortOrder === 'asc' ? diff : -diff;
-  }),
-  [signals, possibleReversalTableFilter, possibleReversalSortOrder]);
+  });
+}, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded]);
 
-const confirmedReversalTableSignals = useMemo(() => signals
+const confirmedReversalTableSignals = useMemo(() => {
+  if (!confirmedReversalExpanded) return [];
+  return signals
   .filter((s) => {
     const signal = s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal;
     return signal === 'BUY' || signal === 'SELL';
@@ -1086,8 +1095,8 @@ const confirmedReversalTableSignals = useMemo(() => signals
     const diff = av - bv;
     return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
       : confirmedReversalSortOrder === 'asc' ? diff : -diff;
-  }),
-  [signals, confirmedReversalTableFilter, confirmedReversalSortOrder]);
+  });
+}, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -1721,6 +1730,9 @@ if (prevSessionCandles.length >= (interval === '1M' ? 1 : 2)) {
 // Existing lower-timeframe session calculations retain the PH 08:00–08:00
 // boundaries. The 1M timeframe uses UTC calendar-month candle boundaries.
 // Reuse selected-timeframe candles/indicators and fetch other intervals in parallel.
+// Yield before the heavier multi-timeframe phase to keep the dashboard responsive.
+await delay(0);
+if (!isMounted) throw new Error('Scanner stopped');
 const alignmentTimeframes = ['15m', '2h', '4h', '1d', '1M'] as const;
 type AlignmentTimeframe = typeof alignmentTimeframes[number];
 
@@ -1740,6 +1752,10 @@ const loadedTimeframes = await Promise.all(alignmentTimeframes.map(async (tf) =>
 
 const multiTimeframeAlignment: Record<string, any> = {};
 for (const loaded of loadedTimeframes) {
+  // Yield between timeframe calculations so the browser can paint and process
+  // user input during a long scan without changing indicator calculations.
+  await delay(0);
+  if (!isMounted) throw new Error('Scanner stopped');
   const tf = loaded.tf;
   try {
     const minimumCandles = tf === '1M' ? 15 : 200;
