@@ -993,6 +993,12 @@ const [confirmedReversalSortOrder, setConfirmedReversalSortOrder] = useState<'as
 const [confirmedReversalExpanded, setConfirmedReversalExpanded] = useState(true);
 const [srRejectionExpanded, setSrRejectionExpanded] = useState(true);
 const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' | 'breakout' | 'testing' | 'waiting'>('all');
+const [possibleReversalSearch, setPossibleReversalSearch] = useState('');
+const [possibleReversalFavoriteFilter, setPossibleReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
+const [confirmedReversalSearch, setConfirmedReversalSearch] = useState('');
+const [confirmedReversalFavoriteFilter, setConfirmedReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
+const [srRejectionSearch, setSrRejectionSearch] = useState('');
+const [srRejectionFavoriteFilter, setSrRejectionFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1246,6 +1252,9 @@ const possibleReversalTableSignals = useMemo(() => {
   })
   .filter((s) => possibleReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
+  .filter((s) => !possibleReversalSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(possibleReversalSearch.trim().toLowerCase()))
+  .filter((s) => possibleReversalFavoriteFilter === 'all' ||
+    (possibleReversalFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
   .sort((a, b) => {
     const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
     const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
@@ -1256,7 +1265,8 @@ const possibleReversalTableSignals = useMemo(() => {
     return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
       : possibleReversalSortOrder === 'asc' ? diff : -diff;
   });
-}, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded]);
+}, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded,
+    possibleReversalSearch, possibleReversalFavoriteFilter, favorites]);
 
 const confirmedReversalTableSignals = useMemo(() => {
   if (!confirmedReversalExpanded) return [];
@@ -1267,6 +1277,9 @@ const confirmedReversalTableSignals = useMemo(() => {
   })
   .filter((s) => confirmedReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
+  .filter((s) => !confirmedReversalSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(confirmedReversalSearch.trim().toLowerCase()))
+  .filter((s) => confirmedReversalFavoriteFilter === 'all' ||
+    (confirmedReversalFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
   .sort((a, b) => {
     const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
     const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
@@ -1277,7 +1290,8 @@ const confirmedReversalTableSignals = useMemo(() => {
     return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
       : confirmedReversalSortOrder === 'asc' ? diff : -diff;
   });
-}, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded]);
+}, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded,
+    confirmedReversalSearch, confirmedReversalFavoriteFilter, favorites]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -4475,6 +4489,15 @@ latestRSI,
           </div>
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <input type="search" value={possibleReversalSearch} onChange={e => setPossibleReversalSearch(e.target.value)}
+          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Possible Reversal symbols"
+          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
+        <select value={possibleReversalFavoriteFilter} onChange={e => setPossibleReversalFavoriteFilter(e.target.value as typeof possibleReversalFavoriteFilter)}
+          aria-label="Possible Reversal favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
+          <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
+        </select>
+      </div>
       {possibleReversalExpanded && <>
       <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
@@ -4492,7 +4515,14 @@ latestRSI,
               const r = s.multiTimeframeAlignment?.['15m']?.possibleReversal;
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
-                <td className="p-2 font-semibold">{s.symbol}</td>
+                <td className="p-2 font-semibold whitespace-nowrap">
+                  <button type="button" onClick={() => toggleFavorite(s.symbol)}
+                    aria-label={favorites.has(s.symbol) ? `Remove ${s.symbol} from favorites` : `Add ${s.symbol} to favorites`}
+                    title={favorites.has(s.symbol) ? 'Remove from favorites' : 'Add to favorites'}
+                    className={`mr-1 ${favorites.has(s.symbol) ? 'text-yellow-300' : 'text-gray-500 hover:text-yellow-300'}`}>
+                    {favorites.has(s.symbol) ? '★' : '☆'}
+                  </button>{s.symbol}
+                </td>
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
@@ -4545,6 +4575,15 @@ latestRSI,
           </div>
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <input type="search" value={confirmedReversalSearch} onChange={e => setConfirmedReversalSearch(e.target.value)}
+          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Reversal Confirmed symbols"
+          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
+        <select value={confirmedReversalFavoriteFilter} onChange={e => setConfirmedReversalFavoriteFilter(e.target.value as typeof confirmedReversalFavoriteFilter)}
+          aria-label="Reversal Confirmed favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
+          <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
+        </select>
+      </div>
       {confirmedReversalExpanded && <>
       <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
@@ -4562,7 +4601,14 @@ latestRSI,
               const r = s.multiTimeframeAlignment?.['15m']?.confirmedReversal;
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
-                <td className="p-2 font-semibold">{s.symbol}</td>
+                <td className="p-2 font-semibold whitespace-nowrap">
+                  <button type="button" onClick={() => toggleFavorite(s.symbol)}
+                    aria-label={favorites.has(s.symbol) ? `Remove ${s.symbol} from favorites` : `Add ${s.symbol} to favorites`}
+                    title={favorites.has(s.symbol) ? 'Remove from favorites' : 'Add to favorites'}
+                    className={`mr-1 ${favorites.has(s.symbol) ? 'text-yellow-300' : 'text-gray-500 hover:text-yellow-300'}`}>
+                    {favorites.has(s.symbol) ? '★' : '☆'}
+                  </button>{s.symbol}
+                </td>
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
@@ -4601,6 +4647,13 @@ latestRSI,
             <option value="all">All statuses</option><option value="confirmed">Rejection confirmed</option>
             <option value="breakout">Breakout confirmed</option><option value="testing">Testing zone</option><option value="waiting">Waiting for test</option>
           </select>
+          <input type="search" value={srRejectionSearch} onChange={e => setSrRejectionSearch(e.target.value)}
+            placeholder="Search symbol" aria-label="Search 4H Support Resistance symbols"
+            className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
+          <select value={srRejectionFavoriteFilter} onChange={e => setSrRejectionFavoriteFilter(e.target.value as typeof srRejectionFavoriteFilter)}
+            aria-label="4H Support Resistance favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
+            <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
+          </select>
         </div>
       </div>
       {srRejectionExpanded && <>
@@ -4615,6 +4668,10 @@ latestRSI,
             </tr></thead>
             <tbody>
               {signals.filter(s => {
+                const symbolMatches = !srRejectionSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(srRejectionSearch.trim().toLowerCase());
+                const favoriteMatches = srRejectionFavoriteFilter === 'all' ||
+                  (srRejectionFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
+                if (!symbolMatches || !favoriteMatches) return false;
                 const status = s.strict15MRejection?.status;
                 if (srRejectionFilter === 'confirmed') return status === 'REJECTION CONFIRMED';
                 if (srRejectionFilter === 'breakout') return status === 'BREAKOUT CONFIRMED';
@@ -4626,7 +4683,14 @@ latestRSI,
                 const r = s.strict15MRejection ?? {};
                 const fmtZone = (z: any) => z && Number.isFinite(z.low) && Number.isFinite(z.high) ? `${Number(z.low).toPrecision(7)} – ${Number(z.high).toPrecision(7)}` : 'N/A';
                 return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
-                  <td className="p-2 font-semibold">{s.symbol}</td>
+                  <td className="p-2 font-semibold whitespace-nowrap">
+                  <button type="button" onClick={() => toggleFavorite(s.symbol)}
+                    aria-label={favorites.has(s.symbol) ? `Remove ${s.symbol} from favorites` : `Add ${s.symbol} to favorites`}
+                    title={favorites.has(s.symbol) ? 'Remove from favorites' : 'Add to favorites'}
+                    className={`mr-1 ${favorites.has(s.symbol) ? 'text-yellow-300' : 'text-gray-500 hover:text-yellow-300'}`}>
+                    {favorites.has(s.symbol) ? '★' : '☆'}
+                  </button>{s.symbol}
+                </td>
                   <td className="p-2 text-center">{String(sr.trend ?? 'N/A').toUpperCase()}</td>
                   <td className="p-2 text-right">{Number.isFinite(sr.rsi14) ? Number(sr.rsi14).toFixed(2) : 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(sr.volumeRatio) ? `${Number(sr.volumeRatio).toFixed(2)}×` : 'N/A'}</td>
