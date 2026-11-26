@@ -1773,6 +1773,46 @@ for (const loaded of loadedTimeframes) {
     const currentLowItem = currentSessionIndexed.length ? currentSessionIndexed.reduce((best, item) => item.c.low < best.c.low ? item : best) : null;
     const previousSessionRSI = previousSessionLastIndex >= 0 ? tfRSI14[previousSessionLastIndex] : NaN;
     const currentSessionRSI = currentSessionLastIndex >= 0 ? tfRSI14[currentSessionLastIndex] : NaN;
+
+    // Today's-session Possible Reversal: compare today's price breakout against
+    // the previous session extreme, while RSI uses today's own RSI extreme
+    // versus the latest completed RSI in today's session.
+    const sessionRSIItems = currentSessionIndexed
+      .map(({ c, index }) => ({ c, index, rsi: tfRSI14[index] }))
+      .filter(item => Number.isFinite(item.rsi));
+    const highestSessionRSIItem = sessionRSIItems.length
+      ? sessionRSIItems.reduce((best, item) => item.rsi > best.rsi ? item : best)
+      : null;
+    const lowestSessionRSIItem = sessionRSIItems.length
+      ? sessionRSIItems.reduce((best, item) => item.rsi < best.rsi ? item : best)
+      : null;
+    const possibleReversalDataAvailable = Boolean(
+      previousSessionIndexed.length && currentSessionIndexed.length &&
+      Number.isFinite(currentSessionRSI) && sessionRSIItems.length
+    );
+    const possibleReversalSell = possibleReversalDataAvailable &&
+      tfMainTrend?.trend === 'bullish' &&
+      currentSessionHigh !== null && previousSessionHigh !== null &&
+      currentSessionHigh > previousSessionHigh &&
+      highestSessionRSIItem !== null && currentSessionRSI < highestSessionRSIItem.rsi;
+    const possibleReversalBuy = possibleReversalDataAvailable &&
+      tfMainTrend?.trend === 'bearish' &&
+      currentSessionLow !== null && previousSessionLow !== null &&
+      currentSessionLow < previousSessionLow &&
+      lowestSessionRSIItem !== null && currentSessionRSI > lowestSessionRSIItem.rsi;
+    const possibleReversal = {
+      available: possibleReversalDataAvailable && Boolean(tfMainTrend?.trend),
+      signal: possibleReversalSell ? 'SELL' : possibleReversalBuy ? 'BUY' : 'WAIT',
+      mainTrend: tfMainTrend?.trend ?? null,
+      previousPrice: possibleReversalSell ? previousSessionHigh : possibleReversalBuy ? previousSessionLow : null,
+      breakoutPrice: possibleReversalSell ? currentSessionHigh : possibleReversalBuy ? currentSessionLow : null,
+      rsiExtreme: possibleReversalSell ? highestSessionRSIItem?.rsi ?? null : possibleReversalBuy ? lowestSessionRSIItem?.rsi ?? null : null,
+      currentRSI: Number.isFinite(currentSessionRSI) ? currentSessionRSI : null,
+      priceTimestamp: possibleReversalSell ? currentHighItem?.c.timestamp ?? null : possibleReversalBuy ? currentLowItem?.c.timestamp ?? null : null,
+      rsiExtremeTimestamp: possibleReversalSell ? highestSessionRSIItem?.c.timestamp ?? null : possibleReversalBuy ? lowestSessionRSIItem?.c.timestamp ?? null : null,
+      currentRSITimestamp: currentSessionLastIndex >= 0 ? tfCandles[currentSessionLastIndex].timestamp : null
+    };
+
     const divergenceDataAvailable = Boolean(previousSessionIndexed.length && currentSessionIndexed.length &&
       Number.isFinite(previousSessionRSI) && Number.isFinite(currentSessionRSI));
     const bearishDivergence = {
@@ -1864,7 +1904,8 @@ for (const loaded of loadedTimeframes) {
       ema200PreviousTouch,
       latestCrossover,
       bearishDivergence,
-      bullishDivergence
+      bullishDivergence,
+      possibleReversal
     };
   } catch (err: any) {
     console.warn(`${symbol} ${tf} metrics unavailable:`, err?.message || err);
@@ -1875,7 +1916,8 @@ for (const loaded of loadedTimeframes) {
       ema100CurrentTouch: null, ema100PreviousTouch: null,
       ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null,
       bearishDivergence: { available: false, divergence: false, type: 'bearish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
-      bullishDivergence: { available: false, divergence: false, type: 'bullish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null }
+      bullishDivergence: { available: false, divergence: false, type: 'bullish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
+      possibleReversal: { available: false, signal: 'N/A', mainTrend: null, previousPrice: null, breakoutPrice: null, rsiExtreme: null, currentRSI: null, priceTimestamp: null, rsiExtremeTimestamp: null, currentRSITimestamp: null }
     };
   }
 }
@@ -3729,6 +3771,7 @@ latestRSI,
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Trade Setup</th>
+        <th className="px-3 py-2 text-center whitespace-nowrap">15m Possible Reversal</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">2H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
@@ -3941,6 +3984,40 @@ latestRSI,
                   );
                 }
                 return <strong className="text-gray-500">WAIT</strong>;
+              })()}
+            </td>
+            <td className="px-3 py-2 text-center align-middle min-w-[190px]">
+              {(() => {
+                const reversal = s.multiTimeframeAlignment?.['15m']?.possibleReversal;
+                if (!reversal || reversal.available !== true) {
+                  return <strong className="text-gray-500">N/A — incomplete data</strong>;
+                }
+                if (reversal.signal === 'WAIT') {
+                  return <strong className="text-gray-500">WAIT</strong>;
+                }
+                const isSell = reversal.signal === 'SELL';
+                return (
+                  <div className="flex flex-col gap-1 leading-tight">
+                    <strong className={`text-sm ${isSell ? 'text-red-400' : 'text-green-400'}`}>
+                      POSSIBLE REVERSAL — {reversal.signal}
+                    </strong>
+                    <span className="text-[10px] text-gray-300">
+                      {isSell ? 'Bullish trend · Higher high' : 'Bearish trend · Lower low'}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      Price: {Number(reversal.previousPrice).toPrecision(7)} → {Number(reversal.breakoutPrice).toPrecision(7)}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      RSI14: {Number(reversal.rsiExtreme).toFixed(2)} → {Number(reversal.currentRSI).toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      Price: {formatSignalExtremeTime(reversal.priceTimestamp)}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      RSI extreme: {formatSignalExtremeTime(reversal.rsiExtremeTimestamp)}
+                    </span>
+                  </div>
+                );
               })()}
             </td>
             <td className="px-2 py-2 text-center align-top min-w-[230px]">
