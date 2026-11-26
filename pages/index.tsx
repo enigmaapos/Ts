@@ -801,8 +801,10 @@ const toggleFavorite = (symbol: string) => {
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
 const [possibleReversalTableFilter, setPossibleReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
+const [possibleReversalSortOrder, setPossibleReversalSortOrder] = useState<'asc' | 'desc'>('desc');
 const [tradeSetupFilter, setTradeSetupFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [confirmedReversalTableFilter, setConfirmedReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
+const [confirmedReversalSortOrder, setConfirmedReversalSortOrder] = useState<'asc' | 'desc'>('desc');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1054,8 +1056,17 @@ const possibleReversalTableSignals = useMemo(() => signals
   })
   .filter((s) => possibleReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
-  .sort((a, b) => String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))),
-  [signals, possibleReversalTableFilter]);
+  .sort((a, b) => {
+    const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
+    const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
+    if (am && bm) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+    if (am) return 1;
+    if (bm) return -1;
+    const diff = av - bv;
+    return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
+      : possibleReversalSortOrder === 'asc' ? diff : -diff;
+  }),
+  [signals, possibleReversalTableFilter, possibleReversalSortOrder]);
 
 const confirmedReversalTableSignals = useMemo(() => signals
   .filter((s) => {
@@ -1064,8 +1075,17 @@ const confirmedReversalTableSignals = useMemo(() => signals
   })
   .filter((s) => confirmedReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
-  .sort((a, b) => String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))),
-  [signals, confirmedReversalTableFilter]);
+  .sort((a, b) => {
+    const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
+    const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
+    if (am && bm) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+    if (am) return 1;
+    if (bm) return -1;
+    const diff = av - bv;
+    return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
+      : confirmedReversalSortOrder === 'asc' ? diff : -diff;
+  }),
+  [signals, confirmedReversalTableFilter, confirmedReversalSortOrder]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -4191,6 +4211,11 @@ latestRSI,
           </button>
           <button type="button" onClick={() => setPossibleReversalTableFilter('all')}
             className={`px-3 py-1.5 rounded border ${possibleReversalTableFilter === 'all' ? 'bg-gray-700 text-white border-gray-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>All</button>
+          <span className="self-center text-xs text-gray-400 ml-2">24H:</span>
+          <button type="button" onClick={() => setPossibleReversalSortOrder('desc')}
+            className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'desc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
+          <button type="button" onClick={() => setPossibleReversalSortOrder('asc')}
+            className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'asc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
         </div>
       </div>
       <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
@@ -4198,7 +4223,7 @@ latestRSI,
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-yellow-300">
             <tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Signal</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">24H Change</th><th className="p-2">Signal</th>
               <th className="p-2">Main Trend</th><th className="p-2">Previous Session Level</th>
               <th className="p-2">Today's Breakout</th><th className="p-2">RSI Extreme → Current</th>
               <th className="p-2">Price Extreme Time</th><th className="p-2">RSI Extreme Time</th><th className="p-2">Latest RSI Time</th>
@@ -4210,6 +4235,9 @@ latestRSI,
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                 <td className="p-2 font-semibold">{s.symbol}</td>
+                <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
+                  {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
+                </td>
                 <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
                 <td className="p-2 text-center">{String(r.mainTrend ?? 'N/A').toUpperCase()}</td>
                 <td className="p-2 text-right">{Number(r.previousPrice).toPrecision(7)}</td>
@@ -4220,7 +4248,7 @@ latestRSI,
                 <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.currentRSITimestamp)}</td>
               </tr>;
             })}
-            {possibleReversalTableSignals.length === 0 && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No possible reversal BUY/SELL signals match this filter.</td></tr>}
+            {possibleReversalTableSignals.length === 0 && <tr><td colSpan={10} className="p-4 text-center text-gray-500">No possible reversal BUY/SELL signals match this filter.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -4244,6 +4272,11 @@ latestRSI,
           </button>
           <button type="button" onClick={() => setConfirmedReversalTableFilter('all')}
             className={`px-3 py-1.5 rounded border ${confirmedReversalTableFilter === 'all' ? 'bg-gray-700 text-white border-gray-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>All</button>
+          <span className="self-center text-xs text-gray-400 ml-2">24H:</span>
+          <button type="button" onClick={() => setConfirmedReversalSortOrder('desc')}
+            className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'desc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
+          <button type="button" onClick={() => setConfirmedReversalSortOrder('asc')}
+            className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'asc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
         </div>
       </div>
       <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
@@ -4251,7 +4284,7 @@ latestRSI,
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-blue-300">
             <tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Confirmed Signal</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">24H Change</th><th className="p-2">Confirmed Signal</th>
               <th className="p-2">Completed Candle Close</th><th className="p-2">RSI14</th>
               <th className="p-2">EMA14</th><th className="p-2">EMA50</th><th className="p-2">EMA70</th>
               <th className="p-2">EMA100</th><th className="p-2">EMA200</th><th className="p-2">Candle Time</th>
@@ -4263,6 +4296,9 @@ latestRSI,
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                 <td className="p-2 font-semibold">{s.symbol}</td>
+                <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
+                  {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
+                </td>
                 <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
                 <td className="p-2 text-right">{Number(r.close).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.rsi14).toFixed(2)}</td>
@@ -4274,7 +4310,7 @@ latestRSI,
                 <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.timestamp)}</td>
               </tr>;
             })}
-            {confirmedReversalTableSignals.length === 0 && <tr><td colSpan={10} className="p-4 text-center text-gray-500">No confirmed reversal BUY/SELL signals match this filter.</td></tr>}
+            {confirmedReversalTableSignals.length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No confirmed reversal BUY/SELL signals match this filter.</td></tr>}
           </tbody>
         </table>
       </div>
