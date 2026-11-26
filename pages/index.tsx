@@ -800,9 +800,9 @@ const toggleFavorite = (symbol: string) => {
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
-const [possibleReversalFilter, setPossibleReversalFilter] = useState<'all' | 'buy' | 'sell'>('all');
+const [possibleReversalTableFilter, setPossibleReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [tradeSetupFilter, setTradeSetupFilter] = useState<'all' | 'buy' | 'sell'>('all');
-const [confirmedReversalFilter, setConfirmedReversalFilter] = useState<'all' | 'buy' | 'sell'>('all');
+const [confirmedReversalTableFilter, setConfirmedReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -985,13 +985,6 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     return false;
   }
 
-  // Dedicated 15m Possible Reversal filter. WAIT/N/A remain visible when
-  // the filter is set to All; BUY and SELL select only confirmed labels.
-  if (possibleReversalFilter !== 'all') {
-    const reversalSignal = s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal;
-    if (reversalSignal !== possibleReversalFilter.toUpperCase()) return false;
-  }
-
   // Match the exact BUY/SELL setup rules displayed in the 15m Trade Setup column.
   if (tradeSetupFilter !== 'all') {
     const setupItem = s.multiTimeframeAlignment?.['15m'];
@@ -999,12 +992,6 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     const buySetup = setupItem?.bearishBreakout === true && setupItem?.bullishDivergence?.divergence === true;
     if (tradeSetupFilter === 'buy' && !buySetup) return false;
     if (tradeSetupFilter === 'sell' && !sellSetup) return false;
-  }
-
-  // Dedicated 15m Confirmed Reversal filter.
-  if (confirmedReversalFilter !== 'all') {
-    const confirmedSignal = s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal;
-    if (confirmedSignal !== confirmedReversalFilter.toUpperCase()) return false;
   }
 
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
@@ -1030,7 +1017,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   return true;
 }), [
   signals, searchTerm, favorites, coinListView,
-  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter, possibleReversalFilter, tradeSetupFilter, confirmedReversalFilter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter, tradeSetupFilter,
   rsi14Filter, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
   ema70200CrossFilter
@@ -1057,6 +1044,29 @@ const filteredAndSortedSignals = useMemo(() => [...filteredSignals].sort((a, b) 
   if (result === 0) result = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
   return sortOrder === 'asc' ? result : -result;
 }), [filteredSignals, sortField, sortOrder]);
+
+// Dedicated reversal tables are sourced from the complete analyzed signal set,
+// so the main scanner's filters and pagination cannot hide their results.
+const possibleReversalTableSignals = useMemo(() => signals
+  .filter((s) => {
+    const signal = s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal;
+    return signal === 'BUY' || signal === 'SELL';
+  })
+  .filter((s) => possibleReversalTableFilter === 'all' ||
+    s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
+  .sort((a, b) => String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))),
+  [signals, possibleReversalTableFilter]);
+
+const confirmedReversalTableSignals = useMemo(() => signals
+  .filter((s) => {
+    const signal = s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal;
+    return signal === 'BUY' || signal === 'SELL';
+  })
+  .filter((s) => confirmedReversalTableFilter === 'all' ||
+    s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
+  .sort((a, b) => String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))),
+  [signals, confirmedReversalTableFilter]);
+
 
 // Render only one page of results. The scanner still analyzes every eligible
 // symbol; pagination limits DOM work rather than reducing market coverage.
@@ -3477,26 +3487,6 @@ latestRSI,
       <p className="text-xs text-gray-500 mt-1">Select Green or Red; tap the active filter again to show both. Summary counts always include all analyzed symbols, regardless of active filters.</p>
     </div>
 
-    {/* 🎯 15m Possible Reversal Filter */}
-    <div>
-      <p className="text-gray-400 mb-2 font-semibold">🎯 15m Possible Reversal:</p>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setPossibleReversalFilter(v => v === 'buy' ? 'all' : 'buy')} className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}>BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'BUY').length})</button>
-        <button type="button" onClick={() => setPossibleReversalFilter(v => v === 'sell' ? 'all' : 'sell')} className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}>SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'SELL').length})</button>
-      </div>
-      <p className="text-xs text-gray-500 mt-1">Tap the active filter again to show all reversal states.</p>
-    </div>
-
-    {/* ✅ 15m Confirmed Reversal Filter */}
-    <div>
-      <p className="text-gray-400 mb-2 font-semibold">✅ 15m Confirmed Reversal:</p>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setConfirmedReversalFilter(v => v === 'buy' ? 'all' : 'buy')} className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}>BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'BUY').length})</button>
-        <button type="button" onClick={() => setConfirmedReversalFilter(v => v === 'sell' ? 'all' : 'sell')} className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}>SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'SELL').length})</button>
-      </div>
-      <p className="text-xs text-gray-500 mt-1">Requires a completed 15m candle close beyond EMA14, EMA50, EMA70, EMA100 and EMA200, with RSI14 above/below 50.</p>
-    </div>
-
     {/* 🧭 15m Trade Setup Filter */}
     <div>
       <p className="text-gray-400 mb-2 font-semibold">🧭 15m Trade Setup:</p>
@@ -4181,7 +4171,115 @@ latestRSI,
   </div>
 </div>
 
-            
+
+
+    {/* Independent Possible Reversal Results Table */}
+    <section className="mt-8 border border-yellow-700/60 rounded-lg p-3 bg-gray-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-lg font-bold text-yellow-300">Possible Reversal Table — 15m</h2>
+          <p className="text-xs text-gray-400">Early warning signals from the current Philippine 08:00–08:00 session. Independent of the main scanner filters.</p>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setPossibleReversalTableFilter(v => v === 'buy' ? 'all' : 'buy')}
+            className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalTableFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700'}`}>
+            BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'BUY').length})
+          </button>
+          <button type="button" onClick={() => setPossibleReversalTableFilter(v => v === 'sell' ? 'all' : 'sell')}
+            className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalTableFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700'}`}>
+            SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'SELL').length})
+          </button>
+          <button type="button" onClick={() => setPossibleReversalTableFilter('all')}
+            className={`px-3 py-1.5 rounded border ${possibleReversalTableFilter === 'all' ? 'bg-gray-700 text-white border-gray-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>All</button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <div className="overflow-auto max-h-[55vh]">
+        <table className="w-full min-w-[850px] text-xs border-collapse">
+          <thead className="sticky top-0 bg-gray-800 text-yellow-300">
+            <tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Signal</th>
+              <th className="p-2">Main Trend</th><th className="p-2">Previous Session Level</th>
+              <th className="p-2">Today's Breakout</th><th className="p-2">RSI Extreme → Current</th>
+              <th className="p-2">Price Extreme Time</th><th className="p-2">RSI Extreme Time</th><th className="p-2">Latest RSI Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {possibleReversalTableSignals.map(s => {
+              const r = s.multiTimeframeAlignment?.['15m']?.possibleReversal;
+              const sell = r?.signal === 'SELL';
+              return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+                <td className="p-2 font-semibold">{s.symbol}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
+                <td className="p-2 text-center">{String(r.mainTrend ?? 'N/A').toUpperCase()}</td>
+                <td className="p-2 text-right">{Number(r.previousPrice).toPrecision(7)}</td>
+                <td className="p-2 text-right">{Number(r.breakoutPrice).toPrecision(7)}</td>
+                <td className="p-2 text-center">{Number(r.rsiExtreme).toFixed(2)} → {Number(r.currentRSI).toFixed(2)}</td>
+                <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.priceTimestamp)}</td>
+                <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.rsiExtremeTimestamp)}</td>
+                <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.currentRSITimestamp)}</td>
+              </tr>;
+            })}
+            {possibleReversalTableSignals.length === 0 && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No possible reversal BUY/SELL signals match this filter.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {/* Independent Confirmed Reversal Results Table */}
+    <section className="mt-6 border border-blue-700/60 rounded-lg p-3 bg-gray-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-lg font-bold text-blue-300">Reversal Confirmed Table — 15m</h2>
+          <p className="text-xs text-gray-400">Confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setConfirmedReversalTableFilter(v => v === 'buy' ? 'all' : 'buy')}
+            className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalTableFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700'}`}>
+            BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'BUY').length})
+          </button>
+          <button type="button" onClick={() => setConfirmedReversalTableFilter(v => v === 'sell' ? 'all' : 'sell')}
+            className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalTableFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700'}`}>
+            SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'SELL').length})
+          </button>
+          <button type="button" onClick={() => setConfirmedReversalTableFilter('all')}
+            className={`px-3 py-1.5 rounded border ${confirmedReversalTableFilter === 'all' ? 'bg-gray-700 text-white border-gray-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>All</button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <div className="overflow-auto max-h-[55vh]">
+        <table className="w-full min-w-[850px] text-xs border-collapse">
+          <thead className="sticky top-0 bg-gray-800 text-blue-300">
+            <tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Confirmed Signal</th>
+              <th className="p-2">Completed Candle Close</th><th className="p-2">RSI14</th>
+              <th className="p-2">EMA14</th><th className="p-2">EMA50</th><th className="p-2">EMA70</th>
+              <th className="p-2">EMA100</th><th className="p-2">EMA200</th><th className="p-2">Candle Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {confirmedReversalTableSignals.map(s => {
+              const r = s.multiTimeframeAlignment?.['15m']?.confirmedReversal;
+              const sell = r?.signal === 'SELL';
+              return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+                <td className="p-2 font-semibold">{s.symbol}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
+                <td className="p-2 text-right">{Number(r.close).toPrecision(7)}</td>
+                <td className="p-2 text-right">{Number(r.rsi14).toFixed(2)}</td>
+                <td className="p-2 text-right">{Number(r.ema14).toPrecision(7)}</td>
+                <td className="p-2 text-right">{Number(r.ema50).toPrecision(7)}</td>
+                <td className="p-2 text-right">{Number(r.ema70).toPrecision(7)}</td>
+                <td className="p-2 text-right">{Number(r.ema100).toPrecision(7)}</td>
+                <td className="p-2 text-right">{Number(r.ema200).toPrecision(7)}</td>
+                <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.timestamp)}</td>
+              </tr>;
+            })}
+            {confirmedReversalTableSignals.length === 0 && <tr><td colSpan={10} className="p-4 text-center text-gray-500">No confirmed reversal BUY/SELL signals match this filter.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     </div>                    
   );
 }
