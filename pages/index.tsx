@@ -758,6 +758,8 @@ const [signals, setSignals] = useState<any[]>([]);
 const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' | 'all'>('not-favorites');
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+const [tablePage, setTablePage] = useState(0);
+const TABLE_PAGE_SIZE = 40;
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
 	  const [timeframe, setTimeframe] = useState('15m');
@@ -1030,6 +1032,25 @@ const filteredAndSortedSignals = useMemo(() => [...filteredSignals].sort((a, b) 
   if (result === 0) result = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
   return sortOrder === 'asc' ? result : -result;
 }), [filteredSignals, sortField, sortOrder]);
+
+// Render only one page of results. The scanner still analyzes every eligible
+// symbol; pagination limits DOM work rather than reducing market coverage.
+const totalTablePages = Math.max(1, Math.ceil(filteredAndSortedSignals.length / TABLE_PAGE_SIZE));
+const visibleTableSignals = useMemo(() => {
+  const safePage = Math.min(tablePage, totalTablePages - 1);
+  const start = safePage * TABLE_PAGE_SIZE;
+  return filteredAndSortedSignals.slice(start, start + TABLE_PAGE_SIZE);
+}, [filteredAndSortedSignals, tablePage, totalTablePages]);
+
+// Return to the first page when the user's view/filter/sort changes. Do not
+// reset on incoming scan batches, so the current page remains stable.
+useEffect(() => {
+  setTablePage(0);
+}, [search, coinListView, favorites, trendFilters, signalFilter, timeframe,
+    priceChange24hFilter, fundingRateFilter, mtfAlignmentFilter,
+    mtfTrendDirectionFilter, rsi14Filter, touchedEMA200Filter,
+    touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
+    ema70200CrossFilter, sortField, sortOrder]);
 
 const toggleSort = (field: string) => {
   if (sortField === field) {
@@ -3097,18 +3118,19 @@ latestRSI,
 
   if (isMounted) {
     setSignals(prev => {
-      const updated = [...prev];
+      // Map-based upsert avoids repeatedly scanning the growing signals array
+      // with findIndex (quadratic work as the Futures universe fills).
+      const bySymbol = new Map<string, any>(prev.map(item => [item.symbol, item]));
       const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
+      const updatedAt = Date.now();
 
       for (const result of results) {
-        const index = updated.findIndex(r => r.symbol === result.symbol);
-        if (index >= 0) updated[index] = result;
-        else updated.push(result);
-        updatedMap[result.symbol] = Date.now();
+        bySymbol.set(result.symbol, result);
+        updatedMap[result.symbol] = updatedAt;
       }
 
       setLastUpdatedMap(updatedMap);
-      return updated;
+      return Array.from(bySymbol.values());
     });
   }
 };
@@ -3213,7 +3235,7 @@ latestRSI,
         </span>
       </div>
       <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
-        {activeFuturesSymbols.length > 0 ? activeFuturesSymbols.map((symbol) => (
+        {activeFuturesSymbols.length > 0 ? activeFuturesSymbols.slice(0, 80).map((symbol) => (
           <button
             key={symbol}
             type="button"
@@ -3233,6 +3255,11 @@ latestRSI,
           <span className="text-gray-500 text-xs">Loading active Binance Futures contracts…</span>
         )}
       </div>
+      {activeFuturesSymbols.length > 80 && (
+        <div className="mt-2 text-[10px] text-gray-500">
+          Showing 80 of {activeFuturesSymbols.length} active contracts here to keep the page responsive. All eligible contracts remain in the scanner queue; use the main table search after analysis to find a symbol.
+        </div>
+      )}
     </div>
 
     <div className="flex space-x-4 my-4">
@@ -3675,6 +3702,23 @@ latestRSI,
 </div>	
 	  
 
+<div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-xs">
+  <span className="text-gray-300">
+    Showing {filteredAndSortedSignals.length === 0 ? 0 : tablePage * TABLE_PAGE_SIZE + 1}–{Math.min((tablePage + 1) * TABLE_PAGE_SIZE, filteredAndSortedSignals.length)} of {filteredAndSortedSignals.length} analyzed symbols
+  </span>
+  <div className="flex items-center gap-2">
+    <button type="button" onClick={() => setTablePage(0)} disabled={tablePage === 0}
+      className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">First</button>
+    <button type="button" onClick={() => setTablePage(page => Math.max(0, page - 1))} disabled={tablePage === 0}
+      className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">Previous</button>
+    <span className="text-yellow-300 tabular-nums">Page {Math.min(tablePage + 1, totalTablePages)} / {totalTablePages}</span>
+    <button type="button" onClick={() => setTablePage(page => Math.min(totalTablePages - 1, page + 1))} disabled={tablePage >= totalTablePages - 1}
+      className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">Next</button>
+    <button type="button" onClick={() => setTablePage(totalTablePages - 1)} disabled={tablePage >= totalTablePages - 1}
+      className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">Last</button>
+  </div>
+</div>
+
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse min-w-[1100px]">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
@@ -3694,7 +3738,7 @@ latestRSI,
       </tr>
     </thead>
     <tbody>
-      {filteredAndSortedSignals.map((s) => {
+      {visibleTableSignals.map((s) => {
         const renderTimeframe = (tf: '15m' | '2h' | '4h' | '1d' | '1M') => {
           const item = s.multiTimeframeAlignment?.[tf];
           if (!item) {
@@ -3940,6 +3984,15 @@ latestRSI,
       })}
     </tbody>
   </table>
+</div>
+<div className="flex justify-end mt-2">
+  <div className="flex items-center gap-2 text-xs">
+    <button type="button" onClick={() => setTablePage(page => Math.max(0, page - 1))} disabled={tablePage === 0}
+      className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">Previous</button>
+    <span className="text-yellow-300 tabular-nums">Page {Math.min(tablePage + 1, totalTablePages)} / {totalTablePages}</span>
+    <button type="button" onClick={() => setTablePage(page => Math.min(totalTablePages - 1, page + 1))} disabled={tablePage >= totalTablePages - 1}
+      className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">Next</button>
+  </div>
 </div>
 
             
