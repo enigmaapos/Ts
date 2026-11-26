@@ -802,6 +802,7 @@ const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('a
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
 const [possibleReversalFilter, setPossibleReversalFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [tradeSetupFilter, setTradeSetupFilter] = useState<'all' | 'buy' | 'sell'>('all');
+const [confirmedReversalFilter, setConfirmedReversalFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1000,6 +1001,12 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (tradeSetupFilter === 'sell' && !sellSetup) return false;
   }
 
+  // Dedicated 15m Confirmed Reversal filter.
+  if (confirmedReversalFilter !== 'all') {
+    const confirmedSignal = s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal;
+    if (confirmedSignal !== confirmedReversalFilter.toUpperCase()) return false;
+  }
+
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
 
   if (rsi14Filter !== 'all') {
@@ -1023,7 +1030,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   return true;
 }), [
   signals, searchTerm, favorites, coinListView,
-  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter, possibleReversalFilter, tradeSetupFilter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter, possibleReversalFilter, tradeSetupFilter, confirmedReversalFilter,
   rsi14Filter, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
   ema70200CrossFilter
@@ -1715,6 +1722,8 @@ for (const loaded of loadedTimeframes) {
     const tfLows = tfCandles.map(c => c.low);
 
     // Reuse selected-timeframe indicator arrays instead of calculating them twice.
+    const tfEMA14 = tf === interval ? ema14 : calculateEMA(tfCloses, 14);
+    const tfEMA50 = tf === interval ? ema50 : calculateEMA(tfCloses, 50);
     const tfEMA70 = tf === interval ? ema70 : calculateEMA(tfCloses, 70);
     const tfEMA100 = tf === interval ? ema100 : calculateEMA(tfCloses, 100);
     const tfEMA200 = tf === interval ? ema200 : calculateEMA(tfCloses, 200);
@@ -1833,6 +1842,37 @@ for (const loaded of loadedTimeframes) {
       currentRSITimestamp: currentSessionLastIndex >= 0 ? tfCandles[currentSessionLastIndex].timestamp : null
     };
 
+    // Confirmed reversal uses the latest fully closed candle on this timeframe.
+    // Confirmation requires its close to be beyond all five existing EMAs and RSI14
+    // to be on the matching side of 50. EMA21 is intentionally not used.
+    const latestCompletedIndex = completedIndexed.length
+      ? completedIndexed[completedIndexed.length - 1].index : -1;
+    const confirmedClose = latestCompletedIndex >= 0 ? tfCandles[latestCompletedIndex].close : NaN;
+    const confirmedRSI = latestCompletedIndex >= 0 ? tfRSI14[latestCompletedIndex] : NaN;
+    const confirmedEmaValues = latestCompletedIndex >= 0 ? [
+      tfEMA14[latestCompletedIndex], tfEMA50[latestCompletedIndex],
+      tfEMA70[latestCompletedIndex], tfEMA100[latestCompletedIndex],
+      tfEMA200[latestCompletedIndex]
+    ] : [];
+    const confirmedDataAvailable = Number.isFinite(confirmedClose) &&
+      Number.isFinite(confirmedRSI) && confirmedEmaValues.length === 5 &&
+      confirmedEmaValues.every(Number.isFinite);
+    const confirmedBelowAll = confirmedDataAvailable && confirmedEmaValues.every(value => confirmedClose < value);
+    const confirmedAboveAll = confirmedDataAvailable && confirmedEmaValues.every(value => confirmedClose > value);
+    const confirmedReversal = {
+      available: confirmedDataAvailable,
+      signal: confirmedBelowAll && confirmedRSI < 50 ? 'SELL'
+        : confirmedAboveAll && confirmedRSI > 50 ? 'BUY' : 'WAIT',
+      close: Number.isFinite(confirmedClose) ? confirmedClose : null,
+      rsi14: Number.isFinite(confirmedRSI) ? confirmedRSI : null,
+      ema14: Number.isFinite(confirmedEmaValues[0]) ? confirmedEmaValues[0] : null,
+      ema50: Number.isFinite(confirmedEmaValues[1]) ? confirmedEmaValues[1] : null,
+      ema70: Number.isFinite(confirmedEmaValues[2]) ? confirmedEmaValues[2] : null,
+      ema100: Number.isFinite(confirmedEmaValues[3]) ? confirmedEmaValues[3] : null,
+      ema200: Number.isFinite(confirmedEmaValues[4]) ? confirmedEmaValues[4] : null,
+      timestamp: latestCompletedIndex >= 0 ? tfCandles[latestCompletedIndex].timestamp : null
+    };
+
     const divergenceDataAvailable = Boolean(previousSessionIndexed.length && currentSessionIndexed.length &&
       Number.isFinite(previousSessionRSI) && Number.isFinite(currentSessionRSI));
     const bearishDivergence = {
@@ -1925,7 +1965,8 @@ for (const loaded of loadedTimeframes) {
       latestCrossover,
       bearishDivergence,
       bullishDivergence,
-      possibleReversal
+      possibleReversal,
+      confirmedReversal
     };
   } catch (err: any) {
     console.warn(`${symbol} ${tf} metrics unavailable:`, err?.message || err);
@@ -1937,7 +1978,8 @@ for (const loaded of loadedTimeframes) {
       ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null,
       bearishDivergence: { available: false, divergence: false, type: 'bearish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
       bullishDivergence: { available: false, divergence: false, type: 'bullish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
-      possibleReversal: { available: false, signal: 'N/A', mainTrend: null, previousPrice: null, breakoutPrice: null, rsiExtreme: null, currentRSI: null, priceTimestamp: null, rsiExtremeTimestamp: null, currentRSITimestamp: null }
+      possibleReversal: { available: false, signal: 'N/A', mainTrend: null, previousPrice: null, breakoutPrice: null, rsiExtreme: null, currentRSI: null, priceTimestamp: null, rsiExtremeTimestamp: null, currentRSITimestamp: null },
+      confirmedReversal: { available: false, signal: 'N/A', close: null, rsi14: null, ema14: null, ema50: null, ema70: null, ema100: null, ema200: null, timestamp: null }
     };
   }
 }
@@ -3446,6 +3488,16 @@ latestRSI,
       <p className="text-xs text-gray-500 mt-1">Tap the active filter again to show all reversal states.</p>
     </div>
 
+    {/* ✅ 15m Confirmed Reversal Filter */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">✅ 15m Confirmed Reversal:</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setConfirmedReversalFilter(v => v === 'buy' ? 'all' : 'buy')} className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}>BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'BUY').length})</button>
+        <button type="button" onClick={() => setConfirmedReversalFilter(v => v === 'sell' ? 'all' : 'sell')} className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}>SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'SELL').length})</button>
+      </div>
+      <p className="text-xs text-gray-500 mt-1">Requires a completed 15m candle close beyond EMA14, EMA50, EMA70, EMA100 and EMA200, with RSI14 above/below 50.</p>
+    </div>
+
     {/* 🧭 15m Trade Setup Filter */}
     <div>
       <p className="text-gray-400 mb-2 font-semibold">🧭 15m Trade Setup:</p>
@@ -3812,6 +3864,7 @@ latestRSI,
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Trade Setup</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Possible Reversal</th>
+        <th className="px-3 py-2 text-center whitespace-nowrap">15m Confirmed Reversal</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">2H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
@@ -4056,6 +4109,23 @@ latestRSI,
                     <span className="text-[10px] text-gray-500">
                       RSI extreme: {formatSignalExtremeTime(reversal.rsiExtremeTimestamp)}
                     </span>
+                  </div>
+                );
+              })()}
+            </td>
+            <td className="px-3 py-2 text-center align-middle min-w-[190px]">
+              {(() => {
+                const confirmed = s.multiTimeframeAlignment?.['15m']?.confirmedReversal;
+                if (!confirmed || confirmed.available !== true) return <strong className="text-gray-500">N/A — incomplete data</strong>;
+                if (confirmed.signal === 'WAIT') return <strong className="text-gray-500">WAIT</strong>;
+                const isSell = confirmed.signal === 'SELL';
+                return (
+                  <div className="flex flex-col gap-1 leading-tight">
+                    <strong className={`text-sm ${isSell ? 'text-red-400' : 'text-green-400'}`}>CONFIRMED REVERSAL — {confirmed.signal}</strong>
+                    <span className="text-[10px] text-gray-300">Close: {Number(confirmed.close).toPrecision(7)}</span>
+                    <span className="text-[10px] text-gray-400">RSI14: {Number(confirmed.rsi14).toFixed(2)}</span>
+                    <span className="text-[10px] text-gray-400">Beyond EMA14 / 50 / 70 / 100 / 200</span>
+                    <span className="text-[10px] text-gray-500">{formatSignalExtremeTime(confirmed.timestamp)}</span>
                   </div>
                 );
               })()}
