@@ -805,7 +805,16 @@ function buildCombined4HLevels(args: {
       const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 8 : 0;
       const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 6 : 0;
       const strength = Math.min(100, Math.round(weight * 11 + Math.max(0, sources.length - 1) * 8 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
-      return { price, low: price - tolerance / 2, high: price + tolerance / 2, strength, confluences: sources, touches: group.filter(x => x.source.includes('swing')).length, side };
+      const swingTimestamps = group
+        .filter(x => x.timestamp !== undefined && Number.isFinite(x.timestamp))
+        .map(x => x.timestamp as number);
+      const zoneTimestamp = swingTimestamps.length ? Math.max(...swingTimestamps) : null;
+      return {
+        price, low: price - tolerance / 2, high: price + tolerance / 2,
+        strength, confluences: sources,
+        touches: group.filter(x => x.source.includes('swing')).length,
+        side, timestamp: zoneTimestamp
+      };
     }).filter(z => side === 'support' ? z.price < currentPrice : z.price > currentPrice);
   };
 
@@ -4328,6 +4337,9 @@ latestRSI,
                   return <strong className="text-gray-500">WAIT</strong>;
                 }
                 const isSell = reversal.signal === 'SELL';
+                const fourHourLevels = s.fourHourSupportResistance;
+                const relevantZone = isSell ? fourHourLevels?.resistance : fourHourLevels?.support;
+                const zoneLabel = isSell ? '4H Resistance' : '4H Support';
                 return (
                   <div className="flex flex-col gap-1 leading-tight">
                     <strong className={`text-sm ${isSell ? 'text-red-400' : 'text-green-400'}`}>
@@ -4341,6 +4353,14 @@ latestRSI,
                     </span>
                     <span className="text-[10px] text-gray-400">
                       RSI14: {Number(reversal.rsiExtreme).toFixed(2)} → {Number(reversal.currentRSI).toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-gray-300">
+                      {zoneLabel}: {relevantZone && Number.isFinite(relevantZone.low) && Number.isFinite(relevantZone.high)
+                        ? `${Number(relevantZone.low).toPrecision(7)} – ${Number(relevantZone.high).toPrecision(7)}`
+                        : 'N/A'}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      {zoneLabel} time: {formatSignalExtremeTime(relevantZone?.timestamp)}
                     </span>
                     <span className="text-[10px] text-gray-500">
                       Price: {formatSignalExtremeTime(reversal.priceTimestamp)}
