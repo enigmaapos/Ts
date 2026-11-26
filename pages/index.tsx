@@ -1903,8 +1903,7 @@ for (const loaded of loadedTimeframes) {
     const bearishBreakout = currentSessionLow !== null && previousSessionLow !== null
       ? currentSessionLow < previousSessionLow : null;
 
-    const latestCompletedIndex = completedIndexed.length
-      ? completedIndexed[completedIndexed.length - 1].index : -1;
+    // Reuse the completed-candle index already calculated for Confirmed Reversal.
     const latestRSI14 = latestCompletedIndex >= 0
       ? tfRSI14[latestCompletedIndex] : NaN;
     const rsi14Zone = Number.isFinite(latestRSI14)
