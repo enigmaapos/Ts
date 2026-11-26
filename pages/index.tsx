@@ -800,6 +800,8 @@ const toggleFavorite = (symbol: string) => {
 
 const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('all');
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
+const [possibleReversalFilter, setPossibleReversalFilter] = useState<'all' | 'buy' | 'sell'>('all');
+const [tradeSetupFilter, setTradeSetupFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -982,6 +984,22 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     return false;
   }
 
+  // Dedicated 15m Possible Reversal filter. WAIT/N/A remain visible when
+  // the filter is set to All; BUY and SELL select only confirmed labels.
+  if (possibleReversalFilter !== 'all') {
+    const reversalSignal = s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal;
+    if (reversalSignal !== possibleReversalFilter.toUpperCase()) return false;
+  }
+
+  // Match the exact BUY/SELL setup rules displayed in the 15m Trade Setup column.
+  if (tradeSetupFilter !== 'all') {
+    const setupItem = s.multiTimeframeAlignment?.['15m'];
+    const sellSetup = setupItem?.bullishBreakout === true && setupItem?.bearishDivergence?.divergence === true;
+    const buySetup = setupItem?.bearishBreakout === true && setupItem?.bullishDivergence?.divergence === true;
+    if (tradeSetupFilter === 'buy' && !buySetup) return false;
+    if (tradeSetupFilter === 'sell' && !sellSetup) return false;
+  }
+
   if (signalFilter && getSignalValue(s) !== signalFilter) return false;
 
   if (rsi14Filter !== 'all') {
@@ -1005,7 +1023,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
   return true;
 }), [
   signals, searchTerm, favorites, coinListView,
-  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter,
+  fundingRateFilter, fundingRates, mtfAlignmentFilter, mtfTrendDirectionFilter, trendFilters, signalFilter, priceChange24hFilter, possibleReversalFilter, tradeSetupFilter,
   rsi14Filter, touchedEMA200Filter,
   touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
   ema70200CrossFilter
@@ -1162,12 +1180,14 @@ const ema14InsideResultsCount = filteredSignals.filter(
 ).length;
 
 // 🔹 Price Change Statistics
-const greenPriceChangeCount = filteredSignals.filter(
-  (t) => parseFloat(t.priceChangePercent) > 0
+// 24H summary is intentionally independent of active table filters, matching
+// the all-symbol Funding Rate Summary behavior.
+const greenPriceChangeCount = signals.filter(
+  (t) => Number.parseFloat(String(t.priceChangePercent ?? '')) > 0
 ).length;
 
-const redPriceChangeCount = filteredSignals.filter(
-  (t) => parseFloat(t.priceChangePercent) < 0
+const redPriceChangeCount = signals.filter(
+  (t) => Number.parseFloat(String(t.priceChangePercent ?? '')) < 0
 ).length;
 
  const greenVolumeCount = filteredSignals.filter(
@@ -3413,7 +3433,27 @@ latestRSI,
           🔴 Red ({summaryCounts.redPriceChangeCount})
         </button>
       </div>
-      <p className="text-xs text-gray-500 mt-1">Select Green or Red; tap the active filter again to show both.</p>
+      <p className="text-xs text-gray-500 mt-1">Select Green or Red; tap the active filter again to show both. Summary counts always include all analyzed symbols, regardless of active filters.</p>
+    </div>
+
+    {/* 🎯 15m Possible Reversal Filter */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">🎯 15m Possible Reversal:</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setPossibleReversalFilter(v => v === 'buy' ? 'all' : 'buy')} className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}>BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'BUY').length})</button>
+        <button type="button" onClick={() => setPossibleReversalFilter(v => v === 'sell' ? 'all' : 'sell')} className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}>SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'SELL').length})</button>
+      </div>
+      <p className="text-xs text-gray-500 mt-1">Tap the active filter again to show all reversal states.</p>
+    </div>
+
+    {/* 🧭 15m Trade Setup Filter */}
+    <div>
+      <p className="text-gray-400 mb-2 font-semibold">🧭 15m Trade Setup:</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setTradeSetupFilter(v => v === 'buy' ? 'all' : 'buy')} className={`px-3 py-1.5 rounded border font-semibold ${tradeSetupFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700 hover:bg-gray-700'}`}>BUY SETUP ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.bearishBreakout === true && s.multiTimeframeAlignment?.['15m']?.bullishDivergence?.divergence === true).length})</button>
+        <button type="button" onClick={() => setTradeSetupFilter(v => v === 'sell' ? 'all' : 'sell')} className={`px-3 py-1.5 rounded border font-semibold ${tradeSetupFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700 hover:bg-gray-700'}`}>SELL SETUP ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.bullishBreakout === true && s.multiTimeframeAlignment?.['15m']?.bearishDivergence?.divergence === true).length})</button>
+      </div>
+      <p className="text-xs text-gray-500 mt-1">Tap the active filter again to show all trade setups.</p>
     </div>
 
     {/* ✅ Signal Filters Section */}
