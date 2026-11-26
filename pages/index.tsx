@@ -4682,6 +4682,27 @@ latestRSI,
                 const sr = s.fourHourSupportResistance ?? {};
                 const r = s.strict15MRejection ?? {};
                 const fmtZone = (z: any) => z && Number.isFinite(z.low) && Number.isFinite(z.high) ? `${Number(z.low).toPrecision(7)} – ${Number(z.high).toPrecision(7)}` : 'N/A';
+                const sourceGroups = (zone: any) => {
+                  const sources: string[] = Array.isArray(zone?.confluences) ? zone.confluences : [];
+                  const swing = sources.filter(x => String(x).toLowerCase().includes('swing'));
+                  const emas = sources.filter(x => /^EMA\d+$/i.test(String(x)));
+                  const session = sources.filter(x => String(x).toLowerCase().includes('session'));
+                  return [
+                    { label: '4H Structure', values: swing },
+                    { label: 'EMA Levels', values: emas },
+                    { label: 'PH Session', values: session }
+                  ].filter(group => group.values.length);
+                };
+                const renderSourceGroups = (zone: any) => {
+                  const groups = sourceGroups(zone);
+                  if (!groups.length) return 'N/A';
+                  return <div className="flex flex-col gap-1 text-left">
+                    {groups.map(group => <div key={group.label}>
+                      <span className="text-gray-500">{group.label}: </span>
+                      <span>{group.values.join(', ')}</span>
+                    </div>)}
+                  </div>;
+                };
                 return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                   <td className="p-2 font-semibold whitespace-nowrap">
                   <button type="button" onClick={() => toggleFavorite(s.symbol)}
@@ -4695,9 +4716,13 @@ latestRSI,
                   <td className="p-2 text-right">{Number.isFinite(sr.rsi14) ? Number(sr.rsi14).toFixed(2) : 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(sr.volumeRatio) ? `${Number(sr.volumeRatio).toFixed(2)}×` : 'N/A'}</td>
                   <td className="p-2 text-right">{fmtZone(sr.support)}</td>
-                  <td className="p-2 text-center">{sr.support ? `${sr.support.strength}/100 · ${sr.support.confluences.join(', ')}` : 'N/A'}</td>
+                  <td className="p-2 text-left min-w-[190px]">
+                    {sr.support ? <><div className="font-semibold mb-1">{sr.support.strength}/100 strength</div>{renderSourceGroups(sr.support)}</> : 'N/A'}
+                  </td>
                   <td className="p-2 text-right">{fmtZone(sr.resistance)}</td>
-                  <td className="p-2 text-center">{sr.resistance ? `${sr.resistance.strength}/100 · ${sr.resistance.confluences.join(', ')}` : 'N/A'}</td>
+                  <td className="p-2 text-left min-w-[190px]">
+                    {sr.resistance ? <><div className="font-semibold mb-1">{sr.resistance.strength}/100 strength</div>{renderSourceGroups(sr.resistance)}</> : 'N/A'}
+                  </td>
                   <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' ? 'text-yellow-200' : r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{r.status ?? 'N/A'}</td>
                   <td className="p-2 text-center">{r.direction ?? 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(r.rsi14) ? Number(r.rsi14).toFixed(2) : 'N/A'}</td>
