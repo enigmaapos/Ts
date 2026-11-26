@@ -735,6 +735,176 @@ const blacklist = [
 ];
 
 
+type Candle = { timestamp: number; open: number; high: number; low: number; close: number; volume: number; closeTime: number; rsi?: number; volumeColor?: 'green' | 'red' | 'neutral' };
+
+type SRLevelCandidate = { price: number; source: string; weight: number; side: 'support' | 'resistance'; timestamp?: number };
+
+function buildCombined4HLevels(args: {
+  candles: Candle[];
+  ema14: number[]; ema50: number[]; ema70: number[]; ema100: number[]; ema200: number[];
+  rsi14: number[]; mainTrend: any; currentPrice: number;
+  previousSessionHigh: number | null; previousSessionLow: number | null;
+  bullishDivergence: boolean; bearishDivergence: boolean;
+}) {
+  const { candles, ema14, ema50, ema70, ema100, ema200, rsi14, mainTrend,
+    currentPrice, previousSessionHigh, previousSessionLow,
+    bullishDivergence, bearishDivergence } = args;
+  if (candles.length < 205 || !Number.isFinite(currentPrice) || currentPrice <= 0) {
+    return { available: false, reason: 'Insufficient 4H history', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null };
+  }
+
+  let last = -1;
+  for (let i = candles.length - 1; i >= 0; i--) {
+    if (Number.isFinite(candles[i].closeTime) && candles[i].closeTime <= Date.now()) { last = i; break; }
+  }
+  if (last < 204) return { available: false, reason: 'Insufficient completed 4H candles', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null };
+  const candidates: SRLevelCandidate[] = [];
+  const pivotStart = Math.max(2, last - 122);
+  for (let i = pivotStart; i < last - 1; i++) {
+    const window = candles.slice(i - 2, i + 3);
+    const pivotHigh = window.every((c, j) => j === 2 || candles[i].high >= c.high) &&
+      (candles[i].high > candles[i - 1].high || candles[i].high > candles[i + 1].high);
+    const pivotLow = window.every((c, j) => j === 2 || candles[i].low <= c.low) &&
+      (candles[i].low < candles[i - 1].low || candles[i].low < candles[i + 1].low);
+    if (pivotHigh) candidates.push({ price: candles[i].high, source: '4H swing high', weight: 2.2, side: candles[i].high <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
+    if (pivotLow) candidates.push({ price: candles[i].low, source: '4H swing low', weight: 2.2, side: candles[i].low <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
+  }
+
+  const emaSources: Array<[string, number, number]> = [
+    ['EMA14', ema14[last], 1.0], ['EMA50', ema50[last], 1.35], ['EMA70', ema70[last], 1.5],
+    ['EMA100', ema100[last], 1.6], ['EMA200', ema200[last], 2.0]
+  ];
+  for (const [source, price, weight] of emaSources) {
+    if (!Number.isFinite(price)) continue;
+    candidates.push({ price, source, weight, side: price <= currentPrice ? 'support' : 'resistance' });
+  }
+  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) candidates.push({ price: previousSessionHigh, source: 'Previous PH session high', weight: 2.0, side: previousSessionHigh <= currentPrice ? 'support' : 'resistance' });
+  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) candidates.push({ price: previousSessionLow, source: 'Previous PH session low', weight: 2.0, side: previousSessionLow <= currentPrice ? 'support' : 'resistance' });
+
+  const tolerance = currentPrice * 0.0025; // 0.25% confluence clustering tolerance
+  const recentVolumes = candles.slice(Math.max(0, last - 20), last).map(c => c.volume).filter(Number.isFinite);
+  const averageVolume = recentVolumes.length ? recentVolumes.reduce((a, b) => a + b, 0) / recentVolumes.length : NaN;
+  const volumeRatio = Number.isFinite(averageVolume) && averageVolume > 0 ? candles[last].volume / averageVolume : null;
+  const makeZones = (side: 'support' | 'resistance') => {
+    const items = candidates.filter(x => x.side === side).sort((a, b) => a.price - b.price);
+    const clusters: SRLevelCandidate[][] = [];
+    for (const item of items) {
+      const group = clusters[clusters.length - 1];
+      const groupPrice = group?.reduce((sum, x) => sum + x.price * x.weight, 0) /
+        (group?.reduce((sum, x) => sum + x.weight, 0) || 1);
+      if (group && Math.abs(item.price - groupPrice) <= tolerance) group.push(item);
+      else clusters.push([item]);
+    }
+    return clusters.map(group => {
+      const weight = group.reduce((sum, x) => sum + x.weight, 0);
+      const price = group.reduce((sum, x) => sum + x.price * x.weight, 0) / weight;
+      const sources = Array.from(new Set(group.map(x => x.source)));
+      const trendBonus = (side === 'support' && mainTrend?.trend === 'bullish') || (side === 'resistance' && mainTrend?.trend === 'bearish') ? 8 : 0;
+      const rsiValue = rsi14[last];
+      const rsiBonus = Number.isFinite(rsiValue) && ((side === 'support' && rsiValue > 50) || (side === 'resistance' && rsiValue < 50)) ? 5 : 0;
+      const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 8 : 0;
+      const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 6 : 0;
+      const strength = Math.min(100, Math.round(weight * 11 + Math.max(0, sources.length - 1) * 8 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
+      return { price, low: price - tolerance / 2, high: price + tolerance / 2, strength, confluences: sources, touches: group.filter(x => x.source.includes('swing')).length, side };
+    }).filter(z => side === 'support' ? z.price < currentPrice : z.price > currentPrice);
+  };
+
+  const supports = makeZones('support').sort((a, b) => b.price - a.price);
+  const resistances = makeZones('resistance').sort((a, b) => a.price - b.price);
+  return {
+    available: true, trend: mainTrend?.trend ?? null,
+    support: supports[0] ?? null, resistance: resistances[0] ?? null,
+    rsi14: Number.isFinite(rsi14[last]) ? rsi14[last] : null,
+    volumeRatio
+  };
+}
+
+function detectStrict15MRejection(args: {
+  candles: Candle[]; rsi14: number[]; levels: any; currentPrice: number;
+}) {
+  const { candles, rsi14, levels, currentPrice } = args;
+  const completed = candles.map((c, index) => ({ c, index })).filter(x => x.c.closeTime <= Date.now());
+  if (!levels?.available || completed.length < 2) {
+    return { available: false, status: 'N/A', direction: 'N/A', level: null, rsi14: null, wickRatio: null, timestamp: null, reason: '4H levels or completed 15M candles unavailable', strength: null, candleClose: null };
+  }
+  const latest = completed[completed.length - 1];
+  const previous = completed[completed.length - 2];
+  const c = latest.c;
+  const currentRsi = rsi14[latest.index];
+  const previousRsi = rsi14[previous.index];
+  const body = Math.max(Math.abs(c.close - c.open), c.close * 0.00005);
+  const range = Math.max(c.high - c.low, c.close * 0.00001);
+  const upperWick = c.high - Math.max(c.open, c.close);
+  const lowerWick = Math.min(c.open, c.close) - c.low;
+  const upperRatio = upperWick / range;
+  const lowerRatio = lowerWick / range;
+  const volumeWindow = candles.slice(Math.max(0, latest.index - 20), latest.index).map(x => x.volume).filter(Number.isFinite);
+  const averageVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
+  const volumeRatio = Number.isFinite(averageVolume) && averageVolume > 0 ? c.volume / averageVolume : null;
+
+  const r = levels.resistance;
+  const s = levels.support;
+  const bearish = Boolean(r && c.high >= r.low && c.close < r.low && c.close < c.open && upperWick >= body * 1.5 && upperRatio >= 0.40 && Number.isFinite(currentRsi) && Number.isFinite(previousRsi) && currentRsi < 50 && currentRsi < previousRsi);
+  const bullish = Boolean(s && c.low <= s.high && c.close > s.high && c.close > c.open && lowerWick >= body * 1.5 && lowerRatio >= 0.40 && Number.isFinite(currentRsi) && Number.isFinite(previousRsi) && currentRsi > 50 && currentRsi > previousRsi);
+  const resistanceBreak = Boolean(r && c.close > r.high);
+  const supportBreak = Boolean(s && c.close < s.low);
+
+  const formingIndex = candles.length - 1;
+  const forming = candles.length && candles[formingIndex].closeTime > Date.now() ? candles[formingIndex] : null;
+  const formingTouchesResistance = Boolean(forming && r && forming.high >= r.low && forming.low <= r.high);
+  const formingTouchesSupport = Boolean(forming && s && forming.low <= s.high && forming.high >= s.low);
+  const formingRSI = forming ? rsi14[formingIndex] : NaN;
+  const formingBody = forming ? Math.max(Math.abs(forming.close - forming.open), forming.close * 0.00005) : NaN;
+  const formingRange = forming ? Math.max(forming.high - forming.low, forming.close * 0.00001) : NaN;
+  const formingUpperWick = forming ? forming.high - Math.max(forming.open, forming.close) : NaN;
+  const formingLowerWick = forming ? Math.min(forming.open, forming.close) - forming.low : NaN;
+  const formingBearish = Boolean(forming && r && formingTouchesResistance && forming.close < r.low && forming.close < forming.open && formingUpperWick >= formingBody * 1.5 && formingUpperWick / formingRange >= 0.40 && Number.isFinite(formingRSI) && Number.isFinite(currentRsi) && formingRSI < 50 && formingRSI < currentRsi);
+  const formingBullish = Boolean(forming && s && formingTouchesSupport && forming.close > s.high && forming.close > forming.open && formingLowerWick >= formingBody * 1.5 && formingLowerWick / formingRange >= 0.40 && Number.isFinite(formingRSI) && Number.isFinite(currentRsi) && formingRSI > 50 && formingRSI > currentRsi);
+  let status = 'WAITING FOR TEST';
+  let direction = 'NONE';
+  let level: any = null;
+  let wickRatio: number | null = null;
+  let strength: number | null = null;
+  let reason = 'No completed 15M candle has met all strict rejection conditions';
+
+  if (bearish || bullish) {
+    status = 'REJECTION CONFIRMED';
+    direction = bearish ? 'SELL' : 'BUY';
+    level = bearish ? r : s;
+    wickRatio = bearish ? upperRatio : lowerRatio;
+    strength = Math.min(100, Math.round((level?.strength ?? 0) * 0.55 + wickRatio * 25 + (volumeRatio && volumeRatio >= 1.5 ? 10 : 0)));
+    reason = 'Completed 15M candle closed back beyond the 4H zone, rejection wick is at least 1.5× body and 40% of range, and RSI14 confirms direction';
+  } else if (resistanceBreak || supportBreak) {
+    status = 'BREAKOUT CONFIRMED';
+    direction = resistanceBreak ? 'BUY' : 'SELL';
+    level = resistanceBreak ? r : s;
+    reason = resistanceBreak ? 'Completed 15M candle closed above the 4H resistance zone' : 'Completed 15M candle closed below the 4H support zone';
+  } else if (formingBearish || formingBullish) {
+    status = 'REJECTION FORMING';
+    direction = formingBearish ? 'SELL' : 'BUY';
+    level = formingBearish ? r : s;
+    wickRatio = formingBearish ? formingUpperWick / formingRange : formingLowerWick / formingRange;
+    reason = 'The live 15M candle currently meets the rejection shape and RSI conditions, but it is not confirmed until it closes';
+  } else if (formingTouchesResistance || formingTouchesSupport) {
+    status = 'TESTING';
+    direction = formingTouchesResistance ? 'RESISTANCE' : 'SUPPORT';
+    level = formingTouchesResistance ? r : s;
+    reason = 'The live 15M candle is testing a 4H zone; confirmation must wait for candle close';
+  } else if ((r && currentPrice >= r.low && currentPrice <= r.high) || (s && currentPrice >= s.low && currentPrice <= s.high)) {
+    status = 'TESTING';
+    direction = currentPrice >= (r?.low ?? Infinity) ? 'RESISTANCE' : 'SUPPORT';
+    level = direction === 'RESISTANCE' ? r : s;
+    reason = 'Current price is inside a 4H zone';
+  }
+
+  return {
+    available: true, status, direction, level: level ? { price: level.price, low: level.low, high: level.high, strength: level.strength, confluences: level.confluences } : null,
+    rsi14: Number.isFinite(currentRsi) ? currentRsi : null, previousRsi14: Number.isFinite(previousRsi) ? previousRsi : null,
+    wickRatio, volumeRatio, timestamp: c.timestamp, candleClose: c.close, reason, strength,
+    fourHourTrend: levels.trend, fourHourSupport: levels.support, fourHourResistance: levels.resistance
+  };
+}
+
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
   const analyzedSymbolSet = useMemo(() => new Set(signals.map((s: any) => s.symbol)), [signals]);
@@ -812,6 +982,8 @@ const [tradeSetupFilter, setTradeSetupFilter] = useState<'all' | 'buy' | 'sell'>
 const [confirmedReversalTableFilter, setConfirmedReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [confirmedReversalSortOrder, setConfirmedReversalSortOrder] = useState<'asc' | 'desc'>('desc');
 const [confirmedReversalExpanded, setConfirmedReversalExpanded] = useState(true);
+const [srRejectionExpanded, setSrRejectionExpanded] = useState(true);
+const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' | 'breakout' | 'testing' | 'waiting'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -2010,6 +2182,8 @@ for (const loaded of loadedTimeframes) {
       ema200CurrentTouch,
       ema200PreviousTouch,
       latestCrossover,
+      previousSessionHigh,
+      previousSessionLow,
       bearishDivergence,
       bullishDivergence,
       possibleReversal,
@@ -2022,13 +2196,49 @@ for (const loaded of loadedTimeframes) {
       alignment: 'N/A', aligned: null, bullishBreakout: null, bearishBreakout: null,
       latestRSI14: null, rsi14Zone: 'N/A',
       ema100CurrentTouch: null, ema100PreviousTouch: null,
-      ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null,
+      ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null, previousSessionHigh: null, previousSessionLow: null,
       bearishDivergence: { available: false, divergence: false, type: 'bearish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
       bullishDivergence: { available: false, divergence: false, type: 'bullish', previousPrice: null, currentPrice: null, previousRSI: null, currentRSI: null, previousTimestamp: null, currentTimestamp: null },
       possibleReversal: { available: false, signal: 'N/A', mainTrend: null, previousPrice: null, breakoutPrice: null, rsiExtreme: null, currentRSI: null, priceTimestamp: null, rsiExtremeTimestamp: null, currentRSITimestamp: null },
       confirmedReversal: { available: false, signal: 'N/A', close: null, rsi14: null, ema14: null, ema50: null, ema70: null, ema100: null, ema200: null, timestamp: null }
     };
   }
+}
+
+// 4H is the structural base: combine confirmed 4H swing pivots, EMA14/50/70/100/200,
+// and the previous PH 08:00–08:00 session extremes into confluence zones.
+// 15M rejection is evaluated ONLY on completed 15M candles.
+const fourHourLoaded = loadedTimeframes.find(x => x.tf === '4h');
+const fifteenMinuteLoaded = loadedTimeframes.find(x => x.tf === '15m');
+let fourHourSupportResistance: any = { available: false, reason: '4H data unavailable', trend: null, support: null, resistance: null, rsi14: null, volumeRatio: null };
+let strict15MRejection: any = { available: false, status: 'N/A', direction: 'N/A', level: null, rsi14: null, wickRatio: null, timestamp: null, reason: '15M data unavailable', strength: null };
+if (fourHourLoaded && !fourHourLoaded.error && fourHourLoaded.tfCandles.length >= 205) {
+  const fourHCandles = fourHourLoaded.tfCandles;
+  const fourHCloses = fourHCandles.map(c => c.close);
+  const fourHEma14 = calculateEMA(fourHCloses, 14);
+  const fourHEma50 = calculateEMA(fourHCloses, 50);
+  const fourHEma70 = calculateEMA(fourHCloses, 70);
+  const fourHEma100 = calculateEMA(fourHCloses, 100);
+  const fourHEma200 = calculateEMA(fourHCloses, 200);
+  const fourHRsi14 = calculateRSI(fourHCloses, 14);
+  const fourH = multiTimeframeAlignment['4h'] ?? {};
+  fourHourSupportResistance = buildCombined4HLevels({
+    candles: fourHCandles, ema14: fourHEma14, ema50: fourHEma50, ema70: fourHEma70,
+    ema100: fourHEma100, ema200: fourHEma200, rsi14: fourHRsi14,
+    mainTrend: fourH.mainTrend ? { trend: fourH.mainTrend } : null,
+    currentPrice, previousSessionHigh: fourH.previousSessionHigh ?? null,
+    previousSessionLow: fourH.previousSessionLow ?? null,
+    bullishDivergence: fourH.bullishDivergence?.divergence === true,
+    bearishDivergence: fourH.bearishDivergence?.divergence === true
+  });
+}
+if (fifteenMinuteLoaded && !fifteenMinuteLoaded.error && fifteenMinuteLoaded.tfCandles.length >= 30) {
+  const fifteenCandles = fifteenMinuteLoaded.tfCandles;
+  const fifteenRsi14 = calculateRSI(fifteenCandles.map(c => c.close), 14);
+  strict15MRejection = detectStrict15MRejection({
+    candles: fifteenCandles, rsi14: fifteenRsi14,
+    levels: fourHourSupportResistance, currentPrice
+  });
 }
 
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
@@ -3072,6 +3282,8 @@ opens,
   divergenceFromLevelCount: summaryCounts.divergenceFromLevelCount,
 mainTrend,
   multiTimeframeAlignment,
+  fourHourSupportResistance,
+  strict15MRejection,
   overallMultiTimeframeAlignment,
   breakout,
   bullishBreakout,
@@ -4349,6 +4561,72 @@ latestRSI,
           </tbody>
         </table>
       </div>
+      </>}
+    </section>
+
+    {/* 4H combined support/resistance with strict completed-15M rejection detector */}
+    <section className="mt-6 border border-purple-700/60 rounded-lg p-3 bg-gray-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-lg font-bold text-purple-300">4H Support / Resistance — Strict 15M Rejection Detector</h2>
+          <p className="text-xs text-gray-400">4H zones combine swing structure, EMA14/50/70/100/200 and previous PH session extremes. Confirmation uses completed 15M candles only.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setSrRejectionExpanded(v => !v)} aria-expanded={srRejectionExpanded}
+            className="px-3 py-1.5 rounded border border-purple-700 bg-gray-800 text-purple-300 hover:bg-gray-700">
+            {srRejectionExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
+          </button>
+          <select value={srRejectionFilter} onChange={e => setSrRejectionFilter(e.target.value as typeof srRejectionFilter)}
+            className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
+            <option value="all">All statuses</option><option value="confirmed">Rejection confirmed</option>
+            <option value="breakout">Breakout confirmed</option><option value="testing">Testing zone</option><option value="waiting">Waiting for test</option>
+          </select>
+        </div>
+      </div>
+      {srRejectionExpanded && <>
+        <p className="text-xs text-gray-500 mb-2">Strict rejection: candle closes back outside the zone, rejection wick is at least 1.5× body and 40% of candle range, and RSI14 confirms direction (BUY above 50 and rising; SELL below 50 and falling). Volume contributes to strength but is not a mandatory trigger.</p>
+        <div className="overflow-auto max-h-[55vh]">
+          <table className="w-full min-w-[1450px] text-xs border-collapse">
+            <thead className="sticky top-0 bg-gray-800 text-purple-300"><tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">4H Trend</th><th className="p-2">4H RSI14</th><th className="p-2">4H Volume / Avg</th><th className="p-2">4H Support Zone</th>
+              <th className="p-2">Support Confluence</th><th className="p-2">4H Resistance Zone</th><th className="p-2">Resistance Confluence</th>
+              <th className="p-2">15M Status</th><th className="p-2">Direction</th><th className="p-2">RSI14</th>
+              <th className="p-2">Wick / Range</th><th className="p-2">15M Volume / Avg</th><th className="p-2">Strength</th><th className="p-2">15M Candle Time</th><th className="p-2">Reason</th>
+            </tr></thead>
+            <tbody>
+              {signals.filter(s => {
+                const status = s.strict15MRejection?.status;
+                if (srRejectionFilter === 'confirmed') return status === 'REJECTION CONFIRMED';
+                if (srRejectionFilter === 'breakout') return status === 'BREAKOUT CONFIRMED';
+                if (srRejectionFilter === 'testing') return status === 'TESTING' || status === 'REJECTION FORMING';
+                if (srRejectionFilter === 'waiting') return status === 'WAITING FOR TEST';
+                return true;
+              }).map(s => {
+                const sr = s.fourHourSupportResistance ?? {};
+                const r = s.strict15MRejection ?? {};
+                const fmtZone = (z: any) => z && Number.isFinite(z.low) && Number.isFinite(z.high) ? `${Number(z.low).toPrecision(7)} – ${Number(z.high).toPrecision(7)}` : 'N/A';
+                return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+                  <td className="p-2 font-semibold">{s.symbol}</td>
+                  <td className="p-2 text-center">{String(sr.trend ?? 'N/A').toUpperCase()}</td>
+                  <td className="p-2 text-right">{Number.isFinite(sr.rsi14) ? Number(sr.rsi14).toFixed(2) : 'N/A'}</td>
+                  <td className="p-2 text-right">{Number.isFinite(sr.volumeRatio) ? `${Number(sr.volumeRatio).toFixed(2)}×` : 'N/A'}</td>
+                  <td className="p-2 text-right">{fmtZone(sr.support)}</td>
+                  <td className="p-2 text-center">{sr.support ? `${sr.support.strength}/100 · ${sr.support.confluences.join(', ')}` : 'N/A'}</td>
+                  <td className="p-2 text-right">{fmtZone(sr.resistance)}</td>
+                  <td className="p-2 text-center">{sr.resistance ? `${sr.resistance.strength}/100 · ${sr.resistance.confluences.join(', ')}` : 'N/A'}</td>
+                  <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' ? 'text-yellow-200' : r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{r.status ?? 'N/A'}</td>
+                  <td className="p-2 text-center">{r.direction ?? 'N/A'}</td>
+                  <td className="p-2 text-right">{Number.isFinite(r.rsi14) ? Number(r.rsi14).toFixed(2) : 'N/A'}</td>
+                  <td className="p-2 text-right">{Number.isFinite(r.wickRatio) ? `${(r.wickRatio * 100).toFixed(1)}%` : '—'}</td>
+                  <td className="p-2 text-right">{Number.isFinite(r.volumeRatio) ? `${Number(r.volumeRatio).toFixed(2)}×` : '—'}</td>
+                  <td className="p-2 text-right">{Number.isFinite(r.strength) ? `${r.strength}/100` : '—'}</td>
+                  <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.timestamp)}</td>
+                  <td className="p-2 min-w-[280px] text-gray-400">{r.reason ?? 'N/A'}</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
       </>}
     </section>
 
