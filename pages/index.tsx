@@ -802,9 +802,11 @@ const [rsi14Filter, setRsi14Filter] = useState<'all' | 'above50' | 'below50'>('a
 const [priceChange24hFilter, setPriceChange24hFilter] = useState<'all' | 'green' | 'red'>('all');
 const [possibleReversalTableFilter, setPossibleReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [possibleReversalSortOrder, setPossibleReversalSortOrder] = useState<'asc' | 'desc'>('desc');
+const [possibleReversalExpanded, setPossibleReversalExpanded] = useState(true);
 const [tradeSetupFilter, setTradeSetupFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [confirmedReversalTableFilter, setConfirmedReversalTableFilter] = useState<'all' | 'buy' | 'sell'>('all');
 const [confirmedReversalSortOrder, setConfirmedReversalSortOrder] = useState<'asc' | 'desc'>('desc');
+const [confirmedReversalExpanded, setConfirmedReversalExpanded] = useState(true);
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -4200,7 +4202,13 @@ latestRSI,
           <h2 className="text-lg font-bold text-yellow-300">Possible Reversal Table — 15m</h2>
           <p className="text-xs text-gray-400">Early warning signals from the current Philippine 08:00–08:00 session. Independent of the main scanner filters.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setPossibleReversalExpanded(v => !v)}
+            aria-expanded={possibleReversalExpanded}
+            className="px-3 py-1.5 rounded border border-yellow-700 bg-gray-800 text-yellow-300 hover:bg-gray-700">
+            {possibleReversalExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
+          </button>
+          <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setPossibleReversalTableFilter(v => v === 'buy' ? 'all' : 'buy')}
             className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalTableFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700'}`}>
             BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'BUY').length})
@@ -4216,8 +4224,10 @@ latestRSI,
             className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'desc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
           <button type="button" onClick={() => setPossibleReversalSortOrder('asc')}
             className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'asc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
+          </div>
         </div>
       </div>
+      {possibleReversalExpanded && <>
       <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
@@ -4252,6 +4262,7 @@ latestRSI,
           </tbody>
         </table>
       </div>
+      </>}
     </section>
 
     {/* Independent Confirmed Reversal Results Table */}
@@ -4261,7 +4272,13 @@ latestRSI,
           <h2 className="text-lg font-bold text-blue-300">Reversal Confirmed Table — 15m</h2>
           <p className="text-xs text-gray-400">Confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setConfirmedReversalExpanded(v => !v)}
+            aria-expanded={confirmedReversalExpanded}
+            className="px-3 py-1.5 rounded border border-blue-700 bg-gray-800 text-blue-300 hover:bg-gray-700">
+            {confirmedReversalExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
+          </button>
+          <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setConfirmedReversalTableFilter(v => v === 'buy' ? 'all' : 'buy')}
             className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalTableFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700'}`}>
             BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'BUY').length})
@@ -4277,8 +4294,10 @@ latestRSI,
             className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'desc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
           <button type="button" onClick={() => setConfirmedReversalSortOrder('asc')}
             className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'asc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
+          </div>
         </div>
       </div>
+      {confirmedReversalExpanded && <>
       <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
@@ -4314,6 +4333,7 @@ latestRSI,
           </tbody>
         </table>
       </div>
+      </>}
     </section>
 
     </div>                    
