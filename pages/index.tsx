@@ -737,7 +737,7 @@ const blacklist = [
 
 type Candle = { timestamp: number; open: number; high: number; low: number; close: number; volume: number; closeTime: number; rsi?: number; volumeColor?: 'green' | 'red' | 'neutral' };
 
-type SRLevelCandidate = { price: number; source: string; weight: number; side: 'support' | 'resistance'; timestamp?: number };
+type SRLevelCandidate = { price: number; source: string; weight: number; side: 'support' | 'resistance'; timestamp?: number; index?: number; reactionConfirmed?: boolean };
 
 function buildCombined4HLevels(args: {
   candles: Candle[];
@@ -761,7 +761,36 @@ function buildCombined4HLevels(args: {
   if (last < 204) return { available: false, reason: 'Insufficient completed 4H candles', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null, atr14: null };
 
   const candidates: SRLevelCandidate[] = [];
-  const pivotStart = Math.max(2, last - 122);
+  const majorCandidates: SRLevelCandidate[] = [];
+  // Keep the existing recent-zone inputs unchanged for Tables 4 and 5.
+  const recentPivotStart = Math.max(2, last - 122);
+  // Use the available 500-candle 4H window (about 83 days) only for major-zone classification.
+  const pivotStart = Math.max(2, last - 497);
+  const atrAtPivot = (index: number) => {
+    const start = Math.max(1, index - 13);
+    const ranges: number[] = [];
+    for (let k = start; k <= index; k++) {
+      const candle = candles[k], previousClose = candles[k - 1]?.close ?? candle.close;
+      const range = Math.max(candle.high - candle.low, Math.abs(candle.high - previousClose), Math.abs(candle.low - previousClose));
+      if (Number.isFinite(range)) ranges.push(range);
+    }
+    return ranges.length ? ranges.reduce((sum, value) => sum + value, 0) / ranges.length : index >= 0 ? candles[index].close * 0.002 : 0;
+  };
+  const hasMeaningfulFollowThrough = (index: number, price: number, pivotType: 'high' | 'low') => {
+    // Require at least three completed candles after the pivot and a move of
+    // at least 0.8 ATR away from it within the next 12 completed 4H candles.
+    const end = Math.min(last, index + 12);
+    if (end - index < 3) return false;
+    const threshold = Math.max(atrAtPivot(index) * 0.8, price * 0.0015);
+    if (pivotType === 'high') {
+      let lowest = Infinity;
+      for (let k = index + 1; k <= end; k++) lowest = Math.min(lowest, candles[k].low);
+      return lowest <= price - threshold;
+    }
+    let highest = -Infinity;
+    for (let k = index + 1; k <= end; k++) highest = Math.max(highest, candles[k].high);
+    return highest >= price + threshold;
+  };
   // Two candles on either side must be completed before a swing is accepted.
   for (let i = pivotStart; i <= last - 2; i++) {
     const window = candles.slice(i - 2, i + 3);
@@ -769,8 +798,16 @@ function buildCombined4HLevels(args: {
       (candles[i].high > candles[i - 1].high || candles[i].high > candles[i + 1].high);
     const pivotLow = window.every((c, j) => j === 2 || candles[i].low <= c.low) &&
       (candles[i].low < candles[i - 1].low || candles[i].low < candles[i + 1].low);
-    if (pivotHigh) candidates.push({ price: candles[i].high, source: '4H swing high', weight: 2.5, side: candles[i].high <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
-    if (pivotLow) candidates.push({ price: candles[i].low, source: '4H swing low', weight: 2.5, side: candles[i].low <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
+    if (pivotHigh) {
+      const candidate = { price: candles[i].high, source: '4H swing high', weight: 2.5 as const, side: candles[i].high <= currentPrice ? 'support' as const : 'resistance' as const, timestamp: candles[i].timestamp, index: i, reactionConfirmed: hasMeaningfulFollowThrough(i, candles[i].high, 'high') };
+      majorCandidates.push(candidate);
+      if (i >= recentPivotStart) candidates.push(candidate);
+    }
+    if (pivotLow) {
+      const candidate = { price: candles[i].low, source: '4H swing low', weight: 2.5 as const, side: candles[i].low <= currentPrice ? 'support' as const : 'resistance' as const, timestamp: candles[i].timestamp, index: i, reactionConfirmed: hasMeaningfulFollowThrough(i, candles[i].low, 'low') };
+      majorCandidates.push(candidate);
+      if (i >= recentPivotStart) candidates.push(candidate);
+    }
   }
 
   const emaSources: Array<[string, number, number]> = [
@@ -778,10 +815,20 @@ function buildCombined4HLevels(args: {
     ['EMA100', ema100[last], 1.0], ['EMA200', ema200[last], 1.2]
   ];
   for (const [source, price, weight] of emaSources) {
-    if (Number.isFinite(price)) candidates.push({ price, source, weight, side: price <= currentPrice ? 'support' : 'resistance' });
+    if (Number.isFinite(price)) {
+      const candidate = { price, source, weight, side: price <= currentPrice ? 'support' as const : 'resistance' as const };
+      candidates.push(candidate);
+      majorCandidates.push(candidate);
+    }
   }
-  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) candidates.push({ price: previousSessionHigh, source: 'Previous PH session high', weight: 2.2, side: previousSessionHigh <= currentPrice ? 'support' : 'resistance' });
-  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) candidates.push({ price: previousSessionLow, source: 'Previous PH session low', weight: 2.2, side: previousSessionLow <= currentPrice ? 'support' : 'resistance' });
+  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) {
+    const candidate = { price: previousSessionHigh, source: 'Previous PH session high', weight: 2.2, side: previousSessionHigh <= currentPrice ? 'support' as const : 'resistance' as const };
+    candidates.push(candidate); majorCandidates.push(candidate);
+  }
+  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) {
+    const candidate = { price: previousSessionLow, source: 'Previous PH session low', weight: 2.2, side: previousSessionLow <= currentPrice ? 'support' as const : 'resistance' as const };
+    candidates.push(candidate); majorCandidates.push(candidate);
+  }
 
   const tolerance = currentPrice * 0.0025;
   const recentVolumes = candles.slice(Math.max(0, last - 20), last).map(c => c.volume).filter(Number.isFinite);
@@ -802,8 +849,8 @@ function buildCombined4HLevels(args: {
   const trendRegime = emaRegime === 'BULLISH' || emaRegime === 'BEARISH' ? emaRegime :
     (mainTrend?.trend === 'bullish' ? 'BULLISH' : mainTrend?.trend === 'bearish' ? 'BEARISH' : 'NEUTRAL');
 
-  const makeZones = (side: 'support' | 'resistance') => {
-    const items = candidates.filter(x => x.side === side).sort((a, b) => a.price - b.price);
+  const makeZones = (side: 'support' | 'resistance', sourceCandidates: SRLevelCandidate[] = candidates) => {
+    const items = sourceCandidates.filter(x => x.side === side).sort((a, b) => a.price - b.price);
     const clusters: SRLevelCandidate[][] = [];
     for (const item of items) {
       const group = clusters[clusters.length - 1];
@@ -823,21 +870,24 @@ function buildCombined4HLevels(args: {
       const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 7 : 0;
       const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 4 : 0;
       const strength = Math.min(100, Math.round(weight * 9 + Math.max(0, sources.length - 1) * 7 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
-      const swingCandidates = group.filter(x => x.source.toLowerCase().includes('swing') && x.timestamp !== undefined && Number.isFinite(x.timestamp));
-      const swingTimestamps = swingCandidates.map(x => x.timestamp as number);
-      // A MAJOR zone requires repeated, independently confirmed 4H swing pivots
-      // clustered at the same price area. EMA/session confluence alone is not enough.
-      const swingCount = swingCandidates.length;
-      const classification = swingCount >= 2 && strength >= 45 ? 'MAJOR' : 'MINOR';
-      const classificationReason = classification === 'MAJOR'
-        ? `${swingCount} confirmed 4H swing reactions clustered in this zone`
-        : swingCount < 2
-          ? `Only ${swingCount} confirmed 4H swing reaction(s); repeated structure is required for MAJOR`
-          : `Repeated swings found, but confluence strength is ${strength}/100 (45 required)`;
+      // Count only meaningful, time-separated swing reactions; repeated pivots
+      // inside a 48-hour window do not each count as a fresh reaction.
+      const qualifiedPivots = group.filter(x => x.source.includes('swing') && x.reactionConfirmed && Number.isFinite(x.index))
+        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+      let independentReactionCount = 0;
+      let lastCountedPivot = -Infinity;
+      for (const pivot of qualifiedPivots) {
+        if ((pivot.index ?? 0) - lastCountedPivot >= 12) {
+          independentReactionCount++;
+          lastCountedPivot = pivot.index ?? lastCountedPivot;
+        }
+      }
+      const classification = independentReactionCount >= 3 && strength >= 55 ? 'MAJOR' : 'MINOR';
+      const swingTimestamps = group.filter(x => x.timestamp !== undefined && Number.isFinite(x.timestamp)).map(x => x.timestamp as number);
       return {
         price, low: price - tolerance / 2, high: price + tolerance / 2,
-        strength, confluences: sources, structuralCount,
-        touches: swingCount, swingCount, classification, classificationReason,
+        strength, confluences: sources, structuralCount, classification, independentReactionCount,
+        touches: group.filter(x => x.source.includes('swing')).length,
         side, timestamp: swingTimestamps.length ? Math.max(...swingTimestamps) : null
       };
     }).filter(z => side === 'support' ? z.price < currentPrice : z.price > currentPrice);
@@ -845,16 +895,17 @@ function buildCombined4HLevels(args: {
 
   const supports = makeZones('support').sort((a, b) => b.price - a.price);
   const resistances = makeZones('resistance').sort((a, b) => a.price - b.price);
-  const majorSupports = supports.filter((zone: any) => zone.classification === 'MAJOR');
-  const majorResistances = resistances.filter((zone: any) => zone.classification === 'MAJOR');
+  const majorSupportZones = makeZones('support', majorCandidates).filter(z => z.classification === 'MAJOR').sort((a, b) => b.price - a.price);
+  const majorResistanceZones = makeZones('resistance', majorCandidates).filter(z => z.classification === 'MAJOR').sort((a, b) => a.price - b.price);
   return {
     available: true, trend: mainTrend?.trend ?? null, trendRegime, emaRegime,
+    historyCandles: last + 1, historyDays: ((last + 1) * 4) / 24,
     emaBullishPairs: bullishPairs, emaBearishPairs: bearishPairs,
-    // Keep nearest support/resistance unchanged for existing entry and risk logic.
     support: supports[0] ?? null, resistance: resistances[0] ?? null,
     supportZones: supports, resistanceZones: resistances,
-    majorSupport: majorSupports[0] ?? null, nextMajorSupport: majorSupports[1] ?? null,
-    majorResistance: majorResistances[0] ?? null, nextMajorResistance: majorResistances[1] ?? null,
+    majorSupportZones, majorResistanceZones,
+    nearestMajorSupport: majorSupportZones[0] ?? null,
+    nearestMajorResistance: majorResistanceZones[0] ?? null,
     rsi14: Number.isFinite(rsi14[last]) ? rsi14[last] : null,
     bullishDivergence, bearishDivergence, volumeRatio, atr14
   };
@@ -1281,10 +1332,7 @@ function buildZoneTradePlan(
     breakoutStatus: breakout?.status ?? 'UNAVAILABLE',
     breakoutZone: breakout?.level ? {
       side: breakout.zoneSide ?? breakout.level.zoneSide ?? (breakout.direction === 'BUY' ? 'RESISTANCE' : breakout.direction === 'SELL' ? 'SUPPORT' : '—'),
-      low: breakout.level.low, high: breakout.level.high, price: breakout.level.price,
-      classification: breakout.level.classification ?? 'UNCLASSIFIED',
-      swingCount: breakout.level.swingCount ?? breakout.level.touches ?? 0,
-      strength: breakout.level.strength ?? null
+      low: breakout.level.low, high: breakout.level.high, price: breakout.level.price
     } : null,
     volumeConfirmation: 'UNAVAILABLE',
     rsiConfirmation: 'UNAVAILABLE', structureQuality: 'UNAVAILABLE', zone: setup?.level ?? null,
@@ -4622,11 +4670,13 @@ latestRSI,
 </div>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-  <table className="w-full text-[11px] border-collapse min-w-[1100px]">
+  <table className="w-full text-[11px] border-collapse min-w-[1420px]">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
+        <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Support</th>
+        <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Resistance</th>
         <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
@@ -4799,6 +4849,38 @@ latestRSI,
             </td>
             <td className="px-2 py-2 text-right whitespace-nowrap">
               ${Number(s.currentPrice).toFixed(7)}
+            </td>
+            <td className="px-2 py-2 text-center align-top min-w-[155px]">
+              {(() => {
+                const zone = s.fourHourSupportResistance?.nearestMajorSupport;
+                if (!s.fourHourSupportResistance?.available) return <span className="text-gray-500">N/A — 4H data unavailable</span>;
+                if (!zone) return <span className="text-gray-500">NO MAJOR SUPPORT</span>;
+                const distance = ((Number(s.currentPrice) - Number(zone.price)) / Number(s.currentPrice)) * 100;
+                return <div className="flex flex-col gap-1 leading-tight">
+                  <strong className="text-green-400">MAJOR SUPPORT</strong>
+                  <span className="text-white font-semibold">{Number(zone.low).toPrecision(7)} – {Number(zone.high).toPrecision(7)}</span>
+                  <span className="text-[10px] text-gray-300">Center: {Number(zone.price).toPrecision(7)}</span>
+                  <span className="text-[10px] text-gray-400">Strength: {zone.strength}/100 · Reactions: {zone.independentReactionCount}</span>
+                  <span className="text-[10px] text-gray-500">History: {s.fourHourSupportResistance.historyCandles} 4H candles (~{Number(s.fourHourSupportResistance.historyDays).toFixed(1)} days)</span>
+                  <span className="text-[10px] text-gray-400">Distance: {Number.isFinite(distance) ? `${distance.toFixed(2)}% below` : 'N/A'}</span>
+                </div>;
+              })()}
+            </td>
+            <td className="px-2 py-2 text-center align-top min-w-[155px]">
+              {(() => {
+                const zone = s.fourHourSupportResistance?.nearestMajorResistance;
+                if (!s.fourHourSupportResistance?.available) return <span className="text-gray-500">N/A — 4H data unavailable</span>;
+                if (!zone) return <span className="text-gray-500">NO MAJOR RESISTANCE</span>;
+                const distance = ((Number(zone.price) - Number(s.currentPrice)) / Number(s.currentPrice)) * 100;
+                return <div className="flex flex-col gap-1 leading-tight">
+                  <strong className="text-red-400">MAJOR RESISTANCE</strong>
+                  <span className="text-white font-semibold">{Number(zone.low).toPrecision(7)} – {Number(zone.high).toPrecision(7)}</span>
+                  <span className="text-[10px] text-gray-300">Center: {Number(zone.price).toPrecision(7)}</span>
+                  <span className="text-[10px] text-gray-400">Strength: {zone.strength}/100 · Reactions: {zone.independentReactionCount}</span>
+                  <span className="text-[10px] text-gray-500">History: {s.fourHourSupportResistance.historyCandles} 4H candles (~{Number(s.fourHourSupportResistance.historyDays).toFixed(1)} days)</span>
+                  <span className="text-[10px] text-gray-400">Distance: {Number.isFinite(distance) ? `${distance.toFixed(2)}% above` : 'N/A'}</span>
+                </div>;
+              })()}
             </td>
             <td className={`px-2 py-2 text-center font-semibold whitespace-nowrap ${
               !Number.isFinite(fundingRates[s.symbol]) ? 'text-gray-500' :
@@ -5141,7 +5223,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-purple-300">4H Support / Resistance — Strict 15M Rejection Detector</h2>
-          <p className="text-xs text-gray-400">4H zones combine confirmed swing structure, EMA14/50/70/100/200 and previous PH session extremes. MAJOR requires at least 2 confirmed 4H swing reactions in the same zone plus strength ≥45/100; otherwise it is MINOR. EMA/session confluence alone cannot make a zone MAJOR. 15M confirmation uses completed candles only.</p>
+          <p className="text-xs text-gray-400">4H zones combine swing structure, EMA14/50/70/100/200 and previous PH session extremes. Confirmation uses completed 15M candles only.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setSrRejectionExpanded(v => !v)} aria-expanded={srRejectionExpanded}
@@ -5237,12 +5319,12 @@ latestRSI,
                   <td className="p-2 text-right">{Number.isFinite(sr.rsi14) ? Number(sr.rsi14).toFixed(2) : 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(sr.volumeRatio) ? `${Number(sr.volumeRatio).toFixed(2)}×` : 'N/A'}</td>
                   <td className="p-2 text-right">{fmtZone(sr.support)}</td>
-                  <td className="p-2 text-left min-w-[210px]">
-                    {sr.support ? <><div className={`font-bold mb-1 ${sr.support.classification === 'MAJOR' ? 'text-emerald-300' : 'text-gray-300'}`}>{sr.support.classification ?? 'MINOR'} SUPPORT · {sr.support.strength}/100</div><div className="text-[10px] text-gray-400 mb-1">{sr.support.swingCount ?? sr.support.touches ?? 0} confirmed 4H swing reaction(s)</div>{renderSourceGroups(sr.support)}{sr.majorSupport && <div className="mt-1 text-[10px] text-emerald-300">MAJOR #1: {fmtZone(sr.majorSupport)} · {sr.majorSupport.strength}/100</div>}{sr.nextMajorSupport && <div className="text-[10px] text-emerald-300">MAJOR #2: {fmtZone(sr.nextMajorSupport)} · {sr.nextMajorSupport.strength}/100</div>}</> : 'N/A'}
+                  <td className="p-2 text-left min-w-[190px]">
+                    {sr.support ? <><div className="font-semibold mb-1">{sr.support.strength}/100 strength</div>{renderSourceGroups(sr.support)}</> : 'N/A'}
                   </td>
                   <td className="p-2 text-right">{fmtZone(sr.resistance)}</td>
-                  <td className="p-2 text-left min-w-[210px]">
-                    {sr.resistance ? <><div className={`font-bold mb-1 ${sr.resistance.classification === 'MAJOR' ? 'text-red-300' : 'text-gray-300'}`}>{sr.resistance.classification ?? 'MINOR'} RESISTANCE · {sr.resistance.strength}/100</div><div className="text-[10px] text-gray-400 mb-1">{sr.resistance.swingCount ?? sr.resistance.touches ?? 0} confirmed 4H swing reaction(s)</div>{renderSourceGroups(sr.resistance)}{sr.majorResistance && <div className="mt-1 text-[10px] text-red-300">MAJOR #1: {fmtZone(sr.majorResistance)} · {sr.majorResistance.strength}/100</div>}{sr.nextMajorResistance && <div className="text-[10px] text-red-300">MAJOR #2: {fmtZone(sr.nextMajorResistance)} · {sr.nextMajorResistance.strength}/100</div>}</> : 'N/A'}
+                  <td className="p-2 text-left min-w-[190px]">
+                    {sr.resistance ? <><div className="font-semibold mb-1">{sr.resistance.strength}/100 strength</div>{renderSourceGroups(sr.resistance)}</> : 'N/A'}
                   </td>
                   <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' || r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{statusLabel}</td>
                   <td className="p-2 text-center whitespace-nowrap">{zoneBiasLabel}</td>
@@ -5338,7 +5420,7 @@ latestRSI,
                     </td>
                     <td className="p-2 text-center">
                       <div className={`font-semibold ${breakoutStatusLabel.includes('SELL') ? 'text-red-300' : breakoutStatusLabel.includes('BUY') ? 'text-green-300' : 'text-yellow-300'}`}>{breakoutStatusLabel}</div>
-                      {p.breakoutZone && <><div className="text-[10px] text-gray-300">{p.breakoutZone.classification ?? 'UNCLASSIFIED'} {p.breakoutZone.side} · {fmtPrice(p.breakoutZone.low)}–{fmtPrice(p.breakoutZone.high)}</div><div className="text-[10px] text-gray-500">{p.breakoutZone.swingCount ?? 0} confirmed 4H swing reaction(s) · Strength {p.breakoutZone.strength ?? '—'}/100</div></>}
+                      {p.breakoutZone && <div className="text-[10px] text-gray-300">{p.breakoutZone.side} ZONE · {fmtPrice(p.breakoutZone.low)}–{fmtPrice(p.breakoutZone.high)}</div>}
                       {p.breakoutStatus === 'NO ACTIVE BREAKOUT' && <div className="text-[10px] text-gray-500">No completed 15M candle has closed beyond a tracked 4H zone in the recent scan window.</div>}
                       {p.strategy && <div className="text-[10px] text-gray-400">{p.strategy}</div>}
                       {p.breakoutPrice != null && <div className="text-[10px] text-gray-500">Breakout close {fmtPrice(p.breakoutPrice)} · reclaim close {fmtPrice(p.reclaimPrice)}</div>}
