@@ -737,7 +737,7 @@ const blacklist = [
 
 type Candle = { timestamp: number; open: number; high: number; low: number; close: number; volume: number; closeTime: number; rsi?: number; volumeColor?: 'green' | 'red' | 'neutral' };
 
-type SRLevelCandidate = { price: number; source: string; weight: number; side: 'support' | 'resistance'; timestamp?: number; index?: number; reactionConfirmed?: boolean };
+type SRLevelCandidate = { price: number; source: string; weight: number; side: 'support' | 'resistance'; timestamp?: number };
 
 function buildCombined4HLevels(args: {
   candles: Candle[];
@@ -761,36 +761,7 @@ function buildCombined4HLevels(args: {
   if (last < 204) return { available: false, reason: 'Insufficient completed 4H candles', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null, atr14: null };
 
   const candidates: SRLevelCandidate[] = [];
-  const majorCandidates: SRLevelCandidate[] = [];
-  // Keep the existing recent-zone inputs unchanged for Tables 4 and 5.
-  const recentPivotStart = Math.max(2, last - 122);
-  // Use the available 500-candle 4H window (about 83 days) only for major-zone classification.
-  const pivotStart = Math.max(2, last - 497);
-  const atrAtPivot = (index: number) => {
-    const start = Math.max(1, index - 13);
-    const ranges: number[] = [];
-    for (let k = start; k <= index; k++) {
-      const candle = candles[k], previousClose = candles[k - 1]?.close ?? candle.close;
-      const range = Math.max(candle.high - candle.low, Math.abs(candle.high - previousClose), Math.abs(candle.low - previousClose));
-      if (Number.isFinite(range)) ranges.push(range);
-    }
-    return ranges.length ? ranges.reduce((sum, value) => sum + value, 0) / ranges.length : index >= 0 ? candles[index].close * 0.002 : 0;
-  };
-  const hasMeaningfulFollowThrough = (index: number, price: number, pivotType: 'high' | 'low') => {
-    // Require at least three completed candles after the pivot and a move of
-    // at least 0.8 ATR away from it within the next 12 completed 4H candles.
-    const end = Math.min(last, index + 12);
-    if (end - index < 3) return false;
-    const threshold = Math.max(atrAtPivot(index) * 0.8, price * 0.0015);
-    if (pivotType === 'high') {
-      let lowest = Infinity;
-      for (let k = index + 1; k <= end; k++) lowest = Math.min(lowest, candles[k].low);
-      return lowest <= price - threshold;
-    }
-    let highest = -Infinity;
-    for (let k = index + 1; k <= end; k++) highest = Math.max(highest, candles[k].high);
-    return highest >= price + threshold;
-  };
+  const pivotStart = Math.max(2, last - 122);
   // Two candles on either side must be completed before a swing is accepted.
   for (let i = pivotStart; i <= last - 2; i++) {
     const window = candles.slice(i - 2, i + 3);
@@ -798,16 +769,8 @@ function buildCombined4HLevels(args: {
       (candles[i].high > candles[i - 1].high || candles[i].high > candles[i + 1].high);
     const pivotLow = window.every((c, j) => j === 2 || candles[i].low <= c.low) &&
       (candles[i].low < candles[i - 1].low || candles[i].low < candles[i + 1].low);
-    if (pivotHigh) {
-      const candidate = { price: candles[i].high, source: '4H swing high', weight: 2.5 as const, side: candles[i].high <= currentPrice ? 'support' as const : 'resistance' as const, timestamp: candles[i].timestamp, index: i, reactionConfirmed: hasMeaningfulFollowThrough(i, candles[i].high, 'high') };
-      majorCandidates.push(candidate);
-      if (i >= recentPivotStart) candidates.push(candidate);
-    }
-    if (pivotLow) {
-      const candidate = { price: candles[i].low, source: '4H swing low', weight: 2.5 as const, side: candles[i].low <= currentPrice ? 'support' as const : 'resistance' as const, timestamp: candles[i].timestamp, index: i, reactionConfirmed: hasMeaningfulFollowThrough(i, candles[i].low, 'low') };
-      majorCandidates.push(candidate);
-      if (i >= recentPivotStart) candidates.push(candidate);
-    }
+    if (pivotHigh) candidates.push({ price: candles[i].high, source: '4H swing high', weight: 2.5, side: candles[i].high <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
+    if (pivotLow) candidates.push({ price: candles[i].low, source: '4H swing low', weight: 2.5, side: candles[i].low <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
   }
 
   const emaSources: Array<[string, number, number]> = [
@@ -815,20 +778,10 @@ function buildCombined4HLevels(args: {
     ['EMA100', ema100[last], 1.0], ['EMA200', ema200[last], 1.2]
   ];
   for (const [source, price, weight] of emaSources) {
-    if (Number.isFinite(price)) {
-      const candidate = { price, source, weight, side: price <= currentPrice ? 'support' as const : 'resistance' as const };
-      candidates.push(candidate);
-      majorCandidates.push(candidate);
-    }
+    if (Number.isFinite(price)) candidates.push({ price, source, weight, side: price <= currentPrice ? 'support' : 'resistance' });
   }
-  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) {
-    const candidate = { price: previousSessionHigh, source: 'Previous PH session high', weight: 2.2, side: previousSessionHigh <= currentPrice ? 'support' as const : 'resistance' as const };
-    candidates.push(candidate); majorCandidates.push(candidate);
-  }
-  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) {
-    const candidate = { price: previousSessionLow, source: 'Previous PH session low', weight: 2.2, side: previousSessionLow <= currentPrice ? 'support' as const : 'resistance' as const };
-    candidates.push(candidate); majorCandidates.push(candidate);
-  }
+  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) candidates.push({ price: previousSessionHigh, source: 'Previous PH session high', weight: 2.2, side: previousSessionHigh <= currentPrice ? 'support' : 'resistance' });
+  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) candidates.push({ price: previousSessionLow, source: 'Previous PH session low', weight: 2.2, side: previousSessionLow <= currentPrice ? 'support' : 'resistance' });
 
   const tolerance = currentPrice * 0.0025;
   const recentVolumes = candles.slice(Math.max(0, last - 20), last).map(c => c.volume).filter(Number.isFinite);
@@ -849,8 +802,8 @@ function buildCombined4HLevels(args: {
   const trendRegime = emaRegime === 'BULLISH' || emaRegime === 'BEARISH' ? emaRegime :
     (mainTrend?.trend === 'bullish' ? 'BULLISH' : mainTrend?.trend === 'bearish' ? 'BEARISH' : 'NEUTRAL');
 
-  const makeZones = (side: 'support' | 'resistance', sourceCandidates: SRLevelCandidate[] = candidates) => {
-    const items = sourceCandidates.filter(x => x.side === side).sort((a, b) => a.price - b.price);
+  const makeZones = (side: 'support' | 'resistance') => {
+    const items = candidates.filter(x => x.side === side).sort((a, b) => a.price - b.price);
     const clusters: SRLevelCandidate[][] = [];
     for (const item of items) {
       const group = clusters[clusters.length - 1];
@@ -870,23 +823,10 @@ function buildCombined4HLevels(args: {
       const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 7 : 0;
       const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 4 : 0;
       const strength = Math.min(100, Math.round(weight * 9 + Math.max(0, sources.length - 1) * 7 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
-      // Count only meaningful, time-separated swing reactions; repeated pivots
-      // inside a 48-hour window do not each count as a fresh reaction.
-      const qualifiedPivots = group.filter(x => x.source.includes('swing') && x.reactionConfirmed && Number.isFinite(x.index))
-        .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-      let independentReactionCount = 0;
-      let lastCountedPivot = -Infinity;
-      for (const pivot of qualifiedPivots) {
-        if ((pivot.index ?? 0) - lastCountedPivot >= 12) {
-          independentReactionCount++;
-          lastCountedPivot = pivot.index ?? lastCountedPivot;
-        }
-      }
-      const classification = independentReactionCount >= 3 && strength >= 55 ? 'MAJOR' : 'MINOR';
       const swingTimestamps = group.filter(x => x.timestamp !== undefined && Number.isFinite(x.timestamp)).map(x => x.timestamp as number);
       return {
         price, low: price - tolerance / 2, high: price + tolerance / 2,
-        strength, confluences: sources, structuralCount, classification, independentReactionCount,
+        strength, confluences: sources, structuralCount,
         touches: group.filter(x => x.source.includes('swing')).length,
         side, timestamp: swingTimestamps.length ? Math.max(...swingTimestamps) : null
       };
@@ -895,17 +835,11 @@ function buildCombined4HLevels(args: {
 
   const supports = makeZones('support').sort((a, b) => b.price - a.price);
   const resistances = makeZones('resistance').sort((a, b) => a.price - b.price);
-  const majorSupportZones = makeZones('support', majorCandidates).filter(z => z.classification === 'MAJOR').sort((a, b) => b.price - a.price);
-  const majorResistanceZones = makeZones('resistance', majorCandidates).filter(z => z.classification === 'MAJOR').sort((a, b) => a.price - b.price);
   return {
     available: true, trend: mainTrend?.trend ?? null, trendRegime, emaRegime,
-    historyCandles: last + 1, historyDays: ((last + 1) * 4) / 24,
     emaBullishPairs: bullishPairs, emaBearishPairs: bearishPairs,
     support: supports[0] ?? null, resistance: resistances[0] ?? null,
     supportZones: supports, resistanceZones: resistances,
-    majorSupportZones, majorResistanceZones,
-    nearestMajorSupport: majorSupportZones[0] ?? null,
-    nearestMajorResistance: majorResistanceZones[0] ?? null,
     rsi14: Number.isFinite(rsi14[last]) ? rsi14[last] : null,
     bullishDivergence, bearishDivergence, volumeRatio, atr14
   };
@@ -1458,7 +1392,13 @@ const [signals, setSignals] = useState<any[]>([]);
     }
     return { favorites: favoriteTotal, notFavorites: otherTotal };
   }, [signals, favorites]);
-const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' | 'all'>('not-favorites');
+const [coinListView, setCoinListView] = useState<'favorites' | 'all'>('all');
+const searchTerm = search.trim().toLowerCase();
+const matchesGlobalSymbol = (symbol: any) => {
+  const normalized = String(symbol ?? '').toLowerCase();
+  return (!searchTerm || normalized.includes(searchTerm)) &&
+    (coinListView === 'all' || favorites.has(String(symbol ?? '')));
+};
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [tablePage, setTablePage] = useState(0);
@@ -1512,23 +1452,12 @@ const [confirmedReversalSortOrder, setConfirmedReversalSortOrder] = useState<'as
 const [confirmedReversalExpanded, setConfirmedReversalExpanded] = useState(true);
 const [srRejectionExpanded, setSrRejectionExpanded] = useState(true);
 const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' | 'breakout' | 'testing' | 'waiting'>('all');
-const [possibleReversalSearch, setPossibleReversalSearch] = useState('');
-const [possibleReversalFavoriteFilter, setPossibleReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
-const [confirmedReversalSearch, setConfirmedReversalSearch] = useState('');
-const [confirmedReversalFavoriteFilter, setConfirmedReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
-const [srRejectionSearch, setSrRejectionSearch] = useState('');
-const [srRejectionFavoriteFilter, setSrRejectionFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
-const [zoneTradeSearch, setZoneTradeSearch] = useState('');
-const [zoneTradeFavoriteFilter, setZoneTradeFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const zoneTradeRows = useMemo(() => {
   if (!zoneTradeExpanded) return [];
-  const query = zoneTradeSearch.trim().toLowerCase();
   const rows = signals.filter((signal: any) => {
     if (!signal.zoneTradePlan) return false;
-    if (query && !String(signal.symbol ?? '').toLowerCase().includes(query)) return false;
-    if (zoneTradeFavoriteFilter === 'favorites' && !favorites.has(signal.symbol)) return false;
-    if (zoneTradeFavoriteFilter === 'not-favorite' && favorites.has(signal.symbol)) return false;
+    if (!matchesGlobalSymbol(signal.symbol)) return false;
     return true;
   });
   const rank = (plan: any) => plan?.status === 'ENTRY TRIGGERED' ? 0 :
@@ -1538,7 +1467,7 @@ const zoneTradeRows = useMemo(() => {
     rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
     String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
   );
-}, [signals, zoneTradeExpanded, zoneTradeSearch, zoneTradeFavoriteFilter, favorites]);
+}, [signals, zoneTradeExpanded, searchTerm, coinListView, favorites]);
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1547,8 +1476,6 @@ const [touchedEMA100Filter, setTouchedEMA100Filter] = useState<'all' | 'yes' | '
 const [touchedEMA200PreviousFilter, setTouchedEMA200PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [touchedEMA100PreviousFilter, setTouchedEMA100PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
-
-const searchTerm = search.trim().toLowerCase();
 
 const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
@@ -1659,14 +1586,7 @@ const trendFilterMatches = (s: any, key: string, selectedTimeframe: string): boo
 };
 
 const filteredSignals = useMemo(() => signals.filter((s) => {
-  const symbol = s.symbol?.toLowerCase() || '';
-  const matchesSearch = !searchTerm || symbol.includes(searchTerm);
-  const isFavorite = favorites.has(s.symbol);
-  const matchesFavoriteView =
-    coinListView === 'all' ||
-    (coinListView === 'favorites' && isFavorite) ||
-    (coinListView === 'not-favorites' && !isFavorite);
-  if (!matchesSearch || !matchesFavoriteView) return false;
+  if (!matchesGlobalSymbol(s.symbol)) return false;
 
   // Multi-timeframe filters use each timeframe's own Main Trend and its own
   // Position Signal alignment. Incomplete data is never counted as aligned.
@@ -1792,9 +1712,7 @@ const possibleReversalTableSignals = useMemo(() => {
   })
   .filter((s) => possibleReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
-  .filter((s) => !possibleReversalSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(possibleReversalSearch.trim().toLowerCase()))
-  .filter((s) => possibleReversalFavoriteFilter === 'all' ||
-    (possibleReversalFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
+  .filter((s) => matchesGlobalSymbol(s.symbol))
   .sort((a, b) => {
     const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
     const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
@@ -1806,7 +1724,7 @@ const possibleReversalTableSignals = useMemo(() => {
       : possibleReversalSortOrder === 'asc' ? diff : -diff;
   });
 }, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded,
-    possibleReversalSearch, possibleReversalFavoriteFilter, favorites]);
+    searchTerm, coinListView, favorites]);
 
 const confirmedReversalTableSignals = useMemo(() => {
   if (!confirmedReversalExpanded) return [];
@@ -1817,9 +1735,7 @@ const confirmedReversalTableSignals = useMemo(() => {
   })
   .filter((s) => confirmedReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
-  .filter((s) => !confirmedReversalSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(confirmedReversalSearch.trim().toLowerCase()))
-  .filter((s) => confirmedReversalFavoriteFilter === 'all' ||
-    (confirmedReversalFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
+  .filter((s) => matchesGlobalSymbol(s.symbol))
   .sort((a, b) => {
     const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
     const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
@@ -1831,7 +1747,7 @@ const confirmedReversalTableSignals = useMemo(() => {
       : confirmedReversalSortOrder === 'asc' ? diff : -diff;
   });
 }, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded,
-    confirmedReversalSearch, confirmedReversalFavoriteFilter, favorites]);
+    searchTerm, coinListView, favorites]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -4520,7 +4436,7 @@ latestRSI,
           setFundingRateFilter('all');
           setMtfAlignmentFilter('all');
           setMtfTrendDirectionFilter('all');
-          setCoinListView('not-favorites');
+          setCoinListView('all');
         }}
         className="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
       >
@@ -4589,19 +4505,20 @@ latestRSI,
 </div>
 
 <div className="flex flex-wrap gap-4 mb-4 items-center">
-  {/* 🔸 Favorites Views — additive replacement for the old single toggle */}
-  <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Coin favorites views">
+  <span className="w-full text-[11px] font-semibold tracking-wide text-yellow-300">GLOBAL FILTERS — TABLES 1–5</span>
+  {/* One global symbol search and favorites filter shared by Tables 1–5 */}
+  <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Global scanner symbol filters">
     <button
       type="button"
-      onClick={() => setCoinListView('not-favorites')}
-      aria-pressed={coinListView === 'not-favorites'}
+      onClick={() => setCoinListView('all')}
+      aria-pressed={coinListView === 'all'}
       className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-        coinListView === 'not-favorites'
+        coinListView === 'all'
           ? 'bg-yellow-500 text-gray-950 border-yellow-400'
           : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
       }`}
     >
-      ☆ Not Yet Favorited ({favoriteCounts.notFavorites})
+      All Coins ({signals.length})
     </button>
     <button
       type="button"
@@ -4615,33 +4532,20 @@ latestRSI,
     >
       ⭐ Favorites ({favoriteCounts.favorites})
     </button>
-    <button
-      type="button"
-      onClick={() => setCoinListView('all')}
-      aria-pressed={coinListView === 'all'}
-      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-        coinListView === 'all'
-          ? 'bg-yellow-500 text-gray-950 border-yellow-400'
-          : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
-      }`}
-    >
-      All Coins ({signals.length})
-    </button>
   </div>
 
-  {/* 🔸 Search Input */}
   <div className="relative">
     <input
-      type="text"
-      placeholder="Search symbol..."
+      type="search"
+      placeholder="Search symbols across all tables..."
+      aria-label="Global symbol search for Tables 1 through 5"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
-      className="p-2 pr-20 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+      className="p-2 pr-20 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 min-w-[240px]"
     />
-    
-    {/* 🔸 Clear Button (only shows if there's input) */}
     {search && (
       <button
+        type="button"
         onClick={() => setSearch('')}
         className="absolute right-1 top-1/2 -translate-y-1/2 text-xs px-2 py-1 bg-red-500 hover:bg-red-600 rounded text-white"
       >
@@ -4649,8 +4553,7 @@ latestRSI,
       </button>
     )}
   </div>
-</div>	
-	  
+</div>
 
 <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-xs">
   <span className="text-gray-300">
@@ -4670,13 +4573,11 @@ latestRSI,
 </div>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
-  <table className="w-full text-[11px] border-collapse min-w-[1420px]">
+  <table className="w-full text-[11px] border-collapse min-w-[1100px]">
     <thead className="bg-gray-800 text-yellow-300 sticky top-0 z-20">
       <tr>
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
-        <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Support</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Resistance</th>
         <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
@@ -4849,38 +4750,6 @@ latestRSI,
             </td>
             <td className="px-2 py-2 text-right whitespace-nowrap">
               ${Number(s.currentPrice).toFixed(7)}
-            </td>
-            <td className="px-2 py-2 text-center align-top min-w-[155px]">
-              {(() => {
-                const zone = s.fourHourSupportResistance?.nearestMajorSupport;
-                if (!s.fourHourSupportResistance?.available) return <span className="text-gray-500">N/A — 4H data unavailable</span>;
-                if (!zone) return <span className="text-gray-500">NO MAJOR SUPPORT</span>;
-                const distance = ((Number(s.currentPrice) - Number(zone.price)) / Number(s.currentPrice)) * 100;
-                return <div className="flex flex-col gap-1 leading-tight">
-                  <strong className="text-green-400">MAJOR SUPPORT</strong>
-                  <span className="text-white font-semibold">{Number(zone.low).toPrecision(7)} – {Number(zone.high).toPrecision(7)}</span>
-                  <span className="text-[10px] text-gray-300">Center: {Number(zone.price).toPrecision(7)}</span>
-                  <span className="text-[10px] text-gray-400">Strength: {zone.strength}/100 · Reactions: {zone.independentReactionCount}</span>
-                  <span className="text-[10px] text-gray-500">History: {s.fourHourSupportResistance.historyCandles} 4H candles (~{Number(s.fourHourSupportResistance.historyDays).toFixed(1)} days)</span>
-                  <span className="text-[10px] text-gray-400">Distance: {Number.isFinite(distance) ? `${distance.toFixed(2)}% below` : 'N/A'}</span>
-                </div>;
-              })()}
-            </td>
-            <td className="px-2 py-2 text-center align-top min-w-[155px]">
-              {(() => {
-                const zone = s.fourHourSupportResistance?.nearestMajorResistance;
-                if (!s.fourHourSupportResistance?.available) return <span className="text-gray-500">N/A — 4H data unavailable</span>;
-                if (!zone) return <span className="text-gray-500">NO MAJOR RESISTANCE</span>;
-                const distance = ((Number(zone.price) - Number(s.currentPrice)) / Number(s.currentPrice)) * 100;
-                return <div className="flex flex-col gap-1 leading-tight">
-                  <strong className="text-red-400">MAJOR RESISTANCE</strong>
-                  <span className="text-white font-semibold">{Number(zone.low).toPrecision(7)} – {Number(zone.high).toPrecision(7)}</span>
-                  <span className="text-[10px] text-gray-300">Center: {Number(zone.price).toPrecision(7)}</span>
-                  <span className="text-[10px] text-gray-400">Strength: {zone.strength}/100 · Reactions: {zone.independentReactionCount}</span>
-                  <span className="text-[10px] text-gray-500">History: {s.fourHourSupportResistance.historyCandles} 4H candles (~{Number(s.fourHourSupportResistance.historyDays).toFixed(1)} days)</span>
-                  <span className="text-[10px] text-gray-400">Distance: {Number.isFinite(distance) ? `${distance.toFixed(2)}% above` : 'N/A'}</span>
-                </div>;
-              })()}
             </td>
             <td className={`px-2 py-2 text-center font-semibold whitespace-nowrap ${
               !Number.isFinite(fundingRates[s.symbol]) ? 'text-gray-500' :
@@ -5077,17 +4946,8 @@ latestRSI,
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <input type="search" value={possibleReversalSearch} onChange={e => setPossibleReversalSearch(e.target.value)}
-          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Possible Reversal symbols"
-          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
-        <select value={possibleReversalFavoriteFilter} onChange={e => setPossibleReversalFavoriteFilter(e.target.value as typeof possibleReversalFavoriteFilter)}
-          aria-label="Possible Reversal favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
-          <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-        </select>
-      </div>
       {possibleReversalExpanded && <>
-      <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals matching the global symbol filters and this table’s BUY/SELL filter.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-yellow-300">
@@ -5163,17 +5023,8 @@ latestRSI,
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <input type="search" value={confirmedReversalSearch} onChange={e => setConfirmedReversalSearch(e.target.value)}
-          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Continuation Confirmed symbols"
-          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
-        <select value={confirmedReversalFavoriteFilter} onChange={e => setConfirmedReversalFavoriteFilter(e.target.value as typeof confirmedReversalFavoriteFilter)}
-          aria-label="Continuation Confirmed favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
-          <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-        </select>
-      </div>
       {confirmedReversalExpanded && <>
-      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed continuation signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed continuation signals matching the global symbol filters and this table’s BUY/SELL filter.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-blue-300">
@@ -5235,13 +5086,6 @@ latestRSI,
             <option value="all">All statuses</option><option value="confirmed">Rejection confirmed</option>
             <option value="breakout">Breakout confirmed</option><option value="testing">Testing zone</option><option value="waiting">Waiting for test</option>
           </select>
-          <input type="search" value={srRejectionSearch} onChange={e => setSrRejectionSearch(e.target.value)}
-            placeholder="Search symbol" aria-label="Search 4H Support Resistance symbols"
-            className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
-          <select value={srRejectionFavoriteFilter} onChange={e => setSrRejectionFavoriteFilter(e.target.value as typeof srRejectionFavoriteFilter)}
-            aria-label="4H Support Resistance favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
-            <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-          </select>
         </div>
       </div>
       {srRejectionExpanded && <>
@@ -5256,10 +5100,7 @@ latestRSI,
             </tr></thead>
             <tbody>
               {signals.filter(s => {
-                const symbolMatches = !srRejectionSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(srRejectionSearch.trim().toLowerCase());
-                const favoriteMatches = srRejectionFavoriteFilter === 'all' ||
-                  (srRejectionFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
-                if (!symbolMatches || !favoriteMatches) return false;
+                if (!matchesGlobalSymbol(s.symbol)) return false;
                 const status = s.strict15MRejection?.status;
                 if (srRejectionFilter === 'confirmed') return status === 'REJECTION CONFIRMED';
                 if (srRejectionFilter === 'breakout') return status === 'BREAKOUT CONFIRMED';
@@ -5354,13 +5195,6 @@ latestRSI,
             className="px-3 py-1.5 rounded border border-emerald-700 bg-gray-800 text-emerald-300 hover:bg-gray-700">
             {zoneTradeExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
           </button>
-          <input type="search" value={zoneTradeSearch} onChange={e => setZoneTradeSearch(e.target.value)}
-            placeholder="Search symbol" aria-label="Search 4H take profit symbols"
-            className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
-          <select value={zoneTradeFavoriteFilter} onChange={e => setZoneTradeFavoriteFilter(e.target.value as typeof zoneTradeFavoriteFilter)}
-            aria-label="4H take profit favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
-            <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-          </select>
         </div>
       </div>
       {zoneTradeExpanded && <>
@@ -5442,7 +5276,7 @@ latestRSI,
                     </td>
                   </tr>;
                 })}
-              {zoneTradeRows.length === 0 && <tr><td colSpan={12} className="p-4 text-center text-gray-500">No matching symbols have a calculated Table 5 plan. Check the search/favorite filter or wait for a qualifying completed 15M setup.</td></tr>}
+              {zoneTradeRows.length === 0 && <tr><td colSpan={12} className="p-4 text-center text-gray-500">No matching symbols have a calculated Table 5 plan. Check the global symbol search / Favorites filter or wait for a qualifying completed 15M setup.</td></tr>}
             </tbody>
           </table>
         </div>
