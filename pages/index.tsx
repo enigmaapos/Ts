@@ -4818,7 +4818,7 @@ latestRSI,
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
-                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{`POSSIBLE REVERSAL — ${r?.signal ?? 'N/A'}`}</td>
                 <td className="p-2 text-center">{String(r.mainTrend ?? 'N/A').toUpperCase()}</td>
                 <td className="p-2 text-right">{Number(r.previousPrice).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.breakoutPrice).toPrecision(7)}</td>
@@ -4840,7 +4840,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-blue-300">Continuation Confirmed Table — 15m</h2>
-          <p className="text-xs text-gray-400">Confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
+          <p className="text-xs text-gray-400">Continuation confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setConfirmedReversalExpanded(v => !v)}
@@ -4877,7 +4877,7 @@ latestRSI,
         </select>
       </div>
       {confirmedReversalExpanded && <>
-      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed continuation signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-blue-300">
@@ -4904,7 +4904,7 @@ latestRSI,
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
-                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</td>
                 <td className="p-2 text-right">{Number(r.close).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.rsi14).toFixed(2)}</td>
                 <td className="p-2 text-right">{Number(r.ema14).toPrecision(7)}</td>
