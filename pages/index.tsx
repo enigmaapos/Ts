@@ -845,6 +845,85 @@ function buildCombined4HLevels(args: {
   };
 }
 
+function detect15MZoneTrendline(args: { candles: Candle[]; rsi14: number[]; levels: any }) {
+  const { candles, rsi14, levels } = args;
+  const now = Date.now();
+  const completed = candles.map((c, index) => ({ c, index }))
+    .filter(x => Number.isFinite(x.c.closeTime) && x.c.closeTime <= now);
+  const unavailable = {
+    available: false, status: 'UNAVAILABLE', side: '—', direction: '—',
+    points: 0, linePrice: null as number | null, slopePercentPerCandle: null as number | null,
+    zonePrice: null as number | null, rsi14: null as number | null, volumeRatio: null as number | null,
+    reason: '15M candles or 4H support/resistance zones unavailable'
+  };
+  if (!levels?.available || completed.length < 12) return unavailable;
+
+  const recent = completed.slice(-48);
+  const recentCandles = recent.map(x => x.c);
+  const ranges = recentCandles.slice(1).map((c, i) => Math.max(
+    c.high - c.low,
+    Math.abs(c.high - recentCandles[i].close),
+    Math.abs(c.low - recentCandles[i].close)
+  )).filter(Number.isFinite);
+  const atr = ranges.length ? ranges.reduce((a, b) => a + b, 0) / ranges.length : 0;
+  const last = recent[recent.length - 1];
+  const volumeWindow = recentCandles.slice(-21, -1).map(c => c.volume).filter(Number.isFinite);
+  const avgVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
+  const volumeRatio = Number.isFinite(avgVolume) && avgVolume > 0 ? last.c.volume / avgVolume : null;
+  const rsi = rsi14[last.index];
+  const tolerance = Math.max(atr * 0.85, last.c.close * 0.0015);
+
+  const pivotsHigh: Array<{ index: number; price: number; timestamp: number }> = [];
+  const pivotsLow: Array<{ index: number; price: number; timestamp: number }> = [];
+  for (let i = 2; i < recent.length - 2; i++) {
+    const c = recent[i].c;
+    const leftRight = [...recent.slice(i - 2, i), ...recent.slice(i + 1, i + 3)].map(x => x.c);
+    if (leftRight.every(x => c.high >= x.high) && leftRight.some(x => c.high > x.high))
+      pivotsHigh.push({ index: i, price: c.high, timestamp: c.timestamp });
+    if (leftRight.every(x => c.low <= x.low) && leftRight.some(x => c.low < x.low))
+      pivotsLow.push({ index: i, price: c.low, timestamp: c.timestamp });
+  }
+
+  const evaluate = (side: 'RESISTANCE' | 'SUPPORT', zone: any, pivots: typeof pivotsHigh, direction: 'DESCENDING' | 'ASCENDING') => {
+    if (!zone || !Number.isFinite(zone.low) || !Number.isFinite(zone.high)) return null;
+    const near = pivots.filter(p => p.price >= zone.low - tolerance && p.price <= zone.high + tolerance);
+    if (near.length < 3) return null;
+    const selected = near.slice(-3);
+    const minMove = Math.max(atr * 0.08, zone.price * 0.00015);
+    const ordered = direction === 'DESCENDING'
+      ? selected[0].price > selected[1].price + minMove && selected[1].price > selected[2].price + minMove
+      : selected[0].price < selected[1].price - minMove && selected[1].price < selected[2].price - minMove;
+    if (!ordered) return null;
+    const x0 = selected[0].index, x2 = selected[2].index;
+    const slope = (selected[2].price - selected[0].price) / Math.max(1, x2 - x0);
+    const linePrice = selected[2].price + slope * Math.max(0, recent.length - 1 - x2);
+    const totalMovePercent = Math.abs((selected[2].price - selected[0].price) / selected[0].price) * 100;
+    const distanceToZonePercent = Math.min(...selected.map(p => Math.max(0, zone.low - p.price, p.price - zone.high))) / zone.price * 100;
+    return {
+      available: true, status: side === 'RESISTANCE' ? 'RESISTANCE COMPRESSION' : 'SUPPORT COMPRESSION',
+      side, direction, points: 3, pivots: selected.map(p => ({ price: p.price, timestamp: p.timestamp })),
+      linePrice, slopePercentPerCandle: slope / zone.price * 100,
+      totalMovePercent, distanceToZonePercent, zonePrice: zone.price,
+      rsi14: Number.isFinite(rsi) ? rsi : null, volumeRatio,
+      reason: side === 'RESISTANCE'
+        ? 'Three confirmed 15M lower highs are forming near the 4H resistance zone'
+        : 'Three confirmed 15M higher lows are forming near the 4H support zone'
+    };
+  };
+
+  const candidates = [
+    evaluate('RESISTANCE', levels.resistance, pivotsHigh, 'DESCENDING'),
+    evaluate('SUPPORT', levels.support, pivotsLow, 'ASCENDING')
+  ].filter(Boolean) as any[];
+  if (!candidates.length) return {
+    ...unavailable, available: true, status: 'NO STRUCTURE',
+    rsi14: Number.isFinite(rsi) ? rsi : null, volumeRatio,
+    reason: 'No three-point ascending support line or descending resistance line confirmed near the 4H zones'
+  };
+  candidates.sort((a, b) => b.points - a.points || a.distanceToZonePercent - b.distanceToZonePercent);
+  return candidates[0];
+}
+
 function detectStrict15MRejection(args: {
   candles: Candle[]; rsi14: number[]; levels: any; currentPrice: number;
 }) {
@@ -2344,6 +2423,7 @@ const fourHourLoaded = loadedTimeframes.find(x => x.tf === '4h');
 const fifteenMinuteLoaded = loadedTimeframes.find(x => x.tf === '15m');
 let fourHourSupportResistance: any = { available: false, reason: '4H data unavailable', trend: null, support: null, resistance: null, rsi14: null, volumeRatio: null };
 let strict15MRejection: any = { available: false, status: 'N/A', direction: 'N/A', level: null, rsi14: null, wickRatio: null, timestamp: null, reason: '15M data unavailable', strength: null };
+let fifteenMinuteTrendline: any = { available: false, status: 'UNAVAILABLE', side: '—', direction: '—', points: 0, linePrice: null, zonePrice: null, reason: '15M data unavailable' };
 if (fourHourLoaded && !fourHourLoaded.error && fourHourLoaded.tfCandles.length >= 205) {
   const fourHCandles = fourHourLoaded.tfCandles;
   const fourHCloses = fourHCandles.map(c => c.close);
@@ -2370,6 +2450,9 @@ if (fifteenMinuteLoaded && !fifteenMinuteLoaded.error && fifteenMinuteLoaded.tfC
   strict15MRejection = detectStrict15MRejection({
     candles: fifteenCandles, rsi14: fifteenRsi14,
     levels: fourHourSupportResistance, currentPrice
+  });
+  fifteenMinuteTrendline = detect15MZoneTrendline({
+    candles: fifteenCandles, rsi14: fifteenRsi14, levels: fourHourSupportResistance
   });
 }
 const zoneTradePlan = buildZoneTradePlan(strict15MRejection, fourHourSupportResistance, currentPrice);
@@ -3417,6 +3500,7 @@ mainTrend,
   multiTimeframeAlignment,
   fourHourSupportResistance,
   strict15MRejection,
+  fifteenMinuteTrendline,
   zoneTradePlan,
   overallMultiTimeframeAlignment,
   breakout,
@@ -4855,7 +4939,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-emerald-300">Table 5 — 4H Take Profit Targets</h2>
-          <p className="text-xs text-gray-400">15M rejection confirms a setup; live price must break its candle extreme to trigger entry. 4H structure supplies stop-loss and TP1–TP3.</p>
+          <p className="text-xs text-gray-400">15M trend-line compression near 4H support/resistance is detected from three confirmed swing points; a separate 15M rejection and trigger are still required for entry. 4H structure supplies stop-loss and TP1–TP3.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setZoneTradeExpanded(v => !v)} aria-expanded={zoneTradeExpanded}
@@ -4874,9 +4958,9 @@ latestRSI,
       {zoneTradeExpanded && <>
         <p className="text-xs text-gray-500 mb-2">Entry trigger = rejection-candle high + 0.02% for BUY, or low − 0.02% for SELL. Pending setups expire after four 15M candles (one hour) and are invalidated if price hits the stop first. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. TP1 minimum R:R is 1:1.5 in aligned trends, 1:1.75 in mixed/neutral conditions and 1:2.0 countertrend. A 0.15× completed-4H ATR buffer is added beyond the structural stop. Minimum quality score is 60/100 (70/100 countertrend). Score combines 4H trend, 15M rejection wick, 15M volume, 4H RSI/divergence and structural target confluence. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
-          <table className="w-full min-w-[1250px] text-xs border-collapse">
+          <table className="w-full min-w-[1450px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Entry Trigger</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Entry Trigger</th>
               <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
               <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
@@ -4909,6 +4993,12 @@ latestRSI,
                       </button>{s.symbol}
                     </td>
                     <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : p.direction === 'BUY' ? 'text-green-400' : 'text-gray-400'}`}>{p.direction ?? '—'}</td>
+                    <td className="p-2 text-center">
+                      <div className={`font-semibold ${s.fifteenMinuteTrendline?.side === 'RESISTANCE' ? 'text-red-300' : s.fifteenMinuteTrendline?.side === 'SUPPORT' ? 'text-green-300' : 'text-gray-400'}`}>{s.fifteenMinuteTrendline?.status ?? 'UNAVAILABLE'}</div>
+                      {s.fifteenMinuteTrendline?.available && s.fifteenMinuteTrendline?.points >= 3 && <div className="text-[10px] text-gray-400">3 confirmed swings · line {fmtPrice(s.fifteenMinuteTrendline.linePrice)} · zone {fmtPrice(s.fifteenMinuteTrendline.zonePrice)}</div>}
+                      {s.fifteenMinuteTrendline?.available && <div className="text-[10px] text-gray-500">RSI {Number.isFinite(s.fifteenMinuteTrendline.rsi14) ? Number(s.fifteenMinuteTrendline.rsi14).toFixed(1) : '—'} · Vol {Number.isFinite(s.fifteenMinuteTrendline.volumeRatio) ? `${Number(s.fifteenMinuteTrendline.volumeRatio).toFixed(2)}×` : '—'}</div>}
+                      {s.fifteenMinuteTrendline?.reason && <div className="text-[10px] text-gray-500 max-w-[190px] whitespace-normal">{s.fifteenMinuteTrendline.reason}</div>}
+                    </td>
                     <td className="p-2 text-right"><div className="font-semibold">{fmtPrice(p.triggerPrice ?? p.entry)}</div>
                       {p.setupClose != null && <div className="text-[10px] text-gray-500">15M close {fmtPrice(p.setupClose)}</div>}
                       {p.livePrice != null && <div className="text-[10px] text-gray-400">Live {fmtPrice(p.livePrice)}</div>}</td>
@@ -4931,7 +5021,7 @@ latestRSI,
                 const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
                   (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
                 return symbolMatches && favoriteMatches && s.zoneTradePlan;
-              }).length === 0 && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A completed 15M rejection is required before a pending breakout trigger can be calculated.</td></tr>}
+              }).length === 0 && <tr><td colSpan={10} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A completed 15M rejection is required before a pending breakout trigger can be calculated.</td></tr>}
             </tbody>
           </table>
         </div>
