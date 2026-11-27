@@ -1798,47 +1798,59 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
 ]);
 
 // One uniform sorting pipeline: FILTER FIRST, then SORT. Never mutate React state.
-const filteredAndSortedSignals = useMemo(() => [...filteredSignals].sort((a, b) => {
-  const aValue = getSortValue(a, sortField);
-  const bValue = getSortValue(b, sortField);
-  const aMissing = aValue === null || aValue === undefined || (typeof aValue === 'number' && !Number.isFinite(aValue));
-  const bMissing = bValue === null || bValue === undefined || (typeof bValue === 'number' && !Number.isFinite(bValue));
+// Cache each row's active sort value once, then sort the decorated rows.
+// This avoids repeatedly recalculating derived values (notably RSI pump/dump
+// strength and funding-rate lookups) inside the O(n log n) comparator.
+const filteredAndSortedSignals = useMemo(() => {
+  const decorated = filteredSignals.map((signal: any, index: number) => ({
+    signal,
+    value: getSortValue(signal, sortField),
+    index,
+  }));
+  decorated.sort((a, b) => {
+    const aMissing = a.value === null || a.value === undefined ||
+      (typeof a.value === 'number' && !Number.isFinite(a.value));
+    const bMissing = b.value === null || b.value === undefined ||
+      (typeof b.value === 'number' && !Number.isFinite(b.value));
+    if (aMissing && bMissing) {
+      return String(a.signal.symbol ?? '').localeCompare(String(b.signal.symbol ?? ''));
+    }
+    if (aMissing) return 1;
+    if (bMissing) return -1;
 
-  if (aMissing && bMissing) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
-  if (aMissing) return 1;
-  if (bMissing) return -1;
+    let result = typeof a.value === 'number' && typeof b.value === 'number'
+      ? a.value - b.value
+      : String(a.value).localeCompare(String(b.value), undefined, { numeric: true, sensitivity: 'base' });
+    if (result === 0) {
+      result = String(a.signal.symbol ?? '').localeCompare(String(b.signal.symbol ?? ''));
+    }
+    if (result === 0) result = a.index - b.index;
+    return sortOrder === 'asc' ? result : -result;
+  });
+  return decorated.map(item => item.signal);
+}, [filteredSignals, sortField, sortOrder]);
 
-  let result = 0;
-  if (typeof aValue === 'number' && typeof bValue === 'number') {
-    result = aValue - bValue;
-  } else {
-    result = String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
-  }
+// Table 1 is the master view for every table. Build its symbol rank once so
+// Tables 2–6 can inherit the exact same order with a cheap O(n log n) rank sort,
+// rather than recalculating the active sort value for every secondary table.
+const masterOrderIndex = useMemo(() => {
+  const index = new Map<string, number>();
+  filteredAndSortedSignals.forEach((signal: any, position: number) => {
+    if (signal?.symbol) index.set(signal.symbol, position);
+  });
+  return index;
+}, [filteredAndSortedSignals]);
 
-  if (result === 0) result = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
-  return sortOrder === 'asc' ? result : -result;
-}), [filteredSignals, sortField, sortOrder]);
-
-// Table 1 is the master view for every table: its active filters define the
-// shared symbol universe, and its selected sort field/order controls row order
-// in Tables 1–6. Table-specific filters remain additional narrowing filters.
 const masterVisibleSymbolSet = useMemo(
-  () => new Set(filteredAndSortedSignals.map((s: any) => s.symbol)),
-  [filteredAndSortedSignals]
+  () => new Set(masterOrderIndex.keys()),
+  [masterOrderIndex]
 );
+
 const sortByMasterOrder = (rows: any[]) => [...rows].sort((a: any, b: any) => {
-  const av = getSortValue(a, sortField);
-  const bv = getSortValue(b, sortField);
-  const am = av == null || (typeof av === 'number' && !Number.isFinite(av));
-  const bm = bv == null || (typeof bv === 'number' && !Number.isFinite(bv));
-  if (am && bm) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
-  if (am) return 1;
-  if (bm) return -1;
-  let diff = typeof av === 'number' && typeof bv === 'number'
-    ? av - bv
-    : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
-  if (diff === 0) diff = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
-  return sortOrder === 'asc' ? diff : -diff;
+  const aRank = masterOrderIndex.get(a?.symbol) ?? Number.MAX_SAFE_INTEGER;
+  const bRank = masterOrderIndex.get(b?.symbol) ?? Number.MAX_SAFE_INTEGER;
+  if (aRank !== bRank) return aRank - bRank;
+  return String(a?.symbol ?? '').localeCompare(String(b?.symbol ?? ''));
 });
 
 const dailyReversalRows = useMemo(() => sortByMasterOrder(signals.filter((s: any) => {
