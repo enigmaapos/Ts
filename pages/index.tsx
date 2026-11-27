@@ -1113,8 +1113,12 @@ function detectStrict15MRejection(args: {
 
 function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; levels: any; currentPrice?: number }) {
   const { candles, rsi14 = [], levels, currentPrice } = args;
-  const completed = candles.map((c, index) => ({ c, index }))
-    .filter(x => Number.isFinite(x.c.closeTime) && x.c.closeTime <= Date.now());
+  const now = Date.now();
+  const completed: Array<{ c: Candle; index: number }> = [];
+  for (let index = 0; index < candles.length; index++) {
+    const c = candles[index];
+    if (Number.isFinite(c.closeTime) && c.closeTime <= now) completed.push({ c, index });
+  }
   const none = {
     available: Boolean(levels?.available && completed.length >= 3), status: levels?.available ? 'NO ACTIVE BREAKOUT' : 'UNAVAILABLE',
     direction: 'NONE', strategy: 'NONE', level: null as any, triggerExtreme: null as number | null,
@@ -1127,14 +1131,38 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
   // Include one candle before the eight-candle scan window so a recent breakout
   // can be paired with its subsequent reclaim/hold sequence.
   const start = Math.max(1, completed.length - 9);
-  const zones = [...(Array.isArray(levels.supportZones) ? levels.supportZones : []),
-    ...(Array.isArray(levels.resistanceZones) ? levels.resistanceZones : []), levels.support, levels.resistance]
-    .filter((z: any, index: number, all: any[]) => z && Number.isFinite(z.low) && Number.isFinite(z.high) &&
-      all.findIndex(x => x && Math.abs(Number(x.price) - Number(z.price)) < Math.max(1e-10, Math.abs(Number(z.price)) * 1e-8)) === index);
+  const zoneCandidates = [
+    ...(Array.isArray(levels.supportZones) ? levels.supportZones.map((z: any) => ({ ...z, zoneSide: 'SUPPORT' })) : []),
+    ...(Array.isArray(levels.resistanceZones) ? levels.resistanceZones.map((z: any) => ({ ...z, zoneSide: 'RESISTANCE' })) : []),
+    levels.support ? { ...levels.support, zoneSide: 'SUPPORT' } : null,
+    levels.resistance ? { ...levels.resistance, zoneSide: 'RESISTANCE' } : null
+  ];
+  const zones = zoneCandidates.filter((z: any, index: number, all: any[]) =>
+    z && Number.isFinite(z.low) && Number.isFinite(z.high) &&
+    all.findIndex(x => x && x.zoneSide === z.zoneSide &&
+      Math.abs(Number(x.price) - Number(z.price)) < Math.max(1e-10, Math.abs(Number(z.price)) * 1e-8)) === index
+  );
   const states = new Map<string, any>();
   let latestFake: any = null;
   let latestAttempt: any = null;
-  const zoneKey = (z: any) => Number(z.price).toPrecision(12);
+  const zoneKey = (z: any) => `${z.zoneSide}:${Number(z.price).toPrecision(12)}`;
+  // Prefix sums make each prior-20-candle volume average O(1), rather than
+  // allocating and reducing a new array for every failed breakout.
+  const volumePrefix = new Array<number>(completed.length + 1).fill(0);
+  const volumeCountPrefix = new Array<number>(completed.length + 1).fill(0);
+  for (let i = 0; i < completed.length; i++) {
+    const volume = Number(completed[i].c.volume);
+    const validVolume = Number.isFinite(volume);
+    volumePrefix[i + 1] = volumePrefix[i] + (validVolume ? volume : 0);
+    volumeCountPrefix[i + 1] = volumeCountPrefix[i] + (validVolume ? 1 : 0);
+  }
+  const priorAverageVolume = (endExclusive: number) => {
+    const startIndex = Math.max(0, endExclusive - 20);
+    const count = volumeCountPrefix[endExclusive] - volumeCountPrefix[startIndex];
+    return count > 0
+      ? (volumePrefix[endExclusive] - volumePrefix[startIndex]) / count
+      : NaN;
+  };
 
   for (let i = start; i < completed.length; i++) {
     const prior = completed[i - 1].c, c = completed[i].c;
@@ -1147,7 +1175,7 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
         state = { direction: 'BUY', breakoutIndex: i, breakoutPrice: c.close, breakoutExtreme: c.high };
         states.set(key, state);
         latestAttempt = { available: true, status: 'BREAKOUT ATTEMPT', direction: 'BUY', strategy: 'BREAKOUT CONTINUATION WATCH',
-          breakoutPrice: c.close, level: zone, candleCloseTime: c.closeTime,
+          breakoutPrice: c.close, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
           reason: 'A completed 15M candle has closed above a 4H zone; a follow-through close is needed to confirm acceptance' };
         continue;
       }
@@ -1155,7 +1183,7 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
         state = { direction: 'SELL', breakoutIndex: i, breakoutPrice: c.close, breakoutExtreme: c.low };
         states.set(key, state);
         latestAttempt = { available: true, status: 'BREAKDOWN ATTEMPT', direction: 'SELL', strategy: 'BREAKDOWN CONTINUATION WATCH',
-          breakoutPrice: c.close, level: zone, candleCloseTime: c.closeTime,
+          breakoutPrice: c.close, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
           reason: 'A completed 15M candle has closed below a 4H zone; a follow-through close is needed to confirm acceptance' };
         continue;
       }
@@ -1165,15 +1193,14 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
         if (c.close > zone.high) {
           state.breakoutExtreme = Math.max(state.breakoutExtreme, c.high);
           latestAttempt = { available: true, status: 'BREAKOUT HOLDING', direction: 'BUY', strategy: 'BREAKOUT CONTINUATION WATCH',
-            breakoutPrice: state.breakoutPrice, level: zone, candleCloseTime: c.closeTime,
+            breakoutPrice: state.breakoutPrice, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
             reason: 'Consecutive completed 15M closes are holding above the 4H zone' };
         } else {
           // Price has closed back into or through the broken zone: failed bullish breakout.
           const range = Math.max(c.high - c.low, c.close * 0.00001);
-          const volumeWindow = completed.slice(Math.max(0, i - 20), i).map(x => x.c.volume).filter(Number.isFinite);
-          const avgVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
+          const avgVolume = priorAverageVolume(i);
           latestFake = { available: true, status: 'BEARISH FAKE BREAKOUT', direction: 'SELL', strategy: 'FAKE BREAKOUT REVERSAL',
-            level: zone, triggerExtreme: c.low, candleClose: c.close, candleCloseTime: c.closeTime,
+            level: zone, zoneSide: zone.zoneSide, triggerExtreme: c.low, candleClose: c.close, candleCloseTime: c.closeTime,
             breakoutPrice: state.breakoutPrice, breakoutExtreme: state.breakoutExtreme, reclaimPrice: c.close,
             ageCandles: completed.length - 1 - i, candleHigh: c.high, candleLow: c.low,
             wickRatio: (c.high - Math.max(c.open, c.close)) / range,
@@ -1186,15 +1213,14 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
         if (c.close < zone.low) {
           state.breakoutExtreme = Math.min(state.breakoutExtreme, c.low);
           latestAttempt = { available: true, status: 'BREAKDOWN HOLDING', direction: 'SELL', strategy: 'BREAKDOWN CONTINUATION WATCH',
-            breakoutPrice: state.breakoutPrice, level: zone, candleCloseTime: c.closeTime,
+            breakoutPrice: state.breakoutPrice, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
             reason: 'Consecutive completed 15M closes are holding below the 4H zone' };
         } else {
           // Price has closed back into or through the broken zone: failed bearish breakdown.
           const range = Math.max(c.high - c.low, c.close * 0.00001);
-          const volumeWindow = completed.slice(Math.max(0, i - 20), i).map(x => x.c.volume).filter(Number.isFinite);
-          const avgVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
+          const avgVolume = priorAverageVolume(i);
           latestFake = { available: true, status: 'BULLISH FAKE BREAKDOWN', direction: 'BUY', strategy: 'FAKE BREAKOUT REVERSAL',
-            level: zone, triggerExtreme: c.high, candleClose: c.close, candleCloseTime: c.closeTime,
+            level: zone, zoneSide: zone.zoneSide, triggerExtreme: c.high, candleClose: c.close, candleCloseTime: c.closeTime,
             breakoutPrice: state.breakoutPrice, breakoutExtreme: state.breakoutExtreme, reclaimPrice: c.close,
             ageCandles: completed.length - 1 - i, candleHigh: c.high, candleLow: c.low,
             wickRatio: (Math.min(c.open, c.close) - c.low) / range,
@@ -1237,7 +1263,12 @@ function buildZoneTradePlan(
     livePrice: Number.isFinite(currentPrice) ? Number(currentPrice) : null,
     stopLoss: null as number | null, targets: [] as any[], riskReward: [] as number[], qualityScore: null as number | null,
     trendRegime: levels?.trendRegime ?? 'UNAVAILABLE', setupType: 'WAITING', strategy: 'WAITING',
-    breakoutStatus: breakout?.status ?? 'UNAVAILABLE', volumeConfirmation: 'UNAVAILABLE',
+    breakoutStatus: breakout?.status ?? 'UNAVAILABLE',
+    breakoutZone: breakout?.level ? {
+      side: breakout.zoneSide ?? breakout.level.zoneSide ?? (breakout.direction === 'BUY' ? 'RESISTANCE' : breakout.direction === 'SELL' ? 'SUPPORT' : '—'),
+      low: breakout.level.low, high: breakout.level.high, price: breakout.level.price
+    } : null,
+    volumeConfirmation: 'UNAVAILABLE',
     rsiConfirmation: 'UNAVAILABLE', structureQuality: 'UNAVAILABLE', zone: setup?.level ?? null,
     timestamp: setup?.timestamp ?? null, requiredRR: 1.5,
     reason: setup?.reason ?? 'Waiting for a valid 15M reversal, fake-breakout reclaim or zone rejection'
@@ -1314,7 +1345,12 @@ function buildZoneTradePlan(
     stopDistancePercent: entry > 0 ? risk / entry * 100 : null, targets,
     riskReward: targets.map((target: any) => target.riskReward), qualityScore,
     trendRegime, emaRegime: levels.emaRegime ?? 'UNAVAILABLE', setupType, strategy,
-    breakoutStatus: breakout?.status ?? 'NO ACTIVE BREAKOUT', breakoutPrice: breakout?.breakoutPrice ?? null, breakoutExtreme: breakout?.breakoutExtreme ?? null,
+    breakoutStatus: breakout?.status ?? 'NO ACTIVE BREAKOUT',
+    breakoutZone: breakout?.level ? {
+      side: breakout.zoneSide ?? breakout.level.zoneSide ?? (breakout.direction === 'BUY' ? 'RESISTANCE' : breakout.direction === 'SELL' ? 'SUPPORT' : '—'),
+      low: breakout.level.low, high: breakout.level.high, price: breakout.level.price
+    } : null,
+    breakoutPrice: breakout?.breakoutPrice ?? null, breakoutExtreme: breakout?.breakoutExtreme ?? null,
     reclaimPrice: breakout?.reclaimPrice ?? null, trendAligned, countertrend, volumeConfirmation,
     volumeRatio: Number.isFinite(volume) ? volume : null, rsiConfirmation,
     rsi14: Number.isFinite(rsi) ? rsi : null, divergenceConfirmed, trendlineConfirmed,
@@ -1419,6 +1455,24 @@ const [srRejectionFavoriteFilter, setSrRejectionFavoriteFilter] = useState<'all'
 const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
 const [zoneTradeSearch, setZoneTradeSearch] = useState('');
 const [zoneTradeFavoriteFilter, setZoneTradeFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
+const zoneTradeRows = useMemo(() => {
+  if (!zoneTradeExpanded) return [];
+  const query = zoneTradeSearch.trim().toLowerCase();
+  const rows = signals.filter((signal: any) => {
+    if (!signal.zoneTradePlan) return false;
+    if (query && !String(signal.symbol ?? '').toLowerCase().includes(query)) return false;
+    if (zoneTradeFavoriteFilter === 'favorites' && !favorites.has(signal.symbol)) return false;
+    if (zoneTradeFavoriteFilter === 'not-favorite' && favorites.has(signal.symbol)) return false;
+    return true;
+  });
+  const rank = (plan: any) => plan?.status === 'ENTRY TRIGGERED' ? 0 :
+    plan?.status === 'SETUP CONFIRMED' ? 1 : plan?.status === 'NO TRADE' ? 2 :
+    plan?.status === 'EXPIRED' ? 3 : 4;
+  return rows.sort((a: any, b: any) =>
+    rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
+    String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
+  );
+}, [signals, zoneTradeExpanded, zoneTradeSearch, zoneTradeFavoriteFilter, favorites]);
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -5178,7 +5232,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-emerald-300">Table 5 — 4H Take Profit Targets</h2>
-          <p className="text-xs text-gray-400">15M trend-line compression and completed-candle reversal patterns are detected near 4H zones; pattern confirmation is informational and does not replace the separate 15M entry trigger. 4H structure supplies stop-loss and TP1–TP3.</p>
+          <p className="text-xs text-gray-400">Scans completed 15M candles against 4H support and resistance. Shows the zone being tested, breakout or breakdown stage, reversal evidence, entry trigger, structural stop, and 4H profit targets. A setup is not an entry until live price crosses its trigger.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setZoneTradeExpanded(v => !v)} aria-expanded={zoneTradeExpanded}
@@ -5195,28 +5249,29 @@ latestRSI,
         </div>
       </div>
       {zoneTradeExpanded && <>
-        <p className="text-xs text-gray-500 mb-2">Unified Table 5 engine: support reversal BUY, resistance reversal SELL and confirmed fake-breakout reversal. Fake breakouts require a completed 15M close beyond a 4H zone followed by a completed close back inside; a wick alone is insufficient. Entry trigger = setup-candle high + 0.02% for BUY, or low − 0.02% for SELL. Pending setups expire after four 15M candles (one hour) and are invalidated if price hits the structural stop first. The stop is beyond the failed-breakout extreme for fake breakouts, or beyond the far edge of the 4H zone for other reversals, with a 0.15× completed-4H ATR buffer. TP1–TP3 use successive opposing 4H levels; TP1 must have at least 1:1.5 R:R in every trend regime. Quality scoring ranks eligible setups but cannot override invalidation or minimum R:R. Levels are analytical references, not guaranteed fills or returns.</p>
+        <p className="text-xs text-gray-500 mb-2">Signal guide: <strong>Resistance breakout</strong> = BUY continuation watch. <strong>Support breakdown</strong> = SELL continuation watch. <strong>Potential fake breakout/breakdown</strong> means live price has returned inside the crossed 4H zone; a completed 15M reclaim candle is still required. <strong>Confirmed resistance fakeout</strong> = SELL. <strong>Confirmed support breakdown failure</strong> = BUY. A wick alone does not confirm a breakout. Entry requires live price to cross the trigger. Pending setups expire after four 15M candles. TP1 must offer at least 1:1.5 R:R. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1740px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Reversal Pattern</th><th className="p-2">Fake Breakout / Breakout Status</th><th className="p-2">15M Entry Trigger</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Reversal Pattern</th><th className="p-2">4H Zone Break / Failure Stage</th><th className="p-2">15M Entry Trigger</th>
               <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
               <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
             <tbody>
-              {signals
-                .filter(s => {
-                  const symbolMatches = !zoneTradeSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(zoneTradeSearch.trim().toLowerCase());
-                  const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
-                    (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
-                  return symbolMatches && favoriteMatches && s.zoneTradePlan;
-                })
-                .sort((a, b) => {
-                  const rank = (plan: any) => plan?.status === 'ENTRY TRIGGERED' ? 0 : plan?.status === 'SETUP CONFIRMED' ? 1 : plan?.status === 'NO TRADE' ? 2 : plan?.status === 'EXPIRED' ? 3 : 4;
-                  return rank(a.zoneTradePlan) - rank(b.zoneTradePlan) || String(a.symbol).localeCompare(String(b.symbol));
-                })
-                .map(s => {
+              {zoneTradeRows.map(s => {
                   const p = s.zoneTradePlan ?? {};
+                  const breakoutZoneSide = p.breakoutZone?.side;
+                  const breakoutStatusLabel =
+                    p.breakoutStatus === 'BREAKOUT ATTEMPT' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT ATTEMPT — BUY WATCH' : 'SUPPORT RECLAIM ATTEMPT — BUY WATCH') :
+                    p.breakoutStatus === 'BREAKOUT HOLDING' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT HOLDING — BUY WATCH' : 'SUPPORT RECLAIM HOLDING — BUY WATCH') :
+                    p.breakoutStatus === 'BREAKDOWN ATTEMPT' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN ATTEMPT — SELL WATCH' : 'RESISTANCE BREAKDOWN ATTEMPT — SELL WATCH') :
+                    p.breakoutStatus === 'BREAKDOWN HOLDING' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN HOLDING — SELL WATCH' : 'RESISTANCE BREAKDOWN HOLDING — SELL WATCH') :
+                    p.breakoutStatus === 'POTENTIAL FAKE BREAKOUT' ? (breakoutZoneSide === 'RESISTANCE' ? 'POTENTIAL RESISTANCE FAKEOUT — SELL WATCH' : 'POTENTIAL SUPPORT RECLAIM FAILURE — SELL WATCH') :
+                    p.breakoutStatus === 'POTENTIAL FAKE BREAKDOWN' ? (breakoutZoneSide === 'SUPPORT' ? 'POTENTIAL SUPPORT BREAKDOWN FAILURE — BUY WATCH' : 'POTENTIAL RESISTANCE BREAKDOWN FAILURE — BUY WATCH') :
+                    p.breakoutStatus === 'BEARISH FAKE BREAKOUT' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE FAKEOUT CONFIRMED — SELL' : 'SUPPORT RECLAIM FAILURE CONFIRMED — SELL') :
+                    p.breakoutStatus === 'BULLISH FAKE BREAKDOWN' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN FAILURE CONFIRMED — BUY' : 'RESISTANCE BREAKDOWN FAILURE CONFIRMED — BUY') :
+                    p.breakoutStatus === 'NO ACTIVE BREAKOUT' ? 'NO ACTIVE 4H ZONE BREAK' :
+                    p.breakoutStatus ?? 'UNAVAILABLE';
                   const fmtPrice = (value: any) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value).toPrecision(7) : '—';
                   const fmtTarget = (target: any) => target ? <strong>{fmtPrice(target.price)}</strong> : '—';
                   const fmtRR = (target: any) => target && Number.isFinite(target.riskReward) ? `1:${Number(target.riskReward).toFixed(2)}` : '—';
@@ -5249,9 +5304,11 @@ latestRSI,
                       {s.fifteenMinuteReversal?.reason && <div className="text-[10px] text-gray-500 max-w-[190px] whitespace-normal">{s.fifteenMinuteReversal.reason}</div>}
                     </td>
                     <td className="p-2 text-center">
-                      <div className={`font-semibold ${(String(p.breakoutStatus ?? '').includes('BEARISH') || String(p.breakoutStatus ?? '').includes('FAKE BREAKOUT')) ? 'text-red-300' : (String(p.breakoutStatus ?? '').includes('BULLISH') || String(p.breakoutStatus ?? '').includes('FAKE BREAKDOWN')) ? 'text-green-300' : 'text-yellow-300'}`}>{p.breakoutStatus ?? 'UNAVAILABLE'}</div>
+                      <div className={`font-semibold ${breakoutStatusLabel.includes('SELL') ? 'text-red-300' : breakoutStatusLabel.includes('BUY') ? 'text-green-300' : 'text-yellow-300'}`}>{breakoutStatusLabel}</div>
+                      {p.breakoutZone && <div className="text-[10px] text-gray-300">{p.breakoutZone.side} ZONE · {fmtPrice(p.breakoutZone.low)}–{fmtPrice(p.breakoutZone.high)}</div>}
+                      {p.breakoutStatus === 'NO ACTIVE BREAKOUT' && <div className="text-[10px] text-gray-500">No completed 15M candle has closed beyond a tracked 4H zone in the recent scan window.</div>}
                       {p.strategy && <div className="text-[10px] text-gray-400">{p.strategy}</div>}
-                      {p.breakoutPrice != null && <div className="text-[10px] text-gray-500">Break {fmtPrice(p.breakoutPrice)} · Reclaim {fmtPrice(p.reclaimPrice)}</div>}
+                      {p.breakoutPrice != null && <div className="text-[10px] text-gray-500">Breakout close {fmtPrice(p.breakoutPrice)} · reclaim close {fmtPrice(p.reclaimPrice)}</div>}
                     </td>
                     <td className="p-2 text-right"><div className="font-semibold">{fmtPrice(p.triggerPrice ?? p.entry)}</div>
                       {p.setupClose != null && <div className="text-[10px] text-gray-500">15M close {fmtPrice(p.setupClose)}</div>}
@@ -5270,12 +5327,7 @@ latestRSI,
                     </td>
                   </tr>;
                 })}
-              {signals.filter(s => {
-                const symbolMatches = !zoneTradeSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(zoneTradeSearch.trim().toLowerCase());
-                const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
-                  (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
-                return symbolMatches && favoriteMatches && s.zoneTradePlan;
-              }).length === 0 && <tr><td colSpan={12} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A valid 15M reversal or confirmed fake-breakout reclaim is required before an entry plan can be calculated.</td></tr>}
+              {zoneTradeRows.length === 0 && <tr><td colSpan={12} className="p-4 text-center text-gray-500">No matching symbols have a calculated Table 5 plan. Check the search/favorite filter or wait for a qualifying completed 15M setup.</td></tr>}
             </tbody>
           </table>
         </div>
