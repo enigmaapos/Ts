@@ -922,29 +922,26 @@ function detectStrict15MRejection(args: {
 
 
 function buildZoneTradePlan(rejection: any, levels: any) {
+  // Entry is triggered exclusively by a confirmed, completed 15M rejection.
+  // Stops and targets are structural 4H levels, rebuilt from completed 4H candles.
   if (!rejection?.available || rejection.status !== 'REJECTION CONFIRMED' ||
       !['BUY', 'SELL'].includes(rejection.direction) || !rejection.level ||
       !Number.isFinite(rejection.candleClose) || !levels?.available) {
     return {
       available: false,
-      status: rejection?.status === 'BREAKOUT CONFIRMED' ? 'NO REVERSAL TRADE — BREAKOUT' :
-        rejection?.status === 'REJECTION FORMING' ? 'WAIT — CANDLE NOT CLOSED' :
-        rejection?.status === 'TESTING' ? 'WAIT — ZONE TESTING' : 'WAITING FOR CONFIRMATION',
-      direction: rejection?.direction ?? 'NONE',
-      entry: null, stopLoss: null, targets: [], riskReward: null,
+      status: 'WAIT' as const,
+      direction: ['BUY', 'SELL'].includes(rejection?.direction) ? rejection.direction : '—',
+      entry: null, stopLoss: null, targets: [], riskReward: [],
       zone: rejection?.level ?? null, timestamp: rejection?.timestamp ?? null,
-      reason: 'A completed strict 15M rejection is required before calculating a trade plan'
+      reason: rejection?.reason ?? 'Waiting for a confirmed completed 15M rejection; 4H structure is recalculated from completed 4H candles'
     };
   }
 
   const direction = rejection.direction as 'BUY' | 'SELL';
   const entry = Number(rejection.candleClose);
   const zone = rejection.level;
-  const atr = Number(rejection.atr14);
-  const buffer = Math.max(Number.isFinite(atr) ? atr * 0.25 : 0, entry * 0.0005);
-  const stopLoss = direction === 'SELL'
-    ? Number(zone.high) + buffer
-    : Number(zone.low) - buffer;
+  // Structural invalidation is the far edge of the rejected 4H zone.
+  const stopLoss = direction === 'BUY' ? Number(zone.low) : Number(zone.high);
   const risk = Math.abs(entry - stopLoss);
   const rawTargets = direction === 'SELL'
     ? (Array.isArray(levels.supportZones) ? levels.supportZones : [levels.support])
@@ -968,23 +965,24 @@ function buildZoneTradePlan(rejection: any, levels: any) {
     };
   });
   const firstTargetRR = targets[0]?.riskReward ?? null;
-  const status = !Number.isFinite(risk) || risk <= 0 || !targets.length
-    ? 'NO TRADE — NO VALID TARGET'
-    : firstTargetRR >= 1.5
-    ? 'TRADE OPPORTUNITY'
-    : 'NO TRADE — LOW RISK/REWARD';
+  const validRisk = Number.isFinite(risk) && risk > 0 &&
+    (direction === 'BUY' ? stopLoss < entry : stopLoss > entry);
+  const status = !validRisk || !targets.length
+    ? 'NO TRADE' as const
+    : Number.isFinite(firstTargetRR) && firstTargetRR >= 1.5
+      ? 'OPPORTUNITY' as const
+      : 'NO TRADE' as const;
 
   return {
     available: true, status, direction, entry, stopLoss, risk,
     stopDistancePercent: entry > 0 ? risk / entry * 100 : null,
-    targets, riskReward: firstTargetRR,
+    targets, riskReward: targets.map((target: any) => target.riskReward),
     zone: { ...zone, side: direction === 'SELL' ? 'resistance' : 'support' },
     timestamp: rejection.timestamp,
-    reason: status === 'TRADE OPPORTUNITY'
-      ? 'Confirmed 15M rejection with at least 1:1.5 reward-to-risk at the nearest opposing 4H zone'
-      : !targets.length
-      ? 'No opposing 4H structure zone exists beyond the proposed entry; target not invented'
-      : 'Nearest opposing 4H zone offers less than the required 1:1.5 reward-to-risk'
+    reason: !validRisk ? 'The rejected 4H zone does not provide a valid structural stop-loss beyond the 15M entry' :
+      !targets.length ? 'No valid opposing 4H structural target exists beyond the entry' :
+      status === 'OPPORTUNITY' ? 'Confirmed 15M rejection; nearest opposing completed-4H target offers at least 1:1.5 R:R' :
+      'Confirmed 15M rejection, but the nearest opposing 4H target offers less than 1:1.5 R:R'
   };
 }
 
@@ -4818,12 +4816,12 @@ latestRSI,
       </>}
     </section>
 
-    {/* Zone rejection trade decision and structural profit targets */}
+    {/* Table 5 — dedicated 4H Take Profit Targets */}
     <section className="mt-6 border border-emerald-700/60 rounded-lg p-3 bg-gray-900/60">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
-          <h2 className="text-lg font-bold text-emerald-300">Zone Rejection & Profit Target Decision — 5th Table</h2>
-          <p className="text-xs text-gray-400">Uses completed strict 15M rejection candles, 4H opposing structure zones, and a 15M ATR-based stop buffer. Only confirmed rejection setups receive entry/SL/TP calculations.</p>
+          <h2 className="text-lg font-bold text-emerald-300">Table 5 — 4H Take Profit Targets</h2>
+          <p className="text-xs text-gray-400">15M confirmed rejection supplies the entry reference. Stop-loss and TP1–TP3 come from 4H structure and are refreshed as completed 4H candles develop.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setZoneTradeExpanded(v => !v)} aria-expanded={zoneTradeExpanded}
@@ -4831,23 +4829,22 @@ latestRSI,
             {zoneTradeExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
           </button>
           <input type="search" value={zoneTradeSearch} onChange={e => setZoneTradeSearch(e.target.value)}
-            placeholder="Search symbol" aria-label="Search zone trade plan symbols"
+            placeholder="Search symbol" aria-label="Search 4H take profit symbols"
             className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
           <select value={zoneTradeFavoriteFilter} onChange={e => setZoneTradeFavoriteFilter(e.target.value as typeof zoneTradeFavoriteFilter)}
-            aria-label="Zone trade plan favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
+            aria-label="4H take profit favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
             <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
           </select>
         </div>
       </div>
       {zoneTradeExpanded && <>
-        <p className="text-xs text-gray-500 mb-2">TP1–TP3 are the nearest available opposing 4H zones. Stop-loss is beyond the rejected zone by 0.25 × 15M ATR14 (with a 0.05% minimum buffer). TRADE OPPORTUNITY requires TP1 reward/risk of at least 1:1.5. These are analytical levels, not guaranteed fills or returns.</p>
+        <p className="text-xs text-gray-500 mb-2">15M does not calculate targets. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. OPPORTUNITY requires TP1 R:R of at least 1:1.5. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
-          <table className="w-full min-w-[1500px] text-xs border-collapse">
+          <table className="w-full min-w-[1250px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Decision</th><th className="p-2">Direction</th>
-              <th className="p-2">Rejected 4H Zone</th><th className="p-2">Entry Reference</th><th className="p-2">Stop-loss</th>
-              <th className="p-2">TP1</th><th className="p-2">TP2</th><th className="p-2">TP3</th>
-              <th className="p-2">TP1 R:R</th><th className="p-2">Stop Distance</th><th className="p-2">15M Confirmation Time</th><th className="p-2">Reason</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Entry</th>
+              <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
+              <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
             <tbody>
               {signals
@@ -4858,18 +4855,15 @@ latestRSI,
                   return symbolMatches && favoriteMatches && s.zoneTradePlan;
                 })
                 .sort((a, b) => {
-                  const rank = (plan: any) => plan?.status === 'TRADE OPPORTUNITY' ? 0 :
-                    plan?.status?.startsWith('NO TRADE') ? 1 : 2;
-                  return rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
-                    String(a.symbol).localeCompare(String(b.symbol));
+                  const rank = (plan: any) => plan?.status === 'OPPORTUNITY' ? 0 : plan?.status === 'NO TRADE' ? 1 : 2;
+                  return rank(a.zoneTradePlan) - rank(b.zoneTradePlan) || String(a.symbol).localeCompare(String(b.symbol));
                 })
                 .map(s => {
                   const p = s.zoneTradePlan ?? {};
                   const fmtPrice = (value: any) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value).toPrecision(7) : '—';
-                  const fmtTarget = (target: any) => target
-                    ? <div className="flex flex-col gap-0.5"><strong>{fmtPrice(target.price)}</strong><span className="text-gray-500">{Number.isFinite(target.distancePercent) ? `${target.distancePercent.toFixed(2)}%` : '—'} · {Number.isFinite(target.riskReward) ? `${target.riskReward.toFixed(2)}R` : '—'}</span></div>
-                    : '—';
-                  const opportunity = p.status === 'TRADE OPPORTUNITY';
+                  const fmtTarget = (target: any) => target ? <strong>{fmtPrice(target.price)}</strong> : '—';
+                  const fmtRR = (target: any) => target && Number.isFinite(target.riskReward) ? `1:${Number(target.riskReward).toFixed(2)}` : '—';
+                  const opportunity = p.status === 'OPPORTUNITY';
                   const sell = p.direction === 'SELL';
                   return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                     <td className="p-2 font-semibold whitespace-nowrap">
@@ -4880,18 +4874,14 @@ latestRSI,
                         {favorites.has(s.symbol) ? '★' : '☆'}
                       </button>{s.symbol}
                     </td>
-                    <td className={`p-2 text-center font-bold ${opportunity ? 'text-emerald-300' : p.status?.startsWith('NO TRADE') ? 'text-red-300' : 'text-yellow-300'}`}>{p.status ?? 'N/A'}</td>
                     <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : p.direction === 'BUY' ? 'text-green-400' : 'text-gray-400'}`}>{p.direction ?? '—'}</td>
-                    <td className="p-2 text-right">{p.zone && Number.isFinite(p.zone.low) && Number.isFinite(p.zone.high) ? `${fmtPrice(p.zone.low)} – ${fmtPrice(p.zone.high)}` : '—'}</td>
                     <td className="p-2 text-right">{fmtPrice(p.entry)}</td>
                     <td className="p-2 text-right text-red-300">{fmtPrice(p.stopLoss)}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[0])}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[1])}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[2])}</td>
-                    <td className="p-2 text-center font-semibold">{Number.isFinite(p.riskReward) ? `1:${Number(p.riskReward).toFixed(2)}` : '—'}</td>
-                    <td className="p-2 text-right">{Number.isFinite(p.stopDistancePercent) ? `${Number(p.stopDistancePercent).toFixed(2)}%` : '—'}</td>
-                    <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(p.timestamp)}</td>
-                    <td className="p-2 min-w-[280px] text-gray-400">{p.reason ?? 'N/A'}</td>
+                    <td className="p-2 text-center"><div>TP1 {fmtRR(p.targets?.[0])}</div><div>TP2 {fmtRR(p.targets?.[1])}</div><div>TP3 {fmtRR(p.targets?.[2])}</div></td>
+                    <td className={`p-2 text-center font-bold ${opportunity ? 'text-emerald-300' : p.status === 'NO TRADE' ? 'text-red-300' : 'text-yellow-300'}`}>{p.status ?? 'WAIT'}</td>
                   </tr>;
                 })}
               {signals.filter(s => {
@@ -4899,7 +4889,7 @@ latestRSI,
                 const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
                   (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
                 return symbolMatches && favoriteMatches && s.zoneTradePlan;
-              }).length === 0 && <tr><td colSpan={13} className="p-4 text-center text-gray-500">No zone rejection trade plans match this search/favorite filter yet. A confirmed 15M rejection is required for entry and target calculations.</td></tr>}
+              }).length === 0 && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A confirmed completed 15M rejection is required before entry and target calculations.</td></tr>}
             </tbody>
           </table>
         </div>
