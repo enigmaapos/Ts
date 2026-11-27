@@ -926,91 +926,96 @@ function detect15MZoneTrendline(args: { candles: Candle[]; rsi14: number[]; leve
 
 function detect15MZoneReversalPattern(args: { candles: Candle[]; rsi14: number[]; levels: any; trendline: any }) {
   const { candles, rsi14, levels, trendline } = args;
+  const now = Date.now();
   const completed = candles.map((c, index) => ({ c, index }))
-    .filter(x => Number.isFinite(x.c.closeTime) && x.c.closeTime <= Date.now());
+    .filter(x => Number.isFinite(x.c.closeTime) && x.c.closeTime <= now);
   const unavailable = {
     available: false, status: 'UNAVAILABLE', direction: 'NONE', pattern: '—', zone: '—',
     score: null as number | null, rsi: null as number | null, volumeRatio: null as number | null,
     confirmations: [] as string[], timestamp: null as number | null,
+    ageCandles: null as number | null, ageMinutes: null as number | null,
     reason: '15M completed candles or 4H zones unavailable'
   };
   if (!levels?.available || completed.length < 25) return unavailable;
+  // Search the latest eight completed 15M candles (two hours), newest first.
+  const scanStart = Math.max(2, completed.length - 8);
+  const resistance = levels.resistance, support = levels.support;
+  const zoneTouched = (zone: any, candle: Candle) =>
+    Boolean(zone && candle.high >= zone.low && candle.low <= zone.high);
 
-  const last = completed[completed.length - 1];
-  const prev = completed[completed.length - 2];
-  const prev2 = completed[completed.length - 3];
-  const c = last.c, p = prev.c, p2 = prev2.c;
-  const body = Math.abs(c.close - c.open);
-  const prevBody = Math.abs(p.close - p.open);
-  const safeBody = Math.max(body, c.close * 0.00005);
-  const range = Math.max(c.high - c.low, c.close * 0.00001);
-  const upperWick = c.high - Math.max(c.open, c.close);
-  const lowerWick = Math.min(c.open, c.close) - c.low;
-  const bullishC = c.close > c.open;
-  const bearishC = c.close < c.open;
-  const bullishPrev = p.close > p.open;
-  const bearishPrev = p.close < p.open;
-  const r = levels.resistance, support = levels.support;
-  const zoneTouched = (zone: any, candle: Candle) => Boolean(zone && candle.high >= zone.low && candle.low <= zone.high);
-  const atResistance = zoneTouched(r, c);
-  const atSupport = zoneTouched(support, c);
+  for (let pos = completed.length - 1; pos >= scanStart; pos--) {
+    const current = completed[pos], previous = completed[pos - 1], previous2 = completed[pos - 2];
+    const c = current.c, p = previous.c, p2 = previous2.c;
+    const body = Math.abs(c.close - c.open), prevBody = Math.abs(p.close - p.open);
+    const safeBody = Math.max(body, c.close * 0.00005);
+    const range = Math.max(c.high - c.low, c.close * 0.00001);
+    const upperWick = c.high - Math.max(c.open, c.close);
+    const lowerWick = Math.min(c.open, c.close) - c.low;
+    const bullishC = c.close > c.open, bearishC = c.close < c.open;
+    const bullishPrev = p.close > p.open, bearishPrev = p.close < p.open;
+    const atResistance = zoneTouched(resistance, c), atSupport = zoneTouched(support, c);
+    const bearishEngulfing = bearishC && bullishPrev && c.open >= p.close && c.close <= p.open && body >= prevBody * 0.9;
+    const bullishEngulfing = bullishC && bearishPrev && c.open <= p.close && c.close >= p.open && body >= prevBody * 0.9;
+    const shootingStar = upperWick >= safeBody * 2 && upperWick / range >= 0.55 && lowerWick / range <= 0.25 && body / range <= 0.35;
+    const hammer = lowerWick >= safeBody * 2 && lowerWick / range >= 0.55 && upperWick / range <= 0.25 && body / range <= 0.35;
+    const p2Body = Math.abs(p2.close - p2.open), p2Range = Math.max(p2.high - p2.low, p2.close * 0.00001);
+    const middleSmall = prevBody / Math.max(p.high - p.low, p.close * 0.00001) <= 0.35;
+    const firstBearish = p2.close < p2.open && p2Body / p2Range >= 0.45;
+    const firstBullish = p2.close > p2.open && p2Body / p2Range >= 0.45;
+    const eveningStar = firstBullish && middleSmall && bearishC && c.close < (p2.open + p2.close) / 2;
+    const morningStar = firstBearish && middleSmall && bullishC && c.close > (p2.open + p2.close) / 2;
 
-  const bearishEngulfing = bearishC && bullishPrev && c.open >= p.close && c.close <= p.open && body >= prevBody * 0.9;
-  const bullishEngulfing = bullishC && bearishPrev && c.open <= p.close && c.close >= p.open && body >= prevBody * 0.9;
-  const shootingStar = upperWick >= safeBody * 2 && upperWick / range >= 0.55 && lowerWick / range <= 0.25 && body / range <= 0.35;
-  const hammer = lowerWick >= safeBody * 2 && lowerWick / range >= 0.55 && upperWick / range <= 0.25 && body / range <= 0.35;
-  const p2Body = Math.abs(p2.close - p2.open);
-  const p2Range = Math.max(p2.high - p2.low, p2.close * 0.00001);
-  const middleSmall = prevBody / Math.max(p.high - p.low, p.close * 0.00001) <= 0.35;
-  const firstBearish = p2.close < p2.open && p2Body / p2Range >= 0.45;
-  const firstBullish = p2.close > p2.open && p2Body / p2Range >= 0.45;
-  const eveningStar = firstBullish && middleSmall && bearishC && c.close < (p2.open + p2.close) / 2;
-  const morningStar = firstBearish && middleSmall && bullishC && c.close > (p2.open + p2.close) / 2;
+    let direction = 'NONE', pattern = '—', zoneName = '—', zone: any = null;
+    if (atResistance && (bearishEngulfing || shootingStar || eveningStar)) {
+      direction = 'SELL'; zoneName = 'RESISTANCE'; zone = resistance;
+      pattern = bearishEngulfing ? 'BEARISH ENGULFING' : eveningStar ? 'EVENING STAR' : 'SHOOTING STAR';
+    } else if (atSupport && (bullishEngulfing || hammer || morningStar)) {
+      direction = 'BUY'; zoneName = 'SUPPORT'; zone = support;
+      pattern = bullishEngulfing ? 'BULLISH ENGULFING' : morningStar ? 'MORNING STAR' : 'HAMMER';
+    }
+    if (direction === 'NONE') continue;
+    // Later completed closes through the relevant 4H zone invalidate old patterns.
+    const invalidated = completed.slice(pos + 1).some(({ c: later }) =>
+      direction === 'SELL' ? later.close > zone.high : later.close < zone.low);
+    if (invalidated) continue;
 
-  let direction = 'NONE', pattern = '—', zoneName = '—';
-  if (atResistance && (bearishEngulfing || shootingStar || eveningStar)) {
-    direction = 'SELL'; zoneName = 'RESISTANCE';
-    pattern = bearishEngulfing ? 'BEARISH ENGULFING' : eveningStar ? 'EVENING STAR' : 'SHOOTING STAR';
-  } else if (atSupport && (bullishEngulfing || hammer || morningStar)) {
-    direction = 'BUY'; zoneName = 'SUPPORT';
-    pattern = bullishEngulfing ? 'BULLISH ENGULFING' : morningStar ? 'MORNING STAR' : 'HAMMER';
+    const rsi = rsi14[current.index], priorRsi = rsi14[previous.index];
+    const rsiConfirmed = Number.isFinite(rsi) && Number.isFinite(priorRsi) &&
+      (direction === 'SELL' ? rsi < priorRsi : rsi > priorRsi);
+    const volumeWindow = completed.slice(Math.max(0, pos - 20), pos).map(x => x.c.volume).filter(Number.isFinite);
+    const avgVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
+    const volumeRatio = Number.isFinite(avgVolume) && avgVolume > 0 ? c.volume / avgVolume : null;
+    const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= 1.2;
+    const divergenceConfirmed = direction === 'SELL' ? levels.bearishDivergence === true : levels.bullishDivergence === true;
+    const trendlineConfirmed = direction === 'SELL'
+      ? trendline?.side === 'RESISTANCE' && trendline?.direction === 'DESCENDING'
+      : trendline?.side === 'SUPPORT' && trendline?.direction === 'ASCENDING';
+    const trendAligned = direction === 'SELL' ? levels.trendRegime === 'BEARISH' : levels.trendRegime === 'BULLISH';
+    const confirmations = ['4H ZONE', ...(rsiConfirmed ? ['RSI MOMENTUM'] : []),
+      ...(volumeConfirmed ? ['VOLUME'] : []), ...(trendlineConfirmed ? ['15M TRENDLINE'] : []),
+      ...(divergenceConfirmed ? ['4H DIVERGENCE'] : []), ...(trendAligned ? ['4H TREND'] : [])];
+    const score = Math.min(100, 60 + (rsiConfirmed ? 12 : 0) + (volumeConfirmed ? 10 : 0) +
+      (trendlineConfirmed ? 10 : 0) + (divergenceConfirmed ? 5 : 0) + (trendAligned ? 3 : 0));
+    const extraConfirmations = [rsiConfirmed, volumeConfirmed, trendlineConfirmed, divergenceConfirmed, trendAligned].filter(Boolean).length;
+    const status = extraConfirmations >= 2 && score >= 70 ? 'REVERSAL CONFIRMED' : 'PATTERN CONFIRMED';
+    const ageCandles = completed.length - 1 - pos;
+    const ageMinutes = Math.max(0, Math.round((now - Number(c.closeTime)) / 60000));
+    return {
+      available: true, status, direction, pattern, zone: zoneName, score,
+      rsi: Number.isFinite(rsi) ? rsi : null, volumeRatio: Number.isFinite(volumeRatio) ? volumeRatio : null,
+      confirmations, timestamp: c.timestamp, candleClose: c.close, candleCloseTime: c.closeTime,
+      ageCandles, ageMinutes, scanWindowCandles: 8,
+      reason: `${pattern} formed ${ageCandles} completed 15M candle(s) ago (${ageMinutes} minutes) at 4H ${zoneName.toLowerCase()}`
+    };
   }
-  if (direction === 'NONE') return {
-    ...unavailable, available: true, status: 'NO PATTERN',
-    rsi: Number.isFinite(rsi14[last.index]) ? rsi14[last.index] : null,
-    reason: 'No qualifying reversal candle on the latest completed 15M candle inside a 4H zone'
-  };
-
-  const rsi = rsi14[last.index];
-  const priorRsi = rsi14[prev.index];
-  const rsiConfirmed = Number.isFinite(rsi) && Number.isFinite(priorRsi) &&
-    (direction === 'SELL' ? rsi < priorRsi : rsi > priorRsi);
-  const volumeWindow = completed.slice(Math.max(0, completed.length - 21), -1).map(x => x.c.volume).filter(Number.isFinite);
-  const avgVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
-  const volumeRatio = Number.isFinite(avgVolume) && avgVolume > 0 ? c.volume / avgVolume : null;
-  const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= 1.2;
-  const divergenceConfirmed = direction === 'SELL' ? levels.bearishDivergence === true : levels.bullishDivergence === true;
-  const trendlineConfirmed = direction === 'SELL'
-    ? trendline?.side === 'RESISTANCE' && trendline?.direction === 'DESCENDING'
-    : trendline?.side === 'SUPPORT' && trendline?.direction === 'ASCENDING';
-  const trendAligned = direction === 'SELL' ? levels.trendRegime === 'BEARISH' : levels.trendRegime === 'BULLISH';
-  const confirmations = [
-    '4H ZONE', ...(rsiConfirmed ? ['RSI MOMENTUM'] : []),
-    ...(volumeConfirmed ? ['VOLUME'] : []), ...(trendlineConfirmed ? ['15M TRENDLINE'] : []),
-    ...(divergenceConfirmed ? ['4H DIVERGENCE'] : []), ...(trendAligned ? ['4H TREND'] : [])
-  ];
-  const score = Math.min(100, 40 + 20 + (rsiConfirmed ? 12 : 0) + (volumeConfirmed ? 10 : 0) +
-    (trendlineConfirmed ? 10 : 0) + (divergenceConfirmed ? 5 : 0) + (trendAligned ? 3 : 0));
-  const extraConfirmations = [rsiConfirmed, volumeConfirmed, trendlineConfirmed, divergenceConfirmed, trendAligned].filter(Boolean).length;
-  const status = extraConfirmations >= 2 && score >= 70 ? 'REVERSAL CONFIRMED' : 'PATTERN CONFIRMED';
+  const latest = completed[completed.length - 1];
   return {
-    available: true, status, direction, pattern, zone: zoneName, score,
-    rsi: Number.isFinite(rsi) ? rsi : null, volumeRatio: Number.isFinite(volumeRatio) ? volumeRatio : null,
-    confirmations, timestamp: c.timestamp, candleClose: c.close, candleCloseTime: c.closeTime,
-    reason: `${pattern} on completed 15M candle at 4H ${zoneName.toLowerCase()}${status === 'REVERSAL CONFIRMED' ? ', supported by at least two additional indicator confirmations' : '; additional confirmation is limited'}`
+    ...unavailable, available: true, status: 'NO PATTERN',
+    rsi: Number.isFinite(rsi14[latest.index]) ? rsi14[latest.index] : null,
+    scanWindowCandles: 8,
+    reason: 'No valid reversal pattern found in the latest eight completed 15M candles; patterns invalidated by a close through their 4H zone are excluded'
   };
 }
-
 function detectStrict15MRejection(args: {
   candles: Candle[]; rsi14: number[]; levels: any; currentPrice: number;
 }) {
@@ -5095,6 +5100,7 @@ latestRSI,
                       <div className={`font-semibold ${s.fifteenMinuteReversal?.direction === 'SELL' ? 'text-red-300' : s.fifteenMinuteReversal?.direction === 'BUY' ? 'text-green-300' : 'text-gray-400'}`}>{s.fifteenMinuteReversal?.status ?? 'UNAVAILABLE'}</div>
                       {s.fifteenMinuteReversal?.available && <>
                         <div className="text-[10px] text-gray-300">{s.fifteenMinuteReversal.pattern} · {s.fifteenMinuteReversal.zone}</div>
+                        <div className="text-[10px] text-cyan-300">Formed {s.fifteenMinuteReversal.ageCandles ?? 0} candle(s) ago · {s.fifteenMinuteReversal.ageMinutes ?? 0} min · 2h scan</div>
                         <div className="text-[10px] text-gray-400">Score {s.fifteenMinuteReversal.score ?? '—'}/100 · RSI {Number.isFinite(s.fifteenMinuteReversal.rsi) ? Number(s.fifteenMinuteReversal.rsi).toFixed(1) : '—'} · Vol {Number.isFinite(s.fifteenMinuteReversal.volumeRatio) ? `${Number(s.fifteenMinuteReversal.volumeRatio).toFixed(2)}×` : '—'}</div>
                         <div className="text-[10px] text-gray-500 whitespace-normal">{(s.fifteenMinuteReversal.confirmations ?? []).join(' · ')}</div>
                       </>}
