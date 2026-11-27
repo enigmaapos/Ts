@@ -5157,7 +5157,7 @@ latestRSI,
                   <td className="p-2 text-left min-w-[190px]">
                     {sr.resistance ? <><div className="font-semibold mb-1">{sr.resistance.strength}/100 strength</div>{renderSourceGroups(sr.resistance)}</> : 'N/A'}
                   </td>
-                  <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' ? 'text-yellow-200' : r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{r.status ?? 'N/A'}</td>
+                  <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' ? 'text-yellow-200' : r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{r.status === 'REJECTION CONFIRMED' ? (r.direction === 'SELL' ? 'RESISTANCE REJECTED — SELL' : r.direction === 'BUY' ? 'SUPPORT REJECTED — BUY' : 'REJECTION CONFIRMED') : (r.status ?? 'N/A')}</td>
                   <td className="p-2 text-center">{r.direction ?? 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(r.rsi14) ? Number(r.rsi14).toFixed(2) : 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(r.wickRatio) ? `${(r.wickRatio * 100).toFixed(1)}%` : '—'}</td>
