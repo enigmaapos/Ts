@@ -163,6 +163,146 @@ function calculateRSI(closes: number[], period = 3): number[] {
 
 
 /**
+ * Generic OHLCV accumulation heuristic adapted from the user's reference scanner.
+ * It is CPU-only: it never makes network requests. Call it with already-loaded candles.
+ */
+function detectAccumulationGeneric(
+  candles: Candle[],
+  period = 30,
+  sensitivity = 50
+) {
+  const closes = candles.map(c => Number(c.close));
+  const lows = candles.map(c => Number(c.low));
+  const volumes = candles.map(c => Number(c.volume));
+  const len = Math.min(period, closes.length);
+
+  if (len < 10 || ![...closes, ...lows, ...volumes].every(Number.isFinite)) {
+    return { isAccum: false, score: 0, reasons: [] as string[], confidence: 0, relSD: 0, available: false };
+  }
+
+  const sliceC = closes.slice(-len);
+  const sliceL = lows.slice(-len);
+  const sliceV = volumes.slice(-len);
+  const mean = sliceC.reduce((sum, value) => sum + value, 0) / sliceC.length;
+  const variance = sliceC.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / sliceC.length;
+  const sd = Math.sqrt(variance);
+  const relSD = mean ? (sd / mean) * 100 : 0;
+  const reasons: string[] = [];
+  let score = 0;
+
+  const safeSensitivity = Math.max(0, Math.min(100, Number(sensitivity) || 50));
+  const strictThreshold = 2.5;
+  const looseThreshold = 6.0;
+  const relSDThreshold = strictThreshold + (1 - safeSensitivity / 100) * (looseThreshold - strictThreshold);
+
+  if (relSD <= relSDThreshold) {
+    score += 3;
+    reasons.push(`low volatility ${relSD.toFixed(2)}% ≤ ${relSDThreshold.toFixed(2)}%`);
+  } else if (relSD <= relSDThreshold * 1.6) {
+    score += 1;
+    reasons.push(`reduced volatility ${relSD.toFixed(2)}%`);
+  }
+
+  let lowerLowCount = 0;
+  for (let i = 1; i < sliceL.length; i++) {
+    if (sliceL[i] < sliceL[i - 1]) lowerLowCount++;
+  }
+  const lowerLowMax = 2 + Math.round((100 - safeSensitivity) / 50);
+  if (lowerLowCount <= lowerLowMax) {
+    score += 2;
+    reasons.push(`limited lower-lows (${lowerLowCount} ≤ ${lowerLowMax})`);
+  } else {
+    reasons.push(`lower-lows (${lowerLowCount})`);
+  }
+
+  const volumeWindow = Math.min(8, sliceV.length);
+  const volumeBaseline = sliceV.slice(-volumeWindow).reduce((sum, value) => sum + value, 0) / volumeWindow || 0.000001;
+  let upCount = 0;
+  let upVolHigher = 0;
+  for (let i = 1; i < sliceC.length; i++) {
+    if (sliceC[i] > sliceC[i - 1]) {
+      upCount++;
+      if (sliceV[i] > volumeBaseline * (1 + (50 - safeSensitivity) / 200)) upVolHigher++;
+    }
+  }
+  if (upCount >= 3 && upVolHigher >= Math.max(1, Math.round(upCount * 0.4))) {
+    score += 3;
+    reasons.push(`buyers on higher-volume up-bars (${upVolHigher}/${upCount})`);
+  } else if (upCount >= 2) {
+    score += 1;
+    reasons.push(`some up bars (${upCount})`);
+  }
+
+  const ema14 = calculateEMA(sliceC, Math.min(14, sliceC.length)).at(-1);
+  const ema21 = calculateEMA(sliceC, Math.min(21, sliceC.length)).at(-1);
+  if (Number.isFinite(ema14) && Number.isFinite(ema21)) {
+    const slope = Number(ema14) - Number(ema21);
+    const slopeThreshold = (safeSensitivity / 100) * (Number(ema21) * 0.01);
+    if (slope >= -slopeThreshold) {
+      score += 2;
+      reasons.push('EMAs flat/turning up');
+    } else if (Math.abs(slope) < (Number(ema21) * 0.002 || 0.0001)) {
+      score += 1;
+      reasons.push('EMAs flattening');
+    }
+  }
+
+  const rsiSeries = calculateRSI(closes, 14);
+  const rsi = rsiSeries.at(-1);
+  if (Number.isFinite(rsi) && Number(rsi) >= 36 - (safeSensitivity / 20)) {
+    score += 1;
+    reasons.push(`RSI stabilizing (${Number(rsi).toFixed(1)})`);
+  }
+
+  const peak = Math.max(...sliceC);
+  const latest = sliceC[sliceC.length - 1];
+  const dropPct = peak ? ((peak - latest) / peak) * 100 : 0;
+  const requiredDrop = 8 - Math.round(safeSensitivity / 20);
+  if (dropPct >= Math.max(4, requiredDrop)) {
+    score += 1;
+    reasons.push(`follows drop ${dropPct.toFixed(1)}% (req ${Math.max(4, requiredDrop)}%)`);
+  }
+
+  const maxScore = 12;
+  const confidence = Math.min(99, Math.round((score / maxScore) * 100));
+  const isAccum = score >= Math.max(6, Math.round(6 * (0.8 + (50 - safeSensitivity) / 200)));
+  return { isAccum, score, reasons, confidence, relSD, available: true };
+}
+
+function combineMultiTimeframeAccumulation(
+  results: { tf: '15m' | '1h' | '4h'; result: ReturnType<typeof detectAccumulationGeneric> }[],
+  sensitivity = 50
+) {
+  const weights = { '15m': 0.8, '1h': 1.0, '4h': 1.2 };
+  const allAvailable = results.length === 3 && results.every(item => item.result.available);
+  if (!allAvailable) {
+    return {
+      available: false, isAccum: false, confidence: 0, status: 'DATA INCOMPLETE',
+      score15m: null, score1h: null, score4h: null,
+      confidence15m: null, confidence1h: null, confidence4h: null,
+      timeframes: Object.fromEntries(results.map(item => [item.tf, item.result]))
+    };
+  }
+
+  const weightSum = results.reduce((sum, item) => sum + weights[item.tf], 0);
+  const combinedConfidence = Math.round(
+    results.reduce((sum, item) => sum + item.result.confidence * weights[item.tf], 0) / weightSum
+  );
+  const threshold = Math.max(45, (100 - Math.max(0, Math.min(100, Number(sensitivity) || 50))) * 0.6);
+  const isAccum = combinedConfidence >= threshold;
+  const byTf = Object.fromEntries(results.map(item => [item.tf, item.result])) as Record<string, ReturnType<typeof detectAccumulationGeneric>>;
+
+  return {
+    available: true, isAccum, confidence: combinedConfidence,
+    status: isAccum ? 'ACCUMULATION' : 'NOT CONFIRMED',
+    score15m: byTf['15m'].score, score1h: byTf['1h'].score, score4h: byTf['4h'].score,
+    confidence15m: byTf['15m'].confidence, confidence1h: byTf['1h'].confidence, confidence4h: byTf['4h'].confidence,
+    timeframes: byTf
+  };
+}
+
+
+/**
  * Detects a confirmed 3-point bearish divergence on DAILY candles.
  *
  * Detection order is intentional:
@@ -2354,13 +2494,13 @@ const signalCounts = useMemo(() => {
     const klineCache = new Map<string, { expiresAt: number; raw: any[] }>();
     const KLINE_CACHE_TTL_MS = 5_000;
     const MONTHLY_KLINE_CACHE_TTL_MS = 5 * 60 * 1000;
-    const fetchKlines = async (symbol: string, interval: string, label: string) => {
-      const cacheKey = `${symbol}:${interval}`;
+    const fetchKlines = async (symbol: string, interval: string, label: string, limit = 500) => {
+      const cacheKey = `${symbol}:${interval}:${limit}`;
       const cached = klineCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) return cached.raw;
 
       const raw = await safeFetchJson<any[]>(
-        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
         label
       );
       const ttl = interval === '1M' ? MONTHLY_KLINE_CACHE_TTL_MS : KLINE_CACHE_TTL_MS;
@@ -2620,11 +2760,12 @@ await delay(0);
 if (!isMounted) throw new Error('Scanner stopped');
 const alignmentTimeframes = ['15m', '2h', '4h', '1d', '1M'] as const;
 type AlignmentTimeframe = typeof alignmentTimeframes[number];
+const requestedTimeframes = [...alignmentTimeframes, '1h'] as const;
 
-const loadedTimeframes = await Promise.all(alignmentTimeframes.map(async (tf) => {
+const loadedTimeframes = await Promise.all(requestedTimeframes.map(async (tf) => {
   if (tf === interval) return { tf, tfCandles: candles, error: null as string | null };
   try {
-    const tfRaw = await fetchKlines(symbol, tf, `${symbol} ${tf} metrics klines`);
+    const tfRaw = await fetchKlines(symbol, tf, `${symbol} ${tf} metrics klines`, tf === '1h' ? 30 : 500);
     const tfCandles: Candle[] = tfRaw.map((c: any) => ({
       timestamp: +c[0], open: +c[1], high: +c[2], low: +c[3],
       close: +c[4], volume: +c[5], closeTime: +c[6]
@@ -2635,6 +2776,32 @@ const loadedTimeframes = await Promise.all(alignmentTimeframes.map(async (tf) =>
   }
 }));
 
+
+const accumulationSensitivity = 50;
+const accumulation15mLoaded = loadedTimeframes.find(x => x.tf === '15m');
+const accumulation1hLoaded = loadedTimeframes.find(x => x.tf === '1h');
+const accumulation4hLoaded = loadedTimeframes.find(x => x.tf === '4h');
+const accumulation = combineMultiTimeframeAccumulation([
+  {
+    tf: '15m',
+    result: accumulation15mLoaded && !accumulation15mLoaded.error
+      ? detectAccumulationGeneric(accumulation15mLoaded.tfCandles, 30, accumulationSensitivity)
+      : { isAccum: false, score: 0, reasons: [], confidence: 0, relSD: 0, available: false }
+  },
+  {
+    tf: '1h',
+    result: accumulation1hLoaded && !accumulation1hLoaded.error
+      ? detectAccumulationGeneric(accumulation1hLoaded.tfCandles, 30, accumulationSensitivity)
+      : { isAccum: false, score: 0, reasons: [], confidence: 0, relSD: 0, available: false }
+  },
+  {
+    tf: '4h',
+    result: accumulation4hLoaded && !accumulation4hLoaded.error
+      ? detectAccumulationGeneric(accumulation4hLoaded.tfCandles, 20, accumulationSensitivity)
+      : { isAccum: false, score: 0, reasons: [], confidence: 0, relSD: 0, available: false }
+  }
+], accumulationSensitivity);
+
 const multiTimeframeAlignment: Record<string, any> = {};
 for (const loaded of loadedTimeframes) {
   // Yield between timeframe calculations so the browser can paint and process
@@ -2642,6 +2809,7 @@ for (const loaded of loadedTimeframes) {
   await delay(0);
   if (!isMounted) throw new Error('Scanner stopped');
   const tf = loaded.tf;
+  if (tf === '1h') continue; // 1h is fetched with 30 candles for accumulation only.
   try {
     const minimumCandles = tf === '1M' ? 15 : 200;
     if (loaded.error || loaded.tfCandles.length < minimumCandles) {
@@ -2968,7 +3136,7 @@ const zoneTradePlan = buildZoneTradePlan(strict15MRejection, fourHourSupportResi
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
 const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
 const overallMultiTimeframeAlignment = availableAlignmentCount
-  ? `${alignedTimeframeCount}/5 ALIGNED (${availableAlignmentCount}/5 DATA)` : 'N/A';
+  ? `${alignedTimeframeCount}/${alignmentTimeframes.length} ALIGNED (${availableAlignmentCount}/${alignmentTimeframes.length} DATA)` : 'N/A';
 
 const dailyLoaded = loadedTimeframes.find(x => x.tf === '1d');
 const dailyReversal = dailyLoaded && !dailyLoaded.error ? detectClosedDailyReversal(dailyLoaded.tfCandles) : { available:false, pattern:'1D DATA UNAVAILABLE', direction:'NONE', score:null, status:'NO DATA', candleTime:null, close:null, rsi14:null, ema14:null, ema50:null, ema200:null, volumeRatio:null, wickRatio:null, reason:dailyLoaded?.error ?? 'Daily candles unavailable' };
@@ -4009,6 +4177,7 @@ opens,
   divergenceFromLevelCount: summaryCounts.divergenceFromLevelCount,
 mainTrend,
   multiTimeframeAlignment,
+  accumulation,
   fourHourSupportResistance,
   strict15MRejection,
   fifteenMinuteTrendline,
@@ -4831,6 +5000,7 @@ latestRSI,
         <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Resistance</th>
         <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
+        <th className="px-3 py-2 text-center whitespace-nowrap">Accumulation (15m / 1h / 4h)</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Trade Setup</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Possible Reversal</th>
@@ -5043,8 +5213,22 @@ latestRSI,
                 ? `${fundingRates[s.symbol] > 0 ? '+' : ''}${(fundingRates[s.symbol] * 100).toFixed(4)}%`
                 : 'N/A'}
             </td>
-            <td className="px-2 py-2 text-center whitespace-nowrap">
-              <PriceChangePercent percent={s.priceChangePercent} />
+            <td className="px-2 py-2 text-center align-top min-w-[175px]">
+              {(() => {
+                const a = s.accumulation;
+                if (!a?.available) {
+                  return <div className="text-gray-500">N/A — 15m / 1h / 4h data incomplete</div>;
+                }
+                const statusClass = a.isAccum ? 'text-green-400' : 'text-gray-300';
+                return (
+                  <div className="flex flex-col gap-1 leading-tight">
+                    <strong className={statusClass}>{a.status} · {a.confidence}%</strong>
+                    <span className="text-gray-300">15m: {a.confidence15m}% ({a.score15m}/12)</span>
+                    <span className="text-gray-300">1h: {a.confidence1h}% ({a.score1h}/12)</span>
+                    <span className="text-gray-300">4h: {a.confidence4h}% ({a.score4h}/12)</span>
+                  </div>
+                );
+              })()}
             </td>
             {renderTimeframe('15m')}
             <td className="px-3 py-2 text-center align-middle min-w-[145px]">
