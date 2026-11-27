@@ -1492,6 +1492,32 @@ function buildZoneTradePlan(
   };
 }
 
+function TablePagination({ page, setPage, totalRows, pageSize = 40 }: {
+  page: number;
+  setPage: (page: number) => void;
+  totalRows: number;
+  pageSize?: number;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const first = totalRows === 0 ? 0 : safePage * pageSize + 1;
+  const last = Math.min(totalRows, (safePage + 1) * pageSize);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-700 px-2 py-2 text-xs text-gray-400">
+      <span>Showing {first}–{last} of {totalRows} · {pageSize} per page</span>
+      <div className="flex items-center gap-2">
+        <button type="button" disabled={safePage <= 0}
+          onClick={() => setPage(Math.max(0, safePage - 1))}
+          className="rounded border border-gray-600 px-2 py-1 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+        <span>Page {safePage + 1} / {totalPages}</span>
+        <button type="button" disabled={safePage >= totalPages - 1}
+          onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))}
+          className="rounded border border-gray-600 px-2 py-1 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
 const [signals, setSignals] = useState<any[]>([]);
   const analyzedSymbolSet = useMemo(() => new Set(signals.map((s: any) => s.symbol)), [signals]);
@@ -1524,6 +1550,11 @@ const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' |
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 const [tablePage, setTablePage] = useState(0);
+const [possibleReversalPage, setPossibleReversalPage] = useState(0);
+const [confirmedReversalPage, setConfirmedReversalPage] = useState(0);
+const [srRejectionPage, setSrRejectionPage] = useState(0);
+const [zoneTradePage, setZoneTradePage] = useState(0);
+const [dailyReversalPage, setDailyReversalPage] = useState(0);
 const TABLE_PAGE_SIZE = 40;
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
   const [signalFilter, setSignalFilter] = useState<string | null>(null);
@@ -1853,6 +1884,21 @@ const sortByMasterOrder = (rows: any[]) => [...rows].sort((a: any, b: any) => {
   return String(a?.symbol ?? '').localeCompare(String(b?.symbol ?? ''));
 });
 
+const srRejectionRows = useMemo(() => sortByMasterOrder(signals.filter((s: any) => {
+  if (!masterVisibleSymbolSet.has(s.symbol)) return false;
+  const symbolMatches = !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase());
+  const isFavorite = favorites.has(s.symbol);
+  const favoriteMatches = coinListView === 'all' ||
+    (coinListView === 'favorites' ? isFavorite : !isFavorite);
+  if (!symbolMatches || !favoriteMatches) return false;
+  const status = s.strict15MRejection?.status;
+  if (srRejectionFilter === 'confirmed') return status === 'REJECTION CONFIRMED';
+  if (srRejectionFilter === 'breakout') return status === 'BREAKOUT CONFIRMED';
+  if (srRejectionFilter === 'testing') return status === 'TESTING' || status === 'REJECTION FORMING';
+  if (srRejectionFilter === 'waiting') return status === 'WAITING FOR TEST';
+  return true;
+})), [signals, masterVisibleSymbolSet, search, favorites, coinListView, srRejectionFilter, sortField, sortOrder]);
+
 const dailyReversalRows = useMemo(() => sortByMasterOrder(signals.filter((s: any) => {
   if (!masterVisibleSymbolSet.has(s.symbol)) return false;
   const d = s.dailyReversal;
@@ -1914,6 +1960,18 @@ const confirmedReversalTableSignals = useMemo(() => {
 }, [signals, confirmedReversalTableFilter, confirmedReversalExpanded,
     searchTerm, coinListView, favorites, masterVisibleSymbolSet, sortField, sortOrder]);
 
+// Pagination is display-only: all scans, filters and master sorting operate on the complete datasets.
+const pageSlice = (rows: any[], page: number) => rows.slice(
+  Math.min(page, Math.max(0, Math.ceil(rows.length / TABLE_PAGE_SIZE) - 1)) * TABLE_PAGE_SIZE,
+  (Math.min(page, Math.max(0, Math.ceil(rows.length / TABLE_PAGE_SIZE) - 1)) + 1) * TABLE_PAGE_SIZE
+);
+const visiblePossibleReversalRows = useMemo(() => pageSlice(possibleReversalTableSignals, possibleReversalPage), [possibleReversalTableSignals, possibleReversalPage]);
+const visibleConfirmedReversalRows = useMemo(() => pageSlice(confirmedReversalTableSignals, confirmedReversalPage), [confirmedReversalTableSignals, confirmedReversalPage]);
+const visibleSrRejectionRows = useMemo(() => pageSlice(srRejectionRows, srRejectionPage), [srRejectionRows, srRejectionPage]);
+const visibleZoneTradeRows = useMemo(() => pageSlice(zoneTradeRows, zoneTradePage), [zoneTradeRows, zoneTradePage]);
+const visibleDailyReversalRows = useMemo(() => pageSlice(dailyReversalRows, dailyReversalPage), [dailyReversalRows, dailyReversalPage]);
+
+
 
 // Render only one page of results. The scanner still analyzes every eligible
 // symbol; pagination limits DOM work rather than reducing market coverage.
@@ -1928,11 +1986,22 @@ const visibleTableSignals = useMemo(() => {
 // reset on incoming scan batches, so the current page remains stable.
 useEffect(() => {
   setTablePage(0);
+  setPossibleReversalPage(0);
+  setConfirmedReversalPage(0);
+  setSrRejectionPage(0);
+  setZoneTradePage(0);
+  setDailyReversalPage(0);
 }, [searchTerm, coinListView, favorites, trendFilters, signalFilter, timeframe,
     priceChange24hFilter, fundingRateFilter, mtfAlignmentFilter,
     mtfTrendDirectionFilter, rsi14Filter, touchedEMA200Filter,
     touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
     ema70200CrossFilter, sortField, sortOrder]);
+
+// Keep each table on its first page when its own local filter changes.
+useEffect(() => { setPossibleReversalPage(0); }, [possibleReversalTableFilter]);
+useEffect(() => { setConfirmedReversalPage(0); }, [confirmedReversalTableFilter]);
+useEffect(() => { setSrRejectionPage(0); }, [srRejectionFilter]);
+useEffect(() => { setDailyReversalPage(0); }, [dailyReversalFilter]);
 
 const toggleSort = (field: string) => {
   if (sortField === field) {
@@ -5172,7 +5241,7 @@ latestRSI,
             </tr>
           </thead>
           <tbody>
-            {possibleReversalTableSignals.map(s => {
+            {visiblePossibleReversalRows.map(s => {
               const r = s.multiTimeframeAlignment?.['15m']?.possibleReversal;
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
@@ -5200,6 +5269,7 @@ latestRSI,
             {possibleReversalTableSignals.length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No possible reversal BUY/SELL signals match this filter.</td></tr>}
           </tbody>
         </table>
+        <TablePagination page={possibleReversalPage} setPage={setPossibleReversalPage} totalRows={possibleReversalTableSignals.length} pageSize={TABLE_PAGE_SIZE} />
       </div>
       </>}
     </section>
@@ -5248,7 +5318,7 @@ latestRSI,
             </tr>
           </thead>
           <tbody>
-            {confirmedReversalTableSignals.map(s => {
+            {visibleConfirmedReversalRows.map(s => {
               const r = s.multiTimeframeAlignment?.['15m']?.confirmedReversal;
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
@@ -5277,6 +5347,7 @@ latestRSI,
             {confirmedReversalTableSignals.length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No confirmed continuation BUY/SELL signals match this filter.</td></tr>}
           </tbody>
         </table>
+        <TablePagination page={confirmedReversalPage} setPage={setConfirmedReversalPage} totalRows={confirmedReversalTableSignals.length} pageSize={TABLE_PAGE_SIZE} />
       </div>
       </>}
     </section>
@@ -5311,20 +5382,7 @@ latestRSI,
               <th className="p-2">Wick / Range</th><th className="p-2">15M Volume / Avg</th><th className="p-2">Strength</th><th className="p-2">15M Candle Time</th><th className="p-2">Reason</th>
             </tr></thead>
             <tbody>
-              {sortByMasterOrder(signals.filter(s => {
-                if (!masterVisibleSymbolSet.has(s.symbol)) return false;
-                const symbolMatches = !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase());
-                const isFavorite = favorites.has(s.symbol);
-                const favoriteMatches = coinListView === 'all' ||
-                  (coinListView === 'favorites' ? isFavorite : !isFavorite);
-                if (!symbolMatches || !favoriteMatches) return false;
-                const status = s.strict15MRejection?.status;
-                if (srRejectionFilter === 'confirmed') return status === 'REJECTION CONFIRMED';
-                if (srRejectionFilter === 'breakout') return status === 'BREAKOUT CONFIRMED';
-                if (srRejectionFilter === 'testing') return status === 'TESTING' || status === 'REJECTION FORMING';
-                if (srRejectionFilter === 'waiting') return status === 'WAITING FOR TEST';
-                return true;
-              })).map(s => {
+              {visibleSrRejectionRows.map(s => {
                 const sr = s.fourHourSupportResistance ?? {};
                 const r = s.strict15MRejection ?? {};
                 const fmtZone = (z: any) => z && Number.isFinite(z.low) && Number.isFinite(z.high) ? `${Number(z.low).toPrecision(7)} – ${Number(z.high).toPrecision(7)}` : 'N/A';
@@ -5396,6 +5454,7 @@ latestRSI,
               })}
             </tbody>
           </table>
+        <TablePagination page={srRejectionPage} setPage={setSrRejectionPage} totalRows={srRejectionRows.length} pageSize={TABLE_PAGE_SIZE} />
         </div>
       </>}
     </section>
@@ -5424,7 +5483,7 @@ latestRSI,
               <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
             <tbody>
-              {zoneTradeRows.map(s => {
+              {visibleZoneTradeRows.map(s => {
                   const p = s.zoneTradePlan ?? {};
                   const breakoutZoneSide = p.breakoutZone?.side;
                   const breakoutStatusLabel =
@@ -5496,6 +5555,7 @@ latestRSI,
               {zoneTradeRows.length === 0 && <tr><td colSpan={12} className="p-4 text-center text-gray-500">No matching symbols have a calculated Table 5 plan. Check the search/favorite filter or wait for a qualifying completed 15M setup.</td></tr>}
             </tbody>
           </table>
+        <TablePagination page={zoneTradePage} setPage={setZoneTradePage} totalRows={zoneTradeRows.length} pageSize={TABLE_PAGE_SIZE} />
         </div>
       </>}
     </section>
@@ -5526,7 +5586,7 @@ latestRSI,
               <th className="p-2 text-left">Symbol</th><th className="p-2">1D Closed Pattern</th><th className="p-2">Direction</th><th className="p-2">Score / Status</th><th className="p-2">1D RSI(14)</th><th className="p-2">EMA14 / 50 / 200</th><th className="p-2">Volume</th><th className="p-2">Wick / Range</th><th className="p-2">4H Context</th><th className="p-2">15M Execution</th><th className="p-2">Daily Candle Close (PH)</th>
             </tr></thead>
             <tbody>
-              {dailyReversalRows.map((s:any) => { const d=s.dailyReversal; const mtf=s.multiTimeframeAlignment??{}; const four=mtf['4h']??{}; const fifteen=mtf['15m']??{}; const bull=d.direction==='BULLISH'; return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+              {visibleDailyReversalRows.map((s:any) => { const d=s.dailyReversal; const mtf=s.multiTimeframeAlignment??{}; const four=mtf['4h']??{}; const fifteen=mtf['15m']??{}; const bull=d.direction==='BULLISH'; return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                 <td className="p-2 font-semibold whitespace-nowrap"><button type="button" onClick={()=>toggleFavorite(s.symbol)} className={`mr-1 ${favorites.has(s.symbol)?'text-yellow-300':'text-gray-500 hover:text-yellow-300'}`}>{favorites.has(s.symbol)?'★':'☆'}</button>{s.symbol}</td>
                 <td className="p-2 text-center font-semibold whitespace-normal">{d.pattern}</td>
                 <td className={`p-2 text-center font-bold ${bull?'text-green-300':d.direction==='BEARISH'?'text-red-300':'text-yellow-300'}`}>{d.direction}</td>
@@ -5542,6 +5602,7 @@ latestRSI,
               {dailyReversalRows.length===0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No matching closed 1D reversal patterns in the scanned symbols. The current/forming daily candle is excluded.</td></tr>}
             </tbody>
           </table>
+        <TablePagination page={dailyReversalPage} setPage={setDailyReversalPage} totalRows={dailyReversalRows.length} pageSize={TABLE_PAGE_SIZE} />
         </div>
       </>}
     </section>
