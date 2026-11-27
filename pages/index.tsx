@@ -5213,6 +5213,9 @@ latestRSI,
                 ? `${fundingRates[s.symbol] > 0 ? '+' : ''}${(fundingRates[s.symbol] * 100).toFixed(4)}%`
                 : 'N/A'}
             </td>
+            <td className="px-2 py-2 text-center whitespace-nowrap">
+              <PriceChangePercent percent={s.priceChangePercent} />
+            </td>
             <td className="px-2 py-2 text-center align-top min-w-[175px]">
               {(() => {
                 const a = s.accumulation;
