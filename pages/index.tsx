@@ -5145,13 +5145,13 @@ latestRSI,
         </div>
       </div>
       {srRejectionExpanded && <>
-        <p className="text-xs text-gray-500 mb-2">Strict rejection: candle closes back outside the zone, rejection wick is at least 1.5× body and 40% of candle range, and RSI14 confirms direction (BUY above 50 and rising; SELL below 50 and falling). Volume contributes to strength but is not a mandatory trigger.</p>
+        <p className="text-xs text-gray-500 mb-2">How to read this table: TESTING means price is touching a 4H zone; REJECTION FORMING is an unclosed 15M candle and is only a watch; REJECTED means a completed 15M candle met every rejection rule; BREAKOUT / BREAKDOWN CONFIRMED means a completed 15M candle closed beyond the 4H zone. These are market conditions, not automatic entries. Rejection requires a wick at least 1.5× the candle body and 40% of its range, plus RSI14 confirmation (BUY above 50 and rising; SELL below 50 and falling). Volume contributes to strength but is not mandatory.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1580px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-purple-300"><tr>
               <th className="p-2 text-left">Symbol</th><th className="p-2">4H Trend</th><th className="p-2">4H RSI14</th><th className="p-2">4H Volume / Avg</th><th className="p-2">4H Support Zone</th>
               <th className="p-2">Support Confluence</th><th className="p-2">4H Resistance Zone</th><th className="p-2">Resistance Confluence</th>
-              <th className="p-2">15M Status</th><th className="p-2">Direction</th><th className="p-2">RSI14</th>
+              <th className="p-2">15M Status — What Price Is Doing</th><th className="p-2">Zone / Trade Bias</th><th className="p-2">RSI14</th>
               <th className="p-2">Wick / Range</th><th className="p-2">15M Volume / Avg</th><th className="p-2">Strength</th><th className="p-2">15M Candle Time</th><th className="p-2">Reason</th>
             </tr></thead>
             <tbody>
@@ -5170,6 +5170,21 @@ latestRSI,
                 const sr = s.fourHourSupportResistance ?? {};
                 const r = s.strict15MRejection ?? {};
                 const fmtZone = (z: any) => z && Number.isFinite(z.low) && Number.isFinite(z.high) ? `${Number(z.low).toPrecision(7)} – ${Number(z.high).toPrecision(7)}` : 'N/A';
+                const statusLabel = (() => {
+                  if (r.status === 'REJECTION CONFIRMED') return r.direction === 'SELL' ? 'RESISTANCE REJECTED — SELL BIAS' : r.direction === 'BUY' ? 'SUPPORT REJECTED — BUY BIAS' : 'REJECTION CONFIRMED';
+                  if (r.status === 'REJECTION FORMING') return r.direction === 'SELL' ? 'RESISTANCE REJECTION FORMING — SELL WATCH' : r.direction === 'BUY' ? 'SUPPORT REJECTION FORMING — BUY WATCH' : 'REJECTION FORMING — WAIT FOR CLOSE';
+                  if (r.status === 'BREAKOUT CONFIRMED') return r.direction === 'BUY' ? 'RESISTANCE BREAKOUT CONFIRMED — BUY BIAS' : r.direction === 'SELL' ? 'SUPPORT BREAKDOWN CONFIRMED — SELL BIAS' : 'BREAKOUT CONFIRMED';
+                  if (r.status === 'TESTING') return r.direction === 'RESISTANCE' ? 'RESISTANCE BEING TESTED' : r.direction === 'SUPPORT' ? 'SUPPORT BEING TESTED' : '4H ZONE BEING TESTED';
+                  if (r.status === 'WAITING FOR TEST') return 'WAITING — PRICE NOT TESTING A 4H ZONE';
+                  return r.status ?? 'N/A';
+                })();
+                const zoneBiasLabel = (() => {
+                  if (r.status === 'REJECTION CONFIRMED') return r.direction === 'SELL' ? 'RESISTANCE / SELL' : r.direction === 'BUY' ? 'SUPPORT / BUY' : '—';
+                  if (r.status === 'REJECTION FORMING') return r.direction === 'SELL' ? 'RESISTANCE / SELL WATCH' : r.direction === 'BUY' ? 'SUPPORT / BUY WATCH' : '—';
+                  if (r.status === 'BREAKOUT CONFIRMED') return r.direction === 'BUY' ? 'RESISTANCE / BUY BIAS' : r.direction === 'SELL' ? 'SUPPORT / SELL BIAS' : '—';
+                  if (r.status === 'TESTING') return r.direction === 'RESISTANCE' ? 'RESISTANCE / WAIT' : r.direction === 'SUPPORT' ? 'SUPPORT / WAIT' : '—';
+                  return 'NO ACTIVE ZONE';
+                })();
                 const sourceGroups = (zone: any) => {
                   const sources: string[] = Array.isArray(zone?.confluences) ? zone.confluences : [];
                   const swing = sources.filter(x => String(x).toLowerCase().includes('swing'));
@@ -5211,8 +5226,8 @@ latestRSI,
                   <td className="p-2 text-left min-w-[190px]">
                     {sr.resistance ? <><div className="font-semibold mb-1">{sr.resistance.strength}/100 strength</div>{renderSourceGroups(sr.resistance)}</> : 'N/A'}
                   </td>
-                  <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' ? 'text-yellow-200' : r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{r.status === 'REJECTION CONFIRMED' ? (r.direction === 'SELL' ? 'RESISTANCE REJECTED — SELL' : r.direction === 'BUY' ? 'SUPPORT REJECTED — BUY' : 'REJECTION CONFIRMED') : (r.status ?? 'N/A')}</td>
-                  <td className="p-2 text-center">{r.direction ?? 'N/A'}</td>
+                  <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' || r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{statusLabel}</td>
+                  <td className="p-2 text-center whitespace-nowrap">{zoneBiasLabel}</td>
                   <td className="p-2 text-right">{Number.isFinite(r.rsi14) ? Number(r.rsi14).toFixed(2) : 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(r.wickRatio) ? `${(r.wickRatio * 100).toFixed(1)}%` : '—'}</td>
                   <td className="p-2 text-right">{Number.isFinite(r.volumeRatio) ? `${Number(r.volumeRatio).toFixed(2)}×` : '—'}</td>
