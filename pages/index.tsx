@@ -997,7 +997,9 @@ function detect15MZoneReversalPattern(args: { candles: Candle[]; rsi14: number[]
     const score = Math.min(100, 60 + (rsiConfirmed ? 12 : 0) + (volumeConfirmed ? 10 : 0) +
       (trendlineConfirmed ? 10 : 0) + (divergenceConfirmed ? 5 : 0) + (trendAligned ? 3 : 0));
     const extraConfirmations = [rsiConfirmed, volumeConfirmed, trendlineConfirmed, divergenceConfirmed, trendAligned].filter(Boolean).length;
-    const status = extraConfirmations >= 2 && score >= 70 ? 'REVERSAL CONFIRMED' : 'PATTERN CONFIRMED';
+    const status = extraConfirmations >= 2 && score >= 70
+      ? (direction === 'BUY' ? 'BULLISH CONTINUATION' : 'BEARISH CONTINUATION')
+      : 'PATTERN CONFIRMED';
     const ageCandles = completed.length - 1 - pos;
     const ageMinutes = Math.max(0, Math.round((now - Number(c.closeTime)) / 60000));
     return {
