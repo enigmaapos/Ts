@@ -823,6 +823,7 @@ function buildCombined4HLevels(args: {
   return {
     available: true, trend: mainTrend?.trend ?? null,
     support: supports[0] ?? null, resistance: resistances[0] ?? null,
+    supportZones: supports, resistanceZones: resistances,
     rsi14: Number.isFinite(rsi14[last]) ? rsi14[last] : null,
     volumeRatio
   };
@@ -850,6 +851,11 @@ function detectStrict15MRejection(args: {
   const volumeWindow = candles.slice(Math.max(0, latest.index - 20), latest.index).map(x => x.volume).filter(Number.isFinite);
   const averageVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
   const volumeRatio = Number.isFinite(averageVolume) && averageVolume > 0 ? c.volume / averageVolume : null;
+  const trueRanges = completed.slice(Math.max(0, completed.length - 14)).map(({ c: candle, index }) => {
+    const previousClose = index > 0 ? candles[index - 1].close : candle.close;
+    return Math.max(candle.high - candle.low, Math.abs(candle.high - previousClose), Math.abs(candle.low - previousClose));
+  }).filter(Number.isFinite);
+  const atr14 = trueRanges.length ? trueRanges.reduce((sum, value) => sum + value, 0) / trueRanges.length : null;
 
   const r = levels.resistance;
   const s = levels.support;
@@ -909,8 +915,76 @@ function detectStrict15MRejection(args: {
   return {
     available: true, status, direction, level: level ? { price: level.price, low: level.low, high: level.high, strength: level.strength, confluences: level.confluences } : null,
     rsi14: Number.isFinite(currentRsi) ? currentRsi : null, previousRsi14: Number.isFinite(previousRsi) ? previousRsi : null,
-    wickRatio, volumeRatio, timestamp: c.timestamp, candleClose: c.close, reason, strength,
+    wickRatio, volumeRatio, atr14, timestamp: c.timestamp, candleClose: c.close, reason, strength,
     fourHourTrend: levels.trend, fourHourSupport: levels.support, fourHourResistance: levels.resistance
+  };
+}
+
+
+function buildZoneTradePlan(rejection: any, levels: any) {
+  if (!rejection?.available || rejection.status !== 'REJECTION CONFIRMED' ||
+      !['BUY', 'SELL'].includes(rejection.direction) || !rejection.level ||
+      !Number.isFinite(rejection.candleClose) || !levels?.available) {
+    return {
+      available: false,
+      status: rejection?.status === 'BREAKOUT CONFIRMED' ? 'NO REVERSAL TRADE — BREAKOUT' :
+        rejection?.status === 'REJECTION FORMING' ? 'WAIT — CANDLE NOT CLOSED' :
+        rejection?.status === 'TESTING' ? 'WAIT — ZONE TESTING' : 'WAITING FOR CONFIRMATION',
+      direction: rejection?.direction ?? 'NONE',
+      entry: null, stopLoss: null, targets: [], riskReward: null,
+      zone: rejection?.level ?? null, timestamp: rejection?.timestamp ?? null,
+      reason: 'A completed strict 15M rejection is required before calculating a trade plan'
+    };
+  }
+
+  const direction = rejection.direction as 'BUY' | 'SELL';
+  const entry = Number(rejection.candleClose);
+  const zone = rejection.level;
+  const atr = Number(rejection.atr14);
+  const buffer = Math.max(Number.isFinite(atr) ? atr * 0.25 : 0, entry * 0.0005);
+  const stopLoss = direction === 'SELL'
+    ? Number(zone.high) + buffer
+    : Number(zone.low) - buffer;
+  const risk = Math.abs(entry - stopLoss);
+  const rawTargets = direction === 'SELL'
+    ? (Array.isArray(levels.supportZones) ? levels.supportZones : [levels.support])
+    : (Array.isArray(levels.resistanceZones) ? levels.resistanceZones : [levels.resistance]);
+  const targetZones = rawTargets
+    .filter((z: any) => z && Number.isFinite(z.price) &&
+      (direction === 'SELL' ? z.price < entry : z.price > entry))
+    .sort((a: any, b: any) => direction === 'SELL' ? b.price - a.price : a.price - b.price);
+
+  const targets = targetZones.slice(0, 3).map((z: any, index: number) => {
+    const reward = Math.abs(entry - Number(z.price));
+    return {
+      label: `TP${index + 1}`,
+      price: Number(z.price),
+      low: Number(z.low),
+      high: Number(z.high),
+      strength: z.strength ?? null,
+      confluences: z.confluences ?? [],
+      riskReward: risk > 0 ? reward / risk : null,
+      distancePercent: entry > 0 ? reward / entry * 100 : null
+    };
+  });
+  const firstTargetRR = targets[0]?.riskReward ?? null;
+  const status = !Number.isFinite(risk) || risk <= 0 || !targets.length
+    ? 'NO TRADE — NO VALID TARGET'
+    : firstTargetRR >= 1.5
+    ? 'TRADE OPPORTUNITY'
+    : 'NO TRADE — LOW RISK/REWARD';
+
+  return {
+    available: true, status, direction, entry, stopLoss, risk,
+    stopDistancePercent: entry > 0 ? risk / entry * 100 : null,
+    targets, riskReward: firstTargetRR,
+    zone: { ...zone, side: direction === 'SELL' ? 'resistance' : 'support' },
+    timestamp: rejection.timestamp,
+    reason: status === 'TRADE OPPORTUNITY'
+      ? 'Confirmed 15M rejection with at least 1:1.5 reward-to-risk at the nearest opposing 4H zone'
+      : !targets.length
+      ? 'No opposing 4H structure zone exists beyond the proposed entry; target not invented'
+      : 'Nearest opposing 4H zone offers less than the required 1:1.5 reward-to-risk'
   };
 }
 
@@ -999,6 +1073,9 @@ const [confirmedReversalSearch, setConfirmedReversalSearch] = useState('');
 const [confirmedReversalFavoriteFilter, setConfirmedReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const [srRejectionSearch, setSrRejectionSearch] = useState('');
 const [srRejectionFavoriteFilter, setSrRejectionFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
+const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
+const [zoneTradeSearch, setZoneTradeSearch] = useState('');
+const [zoneTradeFavoriteFilter, setZoneTradeFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -2263,6 +2340,7 @@ if (fifteenMinuteLoaded && !fifteenMinuteLoaded.error && fifteenMinuteLoaded.tfC
     levels: fourHourSupportResistance, currentPrice
   });
 }
+const zoneTradePlan = buildZoneTradePlan(strict15MRejection, fourHourSupportResistance);
 
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
 const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
@@ -3307,6 +3385,7 @@ mainTrend,
   multiTimeframeAlignment,
   fourHourSupportResistance,
   strict15MRejection,
+  zoneTradePlan,
   overallMultiTimeframeAlignment,
   breakout,
   bullishBreakout,
@@ -4733,6 +4812,94 @@ latestRSI,
                   <td className="p-2 min-w-[280px] text-gray-400">{r.reason ?? 'N/A'}</td>
                 </tr>;
               })}
+            </tbody>
+          </table>
+        </div>
+      </>}
+    </section>
+
+    {/* Zone rejection trade decision and structural profit targets */}
+    <section className="mt-6 border border-emerald-700/60 rounded-lg p-3 bg-gray-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-lg font-bold text-emerald-300">Zone Rejection & Profit Target Decision — 5th Table</h2>
+          <p className="text-xs text-gray-400">Uses completed strict 15M rejection candles, 4H opposing structure zones, and a 15M ATR-based stop buffer. Only confirmed rejection setups receive entry/SL/TP calculations.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setZoneTradeExpanded(v => !v)} aria-expanded={zoneTradeExpanded}
+            className="px-3 py-1.5 rounded border border-emerald-700 bg-gray-800 text-emerald-300 hover:bg-gray-700">
+            {zoneTradeExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
+          </button>
+          <input type="search" value={zoneTradeSearch} onChange={e => setZoneTradeSearch(e.target.value)}
+            placeholder="Search symbol" aria-label="Search zone trade plan symbols"
+            className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
+          <select value={zoneTradeFavoriteFilter} onChange={e => setZoneTradeFavoriteFilter(e.target.value as typeof zoneTradeFavoriteFilter)}
+            aria-label="Zone trade plan favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
+            <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
+          </select>
+        </div>
+      </div>
+      {zoneTradeExpanded && <>
+        <p className="text-xs text-gray-500 mb-2">TP1–TP3 are the nearest available opposing 4H zones. Stop-loss is beyond the rejected zone by 0.25 × 15M ATR14 (with a 0.05% minimum buffer). TRADE OPPORTUNITY requires TP1 reward/risk of at least 1:1.5. These are analytical levels, not guaranteed fills or returns.</p>
+        <div className="overflow-auto max-h-[55vh]">
+          <table className="w-full min-w-[1500px] text-xs border-collapse">
+            <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Decision</th><th className="p-2">Direction</th>
+              <th className="p-2">Rejected 4H Zone</th><th className="p-2">Entry Reference</th><th className="p-2">Stop-loss</th>
+              <th className="p-2">TP1</th><th className="p-2">TP2</th><th className="p-2">TP3</th>
+              <th className="p-2">TP1 R:R</th><th className="p-2">Stop Distance</th><th className="p-2">15M Confirmation Time</th><th className="p-2">Reason</th>
+            </tr></thead>
+            <tbody>
+              {signals
+                .filter(s => {
+                  const symbolMatches = !zoneTradeSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(zoneTradeSearch.trim().toLowerCase());
+                  const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
+                    (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
+                  return symbolMatches && favoriteMatches && s.zoneTradePlan;
+                })
+                .sort((a, b) => {
+                  const rank = (plan: any) => plan?.status === 'TRADE OPPORTUNITY' ? 0 :
+                    plan?.status?.startsWith('NO TRADE') ? 1 : 2;
+                  return rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
+                    String(a.symbol).localeCompare(String(b.symbol));
+                })
+                .map(s => {
+                  const p = s.zoneTradePlan ?? {};
+                  const fmtPrice = (value: any) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value).toPrecision(7) : '—';
+                  const fmtTarget = (target: any) => target
+                    ? <div className="flex flex-col gap-0.5"><strong>{fmtPrice(target.price)}</strong><span className="text-gray-500">{Number.isFinite(target.distancePercent) ? `${target.distancePercent.toFixed(2)}%` : '—'} · {Number.isFinite(target.riskReward) ? `${target.riskReward.toFixed(2)}R` : '—'}</span></div>
+                    : '—';
+                  const opportunity = p.status === 'TRADE OPPORTUNITY';
+                  const sell = p.direction === 'SELL';
+                  return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+                    <td className="p-2 font-semibold whitespace-nowrap">
+                      <button type="button" onClick={() => toggleFavorite(s.symbol)}
+                        aria-label={favorites.has(s.symbol) ? `Remove ${s.symbol} from favorites` : `Add ${s.symbol} to favorites`}
+                        title={favorites.has(s.symbol) ? 'Remove from favorites' : 'Add to favorites'}
+                        className={`mr-1 ${favorites.has(s.symbol) ? 'text-yellow-300' : 'text-gray-500 hover:text-yellow-300'}`}>
+                        {favorites.has(s.symbol) ? '★' : '☆'}
+                      </button>{s.symbol}
+                    </td>
+                    <td className={`p-2 text-center font-bold ${opportunity ? 'text-emerald-300' : p.status?.startsWith('NO TRADE') ? 'text-red-300' : 'text-yellow-300'}`}>{p.status ?? 'N/A'}</td>
+                    <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : p.direction === 'BUY' ? 'text-green-400' : 'text-gray-400'}`}>{p.direction ?? '—'}</td>
+                    <td className="p-2 text-right">{p.zone && Number.isFinite(p.zone.low) && Number.isFinite(p.zone.high) ? `${fmtPrice(p.zone.low)} – ${fmtPrice(p.zone.high)}` : '—'}</td>
+                    <td className="p-2 text-right">{fmtPrice(p.entry)}</td>
+                    <td className="p-2 text-right text-red-300">{fmtPrice(p.stopLoss)}</td>
+                    <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[0])}</td>
+                    <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[1])}</td>
+                    <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[2])}</td>
+                    <td className="p-2 text-center font-semibold">{Number.isFinite(p.riskReward) ? `1:${Number(p.riskReward).toFixed(2)}` : '—'}</td>
+                    <td className="p-2 text-right">{Number.isFinite(p.stopDistancePercent) ? `${Number(p.stopDistancePercent).toFixed(2)}%` : '—'}</td>
+                    <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(p.timestamp)}</td>
+                    <td className="p-2 min-w-[280px] text-gray-400">{p.reason ?? 'N/A'}</td>
+                  </tr>;
+                })}
+              {signals.filter(s => {
+                const symbolMatches = !zoneTradeSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(zoneTradeSearch.trim().toLowerCase());
+                const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
+                  (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
+                return symbolMatches && favoriteMatches && s.zoneTradePlan;
+              }).length === 0 && <tr><td colSpan={13} className="p-4 text-center text-gray-500">No zone rejection trade plans match this search/favorite filter yet. A confirmed 15M rejection is required for entry and target calculations.</td></tr>}
             </tbody>
           </table>
         </div>
