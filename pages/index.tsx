@@ -1523,33 +1523,6 @@ const [signals, setSignals] = useState<any[]>([]);
 const [coinListView, setCoinListView] = useState<'not-favorites' | 'favorites' | 'all'>('not-favorites');
   const [sortField, setSortField] = useState<string>('symbol');
 const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-const [tableSorts, setTableSorts] = useState<Record<string, { field: string; order: 'asc' | 'desc' }>>({
-  table2: { field: 'priceChangePercent', order: 'desc' },
-  table3: { field: 'priceChangePercent', order: 'desc' },
-  table4: { field: 'symbol', order: 'asc' },
-  table5: { field: 'symbol', order: 'asc' },
-  table6: { field: 'dailyReversal.score', order: 'desc' },
-});
-const toggleTableSort = (table: string, field: string) => setTableSorts(prev => {
-  const current = prev[table] ?? { field, order: 'asc' as const };
-  return { ...prev, [table]: { field, order: current.field === field ? (current.order === 'asc' ? 'desc' : 'asc') : 'asc' } };
-});
-const readSortValue = (row: any, path: string): any => path.split('.').reduce((v, k) => v == null ? undefined : v[k], row);
-const sortTableRows = <T,>(rows: T[], table: string): T[] => {
-  const cfg = tableSorts[table];
-  if (!cfg) return rows;
-  return [...rows].sort((a: any, b: any) => {
-    const av = readSortValue(a, cfg.field), bv = readSortValue(b, cfg.field);
-    const an = av == null || av === '' || (typeof av === 'number' && !Number.isFinite(av));
-    const bn = bv == null || bv === '' || (typeof bv === 'number' && !Number.isFinite(bv));
-    if (an || bn) return an === bn ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? '')) : an ? 1 : -1;
-    const na = typeof av === 'number' ? av : Number(av), nb = typeof bv === 'number' ? bv : Number(bv);
-    const numeric = Number.isFinite(na) && Number.isFinite(nb) && String(av).trim() !== '' && String(bv).trim() !== '';
-    const cmp = numeric ? na - nb : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
-    return cmp === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? '')) : cfg.order === 'asc' ? cmp : -cmp;
-  });
-};
-
 const [tablePage, setTablePage] = useState(0);
 const TABLE_PAGE_SIZE = 40;
 const [trendFilters, setTrendFilters] = useState<string[]>([]);
@@ -1604,34 +1577,6 @@ const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' |
 const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
 const [dailyReversalExpanded, setDailyReversalExpanded] = useState(true);
 const [dailyReversalFilter, setDailyReversalFilter] = useState<'all' | 'bullish' | 'bearish'>('all');
-const dailyReversalRows = useMemo(() => signals.filter((s: any) => {
-  const d = s.dailyReversal;
-  if (!d?.available || d.direction === 'NONE') return false;
-  if (dailyReversalFilter === 'bullish' && d.direction !== 'BULLISH') return false;
-  if (dailyReversalFilter === 'bearish' && d.direction !== 'BEARISH') return false;
-  if (searchTerm && !String(s.symbol ?? '').toLowerCase().includes(searchTerm)) return false;
-  if (coinListView === 'favorites' && !favorites.has(s.symbol)) return false;
-  if (coinListView === 'not-favorites' && favorites.has(s.symbol)) return false;
-  return true;
-}).sort((a: any,b: any) => (b.dailyReversal.score ?? 0) - (a.dailyReversal.score ?? 0)), [signals, dailyReversalFilter, searchTerm, coinListView, favorites]);
-const zoneTradeRows = useMemo(() => {
-  if (!zoneTradeExpanded) return [];
-  const query = searchTerm;
-  const rows = signals.filter((signal: any) => {
-    if (!signal.zoneTradePlan) return false;
-    if (query && !String(signal.symbol ?? '').toLowerCase().includes(query)) return false;
-    if (coinListView === 'favorites' && !favorites.has(signal.symbol)) return false;
-    if (coinListView === 'not-favorites' && favorites.has(signal.symbol)) return false;
-    return true;
-  });
-  const rank = (plan: any) => plan?.status === 'ENTRY TRIGGERED' ? 0 :
-    plan?.status === 'SETUP CONFIRMED' ? 1 : plan?.status === 'NO TRADE' ? 2 :
-    plan?.status === 'EXPIRED' ? 3 : 4;
-  return rows.sort((a: any, b: any) =>
-    rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
-    String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
-  );
-}, [signals, zoneTradeExpanded, searchTerm, coinListView, favorites]);
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1874,11 +1819,59 @@ const filteredAndSortedSignals = useMemo(() => [...filteredSignals].sort((a, b) 
   return sortOrder === 'asc' ? result : -result;
 }), [filteredSignals, sortField, sortOrder]);
 
+// Table 1 is the master view for every table: its active filters define the
+// shared symbol universe, and its selected sort field/order controls row order
+// in Tables 1–6. Table-specific filters remain additional narrowing filters.
+const masterVisibleSymbolSet = useMemo(
+  () => new Set(filteredAndSortedSignals.map((s: any) => s.symbol)),
+  [filteredAndSortedSignals]
+);
+const sortByMasterOrder = (rows: any[]) => [...rows].sort((a: any, b: any) => {
+  const av = getSortValue(a, sortField);
+  const bv = getSortValue(b, sortField);
+  const am = av == null || (typeof av === 'number' && !Number.isFinite(av));
+  const bm = bv == null || (typeof bv === 'number' && !Number.isFinite(bv));
+  if (am && bm) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+  if (am) return 1;
+  if (bm) return -1;
+  let diff = typeof av === 'number' && typeof bv === 'number'
+    ? av - bv
+    : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+  if (diff === 0) diff = String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
+  return sortOrder === 'asc' ? diff : -diff;
+});
+
+const dailyReversalRows = useMemo(() => sortByMasterOrder(signals.filter((s: any) => {
+  if (!masterVisibleSymbolSet.has(s.symbol)) return false;
+  const d = s.dailyReversal;
+  if (!d?.available || d.direction === 'NONE') return false;
+  if (dailyReversalFilter === 'bullish' && d.direction !== 'BULLISH') return false;
+  if (dailyReversalFilter === 'bearish' && d.direction !== 'BEARISH') return false;
+  if (searchTerm && !String(s.symbol ?? '').toLowerCase().includes(searchTerm)) return false;
+  if (coinListView === 'favorites' && !favorites.has(s.symbol)) return false;
+  if (coinListView === 'not-favorites' && favorites.has(s.symbol)) return false;
+  return true;
+})), [signals, dailyReversalFilter, searchTerm, coinListView, favorites, masterVisibleSymbolSet, sortField, sortOrder]);
+const zoneTradeRows = useMemo(() => {
+  if (!zoneTradeExpanded) return [];
+  const query = searchTerm;
+  const rows = signals.filter((signal: any) => {
+    if (!masterVisibleSymbolSet.has(signal.symbol)) return false;
+    if (!signal.zoneTradePlan) return false;
+    if (query && !String(signal.symbol ?? '').toLowerCase().includes(query)) return false;
+    if (coinListView === 'favorites' && !favorites.has(signal.symbol)) return false;
+    if (coinListView === 'not-favorites' && favorites.has(signal.symbol)) return false;
+    return true;
+  });
+  return sortByMasterOrder(rows);
+}, [signals, zoneTradeExpanded, searchTerm, coinListView, favorites, masterVisibleSymbolSet, sortField, sortOrder]);
+
 // Dedicated reversal tables are sourced from the complete analyzed signal set,
-// so the main scanner's filters and pagination cannot hide their results.
+// then constrained by Table 1's master filters and sort order.
 const possibleReversalTableSignals = useMemo(() => {
   if (!possibleReversalExpanded) return [];
-  return signals
+  const rows = signals
+  .filter((s) => masterVisibleSymbolSet.has(s.symbol))
   .filter((s) => {
     const signal = s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal;
     return signal === 'BUY' || signal === 'SELL';
@@ -1887,23 +1880,15 @@ const possibleReversalTableSignals = useMemo(() => {
     s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
   .filter((s) => !searchTerm || String(s.symbol ?? '').toLowerCase().includes(searchTerm))
   .filter((s) => coinListView === 'all' ||
-    (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
-  .sort((a, b) => {
-    const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
-    const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
-    if (am && bm) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
-    if (am) return 1;
-    if (bm) return -1;
-    const diff = av - bv;
-    return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
-      : possibleReversalSortOrder === 'asc' ? diff : -diff;
-  });
-}, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded,
-    searchTerm, coinListView, favorites]);
+    (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)));
+  return sortByMasterOrder(rows);
+}, [signals, possibleReversalTableFilter, possibleReversalExpanded,
+    searchTerm, coinListView, favorites, masterVisibleSymbolSet, sortField, sortOrder]);
 
 const confirmedReversalTableSignals = useMemo(() => {
   if (!confirmedReversalExpanded) return [];
-  return signals
+  const rows = signals
+  .filter((s) => masterVisibleSymbolSet.has(s.symbol))
   .filter((s) => {
     const signal = s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal;
     return signal === 'BUY' || signal === 'SELL';
@@ -1912,19 +1897,10 @@ const confirmedReversalTableSignals = useMemo(() => {
     s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
   .filter((s) => !searchTerm || String(s.symbol ?? '').toLowerCase().includes(searchTerm))
   .filter((s) => coinListView === 'all' ||
-    (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
-  .sort((a, b) => {
-    const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
-    const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
-    if (am && bm) return String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''));
-    if (am) return 1;
-    if (bm) return -1;
-    const diff = av - bv;
-    return diff === 0 ? String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
-      : confirmedReversalSortOrder === 'asc' ? diff : -diff;
-  });
-}, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded,
-    searchTerm, coinListView, favorites]);
+    (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)));
+  return sortByMasterOrder(rows);
+}, [signals, confirmedReversalTableFilter, confirmedReversalExpanded,
+    searchTerm, coinListView, favorites, masterVisibleSymbolSet, sortField, sortOrder]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -4223,15 +4199,6 @@ latestRSI,
         {children} {sortField === field ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
       </th>
     );
-    const TableSortTh = ({ table, field, children, className = '' }: { table: string; field: string; children: any; className?: string }) => {
-      const cfg = tableSorts[table];
-      const active = cfg?.field === field;
-      return <th onClick={() => toggleTableSort(table, field)} title={`Sort by ${children}`}
-        aria-sort={active ? (cfg.order === 'asc' ? 'ascending' : 'descending') : 'none'}
-        className={`p-2 text-center cursor-pointer select-none whitespace-nowrap hover:bg-gray-700 ${className}`}>
-        {children} {active ? (cfg.order === 'asc' ? '▲' : '▼') : '↕'}
-      </th>;
-    };
 
     return (
 	    
@@ -5154,7 +5121,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-yellow-300">Possible Reversal Table — 15m</h2>
-          <p className="text-xs text-gray-400">Early warning signals from the current Philippine 08:00–08:00 session. Independent of the main scanner filters.</p>
+          <p className="text-xs text-gray-400">Early warning signals from the current Philippine 08:00–08:00 session. Follows Table 1 master filters and sort order; BUY/SELL narrows this table further.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setPossibleReversalExpanded(v => !v)}
@@ -5165,19 +5132,19 @@ latestRSI,
           <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setPossibleReversalTableFilter(v => v === 'buy' ? 'all' : 'buy')}
             className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalTableFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700'}`}>
-            BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'BUY').length})
+            BUY ({signals.filter(s => masterVisibleSymbolSet.has(s.symbol) && s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'BUY').length})
           </button>
           <button type="button" onClick={() => setPossibleReversalTableFilter(v => v === 'sell' ? 'all' : 'sell')}
             className={`px-3 py-1.5 rounded border font-semibold ${possibleReversalTableFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700'}`}>
-            SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'SELL').length})
+            SELL ({signals.filter(s => masterVisibleSymbolSet.has(s.symbol) && s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === 'SELL').length})
           </button>
           <button type="button" onClick={() => setPossibleReversalTableFilter('all')}
             className={`px-3 py-1.5 rounded border ${possibleReversalTableFilter === 'all' ? 'bg-gray-700 text-white border-gray-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>All</button>
           <span className="self-center text-xs text-gray-400 ml-2">24H:</span>
-          <button type="button" onClick={() => setPossibleReversalSortOrder('desc')}
-            className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'desc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
-          <button type="button" onClick={() => setPossibleReversalSortOrder('asc')}
-            className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'asc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
+          <button type="button" onClick={() => { setSortField('priceChangePercent'); setSortOrder('desc'); }}
+            className={`px-3 py-1.5 rounded border ${sortOrder === 'desc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
+          <button type="button" onClick={() => { setSortField('priceChangePercent'); setSortOrder('asc'); }}
+            className={`px-3 py-1.5 rounded border ${sortOrder === 'asc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
           </div>
         </div>
       </div>{possibleReversalExpanded && <>
@@ -5185,10 +5152,15 @@ latestRSI,
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-yellow-300">
-            <tr><TableSortTh table="table2" field="symbol" className="text-left">Symbol</TableSortTh><TableSortTh table="table2" field="priceChangePercent">24H Change</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.signal">Signal</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.mainTrend">Main Trend</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.previousPrice">Previous Session Level</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.breakoutPrice">Today's Breakout</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.currentRSI">RSI Extreme → Current</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.priceTimestamp">Price Extreme Time</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.rsiExtremeTimestamp">RSI Extreme Time</TableSortTh><TableSortTh table="table2" field="multiTimeframeAlignment.15m.possibleReversal.currentRSITimestamp">Latest RSI Time</TableSortTh></tr>
+            <tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">24H Change</th><th className="p-2">Signal</th>
+              <th className="p-2">Main Trend</th><th className="p-2">Previous Session Level</th>
+              <th className="p-2">Today's Breakout</th><th className="p-2">RSI Extreme → Current</th>
+              <th className="p-2">Price Extreme Time</th><th className="p-2">RSI Extreme Time</th><th className="p-2">Latest RSI Time</th>
+            </tr>
           </thead>
           <tbody>
-            {sortTableRows<any>(possibleReversalTableSignals, 'table2').map(s => {
+            {possibleReversalTableSignals.map(s => {
               const r = s.multiTimeframeAlignment?.['15m']?.possibleReversal;
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
@@ -5225,7 +5197,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-blue-300">Continuation Confirmed Table — 15m</h2>
-          <p className="text-xs text-gray-400">Confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
+          <p className="text-xs text-gray-400">Confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Follows Table 1 master filters and sort order; BUY/SELL narrows this table further.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setConfirmedReversalExpanded(v => !v)}
@@ -5236,19 +5208,19 @@ latestRSI,
           <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setConfirmedReversalTableFilter(v => v === 'buy' ? 'all' : 'buy')}
             className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalTableFilter === 'buy' ? 'bg-green-600 text-white border-green-400' : 'bg-gray-800 text-green-300 border-green-700'}`}>
-            BUY ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'BUY').length})
+            BUY ({signals.filter(s => masterVisibleSymbolSet.has(s.symbol) && s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'BUY').length})
           </button>
           <button type="button" onClick={() => setConfirmedReversalTableFilter(v => v === 'sell' ? 'all' : 'sell')}
             className={`px-3 py-1.5 rounded border font-semibold ${confirmedReversalTableFilter === 'sell' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-800 text-red-300 border-red-700'}`}>
-            SELL ({signals.filter(s => s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'SELL').length})
+            SELL ({signals.filter(s => masterVisibleSymbolSet.has(s.symbol) && s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === 'SELL').length})
           </button>
           <button type="button" onClick={() => setConfirmedReversalTableFilter('all')}
             className={`px-3 py-1.5 rounded border ${confirmedReversalTableFilter === 'all' ? 'bg-gray-700 text-white border-gray-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>All</button>
           <span className="self-center text-xs text-gray-400 ml-2">24H:</span>
-          <button type="button" onClick={() => setConfirmedReversalSortOrder('desc')}
-            className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'desc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
-          <button type="button" onClick={() => setConfirmedReversalSortOrder('asc')}
-            className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'asc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
+          <button type="button" onClick={() => { setSortField('priceChangePercent'); setSortOrder('desc'); }}
+            className={`px-3 py-1.5 rounded border ${sortOrder === 'desc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>DESC ↓</button>
+          <button type="button" onClick={() => { setSortField('priceChangePercent'); setSortOrder('asc'); }}
+            className={`px-3 py-1.5 rounded border ${sortOrder === 'asc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
           </div>
         </div>
       </div>{confirmedReversalExpanded && <>
@@ -5256,10 +5228,15 @@ latestRSI,
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-blue-300">
-            <tr><TableSortTh table="table3" field="symbol" className="text-left">Symbol</TableSortTh><TableSortTh table="table3" field="priceChangePercent">24H Change</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.signal">Continuation Signal</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.close">Completed Candle Close</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.rsi14">RSI14</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.ema14">EMA14</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.ema50">EMA50</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.ema70">EMA70</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.ema100">EMA100</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.ema200">EMA200</TableSortTh><TableSortTh table="table3" field="multiTimeframeAlignment.15m.confirmedReversal.timestamp">Candle Time</TableSortTh></tr>
+            <tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">24H Change</th><th className="p-2">Continuation Signal</th>
+              <th className="p-2">Completed Candle Close</th><th className="p-2">RSI14</th>
+              <th className="p-2">EMA14</th><th className="p-2">EMA50</th><th className="p-2">EMA70</th>
+              <th className="p-2">EMA100</th><th className="p-2">EMA200</th><th className="p-2">Candle Time</th>
+            </tr>
           </thead>
           <tbody>
-            {sortTableRows<any>(confirmedReversalTableSignals, 'table3').map(s => {
+            {confirmedReversalTableSignals.map(s => {
               const r = s.multiTimeframeAlignment?.['15m']?.confirmedReversal;
               const sell = r?.signal === 'SELL';
               return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
@@ -5315,9 +5292,15 @@ latestRSI,
         <p className="text-xs text-gray-500 mb-2">How to read this table: TESTING means price is touching a 4H zone; REJECTION FORMING is an unclosed 15M candle and is only a watch; REJECTED means a completed 15M candle met every rejection rule; BREAKOUT / BREAKDOWN CONFIRMED means a completed 15M candle closed beyond the 4H zone. These are market conditions, not automatic entries. Rejection requires a wick at least 1.5× the candle body and 40% of its range, plus RSI14 confirmation (BUY above 50 and rising; SELL below 50 and falling). Volume contributes to strength but is not mandatory.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1580px] text-xs border-collapse">
-            <thead className="sticky top-0 bg-gray-800 text-purple-300"><tr><TableSortTh table="table4" field="symbol" className="text-left">Symbol</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.trend">4H Trend</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.rsi14">4H RSI14</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.volumeRatio">4H Volume / Avg</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.support.low">4H Support Zone</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.support.confluences">Support Confluence</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.resistance.low">4H Resistance Zone</TableSortTh><TableSortTh table="table4" field="fourHourSupportResistance.resistance.confluences">Resistance Confluence</TableSortTh><TableSortTh table="table4" field="strict15MRejection.status">15M Status — What Price Is Doing</TableSortTh><TableSortTh table="table4" field="strict15MRejection.direction">Zone / Trade Bias</TableSortTh><TableSortTh table="table4" field="strict15MRejection.rsi14">RSI14</TableSortTh><TableSortTh table="table4" field="strict15MRejection.wickRatio">Wick / Range</TableSortTh><TableSortTh table="table4" field="strict15MRejection.volumeRatio">15M Volume / Avg</TableSortTh><TableSortTh table="table4" field="strict15MRejection.strength">Strength</TableSortTh><TableSortTh table="table4" field="strict15MRejection.timestamp">15M Candle Time</TableSortTh><TableSortTh table="table4" field="strict15MRejection.reason">Reason</TableSortTh></tr></thead>
+            <thead className="sticky top-0 bg-gray-800 text-purple-300"><tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">4H Trend</th><th className="p-2">4H RSI14</th><th className="p-2">4H Volume / Avg</th><th className="p-2">4H Support Zone</th>
+              <th className="p-2">Support Confluence</th><th className="p-2">4H Resistance Zone</th><th className="p-2">Resistance Confluence</th>
+              <th className="p-2">15M Status — What Price Is Doing</th><th className="p-2">Zone / Trade Bias</th><th className="p-2">RSI14</th>
+              <th className="p-2">Wick / Range</th><th className="p-2">15M Volume / Avg</th><th className="p-2">Strength</th><th className="p-2">15M Candle Time</th><th className="p-2">Reason</th>
+            </tr></thead>
             <tbody>
-              {signals.filter(s => {
+              {sortByMasterOrder(signals.filter(s => {
+                if (!masterVisibleSymbolSet.has(s.symbol)) return false;
                 const symbolMatches = !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase());
                 const isFavorite = favorites.has(s.symbol);
                 const favoriteMatches = coinListView === 'all' ||
@@ -5329,15 +5312,7 @@ latestRSI,
                 if (srRejectionFilter === 'testing') return status === 'TESTING' || status === 'REJECTION FORMING';
                 if (srRejectionFilter === 'waiting') return status === 'WAITING FOR TEST';
                 return true;
-              }).sort((a: any, b: any) => {
-                const cfg = tableSorts.table4;
-                const av = readSortValue(a, cfg.field), bv = readSortValue(b, cfg.field);
-                const an = av == null || av === '', bn = bv == null || bv === '';
-                if (an || bn) return an === bn ? String(a.symbol).localeCompare(String(b.symbol)) : an ? 1 : -1;
-                const na = Number(av), nb = Number(bv);
-                const cmp = Number.isFinite(na) && Number.isFinite(nb) ? na - nb : String(av).localeCompare(String(bv), undefined, {numeric:true});
-                return cfg.order === 'asc' ? cmp : -cmp;
-              }).map(s => {
+              })).map(s => {
                 const sr = s.fourHourSupportResistance ?? {};
                 const r = s.strict15MRejection ?? {};
                 const fmtZone = (z: any) => z && Number.isFinite(z.low) && Number.isFinite(z.high) ? `${Number(z.low).toPrecision(7)} – ${Number(z.high).toPrecision(7)}` : 'N/A';
@@ -5431,9 +5406,13 @@ latestRSI,
         <p className="text-xs text-gray-500 mb-2">Signal guide: <strong>Resistance breakout</strong> = BUY continuation watch. <strong>Support breakdown</strong> = SELL continuation watch. <strong>Potential fake breakout/breakdown</strong> means live price has returned inside the crossed 4H zone; a completed 15M reclaim candle is still required. <strong>Confirmed resistance fakeout</strong> = SELL. <strong>Confirmed support breakdown failure</strong> = BUY. A wick alone does not confirm a breakout. Entry requires live price to cross the trigger. Pending setups expire after four 15M candles. TP1 must offer at least 1:1.5 R:R. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1740px] text-xs border-collapse">
-            <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr><TableSortTh table="table5" field="symbol" className="text-left">Symbol</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.direction">Direction</TableSortTh><TableSortTh table="table5" field="fifteenMinuteTrendline.status">15M Trendline / Zone Pressure</TableSortTh><TableSortTh table="table5" field="fifteenMinuteReversal.status">15M Reversal Pattern</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.breakoutStatus">4H Zone Break / Failure Stage</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.triggerPrice">15M Entry Trigger</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.stopLoss">4H Stop-loss</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.targets.0.price">4H TP1</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.targets.1.price">4H TP2</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.targets.2.price">4H TP3</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.riskReward.0">4H R:R</TableSortTh><TableSortTh table="table5" field="zoneTradePlan.status">Status</TableSortTh></tr></thead>
+            <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Reversal Pattern</th><th className="p-2">4H Zone Break / Failure Stage</th><th className="p-2">15M Entry Trigger</th>
+              <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
+              <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
+            </tr></thead>
             <tbody>
-              {sortTableRows<any>(zoneTradeRows, 'table5').map(s => {
+              {zoneTradeRows.map(s => {
                   const p = s.zoneTradePlan ?? {};
                   const breakoutZoneSide = p.breakoutZone?.side;
                   const breakoutStatusLabel =
@@ -5531,9 +5510,11 @@ latestRSI,
         </div>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1500px] text-xs border-collapse">
-            <thead className="sticky top-0 bg-gray-800 text-cyan-300"><tr><TableSortTh table="table6" field="symbol" className="text-left">Symbol</TableSortTh><TableSortTh table="table6" field="dailyReversal.pattern">1D Closed Pattern</TableSortTh><TableSortTh table="table6" field="dailyReversal.direction">Direction</TableSortTh><TableSortTh table="table6" field="dailyReversal.score">Score / Status</TableSortTh><TableSortTh table="table6" field="dailyReversal.rsi14">1D RSI(14)</TableSortTh><TableSortTh table="table6" field="dailyReversal.aboveEma14">EMA14 / 50 / 200</TableSortTh><TableSortTh table="table6" field="dailyReversal.volumeRatio">Volume</TableSortTh><TableSortTh table="table6" field="dailyReversal.wickRatio">Wick / Range</TableSortTh><TableSortTh table="table6" field="multiTimeframeAlignment.4h.mainTrend">4H Context</TableSortTh><TableSortTh table="table6" field="multiTimeframeAlignment.15m.mainTrend">15M Execution</TableSortTh><TableSortTh table="table6" field="dailyReversal.candleTime">Daily Candle Close (PH)</TableSortTh></tr></thead>
+            <thead className="sticky top-0 bg-gray-800 text-cyan-300"><tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">1D Closed Pattern</th><th className="p-2">Direction</th><th className="p-2">Score / Status</th><th className="p-2">1D RSI(14)</th><th className="p-2">EMA14 / 50 / 200</th><th className="p-2">Volume</th><th className="p-2">Wick / Range</th><th className="p-2">4H Context</th><th className="p-2">15M Execution</th><th className="p-2">Daily Candle Close (PH)</th>
+            </tr></thead>
             <tbody>
-              {sortTableRows<any>(dailyReversalRows, 'table6').map((s:any) => { const d=s.dailyReversal; const mtf=s.multiTimeframeAlignment??{}; const four=mtf['4h']??{}; const fifteen=mtf['15m']??{}; const bull=d.direction==='BULLISH'; return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+              {dailyReversalRows.map((s:any) => { const d=s.dailyReversal; const mtf=s.multiTimeframeAlignment??{}; const four=mtf['4h']??{}; const fifteen=mtf['15m']??{}; const bull=d.direction==='BULLISH'; return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                 <td className="p-2 font-semibold whitespace-nowrap"><button type="button" onClick={()=>toggleFavorite(s.symbol)} className={`mr-1 ${favorites.has(s.symbol)?'text-yellow-300':'text-gray-500 hover:text-yellow-300'}`}>{favorites.has(s.symbol)?'★':'☆'}</button>{s.symbol}</td>
                 <td className="p-2 text-center font-semibold whitespace-normal">{d.pattern}</td>
                 <td className={`p-2 text-center font-bold ${bull?'text-green-300':d.direction==='BEARISH'?'text-red-300':'text-yellow-300'}`}>{d.direction}</td>
