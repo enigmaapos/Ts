@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useDeferredValue } from "react";
 
 function calculateEMA(data: number[], period: number) {
   const k = 2 / (period + 1);
@@ -1443,6 +1443,9 @@ const [signals, setSignals] = useState<any[]>([]);
   // Binance before its technical analysis batch has completed.
   const [activeFuturesSymbols, setActiveFuturesSymbols] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  // Defer expensive table filtering during rapid typing; the input itself stays immediate.
+  const deferredSearch = useDeferredValue(search);
+  const searchTerm = deferredSearch.trim().toLowerCase();
   const [lastUpdatedMap, setLastUpdatedMap] = useState<{ [symbol: string]: number }>({});
   const [loading, setLoading] = useState(false);
   const [scannerStatus, setScannerStatus] = useState<'starting' | 'scanning' | 'waiting' | 'rate-limited' | 'error'> ('starting');
@@ -1515,7 +1518,7 @@ const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' |
 const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
 const zoneTradeRows = useMemo(() => {
   if (!zoneTradeExpanded) return [];
-  const query = search.trim().toLowerCase();
+  const query = searchTerm;
   const rows = signals.filter((signal: any) => {
     if (!signal.zoneTradePlan) return false;
     if (query && !String(signal.symbol ?? '').toLowerCase().includes(query)) return false;
@@ -1530,7 +1533,7 @@ const zoneTradeRows = useMemo(() => {
     rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
     String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
   );
-}, [signals, zoneTradeExpanded, search, coinListView, favorites]);
+}, [signals, zoneTradeExpanded, searchTerm, coinListView, favorites]);
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1540,7 +1543,7 @@ const [touchedEMA200PreviousFilter, setTouchedEMA200PreviousFilter] = useState<'
 const [touchedEMA100PreviousFilter, setTouchedEMA100PreviousFilter] = useState<'all' | 'yes' | 'no'>('all');
 const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish' | 'bearish' | 'no'>('all');
 
-const searchTerm = search.trim().toLowerCase();
+
 
 const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
@@ -1784,7 +1787,7 @@ const possibleReversalTableSignals = useMemo(() => {
   })
   .filter((s) => possibleReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
-  .filter((s) => !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+  .filter((s) => !searchTerm || String(s.symbol ?? '').toLowerCase().includes(searchTerm))
   .filter((s) => coinListView === 'all' ||
     (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
   .sort((a, b) => {
@@ -1798,7 +1801,7 @@ const possibleReversalTableSignals = useMemo(() => {
       : possibleReversalSortOrder === 'asc' ? diff : -diff;
   });
 }, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded,
-    search, coinListView, favorites]);
+    searchTerm, coinListView, favorites]);
 
 const confirmedReversalTableSignals = useMemo(() => {
   if (!confirmedReversalExpanded) return [];
@@ -1809,7 +1812,7 @@ const confirmedReversalTableSignals = useMemo(() => {
   })
   .filter((s) => confirmedReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
-  .filter((s) => !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+  .filter((s) => !searchTerm || String(s.symbol ?? '').toLowerCase().includes(searchTerm))
   .filter((s) => coinListView === 'all' ||
     (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
   .sort((a, b) => {
@@ -1823,7 +1826,7 @@ const confirmedReversalTableSignals = useMemo(() => {
       : confirmedReversalSortOrder === 'asc' ? diff : -diff;
   });
 }, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded,
-    search, coinListView, favorites]);
+    searchTerm, coinListView, favorites]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -1839,7 +1842,7 @@ const visibleTableSignals = useMemo(() => {
 // reset on incoming scan batches, so the current page remains stable.
 useEffect(() => {
   setTablePage(0);
-}, [search, coinListView, favorites, trendFilters, signalFilter, timeframe,
+}, [searchTerm, coinListView, favorites, trendFilters, signalFilter, timeframe,
     priceChange24hFilter, fundingRateFilter, mtfAlignmentFilter,
     mtfTrendDirectionFilter, rsi14Filter, touchedEMA200Filter,
     touchedEMA100Filter, touchedEMA200PreviousFilter, touchedEMA100PreviousFilter,
@@ -2190,24 +2193,24 @@ const signalCounts = useMemo(() => {
       throw new Error(`${label} failed`);
     };
 
-    // Monthly candles change slowly and the monthly metrics use completed candles.
-    // Cache 1M klines for five minutes to limit the extra Binance request load.
-    const monthlyKlineCache = new Map<string, { expiresAt: number; raw: any[] }>();
+    // Cache klines briefly to deduplicate the selected timeframe request against
+    // the same timeframe's multi-timeframe request in the same analysis pass.
+    // The short TTL keeps live-candle freshness while reducing duplicate API weight.
+    const klineCache = new Map<string, { expiresAt: number; raw: any[] }>();
+    const KLINE_CACHE_TTL_MS = 5_000;
+    const MONTHLY_KLINE_CACHE_TTL_MS = 5 * 60 * 1000;
     const fetchKlines = async (symbol: string, interval: string, label: string) => {
-      if (interval === '1M') {
-        const cached = monthlyKlineCache.get(symbol);
-        if (cached && cached.expiresAt > Date.now()) return cached.raw;
-        const raw = await safeFetchJson<any[]>(
-          `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
-          label
-        );
-        monthlyKlineCache.set(symbol, { raw, expiresAt: Date.now() + 5 * 60 * 1000 });
-        return raw;
-      }
-      return safeFetchJson<any[]>(
+      const cacheKey = `${symbol}:${interval}`;
+      const cached = klineCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) return cached.raw;
+
+      const raw = await safeFetchJson<any[]>(
         `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
         label
       );
+      const ttl = interval === '1M' ? MONTHLY_KLINE_CACHE_TTL_MS : KLINE_CACHE_TTL_MS;
+      klineCache.set(cacheKey, { raw, expiresAt: Date.now() + ttl });
+      return raw;
     };
 
     // Define available timeframes
@@ -4048,20 +4051,17 @@ latestRSI,
     await delay(adaptiveDelay);
   }
 
-  if (isMounted) {
+  if (isMounted && results.length > 0) {
+    const updatedAt = Date.now();
+    const updatedMap: { [symbol: string]: number } = {};
+    for (const result of results) updatedMap[result.symbol] = updatedAt;
+
+    // Keep state updates independent; never call one state setter inside another
+    // setter's updater. React can batch these updates into a single render.
+    setLastUpdatedMap(prev => ({ ...prev, ...updatedMap }));
     setSignals(prev => {
-      // Map-based upsert avoids repeatedly scanning the growing signals array
-      // with findIndex (quadratic work as the Futures universe fills).
       const bySymbol = new Map<string, any>(prev.map(item => [item.symbol, item]));
-      const updatedMap: { [symbol: string]: number } = { ...lastUpdatedMap };
-      const updatedAt = Date.now();
-
-      for (const result of results) {
-        bySymbol.set(result.symbol, result);
-        updatedMap[result.symbol] = updatedAt;
-      }
-
-      setLastUpdatedMap(updatedMap);
+      for (const result of results) bySymbol.set(result.symbol, result);
       return Array.from(bySymbol.values());
     });
   }
