@@ -4960,7 +4960,7 @@ latestRSI,
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
-                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'POSSIBLE REVERSAL — SELL' : 'POSSIBLE REVERSAL — BUY'}</td>
                 <td className="p-2 text-center">{String(r.mainTrend ?? 'N/A').toUpperCase()}</td>
                 <td className="p-2 text-right">{Number(r.previousPrice).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.breakoutPrice).toPrecision(7)}</td>
@@ -5011,7 +5011,7 @@ latestRSI,
       </div>
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <input type="search" value={confirmedReversalSearch} onChange={e => setConfirmedReversalSearch(e.target.value)}
-          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Reversal Confirmed symbols"
+          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Continuation Confirmed symbols"
           className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
         <select value={confirmedReversalFavoriteFilter} onChange={e => setConfirmedReversalFavoriteFilter(e.target.value as typeof confirmedReversalFavoriteFilter)}
           aria-label="Continuation Confirmed favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
@@ -5019,7 +5019,7 @@ latestRSI,
         </select>
       </div>
       {confirmedReversalExpanded && <>
-      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed continuation signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-blue-300">
@@ -5046,7 +5046,7 @@ latestRSI,
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
-                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</td>
                 <td className="p-2 text-right">{Number(r.close).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.rsi14).toFixed(2)}</td>
                 <td className="p-2 text-right">{Number(r.ema14).toPrecision(7)}</td>
