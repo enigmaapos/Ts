@@ -1823,6 +1823,52 @@ const getSortValue = (s: any, field: string): any => {
     case 'testedPrevLow': return getBooleanValue(s.testedPrevLow);
     case 'topPattern': return s.isDoubleTopFailure ? 3 : s.isDoubleTop ? 2 : s.isDescendingTop ? 1 : 0;
     case 'bottomPattern': return s.isDoubleBottomFailure ? 3 : s.isDoubleBottom ? 2 : s.isAscendingBottom ? 1 : 0;
+
+    // Table 1 column sort values. Complex visual columns use a documented,
+    // deterministic representative score so sorting never triggers data fetches.
+    case 'majorSupport': {
+      const z = s.fourHourSupportResistance?.nearestMajorSupport ?? s.fourHourSupportResistance?.support;
+      return z && Number.isFinite(Number(z.price)) ? Number(z.price) : null;
+    }
+    case 'majorResistance': {
+      const z = s.fourHourSupportResistance?.nearestMajorResistance ?? s.fourHourSupportResistance?.resistance;
+      return z && Number.isFinite(Number(z.price)) ? Number(z.price) : null;
+    }
+    case 'accumulation': return Number.isFinite(Number(s.accumulation?.confidence)) ? Number(s.accumulation.confidence) : null;
+    case 'session15m':
+    case 'session2h':
+    case 'session4h':
+    case 'session1d':
+    case 'session1m': {
+      const tf = field === 'session15m' ? '15m' : field === 'session2h' ? '2h' : field === 'session4h' ? '4h' : field === 'session1d' ? '1d' : '1M';
+      const item = s.multiTimeframeAlignment?.[tf];
+      if (!item) return null;
+      const trend = item.mainTrend === 'bullish' ? 2 : item.mainTrend === 'bearish' ? 0 : 1;
+      const previous = item.previousClose === 'green' ? 2 : item.previousClose === 'red' ? 0 : 1;
+      const alignment = item.aligned === true ? 1 : item.aligned === false ? 0 : 0.5;
+      const rsi = Number.isFinite(Number(item.latestRSI14)) ? Number(item.latestRSI14) / 100 : 0;
+      return trend * 100 + previous * 10 + alignment + rsi;
+    }
+    case 'tradeSetup': {
+      const item = s.multiTimeframeAlignment?.['15m'];
+      const sell = item?.bullishBreakout === true && item?.bearishDivergence?.divergence === true;
+      const buy = item?.bearishBreakout === true && item?.bullishDivergence?.divergence === true;
+      return sell && buy ? 3 : sell ? 2 : buy ? 1 : item ? 0 : null;
+    }
+    case 'possibleReversal': {
+      const v = s.multiTimeframeAlignment?.['15m']?.possibleReversal;
+      return v?.available !== true ? null : v.signal === 'SELL' ? 2 : v.signal === 'BUY' ? 1 : 0;
+    }
+    case 'confirmedContinuation': {
+      const v = s.multiTimeframeAlignment?.['15m']?.confirmedReversal;
+      return v?.available !== true ? null : v.signal === 'SELL' ? 2 : v.signal === 'BUY' ? 1 : 0;
+    }
+    case 'sessionSignal': return getSignalValue(s);
+    case 'mtfAlignment': {
+      const tfs = ['15m', '2h', '4h', '1d', '1M'];
+      const items = tfs.map(tf => s.multiTimeframeAlignment?.[tf]).filter(Boolean);
+      return items.length ? items.reduce((sum: number, item: any) => sum + (item.aligned === true ? 1 : 0), 0) : null;
+    }
     default: return s[field];
   }
 };
@@ -4442,11 +4488,28 @@ latestRSI,
 
     const SortableTh = ({ field, children, className = '' }: { field: string; children: any; className?: string }) => (
       <th
-        onClick={() => toggleSort(field)}
-        title={`Sort by ${typeof children === 'string' ? children : field}`}
-        className={`px-1 py-0.5 bg-gray-800 text-center cursor-pointer select-none whitespace-nowrap border border-gray-700 hover:bg-gray-700 ${className}`}
+        title={`Sort ${typeof children === 'string' ? children : field} ascending or descending`}
+        className={`px-1 py-1 bg-gray-800 text-center select-none whitespace-nowrap border border-gray-700 ${className}`}
       >
-        {children} {sortField === field ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+        <div className="flex items-center justify-center gap-1.5">
+          <span>{children}</span>
+          <span className="inline-flex items-center gap-0.5">
+            <button
+              type="button"
+              aria-label={`Sort ${field} ascending`}
+              title="Ascending"
+              onClick={() => { setSortField(field); setSortOrder('asc'); }}
+              className={`rounded px-1 py-0.5 text-[10px] leading-none border ${sortField === field && sortOrder === 'asc' ? 'bg-yellow-400 text-black border-yellow-300' : 'text-gray-300 border-gray-600 hover:bg-gray-700'}`}
+            >▲</button>
+            <button
+              type="button"
+              aria-label={`Sort ${field} descending`}
+              title="Descending"
+              onClick={() => { setSortField(field); setSortOrder('desc'); }}
+              className={`rounded px-1 py-0.5 text-[10px] leading-none border ${sortField === field && sortOrder === 'desc' ? 'bg-yellow-400 text-black border-yellow-300' : 'text-gray-300 border-gray-600 hover:bg-gray-700'}`}
+            >▼</button>
+          </span>
+        </div>
       </th>
     );
 
@@ -5017,21 +5080,21 @@ latestRSI,
       <tr>
         <SortableTh field="symbol" className="sticky left-0 z-30 text-left">Symbol</SortableTh>
         <SortableTh field="currentPrice">Current Price</SortableTh>
-        <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Support</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">4H Major Resistance</th>
+        <SortableTh field="majorSupport">4H Major Support</SortableTh>
+        <SortableTh field="majorResistance">4H Major Resistance</SortableTh>
         <SortableTh field="fundingRate">Funding Fee (%)</SortableTh>
         <SortableTh field="priceChangePercent">24h Change (%)</SortableTh>
-        <th className="px-3 py-2 text-center whitespace-nowrap">Accumulation (15m / 1h / 4h)</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">15m Trade Setup</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">15m Possible Reversal</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">15m Confirmed Continuation</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">2H — PH Session</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">1D — PH Session</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">1M — Monthly</th>
-        <th className="px-2 py-2 text-center whitespace-nowrap">MTF Alignment</th>
+        <SortableTh field="accumulation">Accumulation (15m / 1h / 4h)</SortableTh>
+        <SortableTh field="session15m">15m — PH Session</SortableTh>
+        <SortableTh field="tradeSetup">15m Trade Setup</SortableTh>
+        <SortableTh field="possibleReversal">15m Possible Reversal</SortableTh>
+        <SortableTh field="confirmedContinuation">15m Confirmed Continuation</SortableTh>
+        <SortableTh field="sessionSignal">Signal ({timeframe.toUpperCase()})</SortableTh>
+        <SortableTh field="session2h">2H — PH Session</SortableTh>
+        <SortableTh field="session4h">4H — PH Session</SortableTh>
+        <SortableTh field="session1d">1D — PH Session</SortableTh>
+        <SortableTh field="session1m">1M — Monthly</SortableTh>
+        <SortableTh field="mtfAlignment">MTF Alignment</SortableTh>
       </tr>
     </thead>
     <tbody>
