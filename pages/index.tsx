@@ -62,6 +62,65 @@ function isEMA14InsideRange(ema14Arr: number[], ema70Arr: number[], ema200Arr: n
   return results;
 }
 
+function detectClosedDailyReversal(candles: Candle[]) {
+  const completed = candles.filter(c => Number.isFinite(c.closeTime) && c.closeTime <= Date.now());
+  if (completed.length < 205) return { available: false, pattern: 'INSUFFICIENT 1D DATA', direction: 'NONE', score: null, status: 'NO DATA', candleTime: null, close: null, rsi14: null, ema14: null, ema50: null, ema200: null, volumeRatio: null, wickRatio: null, reason: 'Need at least 205 completed daily candles for EMA200 context.' };
+  const c = completed[completed.length - 1];
+  const prev = completed[completed.length - 2];
+  const prev2 = completed[completed.length - 3];
+  const body = Math.abs(c.close - c.open);
+  const range = Math.max(c.high - c.low, Number.EPSILON);
+  const upper = c.high - Math.max(c.open, c.close);
+  const lower = Math.min(c.open, c.close) - c.low;
+  const bullish = c.close > c.open;
+  const bearish = c.close < c.open;
+  const prevBody = Math.abs(prev.close - prev.open);
+  const prev2Body = Math.abs(prev2.close - prev2.open);
+  const midpointPrev = (prev.open + prev.close) / 2;
+  const smallBody = body / range <= 0.10;
+  const hammer = lower >= Math.max(body * 2, range * 0.45) && upper <= range * 0.25 && body / range <= 0.38;
+  const shootingStar = upper >= Math.max(body * 2, range * 0.45) && lower <= range * 0.25 && body / range <= 0.38;
+  const bullishEngulfing = bullish && prev.close < prev.open && c.open <= prev.close && c.close >= prev.open && body > prevBody;
+  const bearishEngulfing = bearish && prev.close > prev.open && c.open >= prev.close && c.close <= prev.open && body > prevBody;
+  const morningStar = prev2.close < prev2.open && prev2Body / Math.max(prev2.high-prev2.low, Number.EPSILON) > 0.45 && prevBody / Math.max(prev.high-prev.low, Number.EPSILON) < 0.35 && bullish && c.close > (prev2.open + prev2.close) / 2;
+  const eveningStar = prev2.close > prev2.open && prev2Body / Math.max(prev2.high-prev2.low, Number.EPSILON) > 0.45 && prevBody / Math.max(prev.high-prev.low, Number.EPSILON) < 0.35 && bearish && c.close < (prev2.open + prev2.close) / 2;
+  const piercing = bullish && prev.close < prev.open && c.open < prev.low && c.close > midpointPrev && c.close < prev.open;
+  const darkCloud = bearish && prev.close > prev.open && c.open > prev.high && c.close < midpointPrev && c.close > prev.open;
+  const bullishHarami = bullish && prev.close < prev.open && c.open > prev.close && c.close < prev.open && body < prevBody * 0.65;
+  const bearishHarami = bearish && prev.close > prev.open && c.open < prev.close && c.close > prev.open && body < prevBody * 0.65;
+  const bullishDoji = smallBody && lower > upper * 1.5;
+  const bearishDoji = smallBody && upper > lower * 1.5;
+  const patterns: Array<{name:string; direction:'BULLISH'|'BEARISH'; points:number}> = [];
+  if (bullishEngulfing) patterns.push({name:'Bullish Engulfing',direction:'BULLISH',points:3});
+  if (hammer) patterns.push({name:'Hammer',direction:'BULLISH',points:2});
+  if (morningStar) patterns.push({name:'Morning Star',direction:'BULLISH',points:3});
+  if (piercing) patterns.push({name:'Piercing Line',direction:'BULLISH',points:2});
+  if (bullishHarami) patterns.push({name:'Bullish Harami',direction:'BULLISH',points:1});
+  if (bullishDoji) patterns.push({name:'Dragonfly-like Doji',direction:'BULLISH',points:1});
+  if (bearishEngulfing) patterns.push({name:'Bearish Engulfing',direction:'BEARISH',points:3});
+  if (shootingStar) patterns.push({name:'Shooting Star',direction:'BEARISH',points:2});
+  if (eveningStar) patterns.push({name:'Evening Star',direction:'BEARISH',points:3});
+  if (darkCloud) patterns.push({name:'Dark Cloud Cover',direction:'BEARISH',points:2});
+  if (bearishHarami) patterns.push({name:'Bearish Harami',direction:'BEARISH',points:1});
+  if (bearishDoji) patterns.push({name:'Gravestone-like Doji',direction:'BEARISH',points:1});
+  const closes = completed.map(x=>x.close);
+  const ema14s = calculateEMA(closes,14), ema50s = calculateEMA(closes,50), ema200s = calculateEMA(closes,200);
+  const rsi = calculateRSI(closes,14);
+  const avgVol = completed.slice(-21,-1).reduce((a,x)=>a+x.volume,0)/20;
+  const volumeRatio = avgVol > 0 ? c.volume/avgVol : null;
+  const ema14 = ema14s.at(-1) ?? null, ema50 = ema50s.at(-1) ?? null, ema200 = ema200s.at(-1) ?? null;
+  const rsi14 = rsi.at(-1) ?? null;
+  const wickRatio = (upper+lower)/range;
+  if (!patterns.length) return { available:true, pattern:'NO REVERSAL PATTERN', direction:'NONE', score:0, status:'NO PATTERN', candleTime:c.closeTime, close:c.close, rsi14, ema14, ema50, ema200, volumeRatio, wickRatio, reason:'Latest completed 1D candle did not match the configured reversal patterns.' };
+  const directions = new Set(patterns.map(x=>x.direction));
+  const direction = directions.size > 1 ? 'MIXED' : patterns[0].direction;
+  const patternPoints = Math.max(...patterns.map(x=>x.points));
+  const trendSupport = direction === 'BULLISH' ? (c.close > ema14 ? 1 : 0) + (rsi14 !== null && rsi14 > 50 ? 1 : 0) : direction === 'BEARISH' ? (c.close < ema14 ? 1 : 0) + (rsi14 !== null && rsi14 < 50 ? 1 : 0) : 0;
+  const volumeSupport = volumeRatio !== null && volumeRatio >= 1.2 ? 1 : 0;
+  const score = Math.min(100, 35 + patternPoints * 12 + trendSupport * 8 + volumeSupport * 7);
+  return { available:true, pattern:patterns.map(x=>x.name).join(' + '), direction, score, status:direction==='MIXED'?'CONFLICTING PATTERNS':score>=75?'STRONG PATTERN':score>=55?'PATTERN + SUPPORT':'EARLY PATTERN', candleTime:c.closeTime, close:c.close, rsi14, ema14, ema50, ema200, volumeRatio, wickRatio, reason:'Pattern is based on the latest fully closed Binance 1D candle. Score measures pattern/context evidence, not probability of reversal.', aboveEma14:c.close>ema14, aboveEma50:c.close>ema50, aboveEma200:c.close>ema200 };
+}
+
 function calculateRSI(closes: number[], period = 3): number[] {
   if (!Array.isArray(closes) || closes.length <= period) return [];
 
@@ -1516,6 +1575,18 @@ const [confirmedReversalExpanded, setConfirmedReversalExpanded] = useState(true)
 const [srRejectionExpanded, setSrRejectionExpanded] = useState(true);
 const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' | 'breakout' | 'testing' | 'waiting'>('all');
 const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
+const [dailyReversalExpanded, setDailyReversalExpanded] = useState(true);
+const [dailyReversalFilter, setDailyReversalFilter] = useState<'all' | 'bullish' | 'bearish'>('all');
+const dailyReversalRows = useMemo(() => signals.filter((s: any) => {
+  const d = s.dailyReversal;
+  if (!d?.available || d.direction === 'NONE') return false;
+  if (dailyReversalFilter === 'bullish' && d.direction !== 'BULLISH') return false;
+  if (dailyReversalFilter === 'bearish' && d.direction !== 'BEARISH') return false;
+  if (searchTerm && !String(s.symbol ?? '').toLowerCase().includes(searchTerm)) return false;
+  if (coinListView === 'favorites' && !favorites.has(s.symbol)) return false;
+  if (coinListView === 'not-favorites' && favorites.has(s.symbol)) return false;
+  return true;
+}).sort((a: any,b: any) => (b.dailyReversal.score ?? 0) - (a.dailyReversal.score ?? 0)), [signals, dailyReversalFilter, searchTerm, coinListView, favorites]);
 const zoneTradeRows = useMemo(() => {
   if (!zoneTradeExpanded) return [];
   const query = searchTerm;
@@ -2815,6 +2886,9 @@ const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAli
 const overallMultiTimeframeAlignment = availableAlignmentCount
   ? `${alignedTimeframeCount}/5 ALIGNED (${availableAlignmentCount}/5 DATA)` : 'N/A';
 
+const dailyLoaded = loadedTimeframes.find(x => x.tf === '1d');
+const dailyReversal = dailyLoaded && !dailyLoaded.error ? detectClosedDailyReversal(dailyLoaded.tfCandles) : { available:false, pattern:'1D DATA UNAVAILABLE', direction:'NONE', score:null, status:'NO DATA', candleTime:null, close:null, rsi14:null, ema14:null, ema50:null, ema200:null, volumeRatio:null, wickRatio:null, reason:dailyLoaded?.error ?? 'Daily candles unavailable' };
+
 // === 1D TWO PREVIOUS RED CLOSES ===
 // Only the two most recent COMPLETED Binance 1D candles are evaluated.
 // The current/forming 1D candle is deliberately excluded so the signal
@@ -3856,6 +3930,7 @@ mainTrend,
   fifteenMinuteTrendline,
   fifteenMinuteReversal,
   zoneTradePlan,
+  dailyReversal,
   overallMultiTimeframeAlignment,
   breakout,
   bullishBreakout,
@@ -5403,6 +5478,52 @@ latestRSI,
                   </tr>;
                 })}
               {zoneTradeRows.length === 0 && <tr><td colSpan={12} className="p-4 text-center text-gray-500">No matching symbols have a calculated Table 5 plan. Check the search/favorite filter or wait for a qualifying completed 15M setup.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </>}
+    </section>
+
+    {/* Table 6 — closed 1D reversal candle scanner */}
+    <section className="mt-6 border border-cyan-700/60 rounded-lg p-3 bg-gray-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-lg font-bold text-cyan-300">Table 6 — 1D Closed Reversal Candles</h2>
+          <p className="text-xs text-gray-400">Detects reversal patterns only on the latest fully closed Binance daily candle. Uses 1D RSI(14), EMA14/50/200, volume and wick context. Pattern evidence is not a confirmed trade signal.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={dailyReversalFilter} onChange={e => setDailyReversalFilter(e.target.value as any)} className="px-2 py-1.5 rounded border border-gray-700 bg-gray-800 text-xs text-gray-200">
+            <option value="all">All directions</option><option value="bullish">Bullish only</option><option value="bearish">Bearish only</option>
+          </select>
+          <button type="button" onClick={() => setDailyReversalExpanded(v => !v)} aria-expanded={dailyReversalExpanded} className="px-3 py-1.5 rounded border border-cyan-700 bg-gray-800 text-cyan-300 hover:bg-gray-700">{dailyReversalExpanded ? 'Hide Table ▲' : 'Show Table ▼'}</button>
+        </div>
+      </div>
+      {dailyReversalExpanded && <>
+        <div className="flex flex-wrap gap-3 text-xs mb-2">
+          <span className="text-green-300">Bullish: {dailyReversalRows.filter((s:any)=>s.dailyReversal.direction==='BULLISH').length}</span>
+          <span className="text-red-300">Bearish: {dailyReversalRows.filter((s:any)=>s.dailyReversal.direction==='BEARISH').length}</span>
+          <span className="text-yellow-300">Mixed: {dailyReversalRows.filter((s:any)=>s.dailyReversal.direction==='MIXED').length}</span>
+        </div>
+        <div className="overflow-auto max-h-[55vh]">
+          <table className="w-full min-w-[1500px] text-xs border-collapse">
+            <thead className="sticky top-0 bg-gray-800 text-cyan-300"><tr>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">1D Closed Pattern</th><th className="p-2">Direction</th><th className="p-2">Score / Status</th><th className="p-2">1D RSI(14)</th><th className="p-2">EMA14 / 50 / 200</th><th className="p-2">Volume</th><th className="p-2">Wick / Range</th><th className="p-2">4H Context</th><th className="p-2">15M Execution</th><th className="p-2">Daily Candle Close (PH)</th>
+            </tr></thead>
+            <tbody>
+              {dailyReversalRows.map((s:any) => { const d=s.dailyReversal; const mtf=s.multiTimeframeAlignment??{}; const four=mtf['4h']??{}; const fifteen=mtf['15m']??{}; const bull=d.direction==='BULLISH'; return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
+                <td className="p-2 font-semibold whitespace-nowrap"><button type="button" onClick={()=>toggleFavorite(s.symbol)} className={`mr-1 ${favorites.has(s.symbol)?'text-yellow-300':'text-gray-500 hover:text-yellow-300'}`}>{favorites.has(s.symbol)?'★':'☆'}</button>{s.symbol}</td>
+                <td className="p-2 text-center font-semibold whitespace-normal">{d.pattern}</td>
+                <td className={`p-2 text-center font-bold ${bull?'text-green-300':d.direction==='BEARISH'?'text-red-300':'text-yellow-300'}`}>{d.direction}</td>
+                <td className="p-2 text-center"><div className="font-bold">{d.score ?? '—'}/100</div><div className="text-gray-400">{d.status}</div></td>
+                <td className="p-2 text-right">{Number.isFinite(d.rsi14)?d.rsi14.toFixed(1):'—'}</td>
+                <td className="p-2 text-right whitespace-nowrap"><div>{d.aboveEma14?'Above':'Below'} EMA14</div><div>{d.aboveEma50?'Above':'Below'} EMA50 · {d.aboveEma200?'Above':'Below'} EMA200</div></td>
+                <td className="p-2 text-right">{Number.isFinite(d.volumeRatio)?`${d.volumeRatio.toFixed(2)}×`:'—'}</td>
+                <td className="p-2 text-right">{Number.isFinite(d.wickRatio)?`${(d.wickRatio*100).toFixed(1)}%`:'—'}</td>
+                <td className="p-2 text-center">{four.mainTrend ?? four.trend ?? (four.aligned===true?'ALIGNED':four.aligned===false?'NOT ALIGNED':'N/A')}<div className="text-gray-500">RSI {Number.isFinite(four.rsi14)?Number(four.rsi14).toFixed(1):'—'}</div></td>
+                <td className="p-2 text-center">{fifteen.mainTrend ?? fifteen.trend ?? (fifteen.aligned===true?'ALIGNED':fifteen.aligned===false?'NOT ALIGNED':'N/A')}<div className="text-gray-500">Execution confirmation required</div></td>
+                <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(d.candleTime)}</td>
+              </tr>; })}
+              {dailyReversalRows.length===0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No matching closed 1D reversal patterns in the scanned symbols. The current/forming daily candle is excluded.</td></tr>}
             </tbody>
           </table>
         </div>
