@@ -931,63 +931,59 @@ function detectStrict15MRejection(args: {
   return {
     available: true, status, direction, level: level ? { price: level.price, low: level.low, high: level.high, strength: level.strength, confluences: level.confluences } : null,
     rsi14: Number.isFinite(currentRsi) ? currentRsi : null, previousRsi14: Number.isFinite(previousRsi) ? previousRsi : null,
-    wickRatio, volumeRatio, atr14, timestamp: c.timestamp, candleClose: c.close, reason, strength,
+    wickRatio, volumeRatio, atr14, timestamp: c.timestamp, candleClose: c.close, candleCloseTime: c.closeTime, triggerExtreme: bearish ? c.low : bullish ? c.high : null, reason, strength,
     fourHourTrend: levels.trend, fourHourSupport: levels.support, fourHourResistance: levels.resistance
   };
 }
 
 
-function buildZoneTradePlan(rejection: any, levels: any) {
-  // Only a confirmed, completed 15M rejection can create an entry reference.
-  if (!rejection?.available || rejection.status !== 'REJECTION CONFIRMED' ||
-      !['BUY', 'SELL'].includes(rejection.direction) || !rejection.level ||
-      !Number.isFinite(rejection.candleClose) || !levels?.available) {
-    return {
-      available: false, status: 'WAIT' as const,
-      direction: ['BUY', 'SELL'].includes(rejection?.direction) ? rejection.direction : '—',
-      entry: null, stopLoss: null, targets: [], riskReward: [], qualityScore: null,
-      trendRegime: levels?.trendRegime ?? 'UNAVAILABLE', setupType: 'WAITING',
-      volumeConfirmation: 'UNAVAILABLE', rsiConfirmation: 'UNAVAILABLE', structureQuality: 'UNAVAILABLE',
-      zone: rejection?.level ?? null, timestamp: rejection?.timestamp ?? null,
-      reason: rejection?.reason ?? 'Waiting for a confirmed completed 15M rejection and valid completed-4H structure'
-    };
-  }
+function buildZoneTradePlan(rejection: any, levels: any, currentPrice?: number) {
+  // Completed 15M rejection creates a pending setup; live price must break its extreme.
+  const base = {
+    available: false, status: 'WAIT' as const,
+    direction: ['BUY', 'SELL'].includes(rejection?.direction) ? rejection.direction : '—',
+    entry: null as number | null, setupClose: null as number | null, triggerPrice: null as number | null,
+    livePrice: Number.isFinite(currentPrice) ? Number(currentPrice) : null,
+    stopLoss: null as number | null, targets: [] as any[], riskReward: [] as number[], qualityScore: null as number | null,
+    trendRegime: levels?.trendRegime ?? 'UNAVAILABLE', setupType: 'WAITING',
+    volumeConfirmation: 'UNAVAILABLE', rsiConfirmation: 'UNAVAILABLE', structureQuality: 'UNAVAILABLE',
+    zone: rejection?.level ?? null, timestamp: rejection?.timestamp ?? null,
+    reason: rejection?.reason ?? 'Waiting for a confirmed completed 15M rejection and valid completed-4H structure'
+  };
+  if (!rejection?.available || rejection.status !== 'REJECTION CONFIRMED' || !['BUY', 'SELL'].includes(rejection.direction) ||
+      !rejection.level || !Number.isFinite(rejection.candleClose) || !Number.isFinite(rejection.triggerExtreme) || !levels?.available) return base;
 
   const direction = rejection.direction as 'BUY' | 'SELL';
-  const entry = Number(rejection.candleClose);
+  const setupClose = Number(rejection.candleClose);
   const zone = rejection.level;
   const atr = Number(levels.atr14);
-  // ATR buffer is applied OUTSIDE the far edge of the rejected 4H zone.
-  // 0.15 x 4H ATR is a modest configurable noise allowance, not a guaranteed stop distance.
   const atrBuffer = Number.isFinite(atr) && atr > 0 ? atr * 0.15 : 0;
   const stopLoss = direction === 'BUY' ? Number(zone.low) - atrBuffer : Number(zone.high) + atrBuffer;
+  // 2 bps breakout buffer beyond the rejection candle extreme.
+  const triggerBuffer = Math.abs(Number(rejection.triggerExtreme)) * 0.0002;
+  const triggerPrice = direction === 'BUY' ? Number(rejection.triggerExtreme) + triggerBuffer : Number(rejection.triggerExtreme) - triggerBuffer;
+  const candleCloseTime = Number(rejection.candleCloseTime);
+  const ageMs = Number.isFinite(candleCloseTime) ? Date.now() - candleCloseTime : Infinity;
+  const expired = ageMs > 4 * 15 * 60 * 1000;
+  const live = Number(currentPrice);
+  const triggered = Number.isFinite(live) && (direction === 'BUY' ? live >= triggerPrice : live <= triggerPrice);
+  const invalidatedBeforeTrigger = Number.isFinite(live) && (direction === 'BUY' ? live <= stopLoss : live >= stopLoss);
+  const pendingStatus = expired ? 'EXPIRED' as const : invalidatedBeforeTrigger && !triggered ? 'NO TRADE' as const : triggered ? 'ENTRY TRIGGERED' as const : 'SETUP CONFIRMED' as const;
+  const entry = triggerPrice;
   const risk = Math.abs(entry - stopLoss);
 
-  const rawTargets = direction === 'SELL'
-    ? (Array.isArray(levels.supportZones) ? levels.supportZones : [levels.support])
-    : (Array.isArray(levels.resistanceZones) ? levels.resistanceZones : [levels.resistance]);
-  // Preserve nearest-to-farthest price order. EMA-only zones remain secondary references;
-  // structural swing/session levels receive stronger quality credit, not artificial reordering.
-  const targetZones = rawTargets
-    .filter((z: any) => z && Number.isFinite(z.price) &&
-      (direction === 'SELL' ? z.price < entry : z.price > entry))
+  const rawTargets = direction === 'SELL' ? (Array.isArray(levels.supportZones) ? levels.supportZones : [levels.support]) : (Array.isArray(levels.resistanceZones) ? levels.resistanceZones : [levels.resistance]);
+  const targetZones = rawTargets.filter((z: any) => z && Number.isFinite(z.price) && (direction === 'SELL' ? z.price < entry : z.price > entry))
     .sort((a: any, b: any) => direction === 'SELL' ? b.price - a.price : a.price - b.price);
-
   const targets = targetZones.slice(0, 3).map((z: any, index: number) => {
     const reward = Math.abs(entry - Number(z.price));
-    return {
-      label: `TP${index + 1}`, price: Number(z.price), low: Number(z.low), high: Number(z.high),
-      strength: z.strength ?? null, confluences: z.confluences ?? [],
-      structuralCount: z.structuralCount ?? 0,
-      targetType: (z.structuralCount ?? 0) > 0 ? 'STRUCTURAL' : 'EMA REFERENCE',
-      riskReward: risk > 0 ? reward / risk : null,
-      distancePercent: entry > 0 ? reward / entry * 100 : null
-    };
+    return { label: `TP${index + 1}`, price: Number(z.price), low: Number(z.low), high: Number(z.high), strength: z.strength ?? null,
+      confluences: z.confluences ?? [], structuralCount: z.structuralCount ?? 0,
+      targetType: (z.structuralCount ?? 0) > 0 ? 'STRUCTURAL' : 'EMA REFERENCE', riskReward: risk > 0 ? reward / risk : null,
+      distancePercent: entry > 0 ? reward / entry * 100 : null };
   });
-
   const firstTargetRR = targets[0]?.riskReward ?? null;
-  const validRisk = Number.isFinite(risk) && risk > 0 &&
-    (direction === 'BUY' ? stopLoss < entry : stopLoss > entry);
+  const validRisk = Number.isFinite(risk) && risk > 0 && (direction === 'BUY' ? stopLoss < entry : stopLoss > entry);
   const trendRegime = levels.trendRegime ?? 'NEUTRAL';
   const trendAligned = (direction === 'BUY' && trendRegime === 'BULLISH') || (direction === 'SELL' && trendRegime === 'BEARISH');
   const countertrend = (direction === 'BUY' && trendRegime === 'BEARISH') || (direction === 'SELL' && trendRegime === 'BULLISH');
@@ -995,42 +991,32 @@ function buildZoneTradePlan(rejection: any, levels: any) {
   const rsiConfirmed = Number.isFinite(rsi) && (direction === 'BUY' ? rsi > 50 : rsi < 50);
   const divergenceConfirmed = direction === 'BUY' ? levels.bullishDivergence === true : levels.bearishDivergence === true;
   const volume = Number(rejection.volumeRatio);
-  const volumeConfirmation = !Number.isFinite(volume) ? 'UNAVAILABLE' : volume >= 1.5 ? 'STRONG' : volume >= 1.0 ? 'NORMAL' : 'WEAK';
+  const volumeConfirmation = !Number.isFinite(volume) ? 'UNAVAILABLE' : volume >= 1.5 ? 'STRONG' : volume >= 1 ? 'NORMAL' : 'WEAK';
   const rsiConfirmation = rsiConfirmed ? (divergenceConfirmed ? 'CONFIRMED + DIVERGENCE' : 'CONFIRMED') : 'WEAK';
   const structuralTargets = targets.filter((t: any) => t.targetType === 'STRUCTURAL').length;
   const structureQuality = structuralTargets >= 2 ? 'STRONG' : structuralTargets === 1 ? 'MODERATE' : 'WEAK';
-
-  // Transparent 100-point setup score: trend 25, rejection strength 25,
-  // volume 15, RSI/divergence 15, structure 20.
   const trendPoints = trendAligned ? 25 : countertrend ? 0 : 12;
   const rejectionPoints = Math.min(25, Math.max(0, Number(rejection.wickRatio) || 0) * 25);
   const volumePoints = !Number.isFinite(volume) ? 5 : volume >= 2 ? 15 : volume >= 1.5 ? 12 : volume >= 1 ? 8 : 3;
   const momentumPoints = (rsiConfirmed ? 9 : 0) + (divergenceConfirmed ? 6 : 0);
   const structurePoints = structuralTargets >= 2 ? 20 : structuralTargets === 1 ? 12 : 5;
   const qualityScore = Math.round(Math.min(100, trendPoints + rejectionPoints + volumePoints + momentumPoints + structurePoints));
-  const requiredRR = countertrend ? 2.0 : trendRegime === 'NEUTRAL' || trendRegime === 'MIXED' ? 1.75 : 1.5;
-  const enoughTargets = targets.length >= 1;
+  const requiredRR = countertrend ? 2 : trendRegime === 'NEUTRAL' || trendRegime === 'MIXED' ? 1.75 : 1.5;
   const scorePass = qualityScore >= (countertrend ? 70 : 60);
-  const status = !validRisk || !enoughTargets || !Number.isFinite(firstTargetRR) || firstTargetRR < requiredRR || !scorePass
-    ? 'NO TRADE' as const : 'OPPORTUNITY' as const;
+  const tradeEligible = validRisk && targets.length >= 1 && Number.isFinite(firstTargetRR) && firstTargetRR >= requiredRR && scorePass;
+  const status = pendingStatus === 'EXPIRED' || pendingStatus === 'NO TRADE' ? pendingStatus : !tradeEligible ? 'NO TRADE' : pendingStatus;
   const setupType = countertrend ? 'COUNTERTREND' : trendAligned ? 'TREND' : 'MIXED / NEUTRAL';
-
   return {
-    available: true, status, direction, entry, stopLoss, risk, atr14: Number.isFinite(atr) ? atr : null,
-    atrBuffer, stopDistancePercent: entry > 0 ? risk / entry * 100 : null,
-    targets, riskReward: targets.map((target: any) => target.riskReward),
-    qualityScore, trendRegime, emaRegime: levels.emaRegime ?? 'UNAVAILABLE', setupType, trendAligned, countertrend,
-    volumeConfirmation, volumeRatio: Number.isFinite(volume) ? volume : null,
-    rsiConfirmation, rsi14: Number.isFinite(rsi) ? rsi : null,
-    divergenceConfirmed, structureQuality, structuralTargetCount: structuralTargets,
-    requiredRR,
-    zone: { ...zone, side: direction === 'SELL' ? 'resistance' : 'support' },
-    timestamp: rejection.timestamp,
-    reason: !validRisk ? 'Invalid structural stop after the 4H ATR safety buffer' :
-      !enoughTargets ? 'No valid opposing 4H target exists beyond the entry' :
-      !scorePass ? `Setup quality ${qualityScore}/100 is below the required threshold` :
-      !Number.isFinite(firstTargetRR) || firstTargetRR < requiredRR ? `TP1 R:R is below the ${requiredRR.toFixed(2)} minimum for this market regime` :
-      `Confirmed 15M rejection; ${setupType.toLowerCase()} 4H setup passes quality and TP1 R:R filters`
+    available: true, status, direction, entry, setupClose, triggerPrice, livePrice: Number.isFinite(live) ? live : null, triggerBuffer,
+    stopLoss, risk, atr14: Number.isFinite(atr) ? atr : null, atrBuffer, stopDistancePercent: entry > 0 ? risk / entry * 100 : null,
+    targets, riskReward: targets.map((target: any) => target.riskReward), qualityScore, trendRegime, emaRegime: levels.emaRegime ?? 'UNAVAILABLE',
+    setupType, trendAligned, countertrend, volumeConfirmation, volumeRatio: Number.isFinite(volume) ? volume : null,
+    rsiConfirmation, rsi14: Number.isFinite(rsi) ? rsi : null, divergenceConfirmed, structureQuality, structuralTargetCount: structuralTargets,
+    requiredRR, expired, triggered, candleCloseTime, zone: { ...zone, side: direction === 'SELL' ? 'resistance' : 'support' }, timestamp: rejection.timestamp,
+    reason: expired ? 'Pending setup expired after four 15M candles' : invalidatedBeforeTrigger && !triggered ? 'Stop invalidated before entry trigger' :
+      !tradeEligible ? (!validRisk ? 'Invalid structural stop' : !targets.length ? 'No valid opposing 4H target' : !scorePass ? `Quality ${qualityScore}/100 below threshold` : `TP1 R:R below ${requiredRR.toFixed(2)}`) :
+      triggered ? 'Live price crossed the rejection-candle breakout trigger; entry estimate uses trigger price' :
+      `Waiting for live price to cross ${direction === 'BUY' ? 'above' : 'below'} the rejection-candle trigger`
   };
 }
 
@@ -2386,7 +2372,7 @@ if (fifteenMinuteLoaded && !fifteenMinuteLoaded.error && fifteenMinuteLoaded.tfC
     levels: fourHourSupportResistance, currentPrice
   });
 }
-const zoneTradePlan = buildZoneTradePlan(strict15MRejection, fourHourSupportResistance);
+const zoneTradePlan = buildZoneTradePlan(strict15MRejection, fourHourSupportResistance, currentPrice);
 
 const availableAlignmentCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned !== null).length;
 const alignedTimeframeCount = alignmentTimeframes.filter(tf => multiTimeframeAlignment[tf]?.aligned === true).length;
@@ -4869,7 +4855,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-emerald-300">Table 5 — 4H Take Profit Targets</h2>
-          <p className="text-xs text-gray-400">15M confirmed rejection supplies the entry reference. Stop-loss and TP1–TP3 come from 4H structure and are refreshed as completed 4H candles develop.</p>
+          <p className="text-xs text-gray-400">15M rejection confirms a setup; live price must break its candle extreme to trigger entry. 4H structure supplies stop-loss and TP1–TP3.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setZoneTradeExpanded(v => !v)} aria-expanded={zoneTradeExpanded}
@@ -4886,11 +4872,11 @@ latestRSI,
         </div>
       </div>
       {zoneTradeExpanded && <>
-        <p className="text-xs text-gray-500 mb-2">15M does not calculate targets. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. TP1 minimum R:R is 1:1.5 in aligned trends, 1:1.75 in mixed/neutral conditions and 1:2.0 countertrend. A 0.15× completed-4H ATR buffer is added beyond the structural stop. Minimum quality score is 60/100 (70/100 countertrend). Score combines 4H trend, 15M rejection wick, 15M volume, 4H RSI/divergence and structural target confluence. Levels are analytical references, not guaranteed fills or returns.</p>
+        <p className="text-xs text-gray-500 mb-2">Entry trigger = rejection-candle high + 0.02% for BUY, or low − 0.02% for SELL. Pending setups expire after four 15M candles (one hour) and are invalidated if price hits the stop first. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. TP1 minimum R:R is 1:1.5 in aligned trends, 1:1.75 in mixed/neutral conditions and 1:2.0 countertrend. A 0.15× completed-4H ATR buffer is added beyond the structural stop. Minimum quality score is 60/100 (70/100 countertrend). Score combines 4H trend, 15M rejection wick, 15M volume, 4H RSI/divergence and structural target confluence. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1250px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Entry</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Entry Trigger</th>
               <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
               <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
@@ -4903,7 +4889,7 @@ latestRSI,
                   return symbolMatches && favoriteMatches && s.zoneTradePlan;
                 })
                 .sort((a, b) => {
-                  const rank = (plan: any) => plan?.status === 'OPPORTUNITY' ? 0 : plan?.status === 'NO TRADE' ? 1 : 2;
+                  const rank = (plan: any) => plan?.status === 'ENTRY TRIGGERED' ? 0 : plan?.status === 'SETUP CONFIRMED' ? 1 : plan?.status === 'NO TRADE' ? 2 : plan?.status === 'EXPIRED' ? 3 : 4;
                   return rank(a.zoneTradePlan) - rank(b.zoneTradePlan) || String(a.symbol).localeCompare(String(b.symbol));
                 })
                 .map(s => {
@@ -4911,7 +4897,7 @@ latestRSI,
                   const fmtPrice = (value: any) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value).toPrecision(7) : '—';
                   const fmtTarget = (target: any) => target ? <strong>{fmtPrice(target.price)}</strong> : '—';
                   const fmtRR = (target: any) => target && Number.isFinite(target.riskReward) ? `1:${Number(target.riskReward).toFixed(2)}` : '—';
-                  const opportunity = p.status === 'OPPORTUNITY';
+                  const opportunity = p.status === 'ENTRY TRIGGERED';
                   const sell = p.direction === 'SELL';
                   return <tr key={s.symbol} className="border-t border-gray-700 hover:bg-gray-800/70">
                     <td className="p-2 font-semibold whitespace-nowrap">
@@ -4923,13 +4909,15 @@ latestRSI,
                       </button>{s.symbol}
                     </td>
                     <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : p.direction === 'BUY' ? 'text-green-400' : 'text-gray-400'}`}>{p.direction ?? '—'}</td>
-                    <td className="p-2 text-right">{fmtPrice(p.entry)}</td>
+                    <td className="p-2 text-right"><div className="font-semibold">{fmtPrice(p.triggerPrice ?? p.entry)}</div>
+                      {p.setupClose != null && <div className="text-[10px] text-gray-500">15M close {fmtPrice(p.setupClose)}</div>}
+                      {p.livePrice != null && <div className="text-[10px] text-gray-400">Live {fmtPrice(p.livePrice)}</div>}</td>
                     <td className="p-2 text-right text-red-300">{fmtPrice(p.stopLoss)}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[0])}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[1])}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[2])}</td>
                     <td className="p-2 text-center"><div>TP1 {fmtRR(p.targets?.[0])}</div><div>TP2 {fmtRR(p.targets?.[1])}</div><div>TP3 {fmtRR(p.targets?.[2])}</div></td>
-                    <td className={`p-2 text-center ${opportunity ? 'text-emerald-300' : p.status === 'NO TRADE' ? 'text-red-300' : 'text-yellow-300'}`}>
+                    <td className={`p-2 text-center ${opportunity ? 'text-emerald-300' : p.status === 'NO TRADE' || p.status === 'EXPIRED' ? 'text-red-300' : p.status === 'ENTRY TRIGGERED' ? 'text-emerald-300' : 'text-yellow-300'}`}>
                       <div className="font-bold">{p.status ?? 'WAIT'}</div>
                       {p.available && <div className="mt-1 text-[10px] leading-4 text-gray-400 whitespace-nowrap">
                         Score {Number.isFinite(p.qualityScore) ? `${p.qualityScore}/100` : '—'} · {p.trendRegime ?? '—'} (EMA {p.emaRegime ?? '—'}) · {p.setupType ?? '—'}<br />
@@ -4943,7 +4931,7 @@ latestRSI,
                 const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
                   (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
                 return symbolMatches && favoriteMatches && s.zoneTradePlan;
-              }).length === 0 && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A confirmed completed 15M rejection is required before entry and target calculations.</td></tr>}
+              }).length === 0 && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A completed 15M rejection is required before a pending breakout trigger can be calculated.</td></tr>}
             </tbody>
           </table>
         </div>
