@@ -1512,23 +1512,15 @@ const [confirmedReversalSortOrder, setConfirmedReversalSortOrder] = useState<'as
 const [confirmedReversalExpanded, setConfirmedReversalExpanded] = useState(true);
 const [srRejectionExpanded, setSrRejectionExpanded] = useState(true);
 const [srRejectionFilter, setSrRejectionFilter] = useState<'all' | 'confirmed' | 'breakout' | 'testing' | 'waiting'>('all');
-const [possibleReversalSearch, setPossibleReversalSearch] = useState('');
-const [possibleReversalFavoriteFilter, setPossibleReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
-const [confirmedReversalSearch, setConfirmedReversalSearch] = useState('');
-const [confirmedReversalFavoriteFilter, setConfirmedReversalFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
-const [srRejectionSearch, setSrRejectionSearch] = useState('');
-const [srRejectionFavoriteFilter, setSrRejectionFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const [zoneTradeExpanded, setZoneTradeExpanded] = useState(true);
-const [zoneTradeSearch, setZoneTradeSearch] = useState('');
-const [zoneTradeFavoriteFilter, setZoneTradeFavoriteFilter] = useState<'all' | 'favorites' | 'not-favorite'>('all');
 const zoneTradeRows = useMemo(() => {
   if (!zoneTradeExpanded) return [];
-  const query = zoneTradeSearch.trim().toLowerCase();
+  const query = search.trim().toLowerCase();
   const rows = signals.filter((signal: any) => {
     if (!signal.zoneTradePlan) return false;
     if (query && !String(signal.symbol ?? '').toLowerCase().includes(query)) return false;
-    if (zoneTradeFavoriteFilter === 'favorites' && !favorites.has(signal.symbol)) return false;
-    if (zoneTradeFavoriteFilter === 'not-favorite' && favorites.has(signal.symbol)) return false;
+    if (coinListView === 'favorites' && !favorites.has(signal.symbol)) return false;
+    if (coinListView === 'not-favorites' && favorites.has(signal.symbol)) return false;
     return true;
   });
   const rank = (plan: any) => plan?.status === 'ENTRY TRIGGERED' ? 0 :
@@ -1538,7 +1530,7 @@ const zoneTradeRows = useMemo(() => {
     rank(a.zoneTradePlan) - rank(b.zoneTradePlan) ||
     String(a.symbol ?? '').localeCompare(String(b.symbol ?? ''))
   );
-}, [signals, zoneTradeExpanded, zoneTradeSearch, zoneTradeFavoriteFilter, favorites]);
+}, [signals, zoneTradeExpanded, search, coinListView, favorites]);
 const [fundingRateFilter, setFundingRateFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
 const [mtfAlignmentFilter, setMtfAlignmentFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1' | '0' | 'na'>('all');
 const [mtfTrendDirectionFilter, setMtfTrendDirectionFilter] = useState<'all' | 'bullish' | 'bearish' | 'mixed' | 'na'>('all');
@@ -1792,9 +1784,9 @@ const possibleReversalTableSignals = useMemo(() => {
   })
   .filter((s) => possibleReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.possibleReversal?.signal === possibleReversalTableFilter.toUpperCase())
-  .filter((s) => !possibleReversalSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(possibleReversalSearch.trim().toLowerCase()))
-  .filter((s) => possibleReversalFavoriteFilter === 'all' ||
-    (possibleReversalFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
+  .filter((s) => !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+  .filter((s) => coinListView === 'all' ||
+    (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
   .sort((a, b) => {
     const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
     const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
@@ -1806,7 +1798,7 @@ const possibleReversalTableSignals = useMemo(() => {
       : possibleReversalSortOrder === 'asc' ? diff : -diff;
   });
 }, [signals, possibleReversalTableFilter, possibleReversalSortOrder, possibleReversalExpanded,
-    possibleReversalSearch, possibleReversalFavoriteFilter, favorites]);
+    search, coinListView, favorites]);
 
 const confirmedReversalTableSignals = useMemo(() => {
   if (!confirmedReversalExpanded) return [];
@@ -1817,9 +1809,9 @@ const confirmedReversalTableSignals = useMemo(() => {
   })
   .filter((s) => confirmedReversalTableFilter === 'all' ||
     s.multiTimeframeAlignment?.['15m']?.confirmedReversal?.signal === confirmedReversalTableFilter.toUpperCase())
-  .filter((s) => !confirmedReversalSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(confirmedReversalSearch.trim().toLowerCase()))
-  .filter((s) => confirmedReversalFavoriteFilter === 'all' ||
-    (confirmedReversalFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
+  .filter((s) => !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+  .filter((s) => coinListView === 'all' ||
+    (coinListView === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol)))
   .sort((a, b) => {
     const av = Number(a.priceChangePercent), bv = Number(b.priceChangePercent);
     const am = a.priceChangePercent == null || !Number.isFinite(av), bm = b.priceChangePercent == null || !Number.isFinite(bv);
@@ -1831,7 +1823,7 @@ const confirmedReversalTableSignals = useMemo(() => {
       : confirmedReversalSortOrder === 'asc' ? diff : -diff;
   });
 }, [signals, confirmedReversalTableFilter, confirmedReversalSortOrder, confirmedReversalExpanded,
-    confirmedReversalSearch, confirmedReversalFavoriteFilter, favorites]);
+    search, coinListView, favorites]);
 
 
 // Render only one page of results. The scanner still analyzes every eligible
@@ -4601,7 +4593,7 @@ latestRSI,
           : 'bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700'
       }`}
     >
-      ☆ Not Yet Favorited ({favoriteCounts.notFavorites})
+      ☆ Not Favorite ({favoriteCounts.notFavorites})
     </button>
     <button
       type="button"
@@ -4633,7 +4625,8 @@ latestRSI,
   <div className="relative">
     <input
       type="text"
-      placeholder="Search symbol..."
+      placeholder="Search symbols across all tables..."
+      aria-label="Global symbol search for all tables"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
       className="p-2 pr-20 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
@@ -5076,17 +5069,7 @@ latestRSI,
             className={`px-3 py-1.5 rounded border ${possibleReversalSortOrder === 'asc' ? 'bg-yellow-700 text-white border-yellow-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
           </div>
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <input type="search" value={possibleReversalSearch} onChange={e => setPossibleReversalSearch(e.target.value)}
-          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Possible Reversal symbols"
-          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
-        <select value={possibleReversalFavoriteFilter} onChange={e => setPossibleReversalFavoriteFilter(e.target.value as typeof possibleReversalFavoriteFilter)}
-          aria-label="Possible Reversal favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
-          <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-        </select>
-      </div>
-      {possibleReversalExpanded && <>
+      </div>{possibleReversalExpanded && <>
       <p className="text-xs text-gray-500 mb-2">Showing {possibleReversalTableSignals.length} possible reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
@@ -5162,17 +5145,7 @@ latestRSI,
             className={`px-3 py-1.5 rounded border ${confirmedReversalSortOrder === 'asc' ? 'bg-blue-700 text-white border-blue-500' : 'bg-gray-800 text-gray-300 border-gray-600'}`}>ASC ↑</button>
           </div>
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <input type="search" value={confirmedReversalSearch} onChange={e => setConfirmedReversalSearch(e.target.value)}
-          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Continuation Confirmed symbols"
-          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
-        <select value={confirmedReversalFavoriteFilter} onChange={e => setConfirmedReversalFavoriteFilter(e.target.value as typeof confirmedReversalFavoriteFilter)}
-          aria-label="Continuation Confirmed favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
-          <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-        </select>
-      </div>
-      {confirmedReversalExpanded && <>
+      </div>{confirmedReversalExpanded && <>
       <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed continuation signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
@@ -5235,13 +5208,6 @@ latestRSI,
             <option value="all">All statuses</option><option value="confirmed">Rejection confirmed</option>
             <option value="breakout">Breakout confirmed</option><option value="testing">Testing zone</option><option value="waiting">Waiting for test</option>
           </select>
-          <input type="search" value={srRejectionSearch} onChange={e => setSrRejectionSearch(e.target.value)}
-            placeholder="Search symbol" aria-label="Search 4H Support Resistance symbols"
-            className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
-          <select value={srRejectionFavoriteFilter} onChange={e => setSrRejectionFavoriteFilter(e.target.value as typeof srRejectionFavoriteFilter)}
-            aria-label="4H Support Resistance favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
-            <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-          </select>
         </div>
       </div>
       {srRejectionExpanded && <>
@@ -5256,9 +5222,10 @@ latestRSI,
             </tr></thead>
             <tbody>
               {signals.filter(s => {
-                const symbolMatches = !srRejectionSearch.trim() || String(s.symbol ?? '').toLowerCase().includes(srRejectionSearch.trim().toLowerCase());
-                const favoriteMatches = srRejectionFavoriteFilter === 'all' ||
-                  (srRejectionFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
+                const symbolMatches = !search.trim() || String(s.symbol ?? '').toLowerCase().includes(search.trim().toLowerCase());
+                const isFavorite = favorites.has(s.symbol);
+                const favoriteMatches = coinListView === 'all' ||
+                  (coinListView === 'favorites' ? isFavorite : !isFavorite);
                 if (!symbolMatches || !favoriteMatches) return false;
                 const status = s.strict15MRejection?.status;
                 if (srRejectionFilter === 'confirmed') return status === 'REJECTION CONFIRMED';
@@ -5354,13 +5321,6 @@ latestRSI,
             className="px-3 py-1.5 rounded border border-emerald-700 bg-gray-800 text-emerald-300 hover:bg-gray-700">
             {zoneTradeExpanded ? 'Hide Table ▲' : 'Show Table ▼'}
           </button>
-          <input type="search" value={zoneTradeSearch} onChange={e => setZoneTradeSearch(e.target.value)}
-            placeholder="Search symbol" aria-label="Search 4H take profit symbols"
-            className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white placeholder-gray-500 w-40" />
-          <select value={zoneTradeFavoriteFilter} onChange={e => setZoneTradeFavoriteFilter(e.target.value as typeof zoneTradeFavoriteFilter)}
-            aria-label="4H take profit favorite filter" className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-xs text-white">
-            <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
-          </select>
         </div>
       </div>
       {zoneTradeExpanded && <>
