@@ -997,9 +997,7 @@ function detect15MZoneReversalPattern(args: { candles: Candle[]; rsi14: number[]
     const score = Math.min(100, 60 + (rsiConfirmed ? 12 : 0) + (volumeConfirmed ? 10 : 0) +
       (trendlineConfirmed ? 10 : 0) + (divergenceConfirmed ? 5 : 0) + (trendAligned ? 3 : 0));
     const extraConfirmations = [rsiConfirmed, volumeConfirmed, trendlineConfirmed, divergenceConfirmed, trendAligned].filter(Boolean).length;
-    const status = extraConfirmations >= 2 && score >= 70
-      ? (direction === 'BUY' ? 'BULLISH CONTINUATION' : 'BEARISH CONTINUATION')
-      : 'PATTERN CONFIRMED';
+    const status = extraConfirmations >= 2 && score >= 70 ? 'REVERSAL CONFIRMED' : 'PATTERN CONFIRMED';
     const ageCandles = completed.length - 1 - pos;
     const ageMinutes = Math.max(0, Math.round((now - Number(c.closeTime)) / 60000));
     return {
@@ -4420,7 +4418,7 @@ latestRSI,
         <th className="px-3 py-2 text-center whitespace-nowrap">15m — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Trade Setup</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">15m Possible Reversal</th>
-        <th className="px-3 py-2 text-center whitespace-nowrap">15m Confirmed Reversal</th>
+        <th className="px-3 py-2 text-center whitespace-nowrap">15m Confirmed Continuation</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">Signal ({timeframe.toUpperCase()})</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">2H — PH Session</th>
         <th className="px-3 py-2 text-center whitespace-nowrap">4H — PH Session</th>
@@ -4688,7 +4686,7 @@ latestRSI,
                 const isSell = confirmed.signal === 'SELL';
                 return (
                   <div className="flex flex-col gap-1 leading-tight">
-                    <strong className={`text-sm ${isSell ? 'text-red-400' : 'text-green-400'}`}>CONFIRMED REVERSAL — {confirmed.signal}</strong>
+                    <strong className={`text-sm ${isSell ? 'text-red-400' : 'text-green-400'}`}>{isSell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</strong>
                     <span className="text-[10px] text-gray-300">Close: {Number(confirmed.close).toPrecision(7)}</span>
                     <span className="text-[10px] text-gray-400">RSI14: {Number(confirmed.rsi14).toFixed(2)}</span>
                     <span className="text-[10px] text-gray-400">Beyond EMA14 / 50 / 70 / 100 / 200</span>
@@ -4820,7 +4818,7 @@ latestRSI,
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
-                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</td>
                 <td className="p-2 text-center">{String(r.mainTrend ?? 'N/A').toUpperCase()}</td>
                 <td className="p-2 text-right">{Number(r.previousPrice).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.breakoutPrice).toPrecision(7)}</td>
@@ -4837,12 +4835,12 @@ latestRSI,
       </>}
     </section>
 
-    {/* Independent Confirmed Reversal Results Table */}
+    {/* Independent Continuation Confirmed Results Table */}
     <section className="mt-6 border border-blue-700/60 rounded-lg p-3 bg-gray-900/60">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
-          <h2 className="text-lg font-bold text-blue-300">Reversal Confirmed Table — 15m</h2>
-          <p className="text-xs text-gray-400">Confirmed using the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
+          <h2 className="text-lg font-bold text-blue-300">Continuation Confirmed Table — 15m</h2>
+          <p className="text-xs text-gray-400">Continuation confirmation uses the latest completed 15m candle, all five EMAs, and RSI14. Independent of the main scanner and Possible Reversal table.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setConfirmedReversalExpanded(v => !v)}
@@ -4871,20 +4869,20 @@ latestRSI,
       </div>
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <input type="search" value={confirmedReversalSearch} onChange={e => setConfirmedReversalSearch(e.target.value)}
-          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Reversal Confirmed symbols"
+          placeholder="Search symbol (e.g. BTCUSDT)" aria-label="Search Continuation Confirmed symbols"
           className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white placeholder-gray-500 w-full sm:w-56" />
         <select value={confirmedReversalFavoriteFilter} onChange={e => setConfirmedReversalFavoriteFilter(e.target.value as typeof confirmedReversalFavoriteFilter)}
-          aria-label="Reversal Confirmed favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
+          aria-label="Continuation Confirmed favorite filter" className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-xs text-white">
           <option value="all">All Coins</option><option value="favorites">Favorites</option><option value="not-favorite">Not Favorite</option>
         </select>
       </div>
       {confirmedReversalExpanded && <>
-      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} confirmed reversal signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
+      <p className="text-xs text-gray-500 mb-2">Showing {confirmedReversalTableSignals.length} continuation-confirmed signals. Tap BUY or SELL again, or choose All, to reset this table.</p>
       <div className="overflow-auto max-h-[55vh]">
         <table className="w-full min-w-[850px] text-xs border-collapse">
           <thead className="sticky top-0 bg-gray-800 text-blue-300">
             <tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">24H Change</th><th className="p-2">Confirmed Signal</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">24H Change</th><th className="p-2">Continuation Signal</th>
               <th className="p-2">Completed Candle Close</th><th className="p-2">RSI14</th>
               <th className="p-2">EMA14</th><th className="p-2">EMA50</th><th className="p-2">EMA70</th>
               <th className="p-2">EMA100</th><th className="p-2">EMA200</th><th className="p-2">Candle Time</th>
@@ -4906,7 +4904,7 @@ latestRSI,
                 <td className={`p-2 text-right font-semibold tabular-nums ${Number(s.priceChangePercent) > 0 ? "text-green-400" : Number(s.priceChangePercent) < 0 ? "text-red-400" : "text-gray-300"}`}>
                   {s.priceChangePercent != null && Number.isFinite(Number(s.priceChangePercent)) ? `${Number(s.priceChangePercent).toFixed(2)}%` : "N/A"}
                 </td>
-                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{r.signal}</td>
+                <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : 'text-green-400'}`}>{sell ? 'BEARISH CONTINUATION' : 'BULLISH CONTINUATION'}</td>
                 <td className="p-2 text-right">{Number(r.close).toPrecision(7)}</td>
                 <td className="p-2 text-right">{Number(r.rsi14).toFixed(2)}</td>
                 <td className="p-2 text-right">{Number(r.ema14).toPrecision(7)}</td>
@@ -4917,7 +4915,7 @@ latestRSI,
                 <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.timestamp)}</td>
               </tr>;
             })}
-            {confirmedReversalTableSignals.length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No confirmed reversal BUY/SELL signals match this filter.</td></tr>}
+            {confirmedReversalTableSignals.length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No continuation-confirmed BUY/SELL signals match this filter.</td></tr>}
           </tbody>
         </table>
       </div>
