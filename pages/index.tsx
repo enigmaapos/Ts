@@ -924,6 +924,93 @@ function detect15MZoneTrendline(args: { candles: Candle[]; rsi14: number[]; leve
   return candidates[0];
 }
 
+function detect15MZoneReversalPattern(args: { candles: Candle[]; rsi14: number[]; levels: any; trendline: any }) {
+  const { candles, rsi14, levels, trendline } = args;
+  const completed = candles.map((c, index) => ({ c, index }))
+    .filter(x => Number.isFinite(x.c.closeTime) && x.c.closeTime <= Date.now());
+  const unavailable = {
+    available: false, status: 'UNAVAILABLE', direction: 'NONE', pattern: '—', zone: '—',
+    score: null as number | null, rsi: null as number | null, volumeRatio: null as number | null,
+    confirmations: [] as string[], timestamp: null as number | null,
+    reason: '15M completed candles or 4H zones unavailable'
+  };
+  if (!levels?.available || completed.length < 25) return unavailable;
+
+  const last = completed[completed.length - 1];
+  const prev = completed[completed.length - 2];
+  const prev2 = completed[completed.length - 3];
+  const c = last.c, p = prev.c, p2 = prev2.c;
+  const body = Math.abs(c.close - c.open);
+  const prevBody = Math.abs(p.close - p.open);
+  const safeBody = Math.max(body, c.close * 0.00005);
+  const range = Math.max(c.high - c.low, c.close * 0.00001);
+  const upperWick = c.high - Math.max(c.open, c.close);
+  const lowerWick = Math.min(c.open, c.close) - c.low;
+  const bullishC = c.close > c.open;
+  const bearishC = c.close < c.open;
+  const bullishPrev = p.close > p.open;
+  const bearishPrev = p.close < p.open;
+  const r = levels.resistance, support = levels.support;
+  const zoneTouched = (zone: any, candle: Candle) => Boolean(zone && candle.high >= zone.low && candle.low <= zone.high);
+  const atResistance = zoneTouched(r, c);
+  const atSupport = zoneTouched(support, c);
+
+  const bearishEngulfing = bearishC && bullishPrev && c.open >= p.close && c.close <= p.open && body >= prevBody * 0.9;
+  const bullishEngulfing = bullishC && bearishPrev && c.open <= p.close && c.close >= p.open && body >= prevBody * 0.9;
+  const shootingStar = upperWick >= safeBody * 2 && upperWick / range >= 0.55 && lowerWick / range <= 0.25 && body / range <= 0.35;
+  const hammer = lowerWick >= safeBody * 2 && lowerWick / range >= 0.55 && upperWick / range <= 0.25 && body / range <= 0.35;
+  const p2Body = Math.abs(p2.close - p2.open);
+  const p2Range = Math.max(p2.high - p2.low, p2.close * 0.00001);
+  const middleSmall = prevBody / Math.max(p.high - p.low, p.close * 0.00001) <= 0.35;
+  const firstBearish = p2.close < p2.open && p2Body / p2Range >= 0.45;
+  const firstBullish = p2.close > p2.open && p2Body / p2Range >= 0.45;
+  const eveningStar = firstBullish && middleSmall && bearishC && c.close < (p2.open + p2.close) / 2;
+  const morningStar = firstBearish && middleSmall && bullishC && c.close > (p2.open + p2.close) / 2;
+
+  let direction = 'NONE', pattern = '—', zoneName = '—';
+  if (atResistance && (bearishEngulfing || shootingStar || eveningStar)) {
+    direction = 'SELL'; zoneName = 'RESISTANCE';
+    pattern = bearishEngulfing ? 'BEARISH ENGULFING' : eveningStar ? 'EVENING STAR' : 'SHOOTING STAR';
+  } else if (atSupport && (bullishEngulfing || hammer || morningStar)) {
+    direction = 'BUY'; zoneName = 'SUPPORT';
+    pattern = bullishEngulfing ? 'BULLISH ENGULFING' : morningStar ? 'MORNING STAR' : 'HAMMER';
+  }
+  if (direction === 'NONE') return {
+    ...unavailable, available: true, status: 'NO PATTERN',
+    rsi: Number.isFinite(rsi14[last.index]) ? rsi14[last.index] : null,
+    reason: 'No qualifying reversal candle on the latest completed 15M candle inside a 4H zone'
+  };
+
+  const rsi = rsi14[last.index];
+  const priorRsi = rsi14[prev.index];
+  const rsiConfirmed = Number.isFinite(rsi) && Number.isFinite(priorRsi) &&
+    (direction === 'SELL' ? rsi < priorRsi : rsi > priorRsi);
+  const volumeWindow = completed.slice(Math.max(0, completed.length - 21), -1).map(x => x.c.volume).filter(Number.isFinite);
+  const avgVolume = volumeWindow.length ? volumeWindow.reduce((a, b) => a + b, 0) / volumeWindow.length : NaN;
+  const volumeRatio = Number.isFinite(avgVolume) && avgVolume > 0 ? c.volume / avgVolume : null;
+  const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= 1.2;
+  const divergenceConfirmed = direction === 'SELL' ? levels.bearishDivergence === true : levels.bullishDivergence === true;
+  const trendlineConfirmed = direction === 'SELL'
+    ? trendline?.side === 'RESISTANCE' && trendline?.direction === 'DESCENDING'
+    : trendline?.side === 'SUPPORT' && trendline?.direction === 'ASCENDING';
+  const trendAligned = direction === 'SELL' ? levels.trendRegime === 'BEARISH' : levels.trendRegime === 'BULLISH';
+  const confirmations = [
+    '4H ZONE', ...(rsiConfirmed ? ['RSI MOMENTUM'] : []),
+    ...(volumeConfirmed ? ['VOLUME'] : []), ...(trendlineConfirmed ? ['15M TRENDLINE'] : []),
+    ...(divergenceConfirmed ? ['4H DIVERGENCE'] : []), ...(trendAligned ? ['4H TREND'] : [])
+  ];
+  const score = Math.min(100, 40 + 20 + (rsiConfirmed ? 12 : 0) + (volumeConfirmed ? 10 : 0) +
+    (trendlineConfirmed ? 10 : 0) + (divergenceConfirmed ? 5 : 0) + (trendAligned ? 3 : 0));
+  const extraConfirmations = [rsiConfirmed, volumeConfirmed, trendlineConfirmed, divergenceConfirmed, trendAligned].filter(Boolean).length;
+  const status = extraConfirmations >= 2 && score >= 70 ? 'REVERSAL CONFIRMED' : 'PATTERN CONFIRMED';
+  return {
+    available: true, status, direction, pattern, zone: zoneName, score,
+    rsi: Number.isFinite(rsi) ? rsi : null, volumeRatio: Number.isFinite(volumeRatio) ? volumeRatio : null,
+    confirmations, timestamp: c.timestamp, candleClose: c.close, candleCloseTime: c.closeTime,
+    reason: `${pattern} on completed 15M candle at 4H ${zoneName.toLowerCase()}${status === 'REVERSAL CONFIRMED' ? ', supported by at least two additional indicator confirmations' : '; additional confirmation is limited'}`
+  };
+}
+
 function detectStrict15MRejection(args: {
   candles: Candle[]; rsi14: number[]; levels: any; currentPrice: number;
 }) {
@@ -2424,6 +2511,7 @@ const fifteenMinuteLoaded = loadedTimeframes.find(x => x.tf === '15m');
 let fourHourSupportResistance: any = { available: false, reason: '4H data unavailable', trend: null, support: null, resistance: null, rsi14: null, volumeRatio: null };
 let strict15MRejection: any = { available: false, status: 'N/A', direction: 'N/A', level: null, rsi14: null, wickRatio: null, timestamp: null, reason: '15M data unavailable', strength: null };
 let fifteenMinuteTrendline: any = { available: false, status: 'UNAVAILABLE', side: '—', direction: '—', points: 0, linePrice: null, zonePrice: null, reason: '15M data unavailable' };
+let fifteenMinuteReversal: any = { available: false, status: 'UNAVAILABLE', direction: 'NONE', pattern: '—', zone: '—', score: null, confirmations: [], reason: '15M data unavailable' };
 if (fourHourLoaded && !fourHourLoaded.error && fourHourLoaded.tfCandles.length >= 205) {
   const fourHCandles = fourHourLoaded.tfCandles;
   const fourHCloses = fourHCandles.map(c => c.close);
@@ -2453,6 +2541,9 @@ if (fifteenMinuteLoaded && !fifteenMinuteLoaded.error && fifteenMinuteLoaded.tfC
   });
   fifteenMinuteTrendline = detect15MZoneTrendline({
     candles: fifteenCandles, rsi14: fifteenRsi14, levels: fourHourSupportResistance
+  });
+  fifteenMinuteReversal = detect15MZoneReversalPattern({
+    candles: fifteenCandles, rsi14: fifteenRsi14, levels: fourHourSupportResistance, trendline: fifteenMinuteTrendline
   });
 }
 const zoneTradePlan = buildZoneTradePlan(strict15MRejection, fourHourSupportResistance, currentPrice);
@@ -3501,6 +3592,7 @@ mainTrend,
   fourHourSupportResistance,
   strict15MRejection,
   fifteenMinuteTrendline,
+  fifteenMinuteReversal,
   zoneTradePlan,
   overallMultiTimeframeAlignment,
   breakout,
@@ -4731,7 +4823,7 @@ latestRSI,
                 <td className="p-2 text-center whitespace-nowrap">{formatSignalExtremeTime(r.currentRSITimestamp)}</td>
               </tr>;
             })}
-            {possibleReversalTableSignals.length === 0 && <tr><td colSpan={10} className="p-4 text-center text-gray-500">No possible reversal BUY/SELL signals match this filter.</td></tr>}
+            {possibleReversalTableSignals.length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No possible reversal BUY/SELL signals match this filter.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -4854,7 +4946,7 @@ latestRSI,
       {srRejectionExpanded && <>
         <p className="text-xs text-gray-500 mb-2">Strict rejection: candle closes back outside the zone, rejection wick is at least 1.5× body and 40% of candle range, and RSI14 confirms direction (BUY above 50 and rising; SELL below 50 and falling). Volume contributes to strength but is not a mandatory trigger.</p>
         <div className="overflow-auto max-h-[55vh]">
-          <table className="w-full min-w-[1450px] text-xs border-collapse">
+          <table className="w-full min-w-[1580px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-purple-300"><tr>
               <th className="p-2 text-left">Symbol</th><th className="p-2">4H Trend</th><th className="p-2">4H RSI14</th><th className="p-2">4H Volume / Avg</th><th className="p-2">4H Support Zone</th>
               <th className="p-2">Support Confluence</th><th className="p-2">4H Resistance Zone</th><th className="p-2">Resistance Confluence</th>
@@ -4939,7 +5031,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-emerald-300">Table 5 — 4H Take Profit Targets</h2>
-          <p className="text-xs text-gray-400">15M trend-line compression near 4H support/resistance is detected from three confirmed swing points; a separate 15M rejection and trigger are still required for entry. 4H structure supplies stop-loss and TP1–TP3.</p>
+          <p className="text-xs text-gray-400">15M trend-line compression and completed-candle reversal patterns are detected near 4H zones; pattern confirmation is informational and does not replace the separate 15M entry trigger. 4H structure supplies stop-loss and TP1–TP3.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setZoneTradeExpanded(v => !v)} aria-expanded={zoneTradeExpanded}
@@ -4958,9 +5050,9 @@ latestRSI,
       {zoneTradeExpanded && <>
         <p className="text-xs text-gray-500 mb-2">Entry trigger = rejection-candle high + 0.02% for BUY, or low − 0.02% for SELL. Pending setups expire after four 15M candles (one hour) and are invalidated if price hits the stop first. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. TP1 minimum R:R is 1:1.5 in aligned trends, 1:1.75 in mixed/neutral conditions and 1:2.0 countertrend. A 0.15× completed-4H ATR buffer is added beyond the structural stop. Minimum quality score is 60/100 (70/100 countertrend). Score combines 4H trend, 15M rejection wick, 15M volume, 4H RSI/divergence and structural target confluence. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
-          <table className="w-full min-w-[1450px] text-xs border-collapse">
+          <table className="w-full min-w-[1580px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Entry Trigger</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Reversal Pattern</th><th className="p-2">15M Entry Trigger</th>
               <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
               <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
@@ -4999,6 +5091,15 @@ latestRSI,
                       {s.fifteenMinuteTrendline?.available && <div className="text-[10px] text-gray-500">RSI {Number.isFinite(s.fifteenMinuteTrendline.rsi14) ? Number(s.fifteenMinuteTrendline.rsi14).toFixed(1) : '—'} · Vol {Number.isFinite(s.fifteenMinuteTrendline.volumeRatio) ? `${Number(s.fifteenMinuteTrendline.volumeRatio).toFixed(2)}×` : '—'}</div>}
                       {s.fifteenMinuteTrendline?.reason && <div className="text-[10px] text-gray-500 max-w-[190px] whitespace-normal">{s.fifteenMinuteTrendline.reason}</div>}
                     </td>
+                    <td className="p-2 text-center">
+                      <div className={`font-semibold ${s.fifteenMinuteReversal?.direction === 'SELL' ? 'text-red-300' : s.fifteenMinuteReversal?.direction === 'BUY' ? 'text-green-300' : 'text-gray-400'}`}>{s.fifteenMinuteReversal?.status ?? 'UNAVAILABLE'}</div>
+                      {s.fifteenMinuteReversal?.available && <>
+                        <div className="text-[10px] text-gray-300">{s.fifteenMinuteReversal.pattern} · {s.fifteenMinuteReversal.zone}</div>
+                        <div className="text-[10px] text-gray-400">Score {s.fifteenMinuteReversal.score ?? '—'}/100 · RSI {Number.isFinite(s.fifteenMinuteReversal.rsi) ? Number(s.fifteenMinuteReversal.rsi).toFixed(1) : '—'} · Vol {Number.isFinite(s.fifteenMinuteReversal.volumeRatio) ? `${Number(s.fifteenMinuteReversal.volumeRatio).toFixed(2)}×` : '—'}</div>
+                        <div className="text-[10px] text-gray-500 whitespace-normal">{(s.fifteenMinuteReversal.confirmations ?? []).join(' · ')}</div>
+                      </>}
+                      {s.fifteenMinuteReversal?.reason && <div className="text-[10px] text-gray-500 max-w-[190px] whitespace-normal">{s.fifteenMinuteReversal.reason}</div>}
+                    </td>
                     <td className="p-2 text-right"><div className="font-semibold">{fmtPrice(p.triggerPrice ?? p.entry)}</div>
                       {p.setupClose != null && <div className="text-[10px] text-gray-500">15M close {fmtPrice(p.setupClose)}</div>}
                       {p.livePrice != null && <div className="text-[10px] text-gray-400">Live {fmtPrice(p.livePrice)}</div>}</td>
@@ -5021,7 +5122,7 @@ latestRSI,
                 const favoriteMatches = zoneTradeFavoriteFilter === 'all' ||
                   (zoneTradeFavoriteFilter === 'favorites' ? favorites.has(s.symbol) : !favorites.has(s.symbol));
                 return symbolMatches && favoriteMatches && s.zoneTradePlan;
-              }).length === 0 && <tr><td colSpan={10} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A completed 15M rejection is required before a pending breakout trigger can be calculated.</td></tr>}
+              }).length === 0 && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No symbols match this search/favorite filter. A completed 15M rejection is required before a pending breakout trigger can be calculated.</td></tr>}
             </tbody>
           </table>
         </div>
