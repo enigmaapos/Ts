@@ -823,11 +823,21 @@ function buildCombined4HLevels(args: {
       const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 7 : 0;
       const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 4 : 0;
       const strength = Math.min(100, Math.round(weight * 9 + Math.max(0, sources.length - 1) * 7 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
-      const swingTimestamps = group.filter(x => x.timestamp !== undefined && Number.isFinite(x.timestamp)).map(x => x.timestamp as number);
+      const swingCandidates = group.filter(x => x.source.toLowerCase().includes('swing') && x.timestamp !== undefined && Number.isFinite(x.timestamp));
+      const swingTimestamps = swingCandidates.map(x => x.timestamp as number);
+      // A MAJOR zone requires repeated, independently confirmed 4H swing pivots
+      // clustered at the same price area. EMA/session confluence alone is not enough.
+      const swingCount = swingCandidates.length;
+      const classification = swingCount >= 2 && strength >= 45 ? 'MAJOR' : 'MINOR';
+      const classificationReason = classification === 'MAJOR'
+        ? `${swingCount} confirmed 4H swing reactions clustered in this zone`
+        : swingCount < 2
+          ? `Only ${swingCount} confirmed 4H swing reaction(s); repeated structure is required for MAJOR`
+          : `Repeated swings found, but confluence strength is ${strength}/100 (45 required)`;
       return {
         price, low: price - tolerance / 2, high: price + tolerance / 2,
         strength, confluences: sources, structuralCount,
-        touches: group.filter(x => x.source.includes('swing')).length,
+        touches: swingCount, swingCount, classification, classificationReason,
         side, timestamp: swingTimestamps.length ? Math.max(...swingTimestamps) : null
       };
     }).filter(z => side === 'support' ? z.price < currentPrice : z.price > currentPrice);
@@ -835,11 +845,16 @@ function buildCombined4HLevels(args: {
 
   const supports = makeZones('support').sort((a, b) => b.price - a.price);
   const resistances = makeZones('resistance').sort((a, b) => a.price - b.price);
+  const majorSupports = supports.filter((zone: any) => zone.classification === 'MAJOR');
+  const majorResistances = resistances.filter((zone: any) => zone.classification === 'MAJOR');
   return {
     available: true, trend: mainTrend?.trend ?? null, trendRegime, emaRegime,
     emaBullishPairs: bullishPairs, emaBearishPairs: bearishPairs,
+    // Keep nearest support/resistance unchanged for existing entry and risk logic.
     support: supports[0] ?? null, resistance: resistances[0] ?? null,
     supportZones: supports, resistanceZones: resistances,
+    majorSupport: majorSupports[0] ?? null, nextMajorSupport: majorSupports[1] ?? null,
+    majorResistance: majorResistances[0] ?? null, nextMajorResistance: majorResistances[1] ?? null,
     rsi14: Number.isFinite(rsi14[last]) ? rsi14[last] : null,
     bullishDivergence, bearishDivergence, volumeRatio, atr14
   };
@@ -1174,7 +1189,7 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
       if (!state && prior.close <= zone.high && c.close > zone.high) {
         state = { direction: 'BUY', breakoutIndex: i, breakoutPrice: c.close, breakoutExtreme: c.high };
         states.set(key, state);
-        latestAttempt = { available: true, status: 'BREAKOUT ATTEMPT', direction: 'BUY', eventType: zone.zoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT' : 'SUPPORT RECLAIM', strategy: 'BREAKOUT CONTINUATION WATCH',
+        latestAttempt = { available: true, status: 'BREAKOUT ATTEMPT', direction: 'BUY', strategy: 'BREAKOUT CONTINUATION WATCH',
           breakoutPrice: c.close, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
           reason: 'A completed 15M candle has closed above a 4H zone; a follow-through close is needed to confirm acceptance' };
         continue;
@@ -1182,7 +1197,7 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
       if (!state && prior.close >= zone.low && c.close < zone.low) {
         state = { direction: 'SELL', breakoutIndex: i, breakoutPrice: c.close, breakoutExtreme: c.low };
         states.set(key, state);
-        latestAttempt = { available: true, status: 'BREAKDOWN ATTEMPT', direction: 'SELL', eventType: zone.zoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN' : 'RESISTANCE REJECTION', strategy: 'BREAKDOWN CONTINUATION WATCH',
+        latestAttempt = { available: true, status: 'BREAKDOWN ATTEMPT', direction: 'SELL', strategy: 'BREAKDOWN CONTINUATION WATCH',
           breakoutPrice: c.close, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
           reason: 'A completed 15M candle has closed below a 4H zone; a follow-through close is needed to confirm acceptance' };
         continue;
@@ -1192,14 +1207,14 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
       if (state.direction === 'BUY') {
         if (c.close > zone.high) {
           state.breakoutExtreme = Math.max(state.breakoutExtreme, c.high);
-          latestAttempt = { available: true, status: 'BREAKOUT HOLDING', direction: 'BUY', eventType: zone.zoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT' : 'SUPPORT RECLAIM', strategy: 'BREAKOUT CONTINUATION WATCH',
+          latestAttempt = { available: true, status: 'BREAKOUT HOLDING', direction: 'BUY', strategy: 'BREAKOUT CONTINUATION WATCH',
             breakoutPrice: state.breakoutPrice, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
             reason: 'Consecutive completed 15M closes are holding above the 4H zone' };
         } else {
           // Price has closed back into or through the broken zone: failed bullish breakout.
           const range = Math.max(c.high - c.low, c.close * 0.00001);
           const avgVolume = priorAverageVolume(i);
-          latestFake = { available: true, status: 'BEARISH FAKE BREAKOUT', direction: 'SELL', eventType: zone.zoneSide === 'RESISTANCE' ? 'RESISTANCE FAKEOUT' : 'SUPPORT RECLAIM FAILURE', strategy: 'FAKE BREAKOUT REVERSAL',
+          latestFake = { available: true, status: 'BEARISH FAKE BREAKOUT', direction: 'SELL', strategy: 'FAKE BREAKOUT REVERSAL',
             level: zone, zoneSide: zone.zoneSide, triggerExtreme: c.low, candleClose: c.close, candleCloseTime: c.closeTime,
             breakoutPrice: state.breakoutPrice, breakoutExtreme: state.breakoutExtreme, reclaimPrice: c.close,
             ageCandles: completed.length - 1 - i, candleHigh: c.high, candleLow: c.low,
@@ -1212,14 +1227,14 @@ function detect15MFakeBreakout(args: { candles: Candle[]; rsi14?: number[]; leve
       } else {
         if (c.close < zone.low) {
           state.breakoutExtreme = Math.min(state.breakoutExtreme, c.low);
-          latestAttempt = { available: true, status: 'BREAKDOWN HOLDING', direction: 'SELL', eventType: zone.zoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN' : 'RESISTANCE REJECTION', strategy: 'BREAKDOWN CONTINUATION WATCH',
+          latestAttempt = { available: true, status: 'BREAKDOWN HOLDING', direction: 'SELL', strategy: 'BREAKDOWN CONTINUATION WATCH',
             breakoutPrice: state.breakoutPrice, level: zone, zoneSide: zone.zoneSide, candleCloseTime: c.closeTime,
             reason: 'Consecutive completed 15M closes are holding below the 4H zone' };
         } else {
           // Price has closed back into or through the broken zone: failed bearish breakdown.
           const range = Math.max(c.high - c.low, c.close * 0.00001);
           const avgVolume = priorAverageVolume(i);
-          latestFake = { available: true, status: 'BULLISH FAKE BREAKDOWN', direction: 'BUY', eventType: zone.zoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN FAILURE' : 'RESISTANCE REJECTION FAILURE', strategy: 'FAKE BREAKOUT REVERSAL',
+          latestFake = { available: true, status: 'BULLISH FAKE BREAKDOWN', direction: 'BUY', strategy: 'FAKE BREAKOUT REVERSAL',
             level: zone, zoneSide: zone.zoneSide, triggerExtreme: c.high, candleClose: c.close, candleCloseTime: c.closeTime,
             breakoutPrice: state.breakoutPrice, breakoutExtreme: state.breakoutExtreme, reclaimPrice: c.close,
             ageCandles: completed.length - 1 - i, candleHigh: c.high, candleLow: c.low,
@@ -1264,11 +1279,12 @@ function buildZoneTradePlan(
     stopLoss: null as number | null, targets: [] as any[], riskReward: [] as number[], qualityScore: null as number | null,
     trendRegime: levels?.trendRegime ?? 'UNAVAILABLE', setupType: 'WAITING', strategy: 'WAITING',
     breakoutStatus: breakout?.status ?? 'UNAVAILABLE',
-    breakoutEventDirection: breakout?.direction ?? 'NONE',
-    breakoutEventType: breakout?.eventType ?? 'NONE',
     breakoutZone: breakout?.level ? {
       side: breakout.zoneSide ?? breakout.level.zoneSide ?? (breakout.direction === 'BUY' ? 'RESISTANCE' : breakout.direction === 'SELL' ? 'SUPPORT' : '—'),
-      low: breakout.level.low, high: breakout.level.high, price: breakout.level.price
+      low: breakout.level.low, high: breakout.level.high, price: breakout.level.price,
+      classification: breakout.level.classification ?? 'UNCLASSIFIED',
+      swingCount: breakout.level.swingCount ?? breakout.level.touches ?? 0,
+      strength: breakout.level.strength ?? null
     } : null,
     volumeConfirmation: 'UNAVAILABLE',
     rsiConfirmation: 'UNAVAILABLE', structureQuality: 'UNAVAILABLE', zone: setup?.level ?? null,
@@ -1348,8 +1364,6 @@ function buildZoneTradePlan(
     riskReward: targets.map((target: any) => target.riskReward), qualityScore,
     trendRegime, emaRegime: levels.emaRegime ?? 'UNAVAILABLE', setupType, strategy,
     breakoutStatus: breakout?.status ?? 'NO ACTIVE BREAKOUT',
-    breakoutEventDirection: breakout?.direction ?? 'NONE',
-    breakoutEventType: breakout?.eventType ?? 'NONE',
     breakoutZone: breakout?.level ? {
       side: breakout.zoneSide ?? breakout.level.zoneSide ?? (breakout.direction === 'BUY' ? 'RESISTANCE' : breakout.direction === 'SELL' ? 'SUPPORT' : '—'),
       low: breakout.level.low, high: breakout.level.high, price: breakout.level.price
@@ -5127,7 +5141,7 @@ latestRSI,
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-lg font-bold text-purple-300">4H Support / Resistance — Strict 15M Rejection Detector</h2>
-          <p className="text-xs text-gray-400">4H zones combine swing structure, EMA14/50/70/100/200 and previous PH session extremes. Confirmation uses completed 15M candles only.</p>
+          <p className="text-xs text-gray-400">4H zones combine confirmed swing structure, EMA14/50/70/100/200 and previous PH session extremes. MAJOR requires at least 2 confirmed 4H swing reactions in the same zone plus strength ≥45/100; otherwise it is MINOR. EMA/session confluence alone cannot make a zone MAJOR. 15M confirmation uses completed candles only.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setSrRejectionExpanded(v => !v)} aria-expanded={srRejectionExpanded}
@@ -5223,12 +5237,12 @@ latestRSI,
                   <td className="p-2 text-right">{Number.isFinite(sr.rsi14) ? Number(sr.rsi14).toFixed(2) : 'N/A'}</td>
                   <td className="p-2 text-right">{Number.isFinite(sr.volumeRatio) ? `${Number(sr.volumeRatio).toFixed(2)}×` : 'N/A'}</td>
                   <td className="p-2 text-right">{fmtZone(sr.support)}</td>
-                  <td className="p-2 text-left min-w-[190px]">
-                    {sr.support ? <><div className="font-semibold mb-1">{sr.support.strength}/100 strength</div>{renderSourceGroups(sr.support)}</> : 'N/A'}
+                  <td className="p-2 text-left min-w-[210px]">
+                    {sr.support ? <><div className={`font-bold mb-1 ${sr.support.classification === 'MAJOR' ? 'text-emerald-300' : 'text-gray-300'}`}>{sr.support.classification ?? 'MINOR'} SUPPORT · {sr.support.strength}/100</div><div className="text-[10px] text-gray-400 mb-1">{sr.support.swingCount ?? sr.support.touches ?? 0} confirmed 4H swing reaction(s)</div>{renderSourceGroups(sr.support)}{sr.majorSupport && <div className="mt-1 text-[10px] text-emerald-300">MAJOR #1: {fmtZone(sr.majorSupport)} · {sr.majorSupport.strength}/100</div>}{sr.nextMajorSupport && <div className="text-[10px] text-emerald-300">MAJOR #2: {fmtZone(sr.nextMajorSupport)} · {sr.nextMajorSupport.strength}/100</div>}</> : 'N/A'}
                   </td>
                   <td className="p-2 text-right">{fmtZone(sr.resistance)}</td>
-                  <td className="p-2 text-left min-w-[190px]">
-                    {sr.resistance ? <><div className="font-semibold mb-1">{sr.resistance.strength}/100 strength</div>{renderSourceGroups(sr.resistance)}</> : 'N/A'}
+                  <td className="p-2 text-left min-w-[210px]">
+                    {sr.resistance ? <><div className={`font-bold mb-1 ${sr.resistance.classification === 'MAJOR' ? 'text-red-300' : 'text-gray-300'}`}>{sr.resistance.classification ?? 'MINOR'} RESISTANCE · {sr.resistance.strength}/100</div><div className="text-[10px] text-gray-400 mb-1">{sr.resistance.swingCount ?? sr.resistance.touches ?? 0} confirmed 4H swing reaction(s)</div>{renderSourceGroups(sr.resistance)}{sr.majorResistance && <div className="mt-1 text-[10px] text-red-300">MAJOR #1: {fmtZone(sr.majorResistance)} · {sr.majorResistance.strength}/100</div>}{sr.nextMajorResistance && <div className="text-[10px] text-red-300">MAJOR #2: {fmtZone(sr.nextMajorResistance)} · {sr.nextMajorResistance.strength}/100</div>}</> : 'N/A'}
                   </td>
                   <td className={`p-2 text-center font-bold ${r.status === 'REJECTION CONFIRMED' ? 'text-green-400' : r.status === 'BREAKOUT CONFIRMED' ? 'text-red-400' : r.status === 'REJECTION FORMING' || r.status === 'TESTING' ? 'text-yellow-300' : 'text-gray-400'}`}>{statusLabel}</td>
                   <td className="p-2 text-center whitespace-nowrap">{zoneBiasLabel}</td>
@@ -5268,11 +5282,11 @@ latestRSI,
         </div>
       </div>
       {zoneTradeExpanded && <>
-        <p className="text-xs text-gray-500 mb-2">How to read: <strong>Trade Direction</strong> is the direction of the selected Table 5 entry setup (BUY or SELL). <strong>4H Zone Event / Stage</strong> is a separate market-structure event and may show the opposite watch direction; that is not a contradiction. Resistance broken upward = BUY continuation watch; support broken downward = SELL continuation watch. A failed resistance breakout can create a SELL reversal; a failed support breakdown can create a BUY reversal. Support reclaimed upward and resistance rejected downward are identified separately. ATTEMPT means one completed 15M candle crossed the zone; HOLDING means later completed 15M closes remain beyond it; POTENTIAL FAILURE is not confirmed; CONFIRMED FAILURE requires a later completed 15M close back through the zone boundary. A wick alone is not confirmation. Entry still requires live price to cross the separate entry trigger. Pending setups expire after four 15M candles; TP1 must offer at least 1:1.5 R:R. Levels are analytical references, not guaranteed fills or returns.</p>
+        <p className="text-xs text-gray-500 mb-2">Signal guide: <strong>Resistance breakout</strong> = BUY continuation watch. <strong>Support breakdown</strong> = SELL continuation watch. <strong>Potential fake breakout/breakdown</strong> means live price has returned inside the crossed 4H zone; a completed 15M reclaim candle is still required. <strong>Confirmed resistance fakeout</strong> = SELL. <strong>Confirmed support breakdown failure</strong> = BUY. A wick alone does not confirm a breakout. Entry requires live price to cross the trigger. Pending setups expire after four 15M candles. TP1 must offer at least 1:1.5 R:R. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1740px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
-              <th className="p-2 text-left">Symbol</th><th className="p-2">Trade Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Reversal Pattern</th><th className="p-2">4H Zone Event / Stage</th><th className="p-2">15M Entry Trigger</th>
+              <th className="p-2 text-left">Symbol</th><th className="p-2">Direction</th><th className="p-2">15M Trendline / Zone Pressure</th><th className="p-2">15M Reversal Pattern</th><th className="p-2">4H Zone Break / Failure Stage</th><th className="p-2">15M Entry Trigger</th>
               <th className="p-2">4H Stop-loss</th><th className="p-2">4H TP1</th><th className="p-2">4H TP2</th>
               <th className="p-2">4H TP3</th><th className="p-2">4H R:R</th><th className="p-2">Status</th>
             </tr></thead>
@@ -5280,24 +5294,16 @@ latestRSI,
               {zoneTradeRows.map(s => {
                   const p = s.zoneTradePlan ?? {};
                   const breakoutZoneSide = p.breakoutZone?.side;
-                  const breakoutEventDirection = p.breakoutEventDirection ?? 'NONE';
-                  const detectedEventType = p.breakoutEventType && p.breakoutEventType !== 'NONE' ? p.breakoutEventType : null;
-                  const breakoutEventTypeLabel =
-                    breakoutZoneSide === 'RESISTANCE' && breakoutEventDirection === 'BUY' ? 'Resistance breakout / upside continuation' :
-                    breakoutZoneSide === 'SUPPORT' && breakoutEventDirection === 'BUY' ? 'Support reclaim / upside recovery' :
-                    breakoutZoneSide === 'SUPPORT' && breakoutEventDirection === 'SELL' ? 'Support breakdown / downside continuation' :
-                    breakoutZoneSide === 'RESISTANCE' && breakoutEventDirection === 'SELL' ? 'Resistance rejection / downside move' :
-                    'No classified zone event';
                   const breakoutStatusLabel =
-                    p.breakoutStatus === 'BREAKOUT ATTEMPT' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT ATTEMPT — BUY WATCH' : breakoutZoneSide === 'SUPPORT' ? 'SUPPORT RECLAIM ATTEMPT — BUY WATCH' : 'UPWARD 4H ZONE CROSS — BUY WATCH') :
-                    p.breakoutStatus === 'BREAKOUT HOLDING' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT HOLDING — BUY WATCH' : breakoutZoneSide === 'SUPPORT' ? 'SUPPORT RECLAIM HOLDING — BUY WATCH' : 'UPWARD 4H ZONE HOLDING — BUY WATCH') :
-                    p.breakoutStatus === 'BREAKDOWN ATTEMPT' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN ATTEMPT — SELL WATCH' : breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE REJECTION ATTEMPT — SELL WATCH' : 'DOWNWARD 4H ZONE CROSS — SELL WATCH') :
-                    p.breakoutStatus === 'BREAKDOWN HOLDING' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN HOLDING — SELL WATCH' : breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE REJECTION HOLDING — SELL WATCH' : 'DOWNWARD 4H ZONE HOLDING — SELL WATCH') :
-                    p.breakoutStatus === 'POTENTIAL FAKE BREAKOUT' ? (breakoutZoneSide === 'RESISTANCE' ? 'POTENTIAL RESISTANCE FAKEOUT — SELL WATCH' : breakoutZoneSide === 'SUPPORT' ? 'POTENTIAL SUPPORT RECLAIM FAILURE — SELL WATCH' : 'POTENTIAL FAILED UPWARD CROSS — SELL WATCH') :
-                    p.breakoutStatus === 'POTENTIAL FAKE BREAKDOWN' ? (breakoutZoneSide === 'SUPPORT' ? 'POTENTIAL SUPPORT BREAKDOWN FAILURE — BUY WATCH' : breakoutZoneSide === 'RESISTANCE' ? 'POTENTIAL RESISTANCE REJECTION FAILURE — BUY WATCH' : 'POTENTIAL FAILED DOWNWARD CROSS — BUY WATCH') :
-                    p.breakoutStatus === 'BEARISH FAKE BREAKOUT' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE FAKEOUT CONFIRMED — SELL' : breakoutZoneSide === 'SUPPORT' ? 'SUPPORT RECLAIM FAILURE CONFIRMED — SELL' : 'FAILED UPWARD CROSS CONFIRMED — SELL') :
-                    p.breakoutStatus === 'BULLISH FAKE BREAKDOWN' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN FAILURE CONFIRMED — BUY' : breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE REJECTION FAILURE CONFIRMED — BUY' : 'FAILED DOWNWARD CROSS CONFIRMED — BUY') :
-                    p.breakoutStatus === 'NO ACTIVE BREAKOUT' ? 'NO ACTIVE 4H ZONE EVENT' :
+                    p.breakoutStatus === 'BREAKOUT ATTEMPT' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT ATTEMPT — BUY WATCH' : 'SUPPORT RECLAIM ATTEMPT — BUY WATCH') :
+                    p.breakoutStatus === 'BREAKOUT HOLDING' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE BREAKOUT HOLDING — BUY WATCH' : 'SUPPORT RECLAIM HOLDING — BUY WATCH') :
+                    p.breakoutStatus === 'BREAKDOWN ATTEMPT' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN ATTEMPT — SELL WATCH' : 'RESISTANCE BREAKDOWN ATTEMPT — SELL WATCH') :
+                    p.breakoutStatus === 'BREAKDOWN HOLDING' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN HOLDING — SELL WATCH' : 'RESISTANCE BREAKDOWN HOLDING — SELL WATCH') :
+                    p.breakoutStatus === 'POTENTIAL FAKE BREAKOUT' ? (breakoutZoneSide === 'RESISTANCE' ? 'POTENTIAL RESISTANCE FAKEOUT — SELL WATCH' : 'POTENTIAL SUPPORT RECLAIM FAILURE — SELL WATCH') :
+                    p.breakoutStatus === 'POTENTIAL FAKE BREAKDOWN' ? (breakoutZoneSide === 'SUPPORT' ? 'POTENTIAL SUPPORT BREAKDOWN FAILURE — BUY WATCH' : 'POTENTIAL RESISTANCE BREAKDOWN FAILURE — BUY WATCH') :
+                    p.breakoutStatus === 'BEARISH FAKE BREAKOUT' ? (breakoutZoneSide === 'RESISTANCE' ? 'RESISTANCE FAKEOUT CONFIRMED — SELL' : 'SUPPORT RECLAIM FAILURE CONFIRMED — SELL') :
+                    p.breakoutStatus === 'BULLISH FAKE BREAKDOWN' ? (breakoutZoneSide === 'SUPPORT' ? 'SUPPORT BREAKDOWN FAILURE CONFIRMED — BUY' : 'RESISTANCE BREAKDOWN FAILURE CONFIRMED — BUY') :
+                    p.breakoutStatus === 'NO ACTIVE BREAKOUT' ? 'NO ACTIVE 4H ZONE BREAK' :
                     p.breakoutStatus ?? 'UNAVAILABLE';
                   const fmtPrice = (value: any) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value).toPrecision(7) : '—';
                   const fmtTarget = (target: any) => target ? <strong>{fmtPrice(target.price)}</strong> : '—';
@@ -5313,10 +5319,7 @@ latestRSI,
                         {favorites.has(s.symbol) ? '★' : '☆'}
                       </button>{s.symbol}
                     </td>
-                    <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : p.direction === 'BUY' ? 'text-green-400' : 'text-gray-400'}`}>
-                      <div>{p.direction ?? '—'}</div>
-                      <div className="text-[10px] font-normal text-gray-500">Selected trade setup</div>
-                    </td>
+                    <td className={`p-2 text-center font-bold ${sell ? 'text-red-400' : p.direction === 'BUY' ? 'text-green-400' : 'text-gray-400'}`}>{p.direction ?? '—'}</td>
                     <td className="p-2 text-center">
                       <div className={`font-semibold ${s.fifteenMinuteTrendline?.side === 'RESISTANCE' ? 'text-red-300' : s.fifteenMinuteTrendline?.side === 'SUPPORT' ? 'text-green-300' : 'text-gray-400'}`}>{s.fifteenMinuteTrendline?.status ?? 'UNAVAILABLE'}</div>
                       {s.fifteenMinuteTrendline?.available && s.fifteenMinuteTrendline?.points >= 3 && <div className="text-[10px] text-gray-400">3 confirmed swings · line {fmtPrice(s.fifteenMinuteTrendline.linePrice)} · zone {fmtPrice(s.fifteenMinuteTrendline.zonePrice)}</div>}
@@ -5335,13 +5338,10 @@ latestRSI,
                     </td>
                     <td className="p-2 text-center">
                       <div className={`font-semibold ${breakoutStatusLabel.includes('SELL') ? 'text-red-300' : breakoutStatusLabel.includes('BUY') ? 'text-green-300' : 'text-yellow-300'}`}>{breakoutStatusLabel}</div>
-                      {p.breakoutZone && <div className="text-[10px] text-gray-300">Tracked zone: 4H {p.breakoutZone.side} · {fmtPrice(p.breakoutZone.low)}–{fmtPrice(p.breakoutZone.high)}</div>}
-                      {p.breakoutStatus === 'NO ACTIVE BREAKOUT' && <div className="text-[10px] text-gray-500">No completed 15M candle has crossed a tracked 4H zone in the recent scan window.</div>}
-                      {p.breakoutStatus === 'UNAVAILABLE' && <div className="text-[10px] text-gray-500">4H zone data or completed 15M candles are not available.</div>}
-                      {p.breakoutStatus !== 'NO ACTIVE BREAKOUT' && p.breakoutStatus !== 'UNAVAILABLE' && <div className="text-[10px] text-gray-400">Event type: {detectedEventType ?? breakoutEventTypeLabel}</div>}
-                      {p.breakoutPrice != null && <div className="text-[10px] text-gray-500">First 15M close beyond zone: {fmtPrice(p.breakoutPrice)}</div>}
-                      {p.reclaimPrice != null && <div className="text-[10px] text-gray-500">15M close back through zone: {fmtPrice(p.reclaimPrice)}</div>}
-                      {p.breakoutEventDirection !== 'NONE' && p.breakoutEventDirection && <div className="text-[10px] text-gray-400">Zone-event bias: {p.breakoutEventDirection}</div>}
+                      {p.breakoutZone && <><div className="text-[10px] text-gray-300">{p.breakoutZone.classification ?? 'UNCLASSIFIED'} {p.breakoutZone.side} · {fmtPrice(p.breakoutZone.low)}–{fmtPrice(p.breakoutZone.high)}</div><div className="text-[10px] text-gray-500">{p.breakoutZone.swingCount ?? 0} confirmed 4H swing reaction(s) · Strength {p.breakoutZone.strength ?? '—'}/100</div></>}
+                      {p.breakoutStatus === 'NO ACTIVE BREAKOUT' && <div className="text-[10px] text-gray-500">No completed 15M candle has closed beyond a tracked 4H zone in the recent scan window.</div>}
+                      {p.strategy && <div className="text-[10px] text-gray-400">{p.strategy}</div>}
+                      {p.breakoutPrice != null && <div className="text-[10px] text-gray-500">Breakout close {fmtPrice(p.breakoutPrice)} · reclaim close {fmtPrice(p.reclaimPrice)}</div>}
                     </td>
                     <td className="p-2 text-right"><div className="font-semibold">{fmtPrice(p.triggerPrice ?? p.entry)}</div>
                       {p.setupClose != null && <div className="text-[10px] text-gray-500">15M close {fmtPrice(p.setupClose)}</div>}
