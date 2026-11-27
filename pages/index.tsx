@@ -4977,7 +4977,28 @@ latestRSI,
   <span className="text-gray-300">
     Showing {filteredAndSortedSignals.length === 0 ? 0 : tablePage * TABLE_PAGE_SIZE + 1}–{Math.min((tablePage + 1) * TABLE_PAGE_SIZE, filteredAndSortedSignals.length)} of {filteredAndSortedSignals.length} analyzed symbols
   </span>
-  <div className="flex items-center gap-2">
+  <div className="flex flex-wrap items-center gap-2">
+    <span className="text-gray-400">24H:</span>
+    <button
+      type="button"
+      onClick={() => { setSortField('priceChangePercent'); setSortOrder('desc'); setTablePage(0); }}
+      aria-pressed={sortField === 'priceChangePercent' && sortOrder === 'desc'}
+      className={`px-2 py-1 rounded border font-semibold ${
+        sortField === 'priceChangePercent' && sortOrder === 'desc'
+          ? 'bg-yellow-700 text-white border-yellow-500'
+          : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+      }`}
+    >DESC ↓</button>
+    <button
+      type="button"
+      onClick={() => { setSortField('priceChangePercent'); setSortOrder('asc'); setTablePage(0); }}
+      aria-pressed={sortField === 'priceChangePercent' && sortOrder === 'asc'}
+      className={`px-2 py-1 rounded border font-semibold ${
+        sortField === 'priceChangePercent' && sortOrder === 'asc'
+          ? 'bg-yellow-700 text-white border-yellow-500'
+          : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+      }`}
+    >ASC ↑</button>
     <button type="button" onClick={() => setTablePage(0)} disabled={tablePage === 0}
       className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">First</button>
     <button type="button" onClick={() => setTablePage(page => Math.max(0, page - 1))} disabled={tablePage === 0}
