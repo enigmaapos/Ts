@@ -750,48 +750,65 @@ function buildCombined4HLevels(args: {
     currentPrice, previousSessionHigh, previousSessionLow,
     bullishDivergence, bearishDivergence } = args;
   if (candles.length < 205 || !Number.isFinite(currentPrice) || currentPrice <= 0) {
-    return { available: false, reason: 'Insufficient 4H history', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null };
+    return { available: false, reason: 'Insufficient 4H history', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null, atr14: null };
   }
 
+  // All structural calculations are anchored to the latest COMPLETED 4H candle.
   let last = -1;
   for (let i = candles.length - 1; i >= 0; i--) {
     if (Number.isFinite(candles[i].closeTime) && candles[i].closeTime <= Date.now()) { last = i; break; }
   }
-  if (last < 204) return { available: false, reason: 'Insufficient completed 4H candles', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null };
+  if (last < 204) return { available: false, reason: 'Insufficient completed 4H candles', trend: mainTrend?.trend ?? null, support: null, resistance: null, rsi14: null, volumeRatio: null, atr14: null };
+
   const candidates: SRLevelCandidate[] = [];
   const pivotStart = Math.max(2, last - 122);
-  for (let i = pivotStart; i < last - 1; i++) {
+  // Two candles on either side must be completed before a swing is accepted.
+  for (let i = pivotStart; i <= last - 2; i++) {
     const window = candles.slice(i - 2, i + 3);
     const pivotHigh = window.every((c, j) => j === 2 || candles[i].high >= c.high) &&
       (candles[i].high > candles[i - 1].high || candles[i].high > candles[i + 1].high);
     const pivotLow = window.every((c, j) => j === 2 || candles[i].low <= c.low) &&
       (candles[i].low < candles[i - 1].low || candles[i].low < candles[i + 1].low);
-    if (pivotHigh) candidates.push({ price: candles[i].high, source: '4H swing high', weight: 2.2, side: candles[i].high <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
-    if (pivotLow) candidates.push({ price: candles[i].low, source: '4H swing low', weight: 2.2, side: candles[i].low <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
+    if (pivotHigh) candidates.push({ price: candles[i].high, source: '4H swing high', weight: 2.5, side: candles[i].high <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
+    if (pivotLow) candidates.push({ price: candles[i].low, source: '4H swing low', weight: 2.5, side: candles[i].low <= currentPrice ? 'support' : 'resistance', timestamp: candles[i].timestamp });
   }
 
   const emaSources: Array<[string, number, number]> = [
-    ['EMA14', ema14[last], 1.0], ['EMA50', ema50[last], 1.35], ['EMA70', ema70[last], 1.5],
-    ['EMA100', ema100[last], 1.6], ['EMA200', ema200[last], 2.0]
+    ['EMA14', ema14[last], 0.65], ['EMA50', ema50[last], 0.8], ['EMA70', ema70[last], 0.9],
+    ['EMA100', ema100[last], 1.0], ['EMA200', ema200[last], 1.2]
   ];
   for (const [source, price, weight] of emaSources) {
-    if (!Number.isFinite(price)) continue;
-    candidates.push({ price, source, weight, side: price <= currentPrice ? 'support' : 'resistance' });
+    if (Number.isFinite(price)) candidates.push({ price, source, weight, side: price <= currentPrice ? 'support' : 'resistance' });
   }
-  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) candidates.push({ price: previousSessionHigh, source: 'Previous PH session high', weight: 2.0, side: previousSessionHigh <= currentPrice ? 'support' : 'resistance' });
-  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) candidates.push({ price: previousSessionLow, source: 'Previous PH session low', weight: 2.0, side: previousSessionLow <= currentPrice ? 'support' : 'resistance' });
+  if (previousSessionHigh !== null && Number.isFinite(previousSessionHigh)) candidates.push({ price: previousSessionHigh, source: 'Previous PH session high', weight: 2.2, side: previousSessionHigh <= currentPrice ? 'support' : 'resistance' });
+  if (previousSessionLow !== null && Number.isFinite(previousSessionLow)) candidates.push({ price: previousSessionLow, source: 'Previous PH session low', weight: 2.2, side: previousSessionLow <= currentPrice ? 'support' : 'resistance' });
 
-  const tolerance = currentPrice * 0.0025; // 0.25% confluence clustering tolerance
+  const tolerance = currentPrice * 0.0025;
   const recentVolumes = candles.slice(Math.max(0, last - 20), last).map(c => c.volume).filter(Number.isFinite);
   const averageVolume = recentVolumes.length ? recentVolumes.reduce((a, b) => a + b, 0) / recentVolumes.length : NaN;
   const volumeRatio = Number.isFinite(averageVolume) && averageVolume > 0 ? candles[last].volume / averageVolume : null;
+  const trueRanges = candles.slice(Math.max(1, last - 13), last + 1).map((c, offset) => {
+    const index = Math.max(1, last - 13) + offset;
+    const previousClose = candles[index - 1]?.close ?? c.close;
+    return Math.max(c.high - c.low, Math.abs(c.high - previousClose), Math.abs(c.low - previousClose));
+  }).filter(Number.isFinite);
+  const atr14 = trueRanges.length ? trueRanges.reduce((sum, value) => sum + value, 0) / trueRanges.length : null;
+
+  const emaValues = [ema14[last], ema50[last], ema70[last], ema100[last], ema200[last]];
+  const emaValuesValid = emaValues.every(Number.isFinite);
+  const bullishPairs = emaValuesValid ? emaValues.slice(0, -1).filter((v, i) => v > emaValues[i + 1]).length : 0;
+  const bearishPairs = emaValuesValid ? emaValues.slice(0, -1).filter((v, i) => v < emaValues[i + 1]).length : 0;
+  const emaRegime = !emaValuesValid ? 'UNAVAILABLE' : bullishPairs === 4 ? 'BULLISH' : bearishPairs === 4 ? 'BEARISH' : 'MIXED';
+  const trendRegime = emaRegime === 'BULLISH' || emaRegime === 'BEARISH' ? emaRegime :
+    (mainTrend?.trend === 'bullish' ? 'BULLISH' : mainTrend?.trend === 'bearish' ? 'BEARISH' : 'NEUTRAL');
+
   const makeZones = (side: 'support' | 'resistance') => {
     const items = candidates.filter(x => x.side === side).sort((a, b) => a.price - b.price);
     const clusters: SRLevelCandidate[][] = [];
     for (const item of items) {
       const group = clusters[clusters.length - 1];
-      const groupPrice = group?.reduce((sum, x) => sum + x.price * x.weight, 0) /
-        (group?.reduce((sum, x) => sum + x.weight, 0) || 1);
+      const groupWeight = group?.reduce((sum, x) => sum + x.weight, 0) || 1;
+      const groupPrice = group ? group.reduce((sum, x) => sum + x.price * x.weight, 0) / groupWeight : NaN;
       if (group && Math.abs(item.price - groupPrice) <= tolerance) group.push(item);
       else clusters.push([item]);
     }
@@ -799,21 +816,19 @@ function buildCombined4HLevels(args: {
       const weight = group.reduce((sum, x) => sum + x.weight, 0);
       const price = group.reduce((sum, x) => sum + x.price * x.weight, 0) / weight;
       const sources = Array.from(new Set(group.map(x => x.source)));
-      const trendBonus = (side === 'support' && mainTrend?.trend === 'bullish') || (side === 'resistance' && mainTrend?.trend === 'bearish') ? 8 : 0;
+      const structuralCount = sources.filter(x => x.includes('swing') || x.includes('Previous PH')).length;
+      const trendBonus = (side === 'support' && trendRegime === 'BULLISH') || (side === 'resistance' && trendRegime === 'BEARISH') ? 8 : 0;
       const rsiValue = rsi14[last];
-      const rsiBonus = Number.isFinite(rsiValue) && ((side === 'support' && rsiValue > 50) || (side === 'resistance' && rsiValue < 50)) ? 5 : 0;
-      const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 8 : 0;
-      const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 6 : 0;
-      const strength = Math.min(100, Math.round(weight * 11 + Math.max(0, sources.length - 1) * 8 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
-      const swingTimestamps = group
-        .filter(x => x.timestamp !== undefined && Number.isFinite(x.timestamp))
-        .map(x => x.timestamp as number);
-      const zoneTimestamp = swingTimestamps.length ? Math.max(...swingTimestamps) : null;
+      const rsiBonus = Number.isFinite(rsiValue) && ((side === 'support' && rsiValue > 50) || (side === 'resistance' && rsiValue < 50)) ? 4 : 0;
+      const divergenceBonus = (side === 'support' && bullishDivergence) || (side === 'resistance' && bearishDivergence) ? 7 : 0;
+      const volumeBonus = volumeRatio !== null && volumeRatio >= 1.5 ? 4 : 0;
+      const strength = Math.min(100, Math.round(weight * 9 + Math.max(0, sources.length - 1) * 7 + trendBonus + rsiBonus + divergenceBonus + volumeBonus));
+      const swingTimestamps = group.filter(x => x.timestamp !== undefined && Number.isFinite(x.timestamp)).map(x => x.timestamp as number);
       return {
         price, low: price - tolerance / 2, high: price + tolerance / 2,
-        strength, confluences: sources,
+        strength, confluences: sources, structuralCount,
         touches: group.filter(x => x.source.includes('swing')).length,
-        side, timestamp: zoneTimestamp
+        side, timestamp: swingTimestamps.length ? Math.max(...swingTimestamps) : null
       };
     }).filter(z => side === 'support' ? z.price < currentPrice : z.price > currentPrice);
   };
@@ -821,11 +836,12 @@ function buildCombined4HLevels(args: {
   const supports = makeZones('support').sort((a, b) => b.price - a.price);
   const resistances = makeZones('resistance').sort((a, b) => a.price - b.price);
   return {
-    available: true, trend: mainTrend?.trend ?? null,
+    available: true, trend: mainTrend?.trend ?? null, trendRegime, emaRegime,
+    emaBullishPairs: bullishPairs, emaBearishPairs: bearishPairs,
     support: supports[0] ?? null, resistance: resistances[0] ?? null,
     supportZones: supports, resistanceZones: resistances,
     rsi14: Number.isFinite(rsi14[last]) ? rsi14[last] : null,
-    volumeRatio
+    bullishDivergence, bearishDivergence, volumeRatio, atr14
   };
 }
 
@@ -922,30 +938,36 @@ function detectStrict15MRejection(args: {
 
 
 function buildZoneTradePlan(rejection: any, levels: any) {
-  // Entry is triggered exclusively by a confirmed, completed 15M rejection.
-  // Stops and targets are structural 4H levels, rebuilt from completed 4H candles.
+  // Only a confirmed, completed 15M rejection can create an entry reference.
   if (!rejection?.available || rejection.status !== 'REJECTION CONFIRMED' ||
       !['BUY', 'SELL'].includes(rejection.direction) || !rejection.level ||
       !Number.isFinite(rejection.candleClose) || !levels?.available) {
     return {
-      available: false,
-      status: 'WAIT' as const,
+      available: false, status: 'WAIT' as const,
       direction: ['BUY', 'SELL'].includes(rejection?.direction) ? rejection.direction : '—',
-      entry: null, stopLoss: null, targets: [], riskReward: [],
+      entry: null, stopLoss: null, targets: [], riskReward: [], qualityScore: null,
+      trendRegime: levels?.trendRegime ?? 'UNAVAILABLE', setupType: 'WAITING',
+      volumeConfirmation: 'UNAVAILABLE', rsiConfirmation: 'UNAVAILABLE', structureQuality: 'UNAVAILABLE',
       zone: rejection?.level ?? null, timestamp: rejection?.timestamp ?? null,
-      reason: rejection?.reason ?? 'Waiting for a confirmed completed 15M rejection; 4H structure is recalculated from completed 4H candles'
+      reason: rejection?.reason ?? 'Waiting for a confirmed completed 15M rejection and valid completed-4H structure'
     };
   }
 
   const direction = rejection.direction as 'BUY' | 'SELL';
   const entry = Number(rejection.candleClose);
   const zone = rejection.level;
-  // Structural invalidation is the far edge of the rejected 4H zone.
-  const stopLoss = direction === 'BUY' ? Number(zone.low) : Number(zone.high);
+  const atr = Number(levels.atr14);
+  // ATR buffer is applied OUTSIDE the far edge of the rejected 4H zone.
+  // 0.15 x 4H ATR is a modest configurable noise allowance, not a guaranteed stop distance.
+  const atrBuffer = Number.isFinite(atr) && atr > 0 ? atr * 0.15 : 0;
+  const stopLoss = direction === 'BUY' ? Number(zone.low) - atrBuffer : Number(zone.high) + atrBuffer;
   const risk = Math.abs(entry - stopLoss);
+
   const rawTargets = direction === 'SELL'
     ? (Array.isArray(levels.supportZones) ? levels.supportZones : [levels.support])
     : (Array.isArray(levels.resistanceZones) ? levels.resistanceZones : [levels.resistance]);
+  // Preserve nearest-to-farthest price order. EMA-only zones remain secondary references;
+  // structural swing/session levels receive stronger quality credit, not artificial reordering.
   const targetZones = rawTargets
     .filter((z: any) => z && Number.isFinite(z.price) &&
       (direction === 'SELL' ? z.price < entry : z.price > entry))
@@ -954,35 +976,61 @@ function buildZoneTradePlan(rejection: any, levels: any) {
   const targets = targetZones.slice(0, 3).map((z: any, index: number) => {
     const reward = Math.abs(entry - Number(z.price));
     return {
-      label: `TP${index + 1}`,
-      price: Number(z.price),
-      low: Number(z.low),
-      high: Number(z.high),
-      strength: z.strength ?? null,
-      confluences: z.confluences ?? [],
+      label: `TP${index + 1}`, price: Number(z.price), low: Number(z.low), high: Number(z.high),
+      strength: z.strength ?? null, confluences: z.confluences ?? [],
+      structuralCount: z.structuralCount ?? 0,
+      targetType: (z.structuralCount ?? 0) > 0 ? 'STRUCTURAL' : 'EMA REFERENCE',
       riskReward: risk > 0 ? reward / risk : null,
       distancePercent: entry > 0 ? reward / entry * 100 : null
     };
   });
+
   const firstTargetRR = targets[0]?.riskReward ?? null;
   const validRisk = Number.isFinite(risk) && risk > 0 &&
     (direction === 'BUY' ? stopLoss < entry : stopLoss > entry);
-  const status = !validRisk || !targets.length
-    ? 'NO TRADE' as const
-    : Number.isFinite(firstTargetRR) && firstTargetRR >= 1.5
-      ? 'OPPORTUNITY' as const
-      : 'NO TRADE' as const;
+  const trendRegime = levels.trendRegime ?? 'NEUTRAL';
+  const trendAligned = (direction === 'BUY' && trendRegime === 'BULLISH') || (direction === 'SELL' && trendRegime === 'BEARISH');
+  const countertrend = (direction === 'BUY' && trendRegime === 'BEARISH') || (direction === 'SELL' && trendRegime === 'BULLISH');
+  const rsi = Number(levels.rsi14);
+  const rsiConfirmed = Number.isFinite(rsi) && (direction === 'BUY' ? rsi > 50 : rsi < 50);
+  const divergenceConfirmed = direction === 'BUY' ? levels.bullishDivergence === true : levels.bearishDivergence === true;
+  const volume = Number(rejection.volumeRatio);
+  const volumeConfirmation = !Number.isFinite(volume) ? 'UNAVAILABLE' : volume >= 1.5 ? 'STRONG' : volume >= 1.0 ? 'NORMAL' : 'WEAK';
+  const rsiConfirmation = rsiConfirmed ? (divergenceConfirmed ? 'CONFIRMED + DIVERGENCE' : 'CONFIRMED') : 'WEAK';
+  const structuralTargets = targets.filter((t: any) => t.targetType === 'STRUCTURAL').length;
+  const structureQuality = structuralTargets >= 2 ? 'STRONG' : structuralTargets === 1 ? 'MODERATE' : 'WEAK';
+
+  // Transparent 100-point setup score: trend 25, rejection strength 25,
+  // volume 15, RSI/divergence 15, structure 20.
+  const trendPoints = trendAligned ? 25 : countertrend ? 0 : 12;
+  const rejectionPoints = Math.min(25, Math.max(0, Number(rejection.wickRatio) || 0) * 25);
+  const volumePoints = !Number.isFinite(volume) ? 5 : volume >= 2 ? 15 : volume >= 1.5 ? 12 : volume >= 1 ? 8 : 3;
+  const momentumPoints = (rsiConfirmed ? 9 : 0) + (divergenceConfirmed ? 6 : 0);
+  const structurePoints = structuralTargets >= 2 ? 20 : structuralTargets === 1 ? 12 : 5;
+  const qualityScore = Math.round(Math.min(100, trendPoints + rejectionPoints + volumePoints + momentumPoints + structurePoints));
+  const requiredRR = countertrend ? 2.0 : trendRegime === 'NEUTRAL' || trendRegime === 'MIXED' ? 1.75 : 1.5;
+  const enoughTargets = targets.length >= 1;
+  const scorePass = qualityScore >= (countertrend ? 70 : 60);
+  const status = !validRisk || !enoughTargets || !Number.isFinite(firstTargetRR) || firstTargetRR < requiredRR || !scorePass
+    ? 'NO TRADE' as const : 'OPPORTUNITY' as const;
+  const setupType = countertrend ? 'COUNTERTREND' : trendAligned ? 'TREND' : 'MIXED / NEUTRAL';
 
   return {
-    available: true, status, direction, entry, stopLoss, risk,
-    stopDistancePercent: entry > 0 ? risk / entry * 100 : null,
+    available: true, status, direction, entry, stopLoss, risk, atr14: Number.isFinite(atr) ? atr : null,
+    atrBuffer, stopDistancePercent: entry > 0 ? risk / entry * 100 : null,
     targets, riskReward: targets.map((target: any) => target.riskReward),
+    qualityScore, trendRegime, emaRegime: levels.emaRegime ?? 'UNAVAILABLE', setupType, trendAligned, countertrend,
+    volumeConfirmation, volumeRatio: Number.isFinite(volume) ? volume : null,
+    rsiConfirmation, rsi14: Number.isFinite(rsi) ? rsi : null,
+    divergenceConfirmed, structureQuality, structuralTargetCount: structuralTargets,
+    requiredRR,
     zone: { ...zone, side: direction === 'SELL' ? 'resistance' : 'support' },
     timestamp: rejection.timestamp,
-    reason: !validRisk ? 'The rejected 4H zone does not provide a valid structural stop-loss beyond the 15M entry' :
-      !targets.length ? 'No valid opposing 4H structural target exists beyond the entry' :
-      status === 'OPPORTUNITY' ? 'Confirmed 15M rejection; nearest opposing completed-4H target offers at least 1:1.5 R:R' :
-      'Confirmed 15M rejection, but the nearest opposing 4H target offers less than 1:1.5 R:R'
+    reason: !validRisk ? 'Invalid structural stop after the 4H ATR safety buffer' :
+      !enoughTargets ? 'No valid opposing 4H target exists beyond the entry' :
+      !scorePass ? `Setup quality ${qualityScore}/100 is below the required threshold` :
+      !Number.isFinite(firstTargetRR) || firstTargetRR < requiredRR ? `TP1 R:R is below the ${requiredRR.toFixed(2)} minimum for this market regime` :
+      `Confirmed 15M rejection; ${setupType.toLowerCase()} 4H setup passes quality and TP1 R:R filters`
   };
 }
 
@@ -4838,7 +4886,7 @@ latestRSI,
         </div>
       </div>
       {zoneTradeExpanded && <>
-        <p className="text-xs text-gray-500 mb-2">15M does not calculate targets. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. OPPORTUNITY requires TP1 R:R of at least 1:1.5. Levels are analytical references, not guaranteed fills or returns.</p>
+        <p className="text-xs text-gray-500 mb-2">15M does not calculate targets. The 4H stop is the far boundary of the rejected 4H zone; each TP is a successive opposing 4H structure level. R:R is calculated separately for TP1, TP2 and TP3. TP1 minimum R:R is 1:1.5 in aligned trends, 1:1.75 in mixed/neutral conditions and 1:2.0 countertrend. A 0.15× completed-4H ATR buffer is added beyond the structural stop. Minimum quality score is 60/100 (70/100 countertrend). Score combines 4H trend, 15M rejection wick, 15M volume, 4H RSI/divergence and structural target confluence. Levels are analytical references, not guaranteed fills or returns.</p>
         <div className="overflow-auto max-h-[55vh]">
           <table className="w-full min-w-[1250px] text-xs border-collapse">
             <thead className="sticky top-0 bg-gray-800 text-emerald-300"><tr>
@@ -4881,7 +4929,13 @@ latestRSI,
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[1])}</td>
                     <td className="p-2 text-right text-emerald-300">{fmtTarget(p.targets?.[2])}</td>
                     <td className="p-2 text-center"><div>TP1 {fmtRR(p.targets?.[0])}</div><div>TP2 {fmtRR(p.targets?.[1])}</div><div>TP3 {fmtRR(p.targets?.[2])}</div></td>
-                    <td className={`p-2 text-center font-bold ${opportunity ? 'text-emerald-300' : p.status === 'NO TRADE' ? 'text-red-300' : 'text-yellow-300'}`}>{p.status ?? 'WAIT'}</td>
+                    <td className={`p-2 text-center ${opportunity ? 'text-emerald-300' : p.status === 'NO TRADE' ? 'text-red-300' : 'text-yellow-300'}`}>
+                      <div className="font-bold">{p.status ?? 'WAIT'}</div>
+                      {p.available && <div className="mt-1 text-[10px] leading-4 text-gray-400 whitespace-nowrap">
+                        Score {Number.isFinite(p.qualityScore) ? `${p.qualityScore}/100` : '—'} · {p.trendRegime ?? '—'} (EMA {p.emaRegime ?? '—'}) · {p.setupType ?? '—'}<br />
+                        Vol {p.volumeConfirmation ?? '—'} · RSI {p.rsiConfirmation ?? '—'} · Structure {p.structureQuality ?? '—'}
+                      </div>}
+                    </td>
                   </tr>;
                 })}
               {signals.filter(s => {
