@@ -1926,6 +1926,18 @@ const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish'
 
 const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
 const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
+const isPumpZoneSignal = (signal: string) => /\bPUMP$/.test(signal);
+const isDumpZoneSignal = (signal: string) => /\bDUMP$/.test(signal);
+const matchesSignalFilter = (s: any, filter: string) => {
+  const signal = getSignalValue(s).toUpperCase();
+  if (filter === 'PUMP NO SIGNAL') {
+    return Boolean(getPumpDump(s)) && !isPumpZoneSignal(signal);
+  }
+  if (filter === 'DUMP NO SIGNAL') {
+    return Boolean(getPumpDump(s)) && !isDumpZoneSignal(signal);
+  }
+  return signal === filter;
+};
 const formatSignalExtremeTime = (timestamp: number | null | undefined) =>
   Number.isFinite(timestamp)
     ? new Date(timestamp as number).toLocaleString('en-PH', {
@@ -2150,7 +2162,7 @@ const filteredSignals = useMemo(() => signals.filter((s) => {
     if (tradeSetupFilter === 'sell' && !sellSetup) return false;
   }
 
-  if (signalFilter && getSignalValue(s) !== signalFilter) return false;
+  if (signalFilter && !matchesSignalFilter(s, signalFilter)) return false;
 
   if (rsi14Filter !== 'all') {
     const rsi = typeof s.latestRSI === 'number' ? s.latestRSI : null;
@@ -2551,10 +2563,15 @@ const signalCounts = useMemo(() => {
     balanceZoneDump: 0,
     lowestZonePump: 0,
     lowestZoneDump: 0,
+    pumpNoSignal: 0,
+    dumpNoSignal: 0,
   };
 
   signals.forEach((s: any) => {
     const signal = getSignal(s)?.trim().toUpperCase();
+    const hasPumpDumpData = Boolean(getPumpDump(s));
+    if (hasPumpDumpData && !isPumpZoneSignal(signal)) counts.pumpNoSignal++;
+    if (hasPumpDumpData && !isDumpZoneSignal(signal)) counts.dumpNoSignal++;
 
     switch (signal) {
       case 'MAX ZONE PUMP':
@@ -4947,7 +4964,19 @@ latestRSI,
     count: signalCounts.lowestZoneDump,
     color: 'text-yellow-600',
   },
-	
+  {
+    label: 'PUMP — NO SIGNAL',
+    key: 'PUMP NO SIGNAL',
+    count: signalCounts.pumpNoSignal,
+    color: 'text-cyan-300',
+  },
+  {
+    label: 'DUMP — NO SIGNAL',
+    key: 'DUMP NO SIGNAL',
+    count: signalCounts.dumpNoSignal,
+    color: 'text-orange-300',
+  },
+
         ].map(({ label, key, count, color }) => (
           <button
             key={key}
