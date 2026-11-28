@@ -172,9 +172,13 @@ function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
   const empty = {
     available: false, status: 'INSUFFICIENT DATA', breakoutDirection: 'NONE',
     breakoutPrice: null as number | null, breakoutTime: null as number | null,
-    divergenceType: 'NONE', divergenceCount: 0, priceProgressionCount: 0,
-    newExtremesAfterDivergence: 0, extremeSinceBreakout: null as number | null,
-    latestDivergence: null as any, reason: 'Need more completed candles to confirm a breakout and subsequent swing pivots.'
+    divergenceType: 'NONE', divergenceCount: 0, totalDivergenceCount: 0,
+    priceProgressionCount: 0, newExtremesAfterDivergence: 0,
+    extremeSinceBreakout: null as number | null, latestDivergence: null as any,
+    divergenceSequence: [] as any[], sequenceResetCount: 0,
+    lastDivergencePriceChangePct: null as number | null,
+    lastDivergencePriceRelation: '—',
+    reason: 'Need more completed candles to confirm a breakout and subsequent swing pivots.'
   };
   if (completed.length < lookback + 5) return empty;
 
@@ -195,18 +199,20 @@ function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
     const bullishBreakout = previous.close <= priorHigh && candle.close > priorHigh;
     const bearishBreakout = previous.close >= priorLow && candle.close < priorLow;
     const breakoutDirection = bullishBreakout ? 'BULLISH' : bearishBreakout ? 'BEARISH' : 'NONE';
-    // Do not restart the same-direction cycle on every incremental higher-high /
-    // lower-low candle. Only a first breakout or an opposite-direction breakout
-    // starts a new monitoring cycle.
+    // A first breakout or an opposite breakout starts a new monitoring cycle.
     if (breakoutDirection !== 'NONE' && (!state || state.direction !== breakoutDirection)) {
       state = {
         direction: breakoutDirection,
         breakoutIndex: i, breakoutPrice: candle.close, breakoutTime: candle.closeTime,
-        divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0,
+        divergenceCount: 0, totalDivergenceCount: 0,
+        priceProgressionCount: 0, newExtremesAfterDivergence: 0,
         extreme: bullishBreakout ? candle.high : candle.low,
         previousPivotPrice: null as number | null, previousPivotRSI: null as number | null,
         lastProgressionExtreme: bullishBreakout ? candle.high : candle.low,
-        latestDivergence: null as any
+        latestDivergence: null as any, divergenceSequence: [] as any[],
+        sequenceResetCount: 0, lastDivergenceTriggerPrice: null as number | null,
+        lastDivergencePriceChangePct: null as number | null,
+        lastDivergencePriceRelation: '—'
       };
       continue;
     }
@@ -214,6 +220,24 @@ function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
 
     if (state.direction === 'BULLISH') state.extreme = Math.max(state.extreme, candle.high);
     else state.extreme = Math.min(state.extreme, candle.low);
+
+    // Invalidate the active divergence sequence only on a completed-candle CLOSE
+    // through the most recent divergence trigger level. Bearish: close above its
+    // trigger high. Bullish: close below its trigger low. The next divergence is #1.
+    const activeDivergenceType = state.direction === 'BULLISH' ? 'BEARISH' : 'BULLISH';
+    const sequenceBroken = state.lastDivergenceTriggerPrice !== null && (
+      (activeDivergenceType === 'BEARISH' && candle.close > state.lastDivergenceTriggerPrice) ||
+      (activeDivergenceType === 'BULLISH' && candle.close < state.lastDivergenceTriggerPrice)
+    );
+    if (sequenceBroken) {
+      state.divergenceCount = 0;
+      state.lastDivergenceTriggerPrice = null;
+      state.lastDivergencePriceChangePct = null;
+      state.lastDivergencePriceRelation = 'RESET — trigger level broken';
+      state.sequenceResetCount++;
+      state.previousPivotPrice = null;
+      state.previousPivotRSI = null;
+    }
 
     // A pivot at i-2 becomes confirmed only after its two right-side candles close.
     const pivotIndex = i - 2;
@@ -232,8 +256,16 @@ function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
         const higherHigh = pivot.high > state.previousPivotPrice;
         const lowerRsiHigh = pivotRsi < state.previousPivotRSI;
         if (higherHigh && lowerRsiHigh) {
+          const previousTrigger = state.lastDivergenceTriggerPrice;
+          const changePct = previousTrigger !== null && previousTrigger !== 0
+            ? ((pivot.high - previousTrigger) / previousTrigger) * 100 : null;
           state.divergenceCount++;
-          state.latestDivergence = { type: 'BEARISH', price: pivot.high, rsi: pivotRsi, timestamp: pivot.closeTime };
+          state.totalDivergenceCount++;
+          state.lastDivergencePriceChangePct = changePct;
+          state.lastDivergencePriceRelation = changePct === null ? 'FIRST IN SEQUENCE' : changePct > 0 ? 'HIGHER' : changePct < 0 ? 'LOWER' : 'UNCHANGED';
+          state.lastDivergenceTriggerPrice = pivot.high;
+          state.latestDivergence = { type: 'BEARISH', price: pivot.high, rsi: pivotRsi, timestamp: pivot.closeTime, sequence: state.divergenceCount, cycle: state.sequenceResetCount + 1, priceChangePct: changePct, priceRelation: state.lastDivergencePriceRelation };
+          state.divergenceSequence.push(state.latestDivergence);
         }
         if (state.divergenceCount > 0 && pivot.high > state.lastProgressionExtreme) {
           if (!(higherHigh && lowerRsiHigh)) state.newExtremesAfterDivergence++;
@@ -253,8 +285,16 @@ function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
         const lowerLow = pivot.low < state.previousPivotPrice;
         const higherRsiLow = pivotRsi > state.previousPivotRSI;
         if (lowerLow && higherRsiLow) {
+          const previousTrigger = state.lastDivergenceTriggerPrice;
+          const changePct = previousTrigger !== null && previousTrigger !== 0
+            ? ((pivot.low - previousTrigger) / previousTrigger) * 100 : null;
           state.divergenceCount++;
-          state.latestDivergence = { type: 'BULLISH', price: pivot.low, rsi: pivotRsi, timestamp: pivot.closeTime };
+          state.totalDivergenceCount++;
+          state.lastDivergencePriceChangePct = changePct;
+          state.lastDivergencePriceRelation = changePct === null ? 'FIRST IN SEQUENCE' : changePct < 0 ? 'LOWER' : changePct > 0 ? 'HIGHER' : 'UNCHANGED';
+          state.lastDivergenceTriggerPrice = pivot.low;
+          state.latestDivergence = { type: 'BULLISH', price: pivot.low, rsi: pivotRsi, timestamp: pivot.closeTime, sequence: state.divergenceCount, cycle: state.sequenceResetCount + 1, priceChangePct: changePct, priceRelation: state.lastDivergencePriceRelation };
+          state.divergenceSequence.push(state.latestDivergence);
         }
         if (state.divergenceCount > 0 && pivot.low < state.lastProgressionExtreme) {
           if (!(lowerLow && higherRsiLow)) state.newExtremesAfterDivergence++;
@@ -269,15 +309,20 @@ function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
 
   if (!state) return { ...empty, available: true, status: 'NO CONFIRMED BREAKOUT', reason: `No completed candle closed beyond the previous ${lookback}-candle range.` };
   return {
-    available: true, status: state.divergenceCount > 0 ? 'DIVERGENCE AFTER BREAKOUT' : 'BREAKOUT MONITORING',
+    available: true, status: state.divergenceCount > 0 ? 'DIVERGENCE SEQUENCE ACTIVE' : 'BREAKOUT MONITORING',
     breakoutDirection: state.direction, breakoutPrice: state.breakoutPrice, breakoutTime: state.breakoutTime,
     divergenceType: state.direction === 'BULLISH' ? 'BEARISH' : 'BULLISH',
-    divergenceCount: state.divergenceCount, priceProgressionCount: state.priceProgressionCount,
+    divergenceCount: state.divergenceCount, totalDivergenceCount: state.totalDivergenceCount,
+    priceProgressionCount: state.priceProgressionCount,
     newExtremesAfterDivergence: state.newExtremesAfterDivergence, extremeSinceBreakout: state.extreme,
-    latestDivergence: state.latestDivergence,
+    latestDivergence: state.latestDivergence, divergenceSequence: state.divergenceSequence,
+    sequenceResetCount: state.sequenceResetCount,
+    lastDivergencePriceChangePct: state.lastDivergencePriceChangePct,
+    lastDivergencePriceRelation: state.lastDivergencePriceRelation,
+    lastDivergenceTriggerPrice: state.lastDivergenceTriggerPrice,
     reason: state.direction === 'BULLISH'
-      ? 'After a confirmed bullish range breakout, counts bearish RSI lower-high divergence against higher price swing highs.'
-      : 'After a confirmed bearish range breakdown, counts bullish RSI higher-low divergence against lower price swing lows.'
+      ? 'After a confirmed bullish range breakout, tracks each bearish RSI divergence pivot high. Sequence resets to #1 after a completed candle closes above the latest bearish-divergence trigger high.'
+      : 'After a confirmed bearish range breakdown, tracks each bullish RSI divergence pivot low. Sequence resets to #1 after a completed candle closes below the latest bullish-divergence trigger low.'
   };
 }
 
@@ -6014,7 +6059,7 @@ latestRSI,
   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
     <div>
       <h3 className="text-sm font-bold text-indigo-200">Table 7 — 15m Breakout–Divergence Tracker</h3>
-      <p className="text-[11px] text-gray-400">15m completed-candle breakouts; confirmed 2-left/2-right RSI14 swing divergences after breakout. Follows Table 1 filters, search, sort order and Favorites view. Uses existing 15m scanner candles.</p>
+      <p className="text-[11px] text-gray-400">15m only. Each confirmed opposite RSI14 divergence records its pivot trigger price and compares it with the previous trigger. Sequence resets to #1 when a completed candle closes through the latest trigger level. Follows Table 1 filters, search, sort order and Favorites view; uses existing scanner candles.</p>
     </div>
     <div className="flex gap-2 text-[10px]">
       <span className="rounded border border-green-700 px-2 py-1 text-green-300">Bullish breakout → bearish divergence</span>
@@ -6025,7 +6070,7 @@ latestRSI,
     <table className="w-full min-w-[1050px] text-[11px] border-collapse">
       <thead className="sticky top-0 bg-gray-800 text-indigo-200"><tr>
         <th className="p-2 text-left">Symbol</th><th className="p-2">TF</th><th className="p-2">Breakout</th><th className="p-2">Breakout Price</th>
-        <th className="p-2">Opposite Divergences</th><th className="p-2">Price Progressions</th><th className="p-2">New Extremes After Divergence</th><th className="p-2">Extreme Since Breakout</th><th className="p-2">Latest Divergence</th>
+        <th className="p-2">Current Sequence</th><th className="p-2">All Divergence Trigger Prices</th><th className="p-2">Total Divergences</th><th className="p-2">Last Trigger Price</th><th className="p-2">Price vs Previous Trigger</th><th className="p-2">Sequence Resets</th><th className="p-2">Latest Divergence</th>
       </tr></thead>
       <tbody>
         {filteredAndSortedSignals.map((s: any) => ({ symbol: s.symbol, tf: '15m', tracker: s.multiTimeframeAlignment?.['15m']?.breakoutDivergenceTracker }))
@@ -6035,12 +6080,14 @@ latestRSI,
             <td className={`p-2 text-center font-bold ${bullish ? 'text-green-300' : 'text-red-300'}`}>{t.breakoutDirection}</td>
             <td className="p-2 text-center tabular-nums">{Number.isFinite(t.breakoutPrice) ? Number(t.breakoutPrice).toPrecision(8) : 'N/A'}</td>
             <td className="p-2 text-center font-bold text-yellow-300">{t.divergenceType} × {t.divergenceCount}</td>
-            <td className="p-2 text-center tabular-nums">{t.priceProgressionCount}</td>
-            <td className="p-2 text-center tabular-nums">{t.newExtremesAfterDivergence}</td>
-            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.extremeSinceBreakout) ? Number(t.extremeSinceBreakout).toPrecision(8) : 'N/A'}</td>
-            <td className="p-2 text-center">{t.latestDivergence ? `${t.latestDivergence.type} · RSI ${Number(t.latestDivergence.rsi).toFixed(1)} · ${new Date(t.latestDivergence.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}` : 'None yet'}</td>
+            <td className="p-2 text-left tabular-nums whitespace-normal max-w-[360px]">{Array.isArray(t.divergenceSequence) && t.divergenceSequence.length ? t.divergenceSequence.map((d: any, i: number) => `C${d.cycle} #${d.sequence} ${Number(d.price).toPrecision(8)}${Number.isFinite(d.priceChangePct) ? ` (${d.priceChangePct > 0 ? '+' : ''}${d.priceChangePct.toFixed(2)}%)` : ''}`).join(' → ') : 'No divergence triggers yet'}</td>
+            <td className="p-2 text-center tabular-nums">{t.totalDivergenceCount ?? t.divergenceCount}</td>
+            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.lastDivergenceTriggerPrice) ? Number(t.lastDivergenceTriggerPrice).toPrecision(8) : '—'}</td>
+            <td className={`p-2 text-center font-semibold ${t.lastDivergencePriceRelation === 'HIGHER' ? 'text-green-300' : t.lastDivergencePriceRelation === 'LOWER' ? 'text-red-300' : 'text-gray-300'}`}>{t.lastDivergencePriceChangePct === null || !Number.isFinite(t.lastDivergencePriceChangePct) ? (t.lastDivergencePriceRelation || '—') : `${t.lastDivergencePriceRelation} ${t.lastDivergencePriceChangePct > 0 ? '+' : ''}${t.lastDivergencePriceChangePct.toFixed(2)}%`}</td>
+            <td className="p-2 text-center tabular-nums">{t.sequenceResetCount ?? 0}</td>
+            <td className="p-2 text-center">{t.latestDivergence ? `#${t.latestDivergence.sequence} ${t.latestDivergence.type} @ ${Number(t.latestDivergence.price).toPrecision(8)} · RSI ${Number(t.latestDivergence.rsi).toFixed(1)} · ${new Date(t.latestDivergence.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}` : 'None yet'}</td>
           </tr>; })}
-        {!filteredAndSortedSignals.some((s: any) => { const t = s.multiTimeframeAlignment?.['15m']?.breakoutDivergenceTracker; return t?.available && t.breakoutDirection && t.breakoutDirection !== 'NONE'; }) && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No confirmed 15m breakout cycles among the symbols currently visible in Table 1.</td></tr>}
+        {!filteredAndSortedSignals.some((s: any) => { const t = s.multiTimeframeAlignment?.['15m']?.breakoutDivergenceTracker; return t?.available && t.breakoutDirection && t.breakoutDirection !== 'NONE'; }) && <tr><td colSpan={11} className="p-4 text-center text-gray-500">No confirmed 15m breakout cycles among the symbols currently visible in Table 1.</td></tr>}
       </tbody>
     </table>
   </div>
