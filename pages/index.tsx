@@ -161,6 +161,126 @@ function calculateRSI(closes: number[], period = 3): number[] {
   return rsi;
 }
 
+/**
+ * Tracks the latest confirmed close-breakout and counts opposite RSI(14)
+ * divergences that form AFTER that breakout. Only completed candles and
+ * confirmed 2-left/2-right swing pivots are used, so forming candles cannot
+ * create or repeatedly increment a signal.
+ */
+function detectBreakoutDivergenceTracker(candles: Candle[], lookback = 20) {
+  const completed = candles.filter(c => Number.isFinite(c.closeTime) && c.closeTime <= Date.now());
+  const empty = {
+    available: false, status: 'INSUFFICIENT DATA', breakoutDirection: 'NONE',
+    breakoutPrice: null as number | null, breakoutTime: null as number | null,
+    divergenceType: 'NONE', divergenceCount: 0, priceProgressionCount: 0,
+    newExtremesAfterDivergence: 0, extremeSinceBreakout: null as number | null,
+    latestDivergence: null as any, reason: 'Need more completed candles to confirm a breakout and subsequent swing pivots.'
+  };
+  if (completed.length < lookback + 5) return empty;
+
+  const closes = completed.map(c => c.close);
+  const rsi = calculateRSI(closes, 14);
+  let state: any = null;
+
+  for (let i = lookback; i < completed.length; i++) {
+    const candle = completed[i];
+    const previous = completed[i - 1];
+    let priorHigh = -Infinity;
+    let priorLow = Infinity;
+    for (let j = i - lookback; j < i; j++) {
+      if (completed[j].high > priorHigh) priorHigh = completed[j].high;
+      if (completed[j].low < priorLow) priorLow = completed[j].low;
+    }
+
+    const bullishBreakout = previous.close <= priorHigh && candle.close > priorHigh;
+    const bearishBreakout = previous.close >= priorLow && candle.close < priorLow;
+    const breakoutDirection = bullishBreakout ? 'BULLISH' : bearishBreakout ? 'BEARISH' : 'NONE';
+    // Do not restart the same-direction cycle on every incremental higher-high /
+    // lower-low candle. Only a first breakout or an opposite-direction breakout
+    // starts a new monitoring cycle.
+    if (breakoutDirection !== 'NONE' && (!state || state.direction !== breakoutDirection)) {
+      state = {
+        direction: breakoutDirection,
+        breakoutIndex: i, breakoutPrice: candle.close, breakoutTime: candle.closeTime,
+        divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0,
+        extreme: bullishBreakout ? candle.high : candle.low,
+        previousPivotPrice: null as number | null, previousPivotRSI: null as number | null,
+        lastProgressionExtreme: bullishBreakout ? candle.high : candle.low,
+        latestDivergence: null as any
+      };
+      continue;
+    }
+    if (!state) continue;
+
+    if (state.direction === 'BULLISH') state.extreme = Math.max(state.extreme, candle.high);
+    else state.extreme = Math.min(state.extreme, candle.low);
+
+    // A pivot at i-2 becomes confirmed only after its two right-side candles close.
+    const pivotIndex = i - 2;
+    if (pivotIndex <= state.breakoutIndex || pivotIndex < 2) continue;
+    const pivot = completed[pivotIndex];
+    const pivotRsi = rsi[pivotIndex];
+    if (!Number.isFinite(pivotRsi)) continue;
+
+    if (state.direction === 'BULLISH') {
+      const isSwingHigh = pivot.high > completed[pivotIndex - 1].high &&
+        pivot.high > completed[pivotIndex - 2].high &&
+        pivot.high >= completed[pivotIndex + 1].high &&
+        pivot.high >= completed[pivotIndex + 2].high;
+      if (!isSwingHigh) continue;
+      if (state.previousPivotPrice !== null && state.previousPivotRSI !== null) {
+        const higherHigh = pivot.high > state.previousPivotPrice;
+        const lowerRsiHigh = pivotRsi < state.previousPivotRSI;
+        if (higherHigh && lowerRsiHigh) {
+          state.divergenceCount++;
+          state.latestDivergence = { type: 'BEARISH', price: pivot.high, rsi: pivotRsi, timestamp: pivot.closeTime };
+        }
+        if (state.divergenceCount > 0 && pivot.high > state.lastProgressionExtreme) {
+          if (!(higherHigh && lowerRsiHigh)) state.newExtremesAfterDivergence++;
+        }
+        if (higherHigh) state.priceProgressionCount++;
+        state.lastProgressionExtreme = Math.max(state.lastProgressionExtreme, pivot.high);
+      }
+      state.previousPivotPrice = pivot.high;
+      state.previousPivotRSI = pivotRsi;
+    } else {
+      const isSwingLow = pivot.low < completed[pivotIndex - 1].low &&
+        pivot.low < completed[pivotIndex - 2].low &&
+        pivot.low <= completed[pivotIndex + 1].low &&
+        pivot.low <= completed[pivotIndex + 2].low;
+      if (!isSwingLow) continue;
+      if (state.previousPivotPrice !== null && state.previousPivotRSI !== null) {
+        const lowerLow = pivot.low < state.previousPivotPrice;
+        const higherRsiLow = pivotRsi > state.previousPivotRSI;
+        if (lowerLow && higherRsiLow) {
+          state.divergenceCount++;
+          state.latestDivergence = { type: 'BULLISH', price: pivot.low, rsi: pivotRsi, timestamp: pivot.closeTime };
+        }
+        if (state.divergenceCount > 0 && pivot.low < state.lastProgressionExtreme) {
+          if (!(lowerLow && higherRsiLow)) state.newExtremesAfterDivergence++;
+        }
+        if (lowerLow) state.priceProgressionCount++;
+        state.lastProgressionExtreme = Math.min(state.lastProgressionExtreme, pivot.low);
+      }
+      state.previousPivotPrice = pivot.low;
+      state.previousPivotRSI = pivotRsi;
+    }
+  }
+
+  if (!state) return { ...empty, available: true, status: 'NO CONFIRMED BREAKOUT', reason: `No completed candle closed beyond the previous ${lookback}-candle range.` };
+  return {
+    available: true, status: state.divergenceCount > 0 ? 'DIVERGENCE AFTER BREAKOUT' : 'BREAKOUT MONITORING',
+    breakoutDirection: state.direction, breakoutPrice: state.breakoutPrice, breakoutTime: state.breakoutTime,
+    divergenceType: state.direction === 'BULLISH' ? 'BEARISH' : 'BULLISH',
+    divergenceCount: state.divergenceCount, priceProgressionCount: state.priceProgressionCount,
+    newExtremesAfterDivergence: state.newExtremesAfterDivergence, extremeSinceBreakout: state.extreme,
+    latestDivergence: state.latestDivergence,
+    reason: state.direction === 'BULLISH'
+      ? 'After a confirmed bullish range breakout, counts bearish RSI lower-high divergence against higher price swing highs.'
+      : 'After a confirmed bearish range breakdown, counts bullish RSI higher-low divergence against lower price swing lows.'
+  };
+}
+
 
 /**
  * Generic OHLCV accumulation heuristic adapted from the user's reference scanner.
@@ -2811,7 +2931,7 @@ const requestedTimeframes = [...alignmentTimeframes, '1h'] as const;
 const loadedTimeframes = await Promise.all(requestedTimeframes.map(async (tf) => {
   if (tf === interval) return { tf, tfCandles: candles, error: null as string | null };
   try {
-    const tfRaw = await fetchKlines(symbol, tf, `${symbol} ${tf} metrics klines`, tf === '1h' ? 30 : 500);
+    const tfRaw = await fetchKlines(symbol, tf, `${symbol} ${tf} metrics klines`, tf === '1h' ? 200 : 500);
     const tfCandles: Candle[] = tfRaw.map((c: any) => ({
       timestamp: +c[0], open: +c[1], high: +c[2], low: +c[3],
       close: +c[4], volume: +c[5], closeTime: +c[6]
@@ -2855,7 +2975,14 @@ for (const loaded of loadedTimeframes) {
   await delay(0);
   if (!isMounted) throw new Error('Scanner stopped');
   const tf = loaded.tf;
-  if (tf === '1h') continue; // 1h is fetched with 30 candles for accumulation only.
+  if (tf === '1h') {
+    multiTimeframeAlignment['1h'] = {
+      breakoutDivergenceTracker: loaded.error
+        ? { available: false, status: 'DATA UNAVAILABLE', breakoutDirection: 'NONE', divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0, reason: loaded.error }
+        : detectBreakoutDivergenceTracker(loaded.tfCandles)
+    };
+    continue;
+  }
   try {
     const minimumCandles = tf === '1M' ? 15 : 200;
     if (loaded.error || loaded.tfCandles.length < minimumCandles) {
@@ -2867,6 +2994,9 @@ for (const loaded of loadedTimeframes) {
     const tfOpens = tfCandles.map(c => c.open);
     const tfHighs = tfCandles.map(c => c.high);
     const tfLows = tfCandles.map(c => c.low);
+    const breakoutDivergenceTracker = ['15m', '4h'].includes(tf)
+      ? detectBreakoutDivergenceTracker(tfCandles)
+      : null;
 
     // Reuse selected-timeframe indicator arrays instead of calculating them twice.
     const tfEMA14 = tf === interval ? ema14 : calculateEMA(tfCloses, 14);
@@ -3102,6 +3232,7 @@ for (const loaded of loadedTimeframes) {
       aligned,
       bullishBreakout,
       bearishBreakout,
+      breakoutDivergenceTracker,
       latestRSI14: Number.isFinite(latestRSI14) ? latestRSI14 : null,
       rsi14Zone,
       ema100CurrentTouch,
@@ -3121,6 +3252,7 @@ for (const loaded of loadedTimeframes) {
     multiTimeframeAlignment[tf] = {
       mainTrend: null, positionSignal: null, countertrendType: 'N/A', previousClose: null,
       alignment: 'N/A', aligned: null, bullishBreakout: null, bearishBreakout: null,
+      breakoutDivergenceTracker: { available: false, status: 'DATA UNAVAILABLE', breakoutDirection: 'NONE', divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0, reason: err?.message || 'Data unavailable' },
       latestRSI14: null, rsi14Zone: 'N/A',
       ema100CurrentTouch: null, ema100PreviousTouch: null,
       ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null, previousSessionHigh: null, previousSessionLow: null,
@@ -5073,6 +5205,43 @@ latestRSI,
       className="px-2 py-1 rounded border border-gray-600 disabled:opacity-30 hover:bg-gray-700">Last</button>
   </div>
 </div>
+
+<section className="mb-4 rounded-lg border border-indigo-700/70 bg-gray-900/70 p-3">
+  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+    <div>
+      <h3 className="text-sm font-bold text-indigo-200">Breakout–Divergence Tracker (15m / 1H / 4H)</h3>
+      <p className="text-[11px] text-gray-400">Completed-candle breakouts; confirmed 2-left/2-right RSI14 swing divergences after breakout. Uses existing scanner candle data.</p>
+    </div>
+    <div className="flex gap-2 text-[10px]">
+      <span className="rounded border border-green-700 px-2 py-1 text-green-300">Bullish breakout → bearish divergence</span>
+      <span className="rounded border border-red-700 px-2 py-1 text-red-300">Bearish breakout → bullish divergence</span>
+    </div>
+  </div>
+  <div className="overflow-auto max-h-[360px]">
+    <table className="w-full min-w-[1050px] text-[11px] border-collapse">
+      <thead className="sticky top-0 bg-gray-800 text-indigo-200"><tr>
+        <th className="p-2 text-left">Symbol</th><th className="p-2">TF</th><th className="p-2">Breakout</th><th className="p-2">Breakout Price</th>
+        <th className="p-2">Opposite Divergences</th><th className="p-2">Price Progressions</th><th className="p-2">New Extremes After Divergence</th><th className="p-2">Extreme Since Breakout</th><th className="p-2">Latest Divergence</th>
+      </tr></thead>
+      <tbody>
+        {signals.flatMap((s: any) => ['15m', '1h', '4h'].map(tf => ({ symbol: s.symbol, tf, tracker: s.multiTimeframeAlignment?.[tf]?.breakoutDivergenceTracker })))
+          .filter((row: any) => row.tracker?.available && row.tracker?.breakoutDirection && row.tracker.breakoutDirection !== 'NONE')
+          .sort((a: any, b: any) => Number(b.tracker.breakoutTime || 0) - Number(a.tracker.breakoutTime || 0))
+          .map((row: any) => { const t = row.tracker; const bullish = t.breakoutDirection === 'BULLISH'; return <tr key={`${row.symbol}-${row.tf}`} className="border-t border-gray-800 hover:bg-gray-800/60">
+            <td className="p-2 font-semibold text-white">{row.symbol}</td><td className="p-2 text-center">{row.tf.toUpperCase()}</td>
+            <td className={`p-2 text-center font-bold ${bullish ? 'text-green-300' : 'text-red-300'}`}>{t.breakoutDirection}</td>
+            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.breakoutPrice) ? Number(t.breakoutPrice).toPrecision(8) : 'N/A'}</td>
+            <td className="p-2 text-center font-bold text-yellow-300">{t.divergenceType} × {t.divergenceCount}</td>
+            <td className="p-2 text-center tabular-nums">{t.priceProgressionCount}</td>
+            <td className="p-2 text-center tabular-nums">{t.newExtremesAfterDivergence}</td>
+            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.extremeSinceBreakout) ? Number(t.extremeSinceBreakout).toPrecision(8) : 'N/A'}</td>
+            <td className="p-2 text-center">{t.latestDivergence ? `${t.latestDivergence.type} · RSI ${Number(t.latestDivergence.rsi).toFixed(1)} · ${new Date(t.latestDivergence.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}` : 'None yet'}</td>
+          </tr>; })}
+        {signals.every((s: any) => !['15m', '1h', '4h'].some(tf => { const t = s.multiTimeframeAlignment?.[tf]?.breakoutDivergenceTracker; return t?.available && t.breakoutDirection && t.breakoutDirection !== 'NONE'; })) && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No confirmed 15m / 1H / 4H breakout cycles in the currently analyzed symbols.</td></tr>}
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse min-w-[1420px]">
