@@ -2976,11 +2976,9 @@ for (const loaded of loadedTimeframes) {
   if (!isMounted) throw new Error('Scanner stopped');
   const tf = loaded.tf;
   if (tf === '1h') {
-    multiTimeframeAlignment['1h'] = {
-      breakoutDivergenceTracker: loaded.error
-        ? { available: false, status: 'DATA UNAVAILABLE', breakoutDirection: 'NONE', divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0, reason: loaded.error }
-        : detectBreakoutDivergenceTracker(loaded.tfCandles)
-    };
+    // 1H remains available for the existing accumulation calculation only.
+    // Breakout–divergence monitoring is intentionally 15M-only.
+    multiTimeframeAlignment['1h'] = {};
     continue;
   }
   try {
@@ -2994,7 +2992,7 @@ for (const loaded of loadedTimeframes) {
     const tfOpens = tfCandles.map(c => c.open);
     const tfHighs = tfCandles.map(c => c.high);
     const tfLows = tfCandles.map(c => c.low);
-    const breakoutDivergenceTracker = ['15m', '4h'].includes(tf)
+    const breakoutDivergenceTracker = tf === '15m'
       ? detectBreakoutDivergenceTracker(tfCandles)
       : null;
 
@@ -3232,7 +3230,7 @@ for (const loaded of loadedTimeframes) {
       aligned,
       bullishBreakout,
       bearishBreakout,
-      breakoutDivergenceTracker,
+      breakoutDivergenceTracker: tf === '15m' ? breakoutDivergenceTracker : null,
       latestRSI14: Number.isFinite(latestRSI14) ? latestRSI14 : null,
       rsi14Zone,
       ema100CurrentTouch,
@@ -3252,7 +3250,7 @@ for (const loaded of loadedTimeframes) {
     multiTimeframeAlignment[tf] = {
       mainTrend: null, positionSignal: null, countertrendType: 'N/A', previousClose: null,
       alignment: 'N/A', aligned: null, bullishBreakout: null, bearishBreakout: null,
-      breakoutDivergenceTracker: { available: false, status: 'DATA UNAVAILABLE', breakoutDirection: 'NONE', divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0, reason: err?.message || 'Data unavailable' },
+      breakoutDivergenceTracker: tf === '15m' ? { available: false, status: 'DATA UNAVAILABLE', breakoutDirection: 'NONE', divergenceCount: 0, priceProgressionCount: 0, newExtremesAfterDivergence: 0, reason: err?.message || 'Data unavailable' } : null,
       latestRSI14: null, rsi14Zone: 'N/A',
       ema100CurrentTouch: null, ema100PreviousTouch: null,
       ema200CurrentTouch: null, ema200PreviousTouch: null, latestCrossover: null, previousSessionHigh: null, previousSessionLow: null,
@@ -5206,42 +5204,7 @@ latestRSI,
   </div>
 </div>
 
-<section className="mb-4 rounded-lg border border-indigo-700/70 bg-gray-900/70 p-3">
-  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-    <div>
-      <h3 className="text-sm font-bold text-indigo-200">Breakout–Divergence Tracker (15m / 1H / 4H)</h3>
-      <p className="text-[11px] text-gray-400">Completed-candle breakouts; confirmed 2-left/2-right RSI14 swing divergences after breakout. Uses existing scanner candle data.</p>
-    </div>
-    <div className="flex gap-2 text-[10px]">
-      <span className="rounded border border-green-700 px-2 py-1 text-green-300">Bullish breakout → bearish divergence</span>
-      <span className="rounded border border-red-700 px-2 py-1 text-red-300">Bearish breakout → bullish divergence</span>
-    </div>
-  </div>
-  <div className="overflow-auto max-h-[360px]">
-    <table className="w-full min-w-[1050px] text-[11px] border-collapse">
-      <thead className="sticky top-0 bg-gray-800 text-indigo-200"><tr>
-        <th className="p-2 text-left">Symbol</th><th className="p-2">TF</th><th className="p-2">Breakout</th><th className="p-2">Breakout Price</th>
-        <th className="p-2">Opposite Divergences</th><th className="p-2">Price Progressions</th><th className="p-2">New Extremes After Divergence</th><th className="p-2">Extreme Since Breakout</th><th className="p-2">Latest Divergence</th>
-      </tr></thead>
-      <tbody>
-        {signals.flatMap((s: any) => ['15m', '1h', '4h'].map(tf => ({ symbol: s.symbol, tf, tracker: s.multiTimeframeAlignment?.[tf]?.breakoutDivergenceTracker })))
-          .filter((row: any) => row.tracker?.available && row.tracker?.breakoutDirection && row.tracker.breakoutDirection !== 'NONE')
-          .sort((a: any, b: any) => Number(b.tracker.breakoutTime || 0) - Number(a.tracker.breakoutTime || 0))
-          .map((row: any) => { const t = row.tracker; const bullish = t.breakoutDirection === 'BULLISH'; return <tr key={`${row.symbol}-${row.tf}`} className="border-t border-gray-800 hover:bg-gray-800/60">
-            <td className="p-2 font-semibold text-white">{row.symbol}</td><td className="p-2 text-center">{row.tf.toUpperCase()}</td>
-            <td className={`p-2 text-center font-bold ${bullish ? 'text-green-300' : 'text-red-300'}`}>{t.breakoutDirection}</td>
-            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.breakoutPrice) ? Number(t.breakoutPrice).toPrecision(8) : 'N/A'}</td>
-            <td className="p-2 text-center font-bold text-yellow-300">{t.divergenceType} × {t.divergenceCount}</td>
-            <td className="p-2 text-center tabular-nums">{t.priceProgressionCount}</td>
-            <td className="p-2 text-center tabular-nums">{t.newExtremesAfterDivergence}</td>
-            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.extremeSinceBreakout) ? Number(t.extremeSinceBreakout).toPrecision(8) : 'N/A'}</td>
-            <td className="p-2 text-center">{t.latestDivergence ? `${t.latestDivergence.type} · RSI ${Number(t.latestDivergence.rsi).toFixed(1)} · ${new Date(t.latestDivergence.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}` : 'None yet'}</td>
-          </tr>; })}
-        {signals.every((s: any) => !['15m', '1h', '4h'].some(tf => { const t = s.multiTimeframeAlignment?.[tf]?.breakoutDivergenceTracker; return t?.available && t.breakoutDirection && t.breakoutDirection !== 'NONE'; })) && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No confirmed 15m / 1H / 4H breakout cycles in the currently analyzed symbols.</td></tr>}
-      </tbody>
-    </table>
-  </div>
-</section>
+
 
 <div className="overflow-auto max-h-[80vh] border border-gray-700 rounded">
   <table className="w-full text-[11px] border-collapse min-w-[1420px]">
@@ -6046,6 +6009,42 @@ latestRSI,
         </div>
       </>}
     </section>
+
+    <section className="mt-6 border border-indigo-700/70 rounded-lg p-3 bg-gray-900/70">
+  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+    <div>
+      <h3 className="text-sm font-bold text-indigo-200">Table 7 — 15m Breakout–Divergence Tracker</h3>
+      <p className="text-[11px] text-gray-400">15m completed-candle breakouts; confirmed 2-left/2-right RSI14 swing divergences after breakout. Follows Table 1 filters, search, sort order and Favorites view. Uses existing 15m scanner candles.</p>
+    </div>
+    <div className="flex gap-2 text-[10px]">
+      <span className="rounded border border-green-700 px-2 py-1 text-green-300">Bullish breakout → bearish divergence</span>
+      <span className="rounded border border-red-700 px-2 py-1 text-red-300">Bearish breakout → bullish divergence</span>
+    </div>
+  </div>
+  <div className="overflow-auto max-h-[360px]">
+    <table className="w-full min-w-[1050px] text-[11px] border-collapse">
+      <thead className="sticky top-0 bg-gray-800 text-indigo-200"><tr>
+        <th className="p-2 text-left">Symbol</th><th className="p-2">TF</th><th className="p-2">Breakout</th><th className="p-2">Breakout Price</th>
+        <th className="p-2">Opposite Divergences</th><th className="p-2">Price Progressions</th><th className="p-2">New Extremes After Divergence</th><th className="p-2">Extreme Since Breakout</th><th className="p-2">Latest Divergence</th>
+      </tr></thead>
+      <tbody>
+        {filteredAndSortedSignals.map((s: any) => ({ symbol: s.symbol, tf: '15m', tracker: s.multiTimeframeAlignment?.['15m']?.breakoutDivergenceTracker }))
+          .filter((row: any) => row.tracker?.available && row.tracker?.breakoutDirection && row.tracker.breakoutDirection !== 'NONE')
+          .map((row: any) => { const t = row.tracker; const bullish = t.breakoutDirection === 'BULLISH'; return <tr key={`${row.symbol}-${row.tf}`} className="border-t border-gray-800 hover:bg-gray-800/60">
+            <td className="p-2 font-semibold text-white"><button type="button" onClick={() => toggleFavorite(row.symbol)} className={`mr-1 ${favorites.has(row.symbol) ? 'text-yellow-300' : 'text-gray-500 hover:text-yellow-300'}`} aria-label={favorites.has(row.symbol) ? `Remove ${row.symbol} from favorites` : `Add ${row.symbol} to favorites`}>{favorites.has(row.symbol) ? '★' : '☆'}</button>{row.symbol}</td><td className="p-2 text-center">{row.tf.toUpperCase()}</td>
+            <td className={`p-2 text-center font-bold ${bullish ? 'text-green-300' : 'text-red-300'}`}>{t.breakoutDirection}</td>
+            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.breakoutPrice) ? Number(t.breakoutPrice).toPrecision(8) : 'N/A'}</td>
+            <td className="p-2 text-center font-bold text-yellow-300">{t.divergenceType} × {t.divergenceCount}</td>
+            <td className="p-2 text-center tabular-nums">{t.priceProgressionCount}</td>
+            <td className="p-2 text-center tabular-nums">{t.newExtremesAfterDivergence}</td>
+            <td className="p-2 text-center tabular-nums">{Number.isFinite(t.extremeSinceBreakout) ? Number(t.extremeSinceBreakout).toPrecision(8) : 'N/A'}</td>
+            <td className="p-2 text-center">{t.latestDivergence ? `${t.latestDivergence.type} · RSI ${Number(t.latestDivergence.rsi).toFixed(1)} · ${new Date(t.latestDivergence.timestamp).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}` : 'None yet'}</td>
+          </tr>; })}
+        {!filteredAndSortedSignals.some((s: any) => { const t = s.multiTimeframeAlignment?.['15m']?.breakoutDivergenceTracker; return t?.available && t.breakoutDirection && t.breakoutDirection !== 'NONE'; }) && <tr><td colSpan={9} className="p-4 text-center text-gray-500">No confirmed 15m breakout cycles among the symbols currently visible in Table 1.</td></tr>}
+      </tbody>
+    </table>
+  </div>
+</section>
 
     </div>                    
   );
