@@ -1924,17 +1924,24 @@ const [ema70200CrossFilter, setEma70200CrossFilter] = useState<'all' | 'bullish'
 
 
 
-const getPumpDump = (s: any) => s?.rsi14 ? getRecentRSIDiff(s.rsi14, 14) : null;
-const getSignalValue = (s: any) => getSignal(s)?.trim() || 'NO DATA';
-const isPumpZoneSignal = (signal: string) => /\bPUMP$/.test(signal);
-const isDumpZoneSignal = (signal: string) => /\bDUMP$/.test(signal);
+const getPumpDump = (s: any) =>
+  Array.isArray(s?.rsi14) ? getRecentRSIDiff(s.rsi14, 14) : null;
+const getSignalValue = (s: any) => getSignal(s)?.trim().toUpperCase() || 'NO DATA';
+// "No signal" is side-specific: an unqualified dump is NOT a pump-no-signal
+// event, and an unqualified pump is NOT a dump-no-signal event.
 const matchesSignalFilter = (s: any, filter: string) => {
-  const signal = getSignalValue(s).toUpperCase();
+  const signal = getSignalValue(s);
+  const pumpDump = getPumpDump(s);
+  if (!pumpDump) return false;
+
   if (filter === 'PUMP NO SIGNAL') {
-    return Boolean(getPumpDump(s)) && !isPumpZoneSignal(signal);
+    return pumpDump.direction === 'pump' && signal === 'NO STRONG SIGNAL';
   }
   if (filter === 'DUMP NO SIGNAL') {
-    return Boolean(getPumpDump(s)) && !isDumpZoneSignal(signal);
+    return pumpDump.direction === 'dump' && signal === 'NO STRONG SIGNAL';
+  }
+  if (filter === 'NO STRONG SIGNAL') {
+    return signal === 'NO STRONG SIGNAL';
   }
   return signal === filter;
 };
@@ -2565,13 +2572,17 @@ const signalCounts = useMemo(() => {
     lowestZoneDump: 0,
     pumpNoSignal: 0,
     dumpNoSignal: 0,
+    noStrongSignal: 0,
   };
 
   signals.forEach((s: any) => {
-    const signal = getSignal(s)?.trim().toUpperCase();
-    const hasPumpDumpData = Boolean(getPumpDump(s));
-    if (hasPumpDumpData && !isPumpZoneSignal(signal)) counts.pumpNoSignal++;
-    if (hasPumpDumpData && !isDumpZoneSignal(signal)) counts.dumpNoSignal++;
+    const signal = getSignalValue(s);
+    const pumpDump = getPumpDump(s);
+    if (pumpDump && signal === 'NO STRONG SIGNAL') {
+      counts.noStrongSignal++;
+      if (pumpDump.direction === 'pump') counts.pumpNoSignal++;
+      if (pumpDump.direction === 'dump') counts.dumpNoSignal++;
+    }
 
     switch (signal) {
       case 'MAX ZONE PUMP':
@@ -4975,6 +4986,12 @@ latestRSI,
     key: 'DUMP NO SIGNAL',
     count: signalCounts.dumpNoSignal,
     color: 'text-orange-300',
+  },
+  {
+    label: 'NO STRONG SIGNAL',
+    key: 'NO STRONG SIGNAL',
+    count: signalCounts.noStrongSignal,
+    color: 'text-gray-300',
   },
 
         ].map(({ label, key, count, color }) => (
